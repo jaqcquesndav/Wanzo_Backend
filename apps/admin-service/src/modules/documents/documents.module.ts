@@ -1,19 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Document } from './entities/document.entity';
-import { DocumentService } from './services/document.service';
-import { DocumentController } from './controllers/document.controller';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { ActivitiesModule } from '../activities/activities.module';
+import { DocumentsController } from './controllers';
+import { DocumentsService } from './services';
+import { Document, DocumentFolder } from './entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Document]),
-    NotificationsModule,
-    ActivitiesModule,
+    TypeOrmModule.forFeature([DocumentFolder, Document]) // Changed order: DocumentFolder first
   ],
-  providers: [DocumentService],
-  controllers: [DocumentController],
-  exports: [DocumentService],
+  controllers: [DocumentsController],
+  providers: [DocumentsService],
+  exports: [DocumentsService]
 })
 export class DocumentsModule {}

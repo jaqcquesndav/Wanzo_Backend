@@ -1,17 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Setting } from './entities/setting.entity';
-import { SettingService } from './services/setting.service';
-import { SettingController } from './controllers/setting.controller';
-import { ActivitiesModule } from '../activities/activities.module';
+import * as entities from './entities';
+import { SettingsController } from './controllers';
+import { SettingsService } from './services';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Setting]),
-    ActivitiesModule,
+    TypeOrmModule.forFeature(Object.values(entities)),
+    MulterModule.register({
+      dest: './uploads', // Temporary storage for avatars
+    })
   ],
-  providers: [SettingService],
-  controllers: [SettingController],
-  exports: [SettingService],
+  controllers: [SettingsController],
+  providers: [SettingsService],
+  exports: [SettingsService]
 })
 export class SettingsModule {}

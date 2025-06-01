@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common'; // Import forwardRef
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Company } from './entities/company.entity';
 import { CompanyService } from './company.service';
 import { CompanyController } from './company.controller';
-import { AuthModule } from '../auth/auth.module'; // Import AuthModule if CurrentUser decorator or JwtAuthGuard is used
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Company]),
-    AuthModule, // Needed for @CurrentUser and @JwtAuthGuard in CompanyController
+    forwardRef(() => AuthModule), // Use forwardRef here for AuthModule
   ],
   providers: [CompanyService],
   controllers: [CompanyController],
-  exports: [CompanyService], // Export CompanyService if it needs to be used by other modules (e.g., AuthService)
+  exports: [CompanyService],
 })
 export class CompanyModule {}

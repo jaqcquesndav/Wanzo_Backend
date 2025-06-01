@@ -6,7 +6,7 @@ import { AuthService } from '../services/auth.service';
 export class AuthMiddleware implements NestMiddleware {
   constructor(private authService: AuthService) {}
 
-  async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       throw new UnauthorizedException('No token provided');

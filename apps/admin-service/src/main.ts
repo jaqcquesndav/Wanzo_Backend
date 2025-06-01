@@ -1,11 +1,16 @@
-import './tracing';
+import './tracing'; // Tracing setup runs on import
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import helmet from 'helmet';
+import { ConfigService } from '@nestjs/config';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+// import { LoggingInterceptor } from './common/interceptors/logging.interceptor'; // Commented out
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+// import { TracingInterceptor } from './common/interceptors/tracing.interceptor'; // Commented out
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import helmet from 'helmet';
 
 async function bootstrap() {
   // Configure Winston logger
@@ -15,8 +20,8 @@ async function bootstrap() {
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.colorize(),
-          winston.format.printf(({ timestamp, level, message }) => {
-            return `${timestamp} [${level}]: ${message}`;
+          winston.format.printf((info: winston.Logform.TransformableInfo) => {
+            return `${info.timestamp} [${info.level}]: ${info.message}`;
           }),
         ),
       }),
@@ -26,12 +31,16 @@ async function bootstrap() {
 
   // **On ne crée qu'une seule application** basée sur AppModule
   const app = await NestFactory.create(AppModule, { logger });
-  
+  const configService = app.get(ConfigService);
+
   // Enable versioning
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+
+  // Global prefix
+  app.setGlobalPrefix('api');
 
   // Security middleware
   app.use(helmet());
@@ -60,20 +69,28 @@ async function bootstrap() {
     validationError: { target: false },
   }));
 
-  // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Kiota Admin Service API')
-    .setDescription('The Kiota Admin Service API documentation')
+  // Global Filters
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Global Interceptors
+  app.useGlobalInterceptors(
+    // new LoggingInterceptor(), // Commented out
+    new TimeoutInterceptor(),
+    // new TracingInterceptor(), // Commented out
+  );
+
+  // Swagger API Documentation
+  const options = new DocumentBuilder()
+    .setTitle('Admin Service API')
+    .setDescription('API documentation for the Admin Service')
     .setVersion('1.0')
     .addBearerAuth()
-    // .addTag(...) etc.
     .build();
+  const document = SwaggerModule.createDocument(app, options);
+  SwaggerModule.setup('api-docs', app, document);
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
-
-  // **Plus de second NestFactory.create(...)**
-  // On écoute sur 3001 :
-  await app.listen(3001);
+  const port = configService.get<number>('PORT', 3000);
+  await app.listen(port);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

@@ -1,115 +1,313 @@
-import { IsString, IsEmail, IsArray, IsOptional, ValidateNested, IsUUID, IsEnum } from 'class-validator';
+import { 
+  IsString, 
+  IsEmail, 
+  IsEnum, 
+  IsOptional, 
+  IsUUID, 
+  IsPhoneNumber, 
+  IsBoolean, 
+  IsArray, 
+  IsDateString, 
+  ValidateNested,
+  MinLength,
+  Matches,
+  ArrayMinSize,
+  IsNumber,
+  Min,
+  Max
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserRole, UserStatus, UserType } from '../entities/enums';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  SUPERADMIN = 'superadmin',
-  USER = 'user',
-  MANAGER = 'manager',
-  ACCOUNTANT = 'accountant',
-  VIEWER = 'viewer',
-}
-
-class PermissionDto {
-  @ApiProperty({ description: 'Application identifier' })
-  @IsString()
-  application!: string;
-
-  @ApiProperty({ description: 'Access level' })
-  @IsString()
-  access!: string;
+// User DTOs
+export class UserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  userType: UserType;
+  customerAccountId?: string;
+  status: UserStatus;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  lastLogin?: Date;
+  permissions?: string[];
+  departement?: string;
+  phoneNumber?: string;
+  isTwoFactorEnabled: boolean;
 }
 
 export class CreateUserDto {
-  @ApiProperty({ description: 'User full name' })
   @IsString()
-  name!: string;
+  name: string;
 
-  @ApiProperty({ description: 'User email address' })
   @IsEmail()
-  email!: string;
+  email: string;
 
-  @ApiProperty({ description: 'User password' })
-  @IsString()
-  password!: string;
-
-  @ApiProperty({ description: 'User role', enum: UserRole })
   @IsEnum(UserRole)
-  role!: UserRole;
+  role: UserRole;
 
-  @ApiProperty({ description: 'User permissions', type: [PermissionDto] })
+  @IsEnum(UserType)
+  userType: UserType;
+
+  @IsOptional()
+  @IsString()
+  customerAccountId?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PermissionDto)
-  permissions!: PermissionDto[];
+  @IsString({ each: true })
+  permissions?: string[];
 
-  @ApiProperty({ description: 'User company ID' })
-  @IsUUID()
-  companyId!: string;
-
-  @ApiPropertyOptional({ description: 'User phone number' })
   @IsOptional()
   @IsString()
-  phone?: string;
+  departement?: string;
 
-  @ApiPropertyOptional({ description: 'User profile picture URL' })
   @IsOptional()
+  @IsPhoneNumber()
+  phoneNumber?: string;
+
   @IsString()
-  profilePicture?: string;
+  @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
+    message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+  })
+  password: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isTwoFactorEnabled?: boolean;
 }
 
 export class UpdateUserDto {
-  @ApiPropertyOptional({ description: 'User full name' })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'User role', enum: UserRole })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
 
-  @ApiPropertyOptional({ description: 'User permissions', type: [PermissionDto] })
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PermissionDto)
-  permissions?: PermissionDto[];
+  @IsString({ each: true })
+  permissions?: string[];
 
-  @ApiPropertyOptional({ description: 'User phone number' })
   @IsOptional()
   @IsString()
-  phone?: string;
+  departement?: string;
 
-  @ApiPropertyOptional({ description: 'User profile picture URL' })
   @IsOptional()
-  @IsString()
-  profilePicture?: string;
+  @IsPhoneNumber()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isTwoFactorEnabled?: boolean;
 }
 
-export class InviteUserDto {
-  @ApiProperty({ description: 'User email address' })
-  @IsEmail()
-  email!: string;
-
-  @ApiProperty({ description: 'User full name' })
+export class UserQueryParamsDto {
+  @IsOptional()
   @IsString()
-  name!: string;
+  search?: string;
 
-  @ApiProperty({ description: 'User role', enum: UserRole })
+  @IsOptional()
   @IsEnum(UserRole)
-  role!: UserRole;
+  role?: UserRole;
 
-  @ApiPropertyOptional({ description: 'User permissions', type: [PermissionDto] })
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PermissionDto)
-  permissions?: PermissionDto[];
+  @IsEnum(UserType)
+  userType?: UserType;
 
-  @ApiPropertyOptional({ description: 'User phone number' })
   @IsOptional()
   @IsString()
-  phone?: string;
+  customerAccountId?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+}
+
+export class UsersResponseDto {
+  users: UserDto[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+
+// User Session DTOs
+export class UserSessionDto {
+  id: string;
+  userId: string;
+  ipAddress: string;
+  userAgent: string;
+  lastActive: Date;
+  expiresAt: Date;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export class UserSessionsQueryDto {
+  @IsUUID()
+  userId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+}
+
+export class UserSessionsResponseDto {
+  sessions: UserSessionDto[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+// User Activity DTOs
+export class UserActivityDto {
+  id: string;
+  userId: string;
+  action: string;
+  ipAddress: string;
+  userAgent: string;
+  metadata?: Record<string, any>;
+  timestamp: Date;
+}
+
+export class UserActivityQueryDto {
+  @IsUUID()
+  userId: string;
+
+  @IsOptional()
+  @IsString()
+  action?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
+}
+
+export class UserActivityResponseDto {
+  activities: UserActivityDto[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+// Password Management DTOs
+export class ChangePasswordDto {
+  @IsUUID()
+  userId: string;
+
+  @IsString()
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
+    message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+  })
+  newPassword: string;
+
+  @IsString()
+  confirmPassword: string;
+}
+
+export class ResetPasswordRequestDto {
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  token: string;
+
+  @IsString()
+  @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
+    message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+  })
+  newPassword: string;
+
+  @IsString()
+  confirmPassword: string;
+}
+
+// Role Management DTOs
+export class RolePermissionsDto {
+  @IsString()
+  role: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  permissions: string[];
+}
+
+export class RolePermissionsUpdateDto {
+  @IsArray()
+  @IsString({ each: true })
+  permissions: string[];
+}
+
+export class GetAvailablePermissionsResponseDto {
+  permissions: { [category: string]: string[] };
 }

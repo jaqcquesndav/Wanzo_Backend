@@ -1,64 +1,95 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-
-export enum DocumentType {
-  RCCM = 'rccm',
-  IDNAT = 'idnat',
-  NIF = 'nif',
-  CNSS = 'cnss',
-  OTHER = 'other',
-}
+import { 
+  Entity, 
+  PrimaryGeneratedColumn, 
+  Column, 
+  CreateDateColumn, 
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm';
+import { DocumentFolder } from './document-folder.entity'; // Import DocumentFolder
 
 export enum DocumentStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  EXPIRED = 'expired',
+  DRAFT = 'draft',
+  UPLOADED = 'uploaded',
+  PROCESSING = 'processing',
+  VERIFIED = 'verified',
+  ARCHIVED = 'archived',
+  DELETED = 'deleted'
+}
+
+export enum DocumentType {
+  INVOICE = 'invoice',
+  CONTRACT = 'contract',
+  RECEIPT = 'receipt',
+  REPORT = 'report',
+  FORM = 'form',
+  LEGAL = 'legal',
+  OTHER = 'other'
 }
 
 @Entity('documents')
 export class Document {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column()
-  companyId!: string;
+  companyId: string;
 
   @Column()
-  type!: DocumentType;
+  name: string;
+
+  @Column({
+    type: 'enum',
+    enum: DocumentType,
+    default: DocumentType.OTHER
+  })
+  type: DocumentType;
+
+  @Column({ type: 'bigint' })
+  size: number; // in bytes
 
   @Column()
-  name!: string;
+  url: string;
+
+  @Column({
+    type: 'enum',
+    enum: DocumentStatus,
+    default: DocumentStatus.UPLOADED
+  })
+  status: DocumentStatus;
 
   @Column()
-  cloudinaryId!: string;
+  uploadedBy: string;
 
-  @Column()
-  url!: string;
-
-  @Column({ type: 'text', nullable: true })
-  description!: string;
-
-  @Column({ type: 'enum', enum: DocumentStatus, default: DocumentStatus.PENDING })
-  status!: DocumentStatus;
-
-  @Column({ nullable: true })
-  expiryDate!: Date;
-
-  @Column({ type: 'text', nullable: true })
-  rejectionReason!: string;
-
-  @Column({ type: 'jsonb', nullable: true })
-  metadata!: Record<string, any>;
-
-  @Column()
-  uploadedBy!: string;
-
-  @Column({ nullable: true })
-  reviewedBy!: string;
+  @Column('simple-json', { nullable: true })
+  metadata: Record<string, any>;
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  folderId: string;
+
+  @ManyToOne(() => DocumentFolder, folder => folder.documents, { nullable: true })
+  @JoinColumn({ name: 'folderId' })
+  folder: DocumentFolder;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ nullable: true })
+  mimeType: string;
+
+  @Column({ nullable: true })
+  thumbnail: string;
+
+  @Column({ default: false })
+  isPublic: boolean;
+
+  @Column({ nullable: true })
+  expiresAt: Date;
 }

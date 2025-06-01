@@ -28,7 +28,9 @@
     "@opentelemetry/sdk-node": "^0.48.0",
     "@opentelemetry/sdk-trace-base": "^1.18.1",
     "@opentelemetry/semantic-conventions": "^1.18.1",
-    "helmet": "^7.1.0"
+    "helmet": "^7.2.0",
+    "nest-winston": "^1.10.2",
+    "winston": "^3.17.0"
   },
   "engines": {
     "node": ">=18.0.0"

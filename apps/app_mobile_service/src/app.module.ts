@@ -24,7 +24,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'; // Adjust path if n
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`, // Optional
+      envFilePath: '.env', // Explicitly load .env from the service's root
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

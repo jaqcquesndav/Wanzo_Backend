@@ -1,6 +1,5 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common'; // Added Logger
 import { Request, Response, NextFunction } from 'express';
-import { ActivityService } from '../../modules/activities/services/activity.service';
 
 interface AuthenticatedUser {
   id: string;
@@ -13,7 +12,8 @@ interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  constructor(private activityService: ActivityService) {}
+  // Removed: constructor(private activityService: ActivityService) {}
+  constructor() {} // Added empty constructor
 
   async use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const startTime = Date.now();
@@ -22,20 +22,13 @@ export class LoggerMiddleware implements NestMiddleware {
       const duration = Date.now() - startTime;
       const { method, originalUrl, ip } = req;
 
-      if (req.user?.id) {
-        this.activityService.logUserActivity(
-          req.user.id,
-          'API_REQUEST',
-          `${method} ${originalUrl}`,
-          {
-            duration,
-            statusCode: res.statusCode,
-            userAgent: req.get('user-agent'),
-          },
-          ip,
-          req.get('user-agent'),
-        );
-      }
+      // Log basic request details using NestJS Logger
+      const userId = req.user?.id;
+      const userString = userId ? ` (User: ${userId})` : '';
+      Logger.log(
+        `${method} ${originalUrl} ${res.statusCode} - ${duration}ms - IP: ${ip || 'N/A'}${userString}`,
+        'HTTP',
+      );
     });
 
     next();
