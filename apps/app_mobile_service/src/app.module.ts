@@ -3,22 +3,22 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ProductsModule } from './products/products.module';
-import { CustomersModule } from './customers/customers.module'; // Added import
-import { SalesModule } from './sales/sales.module'; // Import SalesModule
-import { SubscriptionsModule } from './subscriptions/subscriptions.module'; // Import SubscriptionsModule
-import { AuthModule } from './auth/auth.module'; // Import AuthModule
-import { CompanyModule } from './company/company.module'; // Import CompanyModule
-import { SuppliersModule } from './suppliers/suppliers.module'; // Import SuppliersModule
-import { AdhaModule } from './adha/adha.module'; // Import AdhaModule
-import { ExpensesModule } from './expenses/expenses.module'; // Import ExpensesModule
-import { FinancingModule } from './financing/financing.module'; // Import FinancingModule
-import { NotificationsModule } from './notifications/notifications.module'; // Import NotificationsModule
-import { OperationJournalModule } from './operation-journal/operation-journal.module'; // Import OperationJournalModule
-import { SettingsUserProfileModule } from './settings-user-profile/settings-user-profile.module'; // Import SettingsUserProfileModule
-import { DocumentManagementModule } from './document-management/document-management.module'; // Import DocumentManagementModule
+import { ProductsModule } from './modules/products/products.module';
+import { CustomersModule } from './modules/customers/customers.module'; // Added import
+import { SalesModule } from './modules/sales/sales.module'; // Import SalesModule
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'; // Import SubscriptionsModule
+import { AuthModule } from './modules/auth/auth.module'; // Import AuthModule
+import { CompanyModule } from './modules/company/company.module'; // Import CompanyModule
+import { SuppliersModule } from './modules/suppliers/suppliers.module'; // Import SuppliersModule
+import { AdhaModule } from './modules/adha/adha.module'; // Import AdhaModule
+import { ExpensesModule } from './modules/expenses/expenses.module'; // Import ExpensesModule
+import { FinancingModule } from './modules/financing/financing.module'; // Import FinancingModule
+import { NotificationsModule } from './modules/notifications/notifications.module'; // Import NotificationsModule
+import { OperationJournalModule } from './modules/operation-journal/operation-journal.module'; // Import OperationJournalModule
+import { SettingsUserProfileModule } from './modules/settings-user-profile/settings-user-profile.module'; // Import SettingsUserProfileModule
+import { DocumentManagementModule } from './modules/document-management/document-management.module'; // Import DocumentManagementModule
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'; // Adjust path if needed
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'; // Adjusted path for new module structure
 
 @Module({
   imports: [
