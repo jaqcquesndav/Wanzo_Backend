@@ -17,7 +17,6 @@ export class RouteResolverService {
   }
   private readonly logger = new Logger(RouteResolverService.name);
   private readonly routes: ServiceRoute[];
-
   constructor(private configService: ConfigService) {
     this.routes = [
       {
@@ -35,6 +34,14 @@ export class RouteResolverService {
         healthCheck: '/health',
         scopes: ['admin:full', 'users:manage', 'settings:manage'],
         roles: ['admin', 'superadmin'],
+      },
+      {
+        service: 'app_mobile',
+        baseUrl: this.configService.get('APP_MOBILE_SERVICE_URL', 'http://localhost:3006'),
+        prefix: 'mobile',
+        healthCheck: '/health',
+        scopes: ['mobile:read', 'mobile:write'],
+        roles: ['user', 'admin'],
       },
       {
         service: 'analytics',

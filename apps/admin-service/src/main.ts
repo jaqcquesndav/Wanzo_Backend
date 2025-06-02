@@ -86,10 +86,9 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('api-docs', app, document);
+  const document = SwaggerModule.createDocument(app, options);  SwaggerModule.setup('api-docs', app, document);
 
-  const port = configService.get<number>('PORT', 3000);
+  const port = configService.get<number>('PORT', 3001); // Port par défaut 3001 pour admin-service
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

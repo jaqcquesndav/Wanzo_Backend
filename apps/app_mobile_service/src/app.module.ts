@@ -19,6 +19,7 @@ import { SettingsUserProfileModule } from './modules/settings-user-profile/setti
 import { DocumentManagementModule } from './modules/document-management/document-management.module'; // Import DocumentManagementModule
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'; // Adjusted path for new module structure
+import { HealthController } from './health.controller'; // Import HealthController
 
 @Module({
   imports: [
@@ -54,10 +55,9 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'; // Adjusted
     NotificationsModule, // Add NotificationsModule to imports
     OperationJournalModule, // Added OperationJournalModule
     SettingsUserProfileModule, // Added SettingsUserProfileModule
-    DocumentManagementModule, // Add DocumentManagementModule here
-    // ... other feature modules will be added here
+    DocumentManagementModule, // Add DocumentManagementModule here    // ... other feature modules will be added here
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
     {

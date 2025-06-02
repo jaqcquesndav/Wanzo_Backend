@@ -19,6 +19,9 @@ import { TokensModule } from './modules/tokens/tokens.module';
 // --- Import du module de monitoring ---
 import { MonitoringModule } from './monitoring/monitoring.module'; // Corrected path
 
+// --- Controllers ---
+import { HealthController } from './health.controller';
+
 // --- Middlewares, interceptors, filters, pipes ---
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -55,10 +58,10 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
     DocumentsModule,
     FinanceModule,
     SettingsModule,
-    SystemModule,
-    TokensModule,
+    SystemModule,    TokensModule,
     DashboardModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_FILTER,

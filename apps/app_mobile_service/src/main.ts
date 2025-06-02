@@ -21,9 +21,8 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document); // Swagger UI available at /api/docs
-
   // Add other global configurations: CORS, etc.
-  const port = process.env.PORT || 3000; // Port from API documentation, should be configurable
+  const port = process.env.PORT || 3006; // Port unique pour app_mobile_service
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
