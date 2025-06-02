@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
+    "@types/sanitize-html": "^2.16.0",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3"
   },
@@ -30,6 +31,7 @@
     "@opentelemetry/semantic-conventions": "^1.18.1",
     "helmet": "^7.2.0",
     "nest-winston": "^1.10.2",
+    "sanitize-html": "^2.17.0",
     "winston": "^3.17.0"
   },
   "engines": {
