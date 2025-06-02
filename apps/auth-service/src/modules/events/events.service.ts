@@ -6,7 +6,6 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventsService.name);
 
   constructor(@Inject('EVENTS_SERVICE') private readonly kafkaClient: ClientKafka) {}
-
   async onModuleInit() {
     try {
       await this.kafkaClient.connect();
