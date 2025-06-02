@@ -42,7 +42,9 @@ export class JwtBlacklistGuard implements CanActivate {
       request['user'] = payload;
       return true;
     } catch (error) {
-      this.logger.error(`JWT validation error: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown JWT validation error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`JWT validation error: ${errorMessage}`, errorStack);
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -61,7 +63,9 @@ export class JwtBlacklistGuard implements CanActivate {
           userId
         }).pipe(
           catchError((error) => {
-            this.logger.error(`Error checking token blacklist: ${error.message}`, error.stack);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error checking token blacklist';
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            this.logger.error(`Error checking token blacklist: ${errorMessage}`, errorStack);
             throw new UnauthorizedException('Error validating token');
           }),
         ),
@@ -69,7 +73,8 @@ export class JwtBlacklistGuard implements CanActivate {
       
       return response.data.blacklisted;
     } catch (error) {
-      this.logger.error(`Failed to check token blacklist: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error in checkTokenBlacklist';
+      this.logger.error(`Failed to check token blacklist: ${errorMessage}`);
       // Fail open or closed based on your security requirements
       // For higher security, return true (fail closed)
       return true;

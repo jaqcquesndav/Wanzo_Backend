@@ -30,7 +30,8 @@ export class UserEventsConsumer {
       }
 
       // Update user status
-      user.status = event.newStatus as any; // Assuming the status enum is compatible
+      // Assuming 'active' status in event maps to isActive = true, others to false
+      user.isActive = event.newStatus === 'active'; 
       
       // Add audit information
       user.updatedAt = event.timestamp;
@@ -38,7 +39,9 @@ export class UserEventsConsumer {
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated user ${event.userId} status to ${event.newStatus}`);
     } catch (error) {
-      this.logger.error(`Error handling user status change: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling user status change';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling user status change: ${errorMessage}`, errorStack);
     }
   }
 
@@ -63,7 +66,9 @@ export class UserEventsConsumer {
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated user ${event.userId} role to ${event.newRole}`);
     } catch (error) {
-      this.logger.error(`Error handling user role change: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling user role change';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling user role change: ${errorMessage}`, errorStack);
     }
   }
 }

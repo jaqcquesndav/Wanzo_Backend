@@ -4,7 +4,7 @@ import { Repository, LessThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventsService } from '../events/events.service';
 import { Institution, SubscriptionStatus } from '../institution/entities/institution.entity';
-import { EntityType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
+import { EntityType, SubscriptionStatusType, SubscriptionPlanType } from '@wanzo/shared/events/subscription-types';
 
 @Injectable()
 export class SubscriptionSchedulerService {
@@ -53,7 +53,7 @@ export class SubscriptionSchedulerService {
             userId: adminUserId,
             entityId: institution.id,
             entityType: EntityType.INSTITUTION,
-            newPlan: institution.subscriptionPlan,
+            newPlan: institution.subscriptionPlan as unknown as SubscriptionPlanType,
             status: SubscriptionStatusType.EXPIRED,
             timestamp: now,
             changedBy: 'system',
@@ -62,7 +62,11 @@ export class SubscriptionSchedulerService {
         }
       }
     } catch (error) {
-      this.logger.error(`Error checking for expired institution subscriptions: ${error.message}`, error.stack);
+      if (error instanceof Error) {
+        this.logger.error(`Error checking for expired institution subscriptions: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Error checking for expired institution subscriptions: An unknown error occurred`, error);
+      }
     }
   }
 }

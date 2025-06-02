@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TokenBlacklistService } from '../services/token-blacklist.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
+import { JwtAuthGuard } from '../../oidc/guards/jwt-auth.guard'; // Corrected path
+import { RolesGuard } from '../../oidc/guards/roles.guard'; // Corrected path
+import { Roles } from '../../oidc/decorators/roles.decorator'; // Corrected path
 
 @ApiTags('token')
 @Controller('token')

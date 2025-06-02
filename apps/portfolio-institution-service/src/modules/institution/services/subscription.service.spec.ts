@@ -1,7 +1,5 @@
-'''
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { SubscriptionService } from './subscription.service';
 import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/institution.entity';
 import { TokenEventHandler } from './token-event.handler';
@@ -16,9 +14,6 @@ const mockDate = new Date();
 
 describe('SubscriptionService', () => {
   let service: SubscriptionService;
-  let institutionRepository: Repository<Institution>;
-  let tokenEventHandler: TokenEventHandler;
-  let eventsService: EventsService;
 
   const mockInstitutionRepository = {
     findOne: jest.fn(),
@@ -55,11 +50,6 @@ describe('SubscriptionService', () => {
     }).compile();
 
     service = module.get<SubscriptionService>(SubscriptionService);
-    institutionRepository = module.get<Repository<Institution>>(
-      getRepositoryToken(Institution),
-    );
-    tokenEventHandler = module.get<TokenEventHandler>(TokenEventHandler);
-    eventsService = module.get<EventsService>(EventsService);
     jest.spyOn(service['logger'], 'log').mockImplementation(() => {});
     jest.spyOn(service['logger'], 'error').mockImplementation(() => {});
   });
@@ -88,7 +78,7 @@ describe('SubscriptionService', () => {
     it('should return false for inactive subscription', async () => {
       const institution = {
         id: mockInstitutionId,
-        subscriptionStatus: SubscriptionStatus.INACTIVE,
+        subscriptionStatus: SubscriptionStatus.EXPIRED, // Corrected: Was INACTIVE
       } as Institution;
       mockInstitutionRepository.findOne.mockResolvedValue(institution);
       const isActive = await service.checkSubscriptionStatus(mockInstitutionId);
@@ -118,7 +108,7 @@ describe('SubscriptionService', () => {
   });
 
   describe('updateSubscription', () => {
-    const plan = SubscriptionPlan.PREMIUM;
+    const plan = SubscriptionPlan.PROFESSIONAL; // Corrected: Was PREMIUM
     const expiresAt = new Date(mockDate.getTime() + 30 * 86400000); // Expires in 30 days
 
     it('should update subscription and publish event', async () => {
@@ -183,7 +173,7 @@ describe('SubscriptionService', () => {
         id: mockInstitutionId,
         tokenBalance: 50,
         tokenUsageHistory: [],
-      } as Institution;
+      } as unknown as Institution; // Corrected type casting
       const updatedInstitutionData = {
         ...initialInstitution,
         tokenBalance: initialInstitution.tokenBalance + amount,
@@ -241,7 +231,7 @@ describe('SubscriptionService', () => {
         tokenBalance: 50,
         tokensUsed: 10,
         tokenUsageHistory: [],
-      } as Institution;
+      } as unknown as Institution; // Corrected type casting
       const updatedInstitutionData = {
         ...initialInstitution,
         tokenBalance: initialInstitution.tokenBalance - amount,
@@ -290,9 +280,9 @@ describe('SubscriptionService', () => {
         tokenBalance: 50,
         tokensUsed: 10,
         tokenUsageHistory: [],
-      } as Institution;
+      } as unknown as Institution; // Corrected type casting
       mockInstitutionRepository.findOne.mockResolvedValue(initialInstitution);
-      mockInstitutionRepository.save.mockResolvedValue({ ...initialInstitution }); // Simplified mock
+      mockInstitutionRepository.save.mockResolvedValue({ ...initialInstitution } as Institution); // Simplified mock
 
       const result = await service.useTokens(mockInstitutionId, amount, operation);
 
@@ -352,4 +342,3 @@ describe('SubscriptionService', () => {
     });
   });
 });
-'''

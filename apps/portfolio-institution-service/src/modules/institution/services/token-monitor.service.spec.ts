@@ -1,37 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TokenMonitorService } from './token-monitor.service';
 import { Institution } from '../entities/institution.entity';
 import { EventsService } from '../../events/events.service';
-import { User } from '../entities/user.entity'; // Assuming User entity is in this path
+import { InstitutionUser } from '../entities/institution-user.entity'; // Corrected import path
 import { EntityType } from '@wanzo/shared/events/subscription-types';
-import { CronExpression } from '@nestjs/schedule';
 
 // Mock User and Institution data
-const mockAdminUser = { id: 'admin-user-1', role: 'admin' } as User;
-const mockRegularUser = { id: 'regular-user-1', role: 'user' } as User;
+const mockAdminUser = { id: 'admin-user-1', role: 'admin' } as unknown as InstitutionUser;
+const mockRegularUser = { id: 'regular-user-1', role: 'user' } as unknown as InstitutionUser;
 
 const mockInstitutionWithLowBalanceAdmin = {
   id: 'institution-1',
   tokenBalance: 5,
   users: [mockAdminUser, mockRegularUser],
   tokenUsageHistory: [],
-} as Institution;
+} as unknown as Institution; // Corrected type casting
 
 const mockInstitutionWithLowBalanceNoAdmin = {
   id: 'institution-2',
   tokenBalance: 3,
   users: [mockRegularUser],
   tokenUsageHistory: [],
-} as Institution;
+} as unknown as Institution; // Corrected type casting
 
-const mockInstitutionWithOkBalance = {
-  id: 'institution-3',
-  tokenBalance: 50,
-  users: [mockAdminUser],
-  tokenUsageHistory: [],
-} as Institution;
+// Removed unused mockInstitutionWithOkBalance
 
 const mockInstitutionForAnalytics = {
   id: 'institution-analytics-1',
@@ -55,8 +48,6 @@ const mockInstitutionNoHistory = {
 
 describe('TokenMonitorService', () => {
   let service: TokenMonitorService;
-  let institutionRepository: Repository<Institution>;
-  let eventsService: EventsService;
 
   const mockInstitutionRepository = {
     find: jest.fn(),
@@ -83,10 +74,6 @@ describe('TokenMonitorService', () => {
     }).compile();
 
     service = module.get<TokenMonitorService>(TokenMonitorService);
-    institutionRepository = module.get<Repository<Institution>>(
-      getRepositoryToken(Institution),
-    );
-    eventsService = module.get<EventsService>(EventsService);
     jest.spyOn(service['logger'], 'log').mockImplementation(() => {});
     jest.spyOn(service['logger'], 'error').mockImplementation(() => {});
   });

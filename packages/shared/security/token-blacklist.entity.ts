@@ -3,23 +3,23 @@ import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn } from 
 @Entity('token_blacklist')
 export class TokenBlacklist {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string; // Added definite assignment assertion
 
   @Column()
   @Index()
-  userId: string;
+  userId!: string; // Added definite assignment assertion
 
   @Column()
   @Index()
-  jti: string; // JWT ID
+  jti!: string; // JWT ID - Added definite assignment assertion
 
   @Column({ type: 'timestamp with time zone' })
   @Index()
-  expiresAt: Date;
+  expiresAt!: Date; // Added definite assignment assertion
 
   @Column({ nullable: true })
   reason?: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  createdAt: Date;
+  createdAt!: Date; // Added definite assignment assertion
 }

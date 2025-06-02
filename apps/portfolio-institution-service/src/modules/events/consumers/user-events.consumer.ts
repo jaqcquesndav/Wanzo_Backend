@@ -42,7 +42,11 @@ export class UserEventsConsumer {
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated institution user ${event.userId} active status to ${user.active}`);
     } catch (error) {
-      this.logger.error(`Error handling user status change: ${error.message}`, error.stack);
+      if (error instanceof Error) {
+        this.logger.error(`Error handling user status change: ${error.message}`, error.stack);
+      } else {
+        this.logger.error('An unknown error occurred while handling user status change', error);
+      }
     }
   }
 
@@ -60,7 +64,7 @@ export class UserEventsConsumer {
 
       // Update user role - map from admin-service roles to institution-service roles if needed
       // This is a simplified example - you'll need to define your own mapping logic
-      const roleMapping = {
+      const roleMapping: { [key: string]: string } = {
         'super_admin': 'admin',
         'cto': 'admin',
         'company_admin': 'admin',
@@ -76,7 +80,11 @@ export class UserEventsConsumer {
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated institution user ${event.userId} role to ${mappedRole}`);
     } catch (error) {
-      this.logger.error(`Error handling user role change: ${error.message}`, error.stack);
+      if (error instanceof Error) {
+        this.logger.error(`Error handling user role change: ${error.message}`, error.stack);
+      } else {
+        this.logger.error('An unknown error occurred while handling user role change', error);
+      }
     }
   }
 }

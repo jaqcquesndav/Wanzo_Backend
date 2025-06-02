@@ -4,7 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/kafka-config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserSubscription } from '../../subscriptions/entities/user-subscription.entity';
+import { UserSubscription, SubscriptionStatus } from '../../subscriptions/entities/user-subscription.entity';
 import { Logger } from '@nestjs/common';
 
 @Controller()
@@ -32,7 +32,7 @@ export class TokenEventsConsumer {
       const subscription = await this.userSubscriptionRepository.findOne({
         where: { 
           userId: event.userId,
-          status: 'active'
+          status: SubscriptionStatus.ACTIVE
         }
       });
       
@@ -47,7 +47,9 @@ export class TokenEventsConsumer {
       await this.userSubscriptionRepository.save(subscription);
       this.logger.log(`Successfully updated token balance for user ${event.userId}`);
     } catch (error) {
-      this.logger.error(`Error handling token purchase: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling token purchase';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling token purchase: ${errorMessage}`, errorStack);
     }
   }
 
@@ -66,7 +68,7 @@ export class TokenEventsConsumer {
       const subscription = await this.userSubscriptionRepository.findOne({
         where: { 
           userId: event.userId,
-          status: 'active'
+          status: SubscriptionStatus.ACTIVE
         }
       });
       
@@ -87,7 +89,9 @@ export class TokenEventsConsumer {
       await this.userSubscriptionRepository.save(subscription);
       this.logger.log(`Successfully updated token usage for user ${event.userId}`);
     } catch (error) {
-      this.logger.error(`Error handling token usage: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling token usage';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling token usage: ${errorMessage}`, errorStack);
     }
   }
 }

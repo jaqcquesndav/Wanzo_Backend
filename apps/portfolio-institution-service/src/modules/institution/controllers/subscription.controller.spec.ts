@@ -1,11 +1,9 @@
-'''
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionController } from './subscription.controller';
 import { SubscriptionService } from '../services/subscription.service';
 import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '../entities/institution.entity';
-import { BadRequestException } from '@nestjs/common';
 
 // Mock data
 const mockInstitutionId = 'institution-123';
@@ -62,9 +60,8 @@ describe('SubscriptionController', () => {
       expect(subscriptionService.checkSubscriptionStatus).toHaveBeenCalledWith(mockInstitutionId);
     });
   });
-
   describe('updateSubscription', () => {
-    const plan = SubscriptionPlan.PREMIUM;
+    const plan = SubscriptionPlan.PROFESSIONAL; // Using valid enum value
     const expiresAt = new Date();
     const body = { plan, expiresAt };
 
@@ -155,4 +152,3 @@ describe('SubscriptionController', () => {
     });
   });
 });
-'''

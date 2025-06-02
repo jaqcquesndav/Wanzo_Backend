@@ -10,6 +10,7 @@ import {
   SubscriptionPlan 
 } from '../../institution/entities/institution.entity';
 import { Logger } from '@nestjs/common';
+import { SubscriptionPlanType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
 
 @Controller()
 @Injectable()
@@ -42,30 +43,39 @@ export class SubscriptionEventsConsumer {
       }
 
       // Map the subscription plan from the event to the institution's enum
-      const planMapping = {
-        'basic': SubscriptionPlan.BASIC,
-        'professional': SubscriptionPlan.PROFESSIONAL,
-        'enterprise': SubscriptionPlan.ENTERPRISE,
+      const planMapping: Record<SubscriptionPlanType, SubscriptionPlan> = {
+        [SubscriptionPlanType.BASIC]: SubscriptionPlan.BASIC,
+        [SubscriptionPlanType.PROFESSIONAL]: SubscriptionPlan.PROFESSIONAL,
+        [SubscriptionPlanType.ENTERPRISE]: SubscriptionPlan.ENTERPRISE,
+        // Add other mappings as necessary, ensure all enum members are covered or handled
+        [SubscriptionPlanType.FREE]: SubscriptionPlan.BASIC, // Example: map FREE to BASIC or a specific FREE plan if it exists
+        [SubscriptionPlanType.PREMIUM]: SubscriptionPlan.PROFESSIONAL, // Example: map PREMIUM to PROFESSIONAL
       };
       
       // Map the subscription status from the event to the institution's enum
-      const statusMapping = {
-        'active': SubscriptionStatus.ACTIVE,
-        'expired': SubscriptionStatus.EXPIRED,
-        'suspended': SubscriptionStatus.SUSPENDED,
-        'cancelled': SubscriptionStatus.CANCELLED,
+      const statusMapping: Record<SubscriptionStatusType, SubscriptionStatus> = {
+        [SubscriptionStatusType.ACTIVE]: SubscriptionStatus.ACTIVE,
+        [SubscriptionStatusType.EXPIRED]: SubscriptionStatus.EXPIRED,
+        [SubscriptionStatusType.SUSPENDED]: SubscriptionStatus.SUSPENDED,
+        [SubscriptionStatusType.CANCELLED]: SubscriptionStatus.CANCELLED,
+        // Add other mappings as necessary
+        [SubscriptionStatusType.INACTIVE]: SubscriptionStatus.EXPIRED, // Example mapping
+        [SubscriptionStatusType.PAST_DUE]: SubscriptionStatus.SUSPENDED, // Example mapping
+        [SubscriptionStatusType.TRIAL]: SubscriptionStatus.ACTIVE, // Example mapping
       };
 
       // Update institution subscription details
-      institution.subscriptionPlan = planMapping[event.newPlan] || SubscriptionPlan.BASIC;
-      institution.subscriptionStatus = statusMapping[event.status] || SubscriptionStatus.ACTIVE;
+      institution.subscriptionPlan = planMapping[event.newPlan as SubscriptionPlanType] || SubscriptionPlan.BASIC;
+      institution.subscriptionStatus = statusMapping[event.status as SubscriptionStatusType] || SubscriptionStatus.ACTIVE;
       institution.subscriptionExpiresAt = event.expiresAt;
       institution.updatedAt = event.timestamp;
       
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully updated subscription for institution ${event.entityId}`);
     } catch (error) {
-      this.logger.error(`Error handling subscription change: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling subscription change';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling subscription change: ${errorMessage}`, errorStack);
     }
   }
 
@@ -95,7 +105,9 @@ export class SubscriptionEventsConsumer {
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully marked subscription as expired for institution ${event.entityId}`);
     } catch (error) {
-      this.logger.error(`Error handling subscription expiration: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling subscription expiration';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling subscription expiration: ${errorMessage}`, errorStack);
     }
   }
 }

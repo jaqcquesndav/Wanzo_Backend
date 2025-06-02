@@ -3,8 +3,8 @@ import { ClientKafka } from '@nestjs/microservices';
 import { 
   UserEventTopics,
   TokenTransactionEvent
-} from '@wanzo/shared/events/kafka-config';
-import { EntityType } from '@wanzo/shared/events/subscription-types';
+} from './kafka-config'; // Corrected path
+import { EntityType } from './subscription-types'; // Corrected path
 
 @Injectable()
 export class TokenService {

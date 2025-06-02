@@ -25,8 +25,7 @@ import { EventsModule } from '../events/events.module';
     InstitutionUserService,
     DocumentValidationService,
     SubscriptionService,
-    TokenEventHandler,
-    TokenMonitorService,
+    TokenEventHandler,    TokenMonitorService,
   ],
   controllers: [
     InstitutionController,
@@ -42,6 +41,5 @@ import { EventsModule } from '../events/events.module';
     TokenEventHandler,
     TokenMonitorService,
   ],
-})
 })
 export class InstitutionModule {}

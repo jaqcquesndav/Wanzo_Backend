@@ -10,9 +10,6 @@ import { AxiosResponse } from 'axios';
 
 describe('JwtBlacklistGuard', () => {
   let guard: JwtBlacklistGuard;
-  let jwtService: JwtService;
-  let httpService: HttpService;
-  let configService: ConfigService;
 
   const mockJwtService = {
     verifyAsync: jest.fn(),
@@ -37,9 +34,6 @@ describe('JwtBlacklistGuard', () => {
     }).compile();
 
     guard = module.get<JwtBlacklistGuard>(JwtBlacklistGuard);
-    jwtService = module.get<JwtService>(JwtService);
-    httpService = module.get<HttpService>(HttpService);
-    configService = module.get<ConfigService>(ConfigService);
 
     jest.spyOn(guard['logger'], 'error').mockImplementation(() => {});
   });
@@ -53,13 +47,15 @@ describe('JwtBlacklistGuard', () => {
   });
 
   describe('canActivate', () => {
+    const mockGetRequestFn = jest.fn(); // Define the mock function for getRequest
+
     const mockExecutionContext = {
       switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn(),
+        getRequest: mockGetRequestFn, // Use the dedicated mock function here
       }),
     } as unknown as ExecutionContext;
 
-    const mockRequest = {
+    const mockRequest: { headers: { authorization?: string }; user?: any } = {
       headers: {
         authorization: 'Bearer valid-token',
       },
@@ -72,7 +68,7 @@ describe('JwtBlacklistGuard', () => {
     };
 
     beforeEach(() => {
-      mockExecutionContext.switchToHttp().getRequest.mockReturnValue(mockRequest);
+      mockGetRequestFn.mockReturnValue(mockRequest); // Setup using the dedicated mock function
       mockConfigService.get.mockReturnValue('http://auth-service:3000');
     });
 
@@ -97,7 +93,7 @@ describe('JwtBlacklistGuard', () => {
         'http://auth-service:3000/auth/token/check-blacklist',
         { jti: validPayload.jti, userId: validPayload.sub }
       );
-      expect(mockRequest['user']).toEqual(validPayload);
+      expect(mockRequest.user).toEqual(validPayload);
     });
 
     it('should throw UnauthorizedException when token is blacklisted', async () => {

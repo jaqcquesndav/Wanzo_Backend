@@ -66,7 +66,9 @@ export class SubscriptionEventsConsumer {
         this.logger.log(`Successfully created new subscription for user ${event.userId}`);
       }
     } catch (error) {
-      this.logger.error(`Error handling subscription change: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling subscription change';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling subscription change: ${errorMessage}`, errorStack);
     }
   }
 
@@ -94,7 +96,9 @@ export class SubscriptionEventsConsumer {
 
       this.logger.log(`Successfully marked subscriptions as expired for user ${event.userId}`);
     } catch (error) {
-      this.logger.error(`Error handling subscription expiration: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling subscription expiration';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling subscription expiration: ${errorMessage}`, errorStack);
     }
   }
 }

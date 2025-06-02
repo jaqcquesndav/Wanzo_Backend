@@ -38,7 +38,9 @@ export class UserEventsConsumer {
         this.logger.log(`Successfully blacklisted all tokens for user ${event.userId}`);
       }
     } catch (error) {
-      this.logger.error(`Error handling user status change for token blacklisting: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling user status change for token blacklisting';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling user status change for token blacklisting: ${errorMessage}`, errorStack);
     }
   }
 }

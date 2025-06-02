@@ -61,4 +61,3 @@ export class EventsService {
     this.eventsClient.emit(UserEventTopics.TOKEN_ALERT, event);
   }
 }
-}

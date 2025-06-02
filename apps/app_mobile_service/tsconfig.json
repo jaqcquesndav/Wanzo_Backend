@@ -4,7 +4,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@wanzo/shared/*": ["../../packages/shared/*"]
     },
     "strictPropertyInitialization": false, // Added to potentially resolve decorator issues
     "experimentalDecorators": true,       // Ensure these are explicitly true

@@ -54,12 +54,15 @@ describe('JwtBlacklistGuard (App Mobile Service)', () => {
 
   describe('canActivate', () => {
     const mockExecutionContext = {
-      switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn(),
+      switchToHttp: () => ({
+        getRequest: () => mockRequest,
       }),
     } as unknown as ExecutionContext;
 
-    const mockRequest = {
+    const mockRequest: { 
+      headers: { authorization?: string };
+      user?: any;
+    } = {
       headers: {
         authorization: 'Bearer valid-token',
       },
@@ -72,7 +75,6 @@ describe('JwtBlacklistGuard (App Mobile Service)', () => {
     };
 
     beforeEach(() => {
-      mockExecutionContext.switchToHttp().getRequest.mockReturnValue(mockRequest);
       mockConfigService.get.mockReturnValue('http://auth-service:3000');
     });
 
@@ -124,9 +126,18 @@ describe('JwtBlacklistGuard (App Mobile Service)', () => {
     });
 
     it('should throw UnauthorizedException when no token is provided', async () => {
-      mockRequest.headers.authorization = undefined;
+      const requestWithoutToken = {
+        ...mockRequest,
+        headers: { authorization: '' }
+      };
+      
+      const contextWithoutToken = {
+        switchToHttp: () => ({
+          getRequest: () => requestWithoutToken,
+        }),
+      } as unknown as ExecutionContext;
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(guard.canActivate(contextWithoutToken)).rejects.toThrow(
         new UnauthorizedException('No token provided')
       );
       expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();

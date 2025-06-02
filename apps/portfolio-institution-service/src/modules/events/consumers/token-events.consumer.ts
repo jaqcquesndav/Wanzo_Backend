@@ -5,8 +5,7 @@ import { UserEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/kaf
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { 
-  Institution, 
-  SubscriptionStatus 
+  Institution
 } from '../../institution/entities/institution.entity';
 import { Logger } from '@nestjs/common';
 
@@ -54,7 +53,9 @@ export class TokenEventsConsumer {
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully updated token balance for institution ${event.entityId}`);
     } catch (error) {
-      this.logger.error(`Error handling token purchase: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling token purchase';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling token purchase: ${errorMessage}`, errorStack);
     }
   }
 
@@ -99,7 +100,9 @@ export class TokenEventsConsumer {
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully updated token usage for institution ${event.entityId}`);
     } catch (error) {
-      this.logger.error(`Error handling token usage: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error handling token usage';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error handling token usage: ${errorMessage}`, errorStack);
     }
   }
 }

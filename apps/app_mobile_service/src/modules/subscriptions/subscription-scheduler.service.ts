@@ -4,7 +4,7 @@ import { Repository, LessThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventsService } from '../events/events.service';
 import { UserSubscription, SubscriptionStatus } from './entities/user-subscription.entity';
-import { EntityType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
+import { EntityType, SubscriptionStatusType, SubscriptionPlanType } from '@wanzo/shared/events/subscription-types';
 
 @Injectable()
 export class SubscriptionSchedulerService {
@@ -29,7 +29,7 @@ export class SubscriptionSchedulerService {
           status: SubscriptionStatus.ACTIVE,
           endDate: LessThanOrEqual(now),
         },
-        relations: ['user']
+        relations: ['user', 'tier'] // Ensure user and tier are loaded
       });
 
       this.logger.log(`Found ${expiredSubscriptions.length} expired subscriptions`);
@@ -43,11 +43,20 @@ export class SubscriptionSchedulerService {
         await this.userSubscriptionRepository.save(subscription);
         
         // Publish event for subscription expiration
+        if (!subscription.user || !subscription.user.companyId) {
+          this.logger.warn(`User ${subscription.userId} does not have a companyId or user object is missing. Skipping event publication.`);
+          continue;
+        }
+        if (!subscription.tier) {
+            this.logger.warn(`Subscription ${subscription.id} does not have tier information. Skipping event publication.`);
+            continue;
+        }
+
         await this.eventsService.publishSubscriptionExpired({
           userId: subscription.userId,
-          entityId: subscription.user.companyId, // Assuming the company ID is stored on the user
+          entityId: subscription.user.companyId, 
           entityType: EntityType.PME,
-          newPlan: subscription.tier.type, // Keep the same plan, just mark as expired
+          newPlan: subscription.tier.type as unknown as SubscriptionPlanType, // Cast via unknown
           status: SubscriptionStatusType.EXPIRED,
           timestamp: now,
           changedBy: 'system',
@@ -55,7 +64,9 @@ export class SubscriptionSchedulerService {
         });
       }
     } catch (error) {
-      this.logger.error(`Error checking for expired subscriptions: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error checking for expired subscriptions';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error checking for expired subscriptions: ${errorMessage}`, errorStack);
     }
   }
 }

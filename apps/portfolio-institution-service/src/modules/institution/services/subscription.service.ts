@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/institution.entity';
 import { TokenEventHandler } from './token-event.handler';
-import { EntityType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
+import { EntityType, SubscriptionStatusType, SubscriptionPlanType } from '@wanzo/shared/events/subscription-types';
 import { EventsService } from '../../events/events.service';
 
 @Injectable()
@@ -67,8 +67,8 @@ export class SubscriptionService {
       userId,
       entityId: institutionId,
       entityType: EntityType.INSTITUTION,
-      previousPlan: previousPlan,
-      newPlan: plan,
+      previousPlan: previousPlan as unknown as SubscriptionPlanType, // Cast to SubscriptionPlanType
+      newPlan: plan as unknown as SubscriptionPlanType, // Cast to SubscriptionPlanType
       status: SubscriptionStatusType.ACTIVE,
       expiresAt,
       timestamp: new Date(),

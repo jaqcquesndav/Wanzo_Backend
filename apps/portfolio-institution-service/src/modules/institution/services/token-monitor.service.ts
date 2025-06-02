@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm'; // Imported LessThan
 import { Institution } from '../entities/institution.entity';
 import { EventsService } from '../../events/events.service';
 import { EntityType } from '@wanzo/shared/events/subscription-types';
@@ -25,7 +25,7 @@ export class TokenMonitorService {
       // Find all institutions with token balance below threshold
       const institutionsWithLowTokens = await this.institutionRepository.find({
         where: {
-          tokenBalance: { lessThan: this.LOW_TOKEN_THRESHOLD }
+          tokenBalance: LessThan(this.LOW_TOKEN_THRESHOLD) // Corrected: Used LessThan operator
         },
         relations: ['users']
       });
@@ -46,7 +46,7 @@ export class TokenMonitorService {
             entityId: institution.id,
             entityType: EntityType.INSTITUTION,
             amount: institution.tokenBalance,
-            operation: 'alert',
+            operation: 'alert', // Removed temporary cast to any
             currentBalance: institution.tokenBalance,
             timestamp: new Date(),
             metadata: {
@@ -59,7 +59,11 @@ export class TokenMonitorService {
         }
       }
     } catch (error) {
-      this.logger.error(`Error monitoring token balances: ${error.message}`, error.stack);
+      if (error instanceof Error) { // Added type guard for error
+        this.logger.error(`Error monitoring token balances: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Error monitoring token balances: An unknown error occurred`, error);
+      }
     }
   }
 
@@ -93,9 +97,9 @@ export class TokenMonitorService {
     const daysRemaining = institution.tokenBalance / (dailyAverage || 1);
 
     // Group usage by operation
-    const usageByOperation = {};
+    const usageByOperation: { [key: string]: number } = {}; // Added explicit type
     recentUsage
-      .filter(entry => entry.operation === 'use')
+      .filter(entry => entry.operation === 'use') // only 'use' operations for this specific analytics object
       .forEach(entry => {
         const operation = entry.operation;
         if (!usageByOperation[operation]) {

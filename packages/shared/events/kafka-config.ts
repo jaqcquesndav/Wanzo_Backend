@@ -69,7 +69,7 @@ export interface TokenTransactionEvent {
   entityId: string;
   entityType: EntityType;
   amount: number;
-  operation: 'purchase' | 'use' | 'refund' | 'expire';
+  operation: 'purchase' | 'use' | 'refund' | 'expire' | 'alert'; // Added 'alert'
   currentBalance: number;
   timestamp: Date;
   metadata?: Record<string, any>;
