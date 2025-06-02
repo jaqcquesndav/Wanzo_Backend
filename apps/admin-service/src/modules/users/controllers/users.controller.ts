@@ -29,7 +29,14 @@ import {
   ResetPasswordDto,
   RolePermissionsUpdateDto
 } from '../dtos/user.dto';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard'; // Added
+import { RolesGuard } from '../../auth/guards/roles.guard'; // Added
+import { Roles } from '../../auth/decorators/roles.decorator'; // Added
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'; // Added ApiBearerAuth and ApiTags
 
+@ApiTags('Admin Users') // Added
+@ApiBearerAuth() // Added
+@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -64,13 +71,20 @@ export class AdminUsersController {
   async resetPassword(@Param('userId') userId: string) {
     return this.usersService.adminResetPassword(userId);
   }
-
   @Post(':userId/toggle-status')
-  async toggleStatus(@Param('userId') userId: string, @Body() body: { active: boolean }) {
+  async toggleStatus(
+    @Param('userId') userId: string, 
+    @Body() body: { active: boolean, reason?: string },
+    @Req() req: Request
+  ) {
     if (typeof body.active !== 'boolean') {
       throw new BadRequestException('active field must be a boolean');
     }
-    return this.usersService.toggleUserStatus(userId, body.active);
+    
+    // Get the ID of the user making the change
+    const changedBy = req.user?.id || 'system';
+    
+    return this.usersService.toggleUserStatus(userId, body.active, changedBy, body.reason);
   }
 
   @Get(':id/activities')
@@ -120,6 +134,9 @@ export class AdminUsersController {
   }
 }
 
+@ApiTags('Users') // Added
+@ApiBearerAuth() // Added
+@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -163,6 +180,9 @@ export class UsersController {
   }
 }
 
+@ApiTags('Admin Roles') // Added
+@ApiBearerAuth() // Added
+@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
 @Controller('admin/roles')
 export class RolesController {
   constructor(private readonly usersService: UsersService) {}

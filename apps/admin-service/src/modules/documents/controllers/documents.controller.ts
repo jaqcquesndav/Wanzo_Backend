@@ -11,7 +11,8 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentsService } from '../services';
@@ -30,7 +31,13 @@ import {
   DocumentFolderResponseDto,
   DocumentFoldersListResponseDto
 } from '../dtos';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Documents')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard, RolesGuard)
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}

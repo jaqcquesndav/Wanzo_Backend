@@ -9,6 +9,9 @@ import { Auth0Controller } from './controllers/auth0.controller';
 import { Auth0Service } from './services/auth0.service';
 import { User } from '../oidc/entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
+import { TokenBlacklist } from '@wanzo/shared/security/token-blacklist.entity'; // Reverted to original import path
+import { TokenController } from '../auth/controllers/token.controller';
+import { TokenBlacklistService } from '../auth/services/token-blacklist.service';
 import auth0Config from '../../config/auth0.config';
 
 @Module({
@@ -31,10 +34,10 @@ import auth0Config from '../../config/auth0.config';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User, Company]),
+    TypeOrmModule.forFeature([User, Company, TokenBlacklist]),
   ],
-  controllers: [Auth0Controller],
-  providers: [Auth0Strategy, Auth0Service],
-  exports: [Auth0Service],
+  controllers: [Auth0Controller, TokenController],
+  providers: [Auth0Strategy, Auth0Service, TokenBlacklistService],
+  exports: [Auth0Service, TokenBlacklistService],
 })
 export class Auth0Module {}

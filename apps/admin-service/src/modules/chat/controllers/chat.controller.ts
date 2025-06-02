@@ -13,12 +13,15 @@ import {
   ChatMessageDto,
   ChatStatsDto
 } from '../dto';
-import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
 import { ChatMessageSender } from '../entities';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 
+@ApiTags('Chat')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard)
 @Controller('chat')
-@UseGuards(AuthGuard('jwt'))
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 

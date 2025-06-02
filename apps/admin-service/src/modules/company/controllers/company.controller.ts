@@ -6,7 +6,12 @@ import {
   UpdateCompanyProfileDto, 
   CompanyUpdateResponseDto 
 } from '../dtos';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 
+@ApiTags('Company')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard)
 @Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}

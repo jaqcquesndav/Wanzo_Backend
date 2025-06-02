@@ -9,6 +9,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard'; // Added
+import { HttpModule } from '@nestjs/axios'; // Added
 import { CompanyModule } from '../company/company.module';
 
 @Module({
@@ -25,9 +27,13 @@ import { CompanyModule } from '../company/company.module';
     }),
     ConfigModule,
     forwardRef(() => CompanyModule), // Use forwardRef here for CompanyModule
+    HttpModule.register({ // Added HttpModule configuration
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy],
+  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
 })
 export class AuthModule {}

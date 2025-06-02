@@ -11,7 +11,8 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TokensService } from '../services';
@@ -35,7 +36,13 @@ import {
   TokenAnalyticsQueryDto,
   UpdateTokenTransactionDto
 } from '../dtos';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard'; // Added
+import { RolesGuard } from '../../auth/guards/roles.guard'; // Added 
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'; // Added
 
+@ApiTags('Tokens') // Added
+@ApiBearerAuth() // Added
+@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
 @Controller('tokens')
 export class TokensController {
   constructor(private readonly tokensService: TokensService) {}

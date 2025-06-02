@@ -11,7 +11,8 @@ import {
   UploadedFile, 
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomersService } from '../services';
@@ -27,7 +28,12 @@ import {
   UploadDocumentDto
 } from '../dtos';
 import { CustomerStatus } from '../entities';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 
+@ApiTags('Customers')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard)
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}

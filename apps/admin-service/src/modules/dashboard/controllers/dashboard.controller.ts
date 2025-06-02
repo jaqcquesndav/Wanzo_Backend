@@ -9,7 +9,8 @@ import {
   Query,
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards
 } from '@nestjs/common';
 import { DashboardService } from '../services';
 import {
@@ -25,7 +26,12 @@ import {
   ActivityLogQueryDto,
   ActivityLogListResponseDto
 } from '../dtos';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 
+@ApiTags('Dashboard')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard)
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}

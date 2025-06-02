@@ -9,7 +9,8 @@ import {
   Query,
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { FinanceService } from '@/modules/finance/services';
 import {
@@ -42,7 +43,12 @@ import {
   SubscriptionStatisticsDto,
   FinanceDashboardDto
 } from '../dtos';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 
+@ApiTags('Finance')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard)
 @Controller('finance')
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}

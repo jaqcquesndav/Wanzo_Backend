@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
 import { LocalStrategy } from '@/modules/auth/strategies/local.strategy';
+import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -26,7 +27,7 @@ import { HttpModule } from '@nestjs/axios';
     }),
   ],
   controllers: [AuthController, UsersController, KsAuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard],
+  exports: [AuthService, JwtBlacklistGuard],
 })
 export class AuthModule {}

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not, MoreThanOrEqual } from 'typeorm';
 import { User } from '../entities/user.entity';
@@ -17,9 +17,12 @@ import {
 import { UserRole, UserStatus, UserType } from '../entities/enums';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { UserEventsHandler } from './user-events.handler';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -29,6 +32,7 @@ export class UsersService {
     private readonly activityRepository: Repository<UserActivity>,
     @InjectRepository(RolePermission)
     private readonly rolePermissionRepository: Repository<RolePermission>,
+    private readonly userEventsHandler: UserEventsHandler,
   ) {}
 
   // User CRUD Operations
@@ -284,13 +288,29 @@ export class UsersService {
     // For now, just return success
     return { success: true, message: 'Password reset initiated for user' };
   }
-
   // User Status Management
-  async toggleUserStatus(userId: string, active: boolean) {
+  async toggleUserStatus(userId: string, active: boolean, changedBy: string, reason?: string) {
     const user = await this.findById(userId);
     
-    user.status = active ? UserStatus.ACTIVE : UserStatus.INACTIVE;
-    return this.userRepository.save(user);
+    const previousStatus = user.status;
+    const newStatus = active ? UserStatus.ACTIVE : UserStatus.INACTIVE;
+    
+    user.status = newStatus;
+    const updatedUser = await this.userRepository.save(user);
+    
+    // Call the event handler to publish the status change event
+    if (this.userEventsHandler) {
+      await this.userEventsHandler.handleUserStatusChange(
+        userId,
+        previousStatus,
+        newStatus,
+        user.userType,
+        changedBy,
+        reason
+      );
+    }
+    
+    return updatedUser;
   }
 
   // Session Management

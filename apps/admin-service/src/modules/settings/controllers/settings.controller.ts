@@ -8,7 +8,8 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
-  BadRequestException
+  BadRequestException,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SettingsService } from '../services';
@@ -24,7 +25,13 @@ import {
   SystemSettingSection,
   UpdateSystemSettingDto
 } from '../dtos';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Settings')
+@ApiBearerAuth()
+@UseGuards(JwtBlacklistGuard, RolesGuard)
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}

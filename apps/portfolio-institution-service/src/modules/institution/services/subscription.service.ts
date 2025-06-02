@@ -1,13 +1,20 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/institution.entity';
+import { TokenEventHandler } from './token-event.handler';
+import { EntityType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
+import { EventsService } from '../../events/events.service';
 
 @Injectable()
 export class SubscriptionService {
+  private readonly logger = new Logger(SubscriptionService.name);
+
   constructor(
     @InjectRepository(Institution)
     private institutionRepository: Repository<Institution>,
+    private readonly tokenEventHandler: TokenEventHandler,
+    private readonly eventsService: EventsService,
   ) {}
 
   async checkSubscriptionStatus(institutionId: string): Promise<boolean> {
@@ -38,6 +45,7 @@ export class SubscriptionService {
     institutionId: string,
     plan: SubscriptionPlan,
     expiresAt: Date,
+    userId: string
   ): Promise<Institution> {
     const institution = await this.institutionRepository.findOne({
       where: { id: institutionId },
@@ -47,14 +55,32 @@ export class SubscriptionService {
       throw new BadRequestException('Institution not found');
     }
 
+    const previousPlan = institution.subscriptionPlan;
     institution.subscriptionPlan = plan;
     institution.subscriptionStatus = SubscriptionStatus.ACTIVE;
     institution.subscriptionExpiresAt = expiresAt;
 
-    return await this.institutionRepository.save(institution);
+    const updatedInstitution = await this.institutionRepository.save(institution);
+    
+    // Publish subscription changed event
+    await this.eventsService.publishSubscriptionChanged({
+      userId,
+      entityId: institutionId,
+      entityType: EntityType.INSTITUTION,
+      previousPlan: previousPlan,
+      newPlan: plan,
+      status: SubscriptionStatusType.ACTIVE,
+      expiresAt,
+      timestamp: new Date(),
+      changedBy: userId,
+      reason: 'Subscription updated'
+    });
+    
+    this.logger.log(`Institution ${institutionId} subscription updated to ${plan}`);
+    return updatedInstitution;
   }
 
-  async addTokens(institutionId: string, amount: number): Promise<Institution> {
+  async addTokens(institutionId: string, amount: number, userId: string): Promise<Institution> {
     const institution = await this.institutionRepository.findOne({
       where: { id: institutionId },
     });
@@ -71,10 +97,21 @@ export class SubscriptionService {
       balance: institution.tokenBalance,
     });
 
-    return await this.institutionRepository.save(institution);
+    const savedInstitution = await this.institutionRepository.save(institution);
+    
+    // Publish token purchase event
+    await this.tokenEventHandler.handleTokenPurchase(
+      userId,
+      institutionId,
+      amount,
+      institution.tokenBalance
+    );
+    
+    this.logger.log(`Institution ${institutionId} purchased ${amount} tokens. New balance: ${institution.tokenBalance}`);
+    return savedInstitution;
   }
 
-  async useTokens(institutionId: string, amount: number, operation: string): Promise<boolean> {
+  async useTokens(institutionId: string, amount: number, operation: string, userId?: string): Promise<boolean> {
     const institution = await this.institutionRepository.findOne({
       where: { id: institutionId },
     });
@@ -99,6 +136,20 @@ export class SubscriptionService {
     });
 
     await this.institutionRepository.save(institution);
+    
+    // Publish token usage event if userId is provided
+    if (userId) {
+      await this.tokenEventHandler.handleTokenUsage(
+        userId,
+        institutionId,
+        amount,
+        institution.tokenBalance,
+        operation
+      );
+      
+      this.logger.log(`Institution ${institutionId} used ${amount} tokens for ${operation}. Remaining balance: ${institution.tokenBalance}`);
+    }
+    
     return true;
   }
 

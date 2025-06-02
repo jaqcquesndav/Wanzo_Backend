@@ -9,7 +9,8 @@ import {
   Query,
   ParseUUIDPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards
 } from '@nestjs/common';
 import { SystemService } from '../services';
 import {
@@ -34,7 +35,13 @@ import {
   SendNotificationDto,
   NotificationSendResponseDto
 } from '../dtos';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard'; // Added
+import { RolesGuard } from '../../auth/guards/roles.guard'; // Added
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'; // Added
 
+@ApiTags('System') // Added
+@ApiBearerAuth() // Added
+@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
 @Controller('system')
 export class SystemController {
   constructor(private readonly systemService: SystemService) {}

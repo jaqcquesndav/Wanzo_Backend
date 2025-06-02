@@ -1,14 +1,14 @@
 import { Controller, Get, Post, Put, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubscriptionService } from '../services/subscription.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { SubscriptionPlan } from '../entities/institution.entity';
 
 @ApiTags('subscription')
 @Controller('subscription')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtBlacklistGuard, RolesGuard)
 @ApiBearerAuth()
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
@@ -39,6 +39,7 @@ export class SubscriptionController {
       req.user.institutionId,
       body.plan,
       new Date(body.expiresAt),
+      req.user.id // Pass the user ID
     );
     return {
       success: true,
@@ -72,6 +73,7 @@ export class SubscriptionController {
     const institution = await this.subscriptionService.addTokens(
       req.user.institutionId,
       body.amount,
+      req.user.id // Pass the user ID
     );
     return {
       success: true,
@@ -94,6 +96,7 @@ export class SubscriptionController {
       req.user.institutionId,
       body.amount,
       body.operation,
+      req.user.id // Pass the user ID
     );
 
     if (!success) {
