@@ -216,6 +216,50 @@ Permissions:
 - read:user_idp_tokens
 ```
 
+### 2.7. Règle Auth0 pour l'identification de l'application source
+
+Pour identifier précisément l'application source d'un utilisateur, ajoutez cette règle dans Auth0 :
+
+```javascript
+function (user, context, callback) {
+  const namespace = 'https://api.wanzo.com/';
+  
+  // Déterminer l'application source basée sur le client_id
+  let appSource = "unknown";
+  
+  if (context.clientID === "<ADMIN_CLIENT_ID>") {
+    appSource = "admin-panel";
+  } else if (context.clientID === "<ACCOUNTING_CLIENT_ID>") {
+    appSource = "accounting-app";
+  } else if (context.clientID === "<SME_CLIENT_ID>") {
+    appSource = "sme-portfolio";
+  } else if (context.clientID === "<INSTITUTION_CLIENT_ID>") {
+    appSource = "institution-portfolio";
+  } else if (context.clientID === "<MOBILE_CLIENT_ID>") {
+    appSource = "mobile-app";
+  }
+  
+  // Ajouter la source au token
+  context.accessToken[namespace + 'app_source'] = appSource;
+  
+  // Continuer avec l'assignation des permissions basée sur les rôles
+  const assignedRoles = (context.authorization || {}).roles || [];
+  
+  // Ajouter le rôle principal au token
+  context.accessToken[namespace + 'role'] = assignedRoles[0] || 'user';
+  
+  // Ajouter tous les rôles au token
+  context.accessToken[namespace + 'roles'] = assignedRoles;
+  
+  // Continuer avec les permissions comme dans la règle existante
+  // ...
+  
+  callback(null, user, context);
+}
+```
+
+Cette règle enrichit le token JWT avec l'information de l'application source, ce qui permet d'identifier facilement d'où provient l'utilisateur lors de chaque requête.
+
 ## 3. Configuration des frontends
 
 ### 3.1. Configuration pour l'application web Admin
