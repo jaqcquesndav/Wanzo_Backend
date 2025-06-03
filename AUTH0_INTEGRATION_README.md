@@ -10,6 +10,9 @@ Ce document fournit les informations nécessaires pour configurer Auth0 et les d
 4. [Flux d'authentification](#4-flux-dauthentification)
 5. [Points d'API à configurer](#5-points-dapi-à-configurer)
 6. [URLs pour les applications frontend](#6-urls-pour-les-applications-frontend)
+7. [Configuration du backend](#7-configuration-du-backend)
+8. [Types d'utilisateurs et rôles](#8-types-dutilisateurs-et-rôles)
+9. [Relations entre applications Auth0 et microservices](#9-relations-entre-applications-auth0-et-microservices)
 
 ## 1. Architecture microservices
 
@@ -38,7 +41,16 @@ Les services communiquent entre eux via HTTP REST et sont configurés pour utili
 
 Vous devrez créer plusieurs applications pour gérer les différentes interfaces frontend :
 
-#### a. Application Web Admin Panel
+#### a. Application pour le Service d'Authentification (auth-service)
+```
+Nom: Wanzo Auth Service
+Type: Regular Web Application
+Allowed Callback URLs: http://localhost:3000/auth/callback, https://api.wanzo.com/auth/callback
+Allowed Logout URLs: http://localhost:3000, https://api.wanzo.com
+Allowed Web Origins: http://localhost:3000, https://api.wanzo.com
+```
+
+#### b. Application Web Admin Panel
 ```
 Nom: Wanzo Admin Panel
 Type: Regular Web Application
@@ -47,7 +59,7 @@ Allowed Logout URLs: http://localhost:5173/admin, https://admin.wanzo.com
 Allowed Web Origins: http://localhost:5173, https://admin.wanzo.com
 ```
 
-#### b. Application Web Comptabilité
+#### c. Application Web Comptabilité
 ```
 Nom: Wanzo Comptabilité
 Type: Regular Web Application
@@ -56,7 +68,7 @@ Allowed Logout URLs: http://localhost:5174/accounting, https://accounting.wanzo.
 Allowed Web Origins: http://localhost:5174, https://accounting.wanzo.com
 ```
 
-#### c. Application Portefeuille PME
+#### d. Application Portefeuille PME
 ```
 Nom: Wanzo Portefeuille PME
 Type: Regular Web Application
@@ -65,7 +77,7 @@ Allowed Logout URLs: http://localhost:5175/portfolio/sme, https://sme.wanzo.com
 Allowed Web Origins: http://localhost:5175, https://sme.wanzo.com
 ```
 
-#### d. Application Portefeuille Institution
+#### e. Application Portefeuille Institution
 ```
 Nom: Wanzo Portefeuille Institution
 Type: Regular Web Application
@@ -74,7 +86,7 @@ Allowed Logout URLs: http://localhost:5176/portfolio/institution, https://instit
 Allowed Web Origins: http://localhost:5176, https://institution.wanzo.com
 ```
 
-#### e. Application Mobile
+#### f. Application Mobile
 ```
 Nom: Wanzo Mobile App
 Type: Native Application
@@ -223,11 +235,12 @@ Pour identifier précisément l'application source d'un utilisateur, ajoutez cet
 ```javascript
 function (user, context, callback) {
   const namespace = 'https://api.wanzo.com/';
-  
-  // Déterminer l'application source basée sur le client_id
+    // Déterminer l'application source basée sur le client_id
   let appSource = "unknown";
   
-  if (context.clientID === "<ADMIN_CLIENT_ID>") {
+  if (context.clientID === "<AUTH_SERVICE_CLIENT_ID>") {
+    appSource = "auth-service";
+  } else if (context.clientID === "<ADMIN_CLIENT_ID>") {
     appSource = "admin-panel";
   } else if (context.clientID === "<ACCOUNTING_CLIENT_ID>") {
     appSource = "accounting-app";
@@ -414,11 +427,101 @@ AUTH0_MANAGEMENT_API_CLIENT_ID=<MANAGEMENT_API_CLIENT_ID>
 AUTH0_MANAGEMENT_API_CLIENT_SECRET=<MANAGEMENT_API_CLIENT_SECRET>
 ```
 
-### 7.1. Implémentation du service Auth0 dans le backend
+### 7.1. Configuration spécifique du service d'authentification (auth-service)
+
+Le microservice `auth-service` joue un rôle central dans l'architecture et nécessite une configuration particulière avec **deux applications Auth0 distinctes** :
+
+#### 7.1.1. Application Web Regular pour l'authentification générale
+
+Cette application est utilisée pour l'authentification des utilisateurs et les opérations générales :
+
+```bash
+# Configuration principale pour l'auth-service
+AUTH0_DOMAIN=wanzo-kiota.auth0.com
+AUTH0_CLIENT_ID=<AUTH_SERVICE_CLIENT_ID>             # ID de l'application "Wanzo Auth Service"
+AUTH0_CLIENT_SECRET=<AUTH_SERVICE_CLIENT_SECRET>     # Secret de l'application "Wanzo Auth Service"
+AUTH0_AUDIENCE=https://api.wanzo.com
+AUTH0_CALLBACK_URL=http://localhost:3000/auth/callback
+AUTH0_LOGOUT_URL=http://localhost:3000
+
+# URLs des services pour la communication inter-services
+ADMIN_SERVICE_URL=http://localhost:3001
+APP_MOBILE_SERVICE_URL=http://localhost:3006
+PORTFOLIO_SME_SERVICE_URL=http://localhost:3004
+PORTFOLIO_INSTITUTION_SERVICE_URL=http://localhost:3005
+ACCOUNTING_SERVICE_URL=http://localhost:3003
+ANALYTICS_SERVICE_URL=http://localhost:3002
+```
+
+#### 7.1.2. Application Machine-to-Machine pour l'API Management
+
+Cette application est nécessaire pour gérer programmatiquement les utilisateurs, rôles et règles :
+
+```bash
+# Configuration pour l'API Management Auth0
+AUTH0_MANAGEMENT_API_AUDIENCE=https://wanzo-kiota.auth0.com/api/v2/
+AUTH0_MANAGEMENT_API_CLIENT_ID=<MANAGEMENT_API_CLIENT_ID>         # ID de l'application "Wanzo Management API Client"
+AUTH0_MANAGEMENT_API_CLIENT_SECRET=<MANAGEMENT_API_CLIENT_SECRET> # Secret de l'application "Wanzo Management API Client"
+```
+
+#### 7.1.3. Configuration NestJS pour Auth0
+
+Dans le fichier `apps/auth-service/src/config/auth0.config.ts`, assurez-vous que la configuration suivante est correctement définie :
+
+```typescript
+export interface Auth0Config {
+  domain: string;
+  clientId: string;
+  clientSecret: string;
+  audience: string;
+  callbackUrl: string;
+  logoutUrl: string;
+  managementApiAudience: string;
+  managementApiClientId: string;
+  managementApiClientSecret: string;
+  managementApiScopes: string[];
+}
+
+export default registerAs('auth0', (): Auth0Config => ({
+  domain: process.env.AUTH0_DOMAIN || '',
+  clientId: process.env.AUTH0_CLIENT_ID || '',
+  clientSecret: process.env.AUTH0_CLIENT_SECRET || '',
+  audience: process.env.AUTH0_AUDIENCE || 'https://api.wanzo.com',
+  callbackUrl: process.env.AUTH0_CALLBACK_URL || 'http://localhost:3000/auth/callback',
+  logoutUrl: process.env.AUTH0_LOGOUT_URL || 'http://localhost:3000',
+  managementApiAudience: process.env.AUTH0_MANAGEMENT_API_AUDIENCE || 'https://wanzo-kiota.auth0.com/api/v2/',
+  managementApiClientId: process.env.AUTH0_MANAGEMENT_API_CLIENT_ID || '',
+  managementApiClientSecret: process.env.AUTH0_MANAGEMENT_API_CLIENT_SECRET || '',
+  managementApiScopes: [
+    'read:users',
+    'create:users',
+    'update:users',
+    'delete:users',
+    'read:roles',
+    'create:roles',
+    'create:role_members',
+    'delete:role_members',
+    'read:user_idp_tokens'
+  ],
+}));
+```
+
+#### 7.1.4. Vérification de la configuration
+
+Pour vérifier que la configuration de l'auth-service est correcte, vous pouvez exécuter :
+
+```bash
+cd apps/auth-service
+npm run start:dev
+```
+
+Puis tester un endpoint basique comme `/auth/health` qui devrait retourner un statut 200 si le service est correctement configuré.
+
+### 7.2. Implémentation du service Auth0 dans le backend
 
 Le service Auth0 du backend (`auth-service`) comprend plusieurs fonctionnalités pour interagir avec l'API Auth0 :
 
-#### 7.1.1. Fonctionnalités principales du service Auth0
+#### 7.2.1. Fonctionnalités principales du service Auth0
 
 - **Validation des tokens** : Vérifie la validité des tokens JWT émis par Auth0
 - **Échange de code** : Convertit les codes d'autorisation en tokens d'accès
@@ -427,7 +530,7 @@ Le service Auth0 du backend (`auth-service`) comprend plusieurs fonctionnalités
 - **Gestion des rôles** : Attribution de rôles aux utilisateurs
 - **Configuration des règles** : Mise en place de règles pour enrichir les tokens JWT
 
-#### 7.1.2. Gestion des utilisateurs via l'API Management
+#### 7.2.2. Gestion des utilisateurs via l'API Management
 
 Pour gérer les utilisateurs et les rôles dans Auth0, le service utilise l'API Management d'Auth0. Cette API nécessite des identifiants spécifiques configurés dans le fichier `.env` :
 
@@ -444,7 +547,7 @@ Les opérations courantes incluent :
 - **Récupération des rôles** : `getRoles()` et `getUserRoles(userId)` permettent de lister les rôles disponibles ou attribués
 - **Enrichissement des tokens** : `createOrUpdateTokenEnrichmentRule()` configure les règles pour ajouter des métadonnées aux tokens JWT
 
-#### 7.1.3. Cache des tokens Management API
+#### 7.2.3. Cache des tokens Management API
 
 Le service implémente un mécanisme de cache pour les tokens de l'API Management afin d'éviter des appels répétés :
 
@@ -493,3 +596,62 @@ Wanzo Backend prend en charge plusieurs types d'utilisateurs avec différents r�
 - **Manager** (MANAGER) : Gestionnaire de département/équipe
 - **Analyste** (ANALYST) : Analyste financier
 - **Observateur** (VIEWER) : Accès en lecture seule
+
+## 9. Relations entre applications Auth0 et microservices
+
+Pour clarifier les relations entre les applications Auth0 et les différents microservices, voici un tableau récapitulatif :
+
+| Microservice | Application Auth0 | Type | Utilisation |
+|--------------|-------------------|------|-------------|
+| auth-service | Wanzo Auth Service | Regular Web Application | Authentification centrale et émission de tokens |
+| auth-service | Wanzo Management API Client | Machine-to-Machine | Gestion des utilisateurs, rôles et règles |
+| admin-service | Wanzo Admin Panel | Regular Web Application | Interface administrateur pour les utilisateurs internes |
+| accounting-service | Wanzo Comptabilité | Regular Web Application | Application comptabilité |
+| portfolio-sme-service | Wanzo Portefeuille PME | Regular Web Application | Gestion des portefeuilles PME |
+| portfolio-institution-service | Wanzo Portefeuille Institution | Regular Web Application | Gestion des portefeuilles institutions |
+| app_mobile_service | Wanzo Mobile App | Native Application | Application mobile |
+
+### 9.1. Particularité du microservice auth-service
+
+Le microservice `auth-service` se distingue des autres services par sa double configuration :
+
+1. **Il utilise sa propre application Regular Web Application** (`Wanzo Auth Service`)
+   - Pour l'authentification générale des utilisateurs
+   - Pour la validation et l'émission de tokens
+   - Pour l'échange de codes d'autorisation contre des tokens
+
+2. **Il utilise une application Machine-to-Machine** (`Wanzo Management API Client`)
+   - Pour la gestion programmatique des utilisateurs (création, mise à jour)
+   - Pour la gestion des rôles et permissions
+   - Pour configurer les règles Auth0
+
+Cette double configuration est nécessaire car le service d'authentification sert à la fois d'intermédiaire pour l'authentification des utilisateurs et d'outil de gestion pour les administrateurs système.
+
+### 9.2. Schéma des flux d'authentification
+
+```
+┌───────────────┐     1. Login Request     ┌───────────────┐
+│               │────────────────────────▶│               │
+│  Frontend     │                          │  Auth0 UI     │
+│  Applications │◀───────────────────────┐│  (Hosted Page) │
+│               │    2. Authorization Code│               │
+└───────┬───────┘                         └───────────────┘
+        │
+        │ 3. Exchange Code for Token
+        ▼
+┌───────────────┐     4. Validate Token     ┌───────────────┐
+│               │────────────────────────▶│               │
+│  auth-service │                          │  Auth0 API     │
+│  Microservice │◀───────────────────────┐│               │
+│               │     5. Token Response    │               │
+└───────┬───────┘                         └───────────────┘
+        │
+        │ 6. Valid Token
+        ▼
+┌───────────────┐
+│  Other        │
+│  Microservices │
+│  API Gateway   │
+│               │
+└───────────────┘
+```
