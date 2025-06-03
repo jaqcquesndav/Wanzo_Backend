@@ -138,12 +138,11 @@ export class OperationJournalEntry {
 
   @Column({ nullable: true }) // userId can be null for system-generated events not tied to a specific user
   userId: string | null;
-
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' }) // If user is deleted, keep the log but set userId to null
   @JoinColumn({ name: 'userId' })
   user: User | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   userName: string | null; // Denormalized for easier display, can be set when userId is known
 
   @Column({
@@ -159,19 +158,17 @@ export class OperationJournalEntry {
     nullable: true 
   })
   resourceAffected: ResourceAffected | null;
-
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   resourceId: string | null; // ID of the affected entity (e.g., product ID, sale ID)
 
   @Column('text')
   description: string; // Human-readable summary of the action
-
   @Column({ type: 'jsonb', nullable: true })
   details: JournalEntryDetails | null; // Structured data about the change (e.g., old/new values)
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   ipAddress: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   userAgent: string | null;
 }

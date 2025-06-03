@@ -1,15 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, TableInheritance } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 
 @Entity('companies')
-@TableInheritance({ column: { type: "varchar", name: "type" } })
 export class Company {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
   name: string;
-
   @Column({ nullable: true })
   address?: string;
 
@@ -25,11 +23,11 @@ export class Company {
   @Column({ nullable: true })
   logoUrl?: string;
 
-  @Column({ nullable: true })
-  industry?: string; // e.g., Retail, Services, Manufacturing
+  @Column({ nullable: true })  industry?: string; // e.g., Retail, Services, Manufacturing
 
   @Column({ nullable: true })
   businessSector?: string; // More specific sector from a predefined list if available
+  
   @OneToMany(() => User, user => user.company)
   users: User[];
   

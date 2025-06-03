@@ -17,6 +17,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OperationJournalModule } from './modules/operation-journal/operation-journal.module'; // Import OperationJournalModule
 import { SettingsUserProfileModule } from './modules/settings-user-profile/settings-user-profile.module'; // Import SettingsUserProfileModule
 import { DocumentManagementModule } from './modules/document-management/document-management.module'; // Import DocumentManagementModule
+import { EntitiesModule } from './modules/shared/entities.module'; // Import EntitiesModule
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'; // Adjusted path for new module structure
 import { HealthController } from './health.controller'; // Import HealthController
@@ -27,28 +28,31 @@ import { HealthController } from './health.controller'; // Import HealthControll
       isGlobal: true,
       envFilePath: '.env', // Explicitly load .env from the service's root
     }),    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],      useFactory: (configService: ConfigService) => ({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get<string>('DATABASE_HOST', 'localhost'),
         port: configService.get<number>('DATABASE_PORT', 5432),
         username: configService.get<string>('DATABASE_USER', 'postgres'),
         password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
         database: configService.get<string>('DATABASE_NAME', 'wanzo_app_mobile_db'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV', 'development') === 'development',
-        logging: configService.get<string>('NODE_ENV', 'development') === 'development',
-        autoLoadEntities: true,
-        entitySkipConstructor: true
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],        synchronize: configService.get<string>('NODE_ENV', 'development') === 'development',
+        logging: configService.get<string>('NODE_ENV', 'development') === 'development',        autoLoadEntities: true,
+        entitySkipConstructor: true,
+        // Add these options to help diagnose connection issues
+        connectTimeoutMS: 10000,
+        retryAttempts: 20,
+        retryDelay: 3000,
+        maxQueryExecutionTime: 10000
       }),
-      inject: [ConfigService],
-    }),
+      inject: [ConfigService],    }),
     ProductsModule,
     CustomersModule, // Added module
     SalesModule, // Add SalesModule here
-    SubscriptionsModule, // Add SubscriptionsModule here
-    AuthModule, // Add AuthModule here
+    SubscriptionsModule, // Add SubscriptionsModule here    AuthModule, // Add AuthModule here
     CompanyModule, // Add CompanyModule here
     SuppliersModule, // Add SuppliersModule to imports
+    EntitiesModule, // Add EntitiesModule before all other modules
     AdhaModule, // Add AdhaModule to imports
     ExpensesModule, // Add ExpensesModule to imports
     FinancingModule, // Add FinancingModule to imports

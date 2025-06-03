@@ -38,8 +38,7 @@ export class Sale {
     name: 'payment_status'
   })
   paymentStatus: PaymentStatus;
-
-  @Column({ name: 'payment_method_id', nullable: true }) // Assuming this is an ID to a payment method configuration/entity
+  @Column({ name: 'payment_method_id', nullable: true, type: 'varchar' }) // Assuming this is an ID to a payment method configuration/entity
   paymentMethodId: string | null;
 
   @Column({ type: 'text', nullable: true })
