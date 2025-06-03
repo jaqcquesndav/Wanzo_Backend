@@ -31,6 +31,44 @@ export interface Auth0Config {
 }
 ```
 
+### Applications Auth0 Requises
+
+Pour que le service d'authentification fonctionne correctement, vous devez configurer **deux applications distinctes** dans le dashboard Auth0 :
+
+1. **Application Web Regular (Principale)** :
+   ```
+   Type: Regular Web Application
+   Utilisation: Authentification générale des utilisateurs
+   Configuration:
+     - Allowed Callback URLs: http://localhost:5173/auth/callback
+     - Allowed Logout URLs: http://localhost:5173
+     - Allowed Web Origins: http://localhost:5173
+   Variables d'environnement associées:
+     - AUTH0_CLIENT_ID
+     - AUTH0_CLIENT_SECRET
+   ```
+
+2. **Application Machine-to-Machine (Management API)** :
+   ```
+   Type: Machine to Machine Application
+   Authorized API: Auth0 Management API
+   Utilisation: Gestion des utilisateurs, rôles et règles
+   Permissions requises:
+     - read:users
+     - create:users
+     - update:users
+     - delete:users
+     - read:roles
+     - create:roles
+     - create:role_members
+     - read:user_idp_tokens
+   Variables d'environnement associées:
+     - AUTH0_MANAGEMENT_API_CLIENT_ID
+     - AUTH0_MANAGEMENT_API_CLIENT_SECRET
+   ```
+
+> **Important** : Les identifiants de ces deux applications sont différents et doivent être configurés correctement dans le fichier `.env`. La confusion entre ces identifiants est une source fréquente d'erreurs.
+
 ### Variables d'Environnement Requises
 
 Le fichier `.env` doit contenir les variables suivantes :
@@ -175,6 +213,53 @@ La récente mise à jour du service a résolu plusieurs problèmes :
 
 5. **Isolation de la configuration** : Séparation des paramètres de configuration dans un module dédié
 
+## Vérification de la Configuration
+
+Pour vérifier que votre configuration Auth0 est correcte, suivez ces étapes :
+
+### 1. Vérifier les Applications dans le Dashboard Auth0
+
+1. Connectez-vous à votre [Dashboard Auth0](https://manage.auth0.com/)
+2. Allez à `Applications > Applications`
+3. Vérifiez que vous avez les deux applications suivantes :
+   - Une application **Regular Web Application** pour l'authentification des utilisateurs
+   - Une application **Machine-to-Machine** pour l'API Management
+
+### 2. Vérifier les Permissions de l'Application Machine-to-Machine
+
+1. Sélectionnez l'application Machine-to-Machine
+2. Allez à l'onglet `APIs`
+3. Cliquez sur `Auth0 Management API`
+4. Vérifiez que toutes les permissions nécessaires sont accordées :
+   ```
+   read:users, create:users, update:users, delete:users,
+   read:roles, create:roles, read:role_members, create:role_members
+   ```
+
+### 3. Tester la Configuration avec l'API Management
+
+Exécutez ce code de test pour vérifier que votre configuration de l'API Management fonctionne :
+
+```typescript
+// Test de la configuration de l'API Management
+async function testManagementApiConfig() {
+  try {
+    // Cette méthode tente d'obtenir un token Management API
+    const token = await auth0Service.getManagementApiToken();
+    console.log('✅ Configuration de l\'API Management correcte');
+    
+    // Test de récupération des rôles pour vérifier les permissions
+    const roles = await auth0Service.getRoles();
+    console.log(`✅ Permissions correctes, ${roles.length} rôles récupérés`);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur de configuration de l\'API Management:', error.message);
+    return false;
+  }
+}
+```
+
 ## Utilisation dans d'autres Services
 
 Pour utiliser ce service Auth0 dans d'autres microservices :
@@ -229,3 +314,17 @@ const newUser = await this.auth0Service.createUser({
 4. **Erreurs de création d'utilisateur** :
    - Vérifiez que l'email n'est pas déjà utilisé
    - Assurez-vous que le mot de passe respecte les règles de complexité d'Auth0
+
+5. **Confusion entre les applications Auth0** :
+   - Problème: Utilisation des mauvais identifiants (clientId/clientSecret) pour les opérations de gestion
+   - Solution: Vérifiez que `AUTH0_CLIENT_ID`/`AUTH0_CLIENT_SECRET` sont bien ceux de l'application Web Regular
+   - Solution: Vérifiez que `AUTH0_MANAGEMENT_API_CLIENT_ID`/`AUTH0_MANAGEMENT_API_CLIENT_SECRET` sont bien ceux de l'application Machine-to-Machine
+
+6. **Erreurs "insufficient scope"** :
+   - Problème: L'application Machine-to-Machine n'a pas toutes les permissions requises
+   - Solution: Dans le dashboard Auth0, vérifiez et mettez à jour les permissions de l'application
+
+7. **Les règles Auth0 ne s'appliquent pas** :
+   - Vérifiez que la règle est activée dans le dashboard Auth0
+   - Assurez-vous que l'ordre d'exécution des règles est correct
+   - Validez la syntaxe JavaScript de la règle
