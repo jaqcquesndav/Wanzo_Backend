@@ -7,7 +7,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from './entities/user.entity';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface'; // Import AuthenticatedRequest
+import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -33,12 +33,10 @@ export class AuthController {
     // Pass the entire DTO object
     return this.authService.refreshToken(refreshTokenDto);
   }
-
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@CurrentUser() user: User) {
-    // Exclude password before sending user data
-    const { password, ...result } = user;
-    return result;
+    // Return user data directly since password is not included in the User interface
+    return user;
   }
 }

@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, HttpStatus } from '@nestjs/common';
 import { SettingsUserProfileService } from '../services/settings-user-profile.service';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole, User } from '../../auth/entities/user.entity';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole, User } from '../../../modules/auth/entities/user.entity';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 import { CreateBusinessSectorDto } from '../dto/create-business-sector.dto';
@@ -11,7 +11,7 @@ import { UpdateUserByAdminDto } from '../dto/update-user-by-admin.dto';
 import { ChangeUserRoleDto } from '../dto/change-user-role.dto';
 import { ApplicationSettingsDto } from '../dto/application-settings.dto';
 import { BusinessSector } from '../entities/business-sector.entity'; // Import BusinessSector entity for Swagger response types
-import { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface'; // Import AuthenticatedRequest
+import { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 import { ApplicationSettings } from '../entities/application-settings.entity'; // Import ApplicationSettings entity for Swagger response types
 
 @ApiTags('Settings, User Profile & Business Sectors')
@@ -44,8 +44,7 @@ export class SettingsUserProfileController {
   @Get('users')
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'List all users (Admin/Owner)' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Users listed successfully.', type: [User] })
-  async getAllUsers(@Req() req: AuthenticatedRequest): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'>[]> {
+  @ApiResponse({ status: HttpStatus.OK, description: 'Users listed successfully.', type: [User] })  async getAllUsers(@Req() req: AuthenticatedRequest): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'>[]> {
     // If the user is an ADMIN, only return users from their company.
     // If the user is an OWNER, they can see all users (companyId will be undefined).
     const companyId = req.user.role === UserRole.ADMIN ? req.user.companyId : undefined;

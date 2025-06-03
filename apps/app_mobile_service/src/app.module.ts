@@ -26,19 +26,19 @@ import { HealthController } from './health.controller'; // Import HealthControll
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env', // Explicitly load .env from the service's root
-    }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+    }),    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],      useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get<string>('DATABASE_HOST', 'localhost'),
         port: configService.get<number>('DATABASE_PORT', 5432),
         username: configService.get<string>('DATABASE_USER', 'postgres'),
-        password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'), // Replace with a secure password or env variable
-        database: configService.get<string>('DATABASE_NAME', 'wanzo_app_mobile_db'), // Example DB name
+        password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
+        database: configService.get<string>('DATABASE_NAME', 'wanzo_app_mobile_db'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV', 'development') === 'development', // True for dev, false for prod
+        synchronize: configService.get<string>('NODE_ENV', 'development') === 'development',
         logging: configService.get<string>('NODE_ENV', 'development') === 'development',
+        autoLoadEntities: true,
+        entitySkipConstructor: true
       }),
       inject: [ConfigService],
     }),

@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, Min, IsDateString, IsNotEmpty, IsPhoneNumber } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, Min, IsDateString, IsNotEmpty, IsPhoneNumber, IsUrl } from 'class-validator';
 import { SupplierCategory } from '../entities/supplier.entity';
 
 export class CreateSupplierDto {
@@ -25,6 +25,22 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsEnum(SupplierCategory)
   category?: SupplierCategory;
+
+  @IsOptional()
+  @IsUrl()
+  website?: string;
+
+  @IsOptional()
+  @IsUrl()
+  logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsString()
+  businessSector?: string;
 
   // totalPurchases will be managed by the system, not set on creation
   // lastPurchaseDate will be managed by the system

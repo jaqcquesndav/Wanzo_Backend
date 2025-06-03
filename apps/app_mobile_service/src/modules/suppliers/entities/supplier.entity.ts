@@ -1,9 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { ChildEntity, Column, OneToMany } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
-
-// Placeholder for Company entity - this should be defined elsewhere properly
-// For example, in src/company/entities/company.entity.ts
-class Company { id: string; suppliers: Supplier[]; name: string; /* other properties */ }
+import { Company } from '../../company/entities/company.entity';
 
 export enum SupplierCategory {
   STRATEGIC = 'strategic',
@@ -13,25 +10,10 @@ export enum SupplierCategory {
   INTERNATIONAL = 'international',
 }
 
-@Entity('suppliers')
-export class Supplier {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  name: string;
-
+@ChildEntity('supplier')
+export class Supplier extends Company {
   @Column({ nullable: true })
   contactPerson?: string;
-
-  @Column({ unique: true })
-  email: string;
-
-  @Column({ nullable: true })
-  phoneNumber?: string;
-
-  @Column({ nullable: true })
-  address?: string;
 
   @Column({
     type: 'enum',
@@ -46,20 +28,7 @@ export class Supplier {
   @Column({ type: 'timestamp with time zone', nullable: true })
   lastPurchaseDate?: Date;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
   // Example Relation: A supplier can supply multiple products
   @OneToMany(() => Product, product => product.supplier, { nullable: true })
   products?: Product[];
-
-  @ManyToOne(() => Company, company => company.suppliers, {nullable: false}) // Assuming a supplier must belong to a company
-  @JoinColumn({ name: 'company_id' })
-  company: Company;
-
-  @Column({name: 'company_id'})
-  companyId: string;
 }
