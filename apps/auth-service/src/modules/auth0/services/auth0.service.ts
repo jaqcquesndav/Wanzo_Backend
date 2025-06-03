@@ -36,7 +36,7 @@ export class Auth0Service {
       return response.data;
     } catch (error) {
       this.handleAxiosError(error, 'Error validating token');
-      // Par exemple, si c’est 401 => token expiré
+      // Par exemple, si c'est 401 => token expiré
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -104,7 +104,7 @@ export class Auth0Service {
     } catch (error) {
       this.handleAxiosError(error, 'Error refreshing token');
 
-      // Vérifie si c’est un invalid_grant => refresh token expiré
+      // Vérifie si c'est un invalid_grant => refresh token expiré
       if (error instanceof AxiosError && error.response?.data?.error === 'invalid_grant') {
         throw new UnauthorizedException('Refresh token invalid or expired');
       }
@@ -131,8 +131,9 @@ export class Auth0Service {
 
     // Sinon, on en demande un nouveau
     const domain = this.configService.get<string>('auth0.domain');
-    const clientId = this.configService.get<string>('auth0.clientId');
-    const clientSecret = this.configService.get<string>('auth0.clientSecret');
+    const clientId = this.configService.get<string>('auth0.managementApiClientId');
+    const clientSecret = this.configService.get<string>('auth0.managementApiClientSecret');
+    const audience = this.configService.get<string>('auth0.managementApiAudience');
 
     this.logger.debug(`Requesting new management API token for domain: ${domain}`);
 
@@ -140,7 +141,7 @@ export class Auth0Service {
       const response = await axios.post(`https://${domain}/oauth/token`, {
         client_id: clientId,
         client_secret: clientSecret,
-        audience: `https://${domain}/api/v2/`,
+        audience,
         grant_type: 'client_credentials',
         // scopes si besoin
         scope: 'create:users update:users read:users',
@@ -151,7 +152,7 @@ export class Auth0Service {
         throw new InternalServerErrorException('No access_token received from Auth0');
       }
 
-      // On calcule la date d’expiration
+      // On calcule la date d'expiration
       const expiresAt = now + expires_in * 1000;
       this.managementTokenCache = { token: access_token, expiresAt };
 
@@ -166,7 +167,283 @@ export class Auth0Service {
   }
 
   /**
-   * Récupère les rôles d’un utilisateur
+   * Crée un utilisateur dans Auth0
+   */
+  async createUser(userData: {
+    email: string;
+    password: string;
+    name: string;
+    companyId?: string;
+    user_metadata?: any;
+    app_metadata?: any;
+    connection?: string;
+    role?: string;
+    metadata?: Record<string, any>;
+  }): Promise<any> {
+    const token = await this.getManagementApiToken();
+    const domain = this.configService.get<string>('auth0.domain');
+    const connection = userData.connection || 'Username-Password-Authentication';
+    
+    // Préparer les données utilisateur selon le format attendu par Auth0
+    const user = {
+      email: userData.email,
+      password: userData.password,
+      name: userData.name,
+      connection,
+      user_metadata: {
+        companyId: userData.companyId,
+        ...userData.metadata,
+        ...userData.user_metadata,
+      },
+      app_metadata: {
+        role: userData.role || 'user',
+        ...userData.app_metadata,
+      },
+      email_verified: false,
+    };
+    
+    this.logger.debug(`Creating user with email: ${userData.email}, role: ${userData.role || 'user'}`);
+    
+    try {
+      const response = await axios.post(
+        `https://${domain}/api/v2/users`,
+        user,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      
+      const createdUser = response.data;
+      
+      // Si un rôle est spécifié, l'assigner
+      if (userData.role) {
+        await this.assignRoleToUser(createdUser.user_id, userData.role);
+      }
+      
+      this.logger.debug(`User created in Auth0: ${createdUser.user_id}`);
+      return createdUser;
+    } catch (error) {
+      this.handleAxiosError(error, 'Error creating user in Auth0');
+      
+      // ex: si Auth0 retourne "user_exists"
+      if (error instanceof AxiosError && error.response?.data?.error === 'user_exists') {
+        throw new UnauthorizedException('User already exists');
+      }
+      
+      throw new InternalServerErrorException('Could not create user in Auth0');
+    }
+  }
+
+  /**
+   * Récupère tous les rôles disponibles dans Auth0
+   */
+  async getRoles(): Promise<any[]> {
+    const token = await this.getManagementApiToken();
+    const domain = this.configService.get<string>('auth0.domain');
+    
+    try {
+      const response = await axios.get(
+        `https://${domain}/api/v2/roles`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      
+      return response.data;
+    } catch (error) {
+      this.handleAxiosError(error, 'Error getting roles from Auth0');
+      throw new InternalServerErrorException('Could not get roles from Auth0');
+    }
+  }
+
+  /**
+   * Crée un rôle dans Auth0
+   */
+  async createRole(name: string, description: string): Promise<any> {
+    const token = await this.getManagementApiToken();
+    const domain = this.configService.get<string>('auth0.domain');
+    
+    try {
+      const response = await axios.post(
+        `https://${domain}/api/v2/roles`,
+        {
+          name,
+          description,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      
+      return response.data;
+    } catch (error) {
+      this.handleAxiosError(error, 'Error creating role in Auth0');
+      throw new InternalServerErrorException('Could not create role in Auth0');
+    }
+  }
+
+  /**
+   * Assigne un rôle à un utilisateur
+   * Peut accepter soit un ID de rôle directement, soit un nom de rôle à rechercher
+   */
+  async assignRoleToUser(userId: string, roleIdOrName: string): Promise<void> {
+    const token = await this.getManagementApiToken();
+    const domain = this.configService.get<string>('auth0.domain');
+    
+    this.logger.debug(`Assigning role ${roleIdOrName} to user ${userId}`);
+    
+    try {
+      // Détermine si c'est un ID ou un nom de rôle
+      let roleId = roleIdOrName;
+      
+      // Si ça ressemble à un nom plutôt qu'un ID, on cherche l'ID correspondant
+      if (!roleIdOrName.startsWith('rol_')) {
+        // 1. Récupérer tous les rôles
+        const rolesResponse = await axios.get(`https://${domain}/api/v2/roles`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        // 2. Trouver celui qui correspond au roleName
+        const role = rolesResponse.data.find((r: Record<string, any>) => r.name === roleIdOrName);
+        if (!role) {
+          this.logger.error(`Role "${roleIdOrName}" not found in Auth0 tenant`);
+          throw new UnauthorizedException(`Role "${roleIdOrName}" not found`);
+        }
+        roleId = role.id;
+        this.logger.debug(`Found role ID: ${roleId} for role name: ${roleIdOrName}`);
+      }
+      
+      // 3. Assigner le rôle
+      await axios.post(
+        `https://${domain}/api/v2/users/${userId}/roles`,
+        { roles: [roleId] },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      
+      this.logger.debug(`Role ${roleIdOrName} successfully assigned to user ${userId}`);
+    } catch (error) {
+      this.handleAxiosError(error, `Error assigning role ${roleIdOrName} to user ${userId}`);
+      throw new InternalServerErrorException('Could not assign role to user in Auth0');
+    }
+  }
+
+  /**
+   * Crée ou met à jour une règle Auth0 pour enrichir les tokens JWT
+   */
+  async createOrUpdateTokenEnrichmentRule(): Promise<any> {
+    const token = await this.getManagementApiToken();
+    const domain = this.configService.get<string>('auth0.domain');
+    const ruleName = 'Enrich JWT with App Source and User Type';
+    
+    // Script pour la règle d'enrichissement des tokens
+    const script = `function (user, context, callback) {
+  const namespace = 'https://api.kiota.com/';
+  
+  // 1. Identifier l'application source basée sur le client_id
+  const clientId = context.clientID;
+  const appSourceMap = {
+    '${this.configService.get<string>('auth0.clientId')}': 'auth-service',
+    // Ajouter d'autres client IDs ici quand ils seront créés
+  };
+  
+  // 2. Ajouter les métadonnées supplémentaires au token
+  context.accessToken[namespace + 'app_source'] = appSourceMap[clientId] || 'unknown';
+  context.accessToken[namespace + 'user_type'] = user.app_metadata?.user_type || 'external';
+  context.accessToken[namespace + 'company_id'] = user.app_metadata?.company_id || null;
+  context.accessToken[namespace + 'institution_id'] = user.app_metadata?.institution_id || null;
+  
+  // 3. Déterminer le service applicable en fonction du type d'utilisateur
+  let applicable_service;
+  
+  if (user.app_metadata?.user_type === 'internal') {
+    applicable_service = 'admin-service';
+  } else if (user.app_metadata?.institution_id) {
+    applicable_service = 'portfolio-institution-service';
+  } else if (user.app_metadata?.company_id) {
+    applicable_service = 'app-mobile-service';
+  } else {
+    applicable_service = 'unknown';
+  }
+  
+  context.accessToken[namespace + 'applicable_service'] = applicable_service;
+  
+  callback(null, user, context);
+}`;
+  
+    try {
+      // Vérifier si la règle existe déjà
+      const rulesResponse = await axios.get(
+        `https://${domain}/api/v2/rules`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      
+      // Fix pour l'erreur de typage: Spécifier le type de r
+      const existingRule = rulesResponse.data.find((r: Record<string, any>) => r.name === ruleName);
+      
+      if (existingRule) {
+        // Mettre à jour la règle existante
+        const response = await axios.patch(
+          `https://${domain}/api/v2/rules/${existingRule.id}`,
+          {
+            name: ruleName,
+            script,
+            enabled: true,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+        
+        this.logger.debug(`Rule updated in Auth0: ${response.data.name}`);
+        return response.data;
+      } else {
+        // Créer une nouvelle règle
+        const response = await axios.post(
+          `https://${domain}/api/v2/rules`,
+          {
+            name: ruleName,
+            script,
+            enabled: true,
+            order: 1,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+        
+        this.logger.debug(`Rule created in Auth0: ${response.data.name}`);
+        return response.data;
+      }
+    } catch (error) {
+      this.handleAxiosError(error, 'Error creating/updating token enrichment rule in Auth0');
+      throw new InternalServerErrorException('Could not create/update token enrichment rule in Auth0');
+    }
+  }
+
+  /**
+   * Récupère les rôles d'un utilisateur
    */
   async getUserRoles(userId: string): Promise<string[]> {
     const token = await this.getManagementApiToken();
@@ -181,108 +458,6 @@ export class Auth0Service {
     } catch (error) {
       this.handleAxiosError(error, `Error getting roles for user ${userId}`);
       throw new UnauthorizedException('Could not get user roles');
-    }
-  }
-
-  /**
-   * Crée un utilisateur dans Auth0 (Username-Password-Authentication)
-   */
-  async createUser(userData: {
-    email: string;
-    password: string;
-    name: string;
-    companyId?: string;
-    role?: string;
-    metadata?: Record<string, any>;
-  }): Promise<any> {
-    const token = await this.getManagementApiToken();
-    const domain = this.configService.get<string>('auth0.domain');
-    const connection = 'Username-Password-Authentication';
-
-    const user = {
-      email: userData.email,
-      password: userData.password,
-      name: userData.name,
-      connection,
-      user_metadata: {
-        companyId: userData.companyId,
-        ...userData.metadata,
-      },
-      app_metadata: {
-        role: userData.role || 'user',
-      },
-      email_verified: false,
-    };
-
-    this.logger.debug(`Creating user with email: ${userData.email}, role: ${userData.role}`);
-
-    try {
-      const response = await axios.post(`https://${domain}/api/v2/users`, user, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Si un rôle est spécifié, l'assigner
-      const createdUser = response.data;
-      if (userData.role) {
-        await this.assignRoleToUser(createdUser.user_id, userData.role);
-      }
-
-      this.logger.debug(`User created successfully: ${createdUser.user_id}`);
-      return createdUser;
-    } catch (error) {
-      this.handleAxiosError(error, 'Error creating user');
-
-      // ex: si Auth0 retourne "user_exists"
-      if (error instanceof AxiosError && error.response?.data?.error === 'user_exists') {
-        throw new UnauthorizedException('User already exists');
-      }
-
-      throw new InternalServerErrorException('Failed to create user in Auth0');
-    }
-  }
-
-  /**
-   * Assigne un rôle à un utilisateur
-   */
-  async assignRoleToUser(userId: string, roleName: string): Promise<void> {
-    const token = await this.getManagementApiToken();
-    const domain = this.configService.get<string>('auth0.domain');
-
-    this.logger.debug(`Assigning role ${roleName} to user ${userId}`);
-
-    try {
-      // 1. Récupérer tous les rôles
-      const rolesResponse = await axios.get(`https://${domain}/api/v2/roles`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // 2. Trouver celui qui correspond au roleName
-      const role = rolesResponse.data.find((r: any) => r.name === roleName);
-      if (!role) {
-        this.logger.error(`Role "${roleName}" not found in Auth0 tenant`);
-        throw new UnauthorizedException(`Role "${roleName}" not found`);
-      }
-      this.logger.debug(`Found role ID: ${role.id} for role name: ${roleName}`);
-
-      // 3. Assigner le rôle
-      await axios.post(
-        `https://${domain}/api/v2/users/${userId}/roles`,
-        { roles: [role.id] },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      this.logger.debug(`Role ${roleName} successfully assigned to user ${userId}`);
-    } catch (error) {
-      this.handleAxiosError(error, `Error assigning role ${roleName} to user ${userId}`);
-      throw new InternalServerErrorException('Failed to assign role to user');
     }
   }
 

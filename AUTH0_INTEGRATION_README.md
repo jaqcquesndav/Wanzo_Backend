@@ -408,10 +408,51 @@ AUTH0_AUDIENCE=https://api.wanzo.com
 AUTH0_ISSUER_URL=https://wanzo-kiota.auth0.com/
 AUTH0_JWKS_URI=https://wanzo-kiota.auth0.com/.well-known/jwks.json
 
-# Management API credentials
+# Management API credentials - Important pour les opérations de gestion des utilisateurs et rôles
+AUTH0_MANAGEMENT_API_AUDIENCE=https://wanzo-kiota.auth0.com/api/v2/
 AUTH0_MANAGEMENT_API_CLIENT_ID=<MANAGEMENT_API_CLIENT_ID>
 AUTH0_MANAGEMENT_API_CLIENT_SECRET=<MANAGEMENT_API_CLIENT_SECRET>
 ```
+
+### 7.1. Implémentation du service Auth0 dans le backend
+
+Le service Auth0 du backend (`auth-service`) comprend plusieurs fonctionnalités pour interagir avec l'API Auth0 :
+
+#### 7.1.1. Fonctionnalités principales du service Auth0
+
+- **Validation des tokens** : Vérifie la validité des tokens JWT émis par Auth0
+- **Échange de code** : Convertit les codes d'autorisation en tokens d'accès
+- **Rafraîchissement des tokens** : Utilise les refresh tokens pour obtenir de nouveaux access tokens
+- **Gestion des utilisateurs** : Création, mise à jour et suppression d'utilisateurs
+- **Gestion des rôles** : Attribution de rôles aux utilisateurs
+- **Configuration des règles** : Mise en place de règles pour enrichir les tokens JWT
+
+#### 7.1.2. Gestion des utilisateurs via l'API Management
+
+Pour gérer les utilisateurs et les rôles dans Auth0, le service utilise l'API Management d'Auth0. Cette API nécessite des identifiants spécifiques configurés dans le fichier `.env` :
+
+```bash
+AUTH0_MANAGEMENT_API_AUDIENCE=https://wanzo-kiota.auth0.com/api/v2/
+AUTH0_MANAGEMENT_API_CLIENT_ID=<MANAGEMENT_API_CLIENT_ID>
+AUTH0_MANAGEMENT_API_CLIENT_SECRET=<MANAGEMENT_API_CLIENT_SECRET>
+```
+
+Les opérations courantes incluent :
+
+- **Création d'utilisateurs** : `createUser(userData)` permet de créer un nouvel utilisateur avec des métadonnées personnalisées
+- **Attribution de rôles** : `assignRoleToUser(userId, roleIdOrName)` attribue un rôle à un utilisateur par ID ou nom
+- **Récupération des rôles** : `getRoles()` et `getUserRoles(userId)` permettent de lister les rôles disponibles ou attribués
+- **Enrichissement des tokens** : `createOrUpdateTokenEnrichmentRule()` configure les règles pour ajouter des métadonnées aux tokens JWT
+
+#### 7.1.3. Cache des tokens Management API
+
+Le service implémente un mécanisme de cache pour les tokens de l'API Management afin d'éviter des appels répétés :
+
+```typescript
+private managementTokenCache: { token: string; expiresAt: number } | null = null;
+```
+
+Ce cache stocke le token et sa date d'expiration, avec une marge de sécurité pour s'assurer que le token reste valide pendant les opérations.
 
 ## 8. Types d'utilisateurs et rôles
 
