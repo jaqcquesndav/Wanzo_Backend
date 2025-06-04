@@ -28,18 +28,74 @@ interface DeleteResponse {
 @ApiTags('users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
   @Roles('admin', 'superadmin')
-  @ApiOperation({ summary: 'Récupérer tous les utilisateurs' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'per_page', required: false, type: Number })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'companyId', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'Liste des utilisateurs récupérée avec succès' })
+  @ApiOperation({ 
+    summary: 'Récupérer tous les utilisateurs', 
+    description: 'Récupère une liste paginée de tous les utilisateurs. Des filtres peuvent être appliqués pour affiner les résultats.'
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    required: false, 
+    type: Number, 
+    description: 'Numéro de page pour la pagination (commence à 1)', 
+    example: 1 
+  })
+  @ApiQuery({ 
+    name: 'per_page', 
+    required: false, 
+    type: Number, 
+    description: 'Nombre d\'éléments par page', 
+    example: 10 
+  })
+  @ApiQuery({ 
+    name: 'search', 
+    required: false, 
+    type: String, 
+    description: 'Terme de recherche pour filtrer les utilisateurs (recherche sur nom, prénom, email)', 
+    example: 'john' 
+  })
+  @ApiQuery({ 
+    name: 'companyId', 
+    required: false, 
+    type: String, 
+    description: 'ID de l\'entreprise pour filtrer les utilisateurs appartenant à une entreprise spécifique', 
+    example: '550e8400-e29b-41d4-a716-446655440000' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Liste des utilisateurs récupérée avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        users: { 
+          type: 'array', 
+          items: { 
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'auth0|61234567890' },
+              email: { type: 'string', example: 'john.doe@example.com' },
+              name: { type: 'string', example: 'John Doe' },
+              role: { type: 'string', example: 'admin' },
+              companyId: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' },
+              isActive: { type: 'boolean', example: true },
+              createdAt: { type: 'string', format: 'date-time' }
+            }
+          } 
+        },
+        page: { type: 'number', example: 1 },
+        perPage: { type: 'number', example: 10 },
+        total: { type: 'number', example: 42 }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Non autorisé - Token invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Interdit - Rôle insuffisant' })
   async findAll(
     @Query('page') page = 1,
     @Query('per_page') perPage = 10,

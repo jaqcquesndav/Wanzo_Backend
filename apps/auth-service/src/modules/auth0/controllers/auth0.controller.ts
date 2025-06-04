@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { Auth0Service } from '../services/auth0.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../oidc/guards/jwt-auth.guard';
 
 interface SignupDto {
@@ -27,19 +27,28 @@ export class Auth0Controller {
     private auth0Service: Auth0Service,
     private configService: ConfigService,
   ) {}
-
   @Get('login')
   @UseGuards(AuthGuard('auth0'))
-  @ApiOperation({ summary: 'Initier le flux de login Auth0' })
-  @ApiResponse({ status: 302, description: 'Redirection vers Auth0' })
+  @ApiOperation({ 
+    summary: 'Initier le flux de login Auth0',
+    description: 'Redirige l\'utilisateur vers la page de connexion Auth0. Après authentification réussie, Auth0 redirige vers le endpoint /auth/callback avec un code d\'autorisation.'
+  })
+  @ApiResponse({ status: 302, description: 'Redirection vers la page de connexion Auth0' })
   async login() {
     this.logger.debug('Initiating Auth0 login flow');
     // Cette route redirige vers Auth0
   }
-
   @Get('callback')
-  @ApiOperation({ summary: 'Callback Auth0 après authentification' })
-  @ApiResponse({ status: 302, description: 'Redirection vers le frontend avec le code' })
+  @ApiOperation({ 
+    summary: 'Callback Auth0 après authentification', 
+    description: 'Point de terminaison appelé par Auth0 après une tentative d\'authentification réussie ou échouée. Redirige vers le frontend avec le code d\'autorisation ou un message d\'erreur.' 
+  })
+  @ApiResponse({ status: 302, description: 'Redirection vers le frontend avec le code d\'autorisation' })
+  @ApiResponse({ status: 401, description: 'Erreur d\'authentification de la part d\'Auth0' })
+  @ApiQuery({ name: 'code', required: false, description: 'Code d\'autorisation généré par Auth0 après authentification réussie' })
+  @ApiQuery({ name: 'state', required: false, description: 'Valeur state utilisée pour éviter les attaques CSRF' })
+  @ApiQuery({ name: 'error', required: false, description: 'Code d\'erreur en cas d\'échec d\'authentification' })
+  @ApiQuery({ name: 'error_description', required: false, description: 'Description détaillée de l\'erreur' })
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
@@ -64,13 +73,36 @@ export class Auth0Controller {
     this.logger.debug(`Redirecting to: ${redirectUrl}`);
     return res.redirect(redirectUrl);
   }
-
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Récupérer le profil de l\'utilisateur courant', 
+    description: 'Récupère les informations du profil de l\'utilisateur authentifié en utilisant le token JWT. Les informations peuvent provenir du token ou d\'une requête à Auth0.' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profil utilisateur récupéré avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'auth0|123456789' },
+            email: { type: 'string', example: 'user@example.com' },
+            name: { type: 'string', example: 'John Doe' },
+            role: { type: 'string', example: 'admin' },
+            permissions: { type: 'array', items: { type: 'string' }, example: ['read:users', 'write:users'] },
+            companyId: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' },
+            metadata: { type: 'object', example: { phoneNumber: '+33612345678' } }
+          }
+        }
+      }
+    } 
+  })
+  @ApiResponse({ status: 401, description: 'Non autorisé - Token invalide ou expiré' })
   async getCurrentUser(@Req() req: any) {
     this.logger.debug(`Getting profile for user: ${req.user?.id}`);
     
@@ -223,9 +255,11 @@ export class Auth0Controller {
       });
     }
   }
-
   @Get('logout')
-  @ApiOperation({ summary: 'Déconnexion' })
+  @ApiOperation({ 
+    summary: 'Déconnexion de l\'utilisateur', 
+    description: 'Déconnecte l\'utilisateur en supprimant le cookie d\'authentification et en redirigeant vers la page de déconnexion d\'Auth0. Cette méthode effectue une déconnexion globale (de tous les appareils).'
+  })
   @ApiResponse({ status: 302, description: 'Redirection vers la page de déconnexion d\'Auth0' })
   async logout(@Res() res: Response) {
     const domain = this.configService.get('auth0.domain');

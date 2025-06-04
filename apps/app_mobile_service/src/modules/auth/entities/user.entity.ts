@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserSubscription } from '../../subscriptions/entities/user-subscription.entity';
 import { Company } from '../../company/entities/company.entity'; // Assuming a Company entity
 
@@ -18,24 +19,59 @@ export enum UserRole {
 
 @Entity('users')
 export class User {
+  @ApiProperty({
+    description: 'Identifiant unique de l\'utilisateur',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    format: 'uuid'
+  })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ApiProperty({
+    description: 'Adresse email de l\'utilisateur (unique)',
+    example: 'user@example.com'
+  })
   @Column({ unique: true })
   email: string;
 
+  @ApiProperty({
+    description: 'Mot de passe hashé (non retourné dans les réponses API)',
+    example: 'hashed_password',
+    required: false,
+    writeOnly: true
+  })
   @Column({ nullable: true }) // Password might be null if using OAuth or if user is invited and hasn't set one
   password?: string;
 
+  @ApiProperty({
+    description: 'Prénom de l\'utilisateur',
+    example: 'John'
+  })
   @Column()
   firstName: string;
 
+  @ApiProperty({
+    description: 'Nom de famille de l\'utilisateur',
+    example: 'Doe',
+    required: false
+  })
   @Column({ nullable: true })
   lastName?: string;
 
+  @ApiProperty({
+    description: 'Numéro de téléphone de l\'utilisateur',
+    example: '+33612345678',
+    required: false
+  })
   @Column({ nullable: true })
   phoneNumber?: string;
 
+  @ApiProperty({
+    description: 'Rôle de l\'utilisateur dans le système',
+    enum: UserRole,
+    example: UserRole.STAFF,
+    default: UserRole.STAFF
+  })
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -43,34 +79,89 @@ export class User {
   })
   role: UserRole;
 
+  @ApiProperty({
+    description: 'Indique si le compte utilisateur est actif',
+    example: true,
+    default: true
+  })
   @Column({ default: true })
   isActive: boolean;
 
+  @ApiProperty({
+    description: 'URL de la photo de profil de l\'utilisateur',
+    example: 'https://example.com/profile-pictures/user123.jpg',
+    required: false
+  })
   @Column({ nullable: true })
   profilePictureUrl?: string;
 
+  @ApiProperty({
+    description: 'Date et heure de la dernière connexion',
+    example: '2023-01-01T12:00:00Z',
+    required: false,
+    format: 'date-time'
+  })
   @Column({ nullable: true })
   lastLoginAt?: Date;
 
+  @ApiProperty({
+    description: 'Identifiant de l\'entreprise associée à l\'utilisateur',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+    format: 'uuid'
+  })
   @Column({ nullable: true })
   companyId?: string;
 
+  @ApiProperty({
+    description: 'Entreprise associée à l\'utilisateur',
+    type: () => Company,
+    required: false
+  })
   @ManyToOne(() => Company, company => company.users, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'companyId' })
   company?: Company;
 
+  @ApiProperty({
+    description: 'Abonnements associés à l\'utilisateur',
+    type: [UserSubscription]
+  })
   @OneToMany(() => UserSubscription, userSubscription => userSubscription.user)
   subscriptions: UserSubscription[];
 
+  @ApiProperty({
+    description: 'Date et heure de création du compte',
+    example: '2023-01-01T10:00:00Z',
+    format: 'date-time'
+  })
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
+  @ApiProperty({
+    description: 'Date et heure de la dernière mise à jour du compte',
+    example: '2023-01-01T11:00:00Z',
+    format: 'date-time'
+  })
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
 
+  @ApiProperty({
+    description: 'Identifiant Auth0 de l\'utilisateur (si authentification Auth0 utilisée)',
+    example: 'auth0|123456789',
+    required: false
+  })
   @Column({ nullable: true })
   auth0Id?: string; // For Auth0 integration if used
 
+  @ApiProperty({
+    description: 'Paramètres spécifiques à l\'utilisateur',
+    required: false,
+    example: {
+      theme: 'dark',
+      notifications: { email: true, push: false },
+      language: 'fr'
+    }
+  })
   @Column({ type: 'jsonb', nullable: true })
   settings?: any; // For user-specific settings as described in API doc (Section L)
 
