@@ -3,14 +3,14 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 
 const prometheusExporter = new PrometheusExporter({
   port: 9464,
 });
 
 const sdk = new NodeSDK({
-  resource: new Resource({
+  resource: resourceFromAttributes({
     [SemanticResourceAttributes.SERVICE_NAME]: 'admin-service',
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
   }),

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule } from '@nestjs/microservices';
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { getKafkaConfigWithFallback } from '@wanzo/shared/events/kafka-config-fallback';
 import { EventsService } from './events.service';
 
 @Module({
@@ -10,7 +10,7 @@ import { EventsService } from './events.service';
     ClientsModule.registerAsync([
       {
         name: 'EVENTS_SERVICE',
-        useFactory: (configService: ConfigService) => getKafkaConfig(configService),
+        useFactory: (configService: ConfigService) => getKafkaConfigWithFallback(configService),
         inject: [ConfigService],
       },
     ]),

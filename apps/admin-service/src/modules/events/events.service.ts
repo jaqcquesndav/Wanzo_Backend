@@ -1,5 +1,6 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 import { 
   UserEventTopics, 
   UserStatusChangedEvent, 
@@ -8,34 +9,71 @@ import {
 } from '@wanzo/shared/events/kafka-config';
 
 @Injectable()
-export class EventsService {
+export class EventsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventsService.name);
+  private kafkaEnabled = false;
 
   constructor(
     @Inject('EVENTS_SERVICE') private readonly eventsClient: ClientKafka,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.kafkaEnabled = this.configService.get<string>('USE_KAFKA', 'false') === 'true';
+  }
 
   async onModuleInit() {
-    // Wait for connection to Kafka
-    await this.eventsClient.connect();
-    this.logger.log('Connected to Kafka event bus');
+    if (!this.kafkaEnabled) {
+      this.logger.log('Kafka is disabled. Events will not be published.');
+      return;
+    }
+
+    try {
+      // Wait for connection to Kafka
+      await this.eventsClient.connect();
+      this.logger.log('Connected to Kafka event bus');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error connecting to Kafka';
+      this.logger.warn(`Failed to connect to Kafka: ${errorMessage}. Events will be disabled.`);
+      this.kafkaEnabled = false;
+    }
   }
 
   async onModuleDestroy() {
-    await this.eventsClient.close();
+    if (this.kafkaEnabled) {
+      try {
+        await this.eventsClient.close();
+        this.logger.log('Disconnected from Kafka event bus');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(`Failed to disconnect from Kafka: ${errorMessage}`);
+      }
+    }
   }
 
   async publishUserStatusChanged(event: UserStatusChangedEvent): Promise<void> {
+    if (!this.kafkaEnabled) {
+      this.logger.debug(`[DISABLED] Would publish user status changed event: ${JSON.stringify(event)}`);
+      return;
+    }
+    
     this.logger.log(`Publishing user status changed event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.USER_STATUS_CHANGED, event);
   }
 
   async publishUserRoleChanged(event: UserRoleChangedEvent): Promise<void> {
+    if (!this.kafkaEnabled) {
+      this.logger.debug(`[DISABLED] Would publish user role changed event: ${JSON.stringify(event)}`);
+      return;
+    }
+    
     this.logger.log(`Publishing user role changed event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.USER_ROLE_CHANGED, event);
   }
-
   async publishSubscriptionChanged(event: SubscriptionChangedEvent): Promise<void> {
+    if (!this.kafkaEnabled) {
+      this.logger.debug(`[DISABLED] Would publish subscription changed event: ${JSON.stringify(event)}`);
+      return;
+    }
+    
     this.logger.log(`Publishing subscription changed event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_CHANGED, event);
   }
