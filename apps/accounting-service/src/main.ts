@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   // Configure Winston logger
@@ -41,6 +43,29 @@ async function bootstrap() {
 
   // 1) Crée l'application à partir de AppModule
   const app = await NestFactory.create(AppModule, { logger });
+
+  // Get ConfigService to access environment variables for Kafka
+  const configService = app.get(ConfigService);
+
+  // Kafka Microservice Connection
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId: configService.get<string>('KAFKA_CLIENT_ID', 'accounting-service-client'),
+        brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+        // Add SSL/SASL options here if needed, configured via environment variables
+        // ssl: configService.get<string>(\'KAFKA_SSL_ENABLED\') === \'true\' ? {} : false,
+        // sasl: configService.get<string>(\'KAFKA_SASL_MECHANISM\') ? { mechanism: ..., username: ..., password: ...} : undefined,
+      },
+      consumer: {
+        groupId: configService.get<string>('KAFKA_CONSUMER_GROUP_ID', 'accounting-consumer-group'),
+      },
+    },
+  });
+
+  // Start all microservices
+  await app.startAllMicroservices();
   
   // 2) Enable versioning
   app.enableVersioning({

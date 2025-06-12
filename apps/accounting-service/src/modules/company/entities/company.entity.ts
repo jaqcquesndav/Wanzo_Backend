@@ -4,6 +4,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 export enum DataSharingPreferenceKey {
   ALLOW_MOBILE_DATA_FOR_AI = 'allowMobileDataForAI',
   ALLOW_CHAT_DATA_FOR_AI = 'allowChatDataForAI',
+  AUTO_CREATE_JOURNAL_FROM_MOBILE_AI = 'autoCreateJournalFromMobileAI', // New preference
   // Add other specific preferences as needed
 }
 
@@ -11,6 +12,10 @@ export enum DataSharingPreferenceKey {
 export interface CompanyDataSharingPreferences {
   [DataSharingPreferenceKey.ALLOW_MOBILE_DATA_FOR_AI]?: boolean;
   [DataSharingPreferenceKey.ALLOW_CHAT_DATA_FOR_AI]?: boolean;
+  [DataSharingPreferenceKey.AUTO_CREATE_JOURNAL_FROM_MOBILE_AI]?: {
+    enabled: boolean;
+    minConfidence: number; // e.g., 0.0 to 1.0
+  };
   // Define types for other preferences
 }
 

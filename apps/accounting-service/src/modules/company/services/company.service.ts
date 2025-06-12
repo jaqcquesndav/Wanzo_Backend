@@ -98,7 +98,26 @@ export class CompanyService {
    */
   async isDataSharingPreferenceEnabled(companyId: string, preferenceKey: DataSharingPreferenceKey): Promise<boolean> {
     const preferences = await this.getCompanyDataSharingPreferences(companyId);
-    return preferences[preferenceKey] === true; // Explicitly check for true
+    // For simple boolean preferences
+    if (typeof preferences[preferenceKey] === 'boolean') {
+      return preferences[preferenceKey] === true;
+    }
+    // For structured preferences like AUTO_CREATE_JOURNAL_FROM_MOBILE_AI
+    if (typeof preferences[preferenceKey] === 'object' && preferences[preferenceKey] !== null) {
+      return (preferences[preferenceKey] as any).enabled === true;
+    }
+    return false; // Default to false if not set or not a recognized structure
+  }
+
+  /**
+   * Retrieves a structured data sharing preference, like auto-creation settings.
+   * @param companyId The ID of the company.
+   * @param preferenceKey The specific DataSharingPreferenceKey to retrieve.
+   * @returns The preference object or undefined if not set.
+   */
+  async getStructuredDataSharingPreference<T>(companyId: string, preferenceKey: DataSharingPreferenceKey): Promise<T | undefined> {
+    const preferences = await this.getCompanyDataSharingPreferences(companyId);
+    return preferences[preferenceKey] as T | undefined;
   }
 
   // Placeholder for findByKiotaId or other identifiers if needed for linking with other services via Kafka events

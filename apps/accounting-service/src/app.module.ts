@@ -20,6 +20,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { KafkaModule } from './modules/kafka/kafka.module';
 
 // Import du MonitoringModule qui contient PrometheusController
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -69,6 +70,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     SyncModule,
     SettingsModule,
     AuditModule,
+    KafkaModule,
 
     // 4) Import du module qui gère Prometheus
     MonitoringModule,

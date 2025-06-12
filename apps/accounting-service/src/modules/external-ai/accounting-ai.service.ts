@@ -5,11 +5,13 @@ import { firstValueFrom } from 'rxjs';
 import { CompanyService } from '../company/services/company.service'; // Corrected path
 import { JournalService } from '../journals/services/journal.service'; // Corrected path
 import { ChatService } from '../chat/services/chat.service'; // Corrected path
-import { AccountingAIRequestDto, AccountingAIResponseDto, SingleAISuggestion } from './dtos/ai-accounting.dto'; // Corrected path
+// Consolidated import for AI DTOs
+import { AccountingAIRequestDto, AccountingAIResponseDto, SingleAISuggestion, AIContextDataDto, MobileTransactionContextDto } from './dtos/ai-accounting.dto'; 
 import { DataSharingPreferenceKey } from '../company/entities/company.entity'; // Corrected path
 import { AccountingStandard } from '../../common/enums/accounting.enum'; // Corrected path
 import { CreateJournalDto, JournalLineDto } from '../journals/dtos/journal.dto'; // Corrected path
 import { JournalType } from '../journals/entities/journal.entity'; // Corrected path
+import { MobileTransactionPayloadDto, MobileTransactionAttachmentDto } from '../kafka/kafka-consumer.service'; // Import DTOs
 
 @Injectable()
 export class AccountingAIService {
@@ -136,7 +138,7 @@ export class AccountingAIService {
   async createJournalFromAISuggestion(
     suggestion: SingleAISuggestion,
     companyId: string,
-    userId: string,
+    userId: string, // Added userId for auditing, assuming it's relevant for AI-created journals too
   ): Promise<any | null> { // Return type can be more specific, e.g., Journal entity type
     if (!suggestion) {
       this.logger.warn('No suggestion provided for journal creation');
@@ -217,6 +219,175 @@ export class AccountingAIService {
       this.logger.error(`Error creating journal from AI suggestion for company ${companyId}: ${errorMessage}`, error.stack);
       // Optionally, rethrow or return a more specific error DTO to the controller
       return null;
+    }
+  }
+
+  /**
+   * Process mobile transaction data for AI suggestions.
+   * This method will be called by the Kafka consumer when a new mobile transaction is received.
+   */
+  async processMobileTransactionForAISuggestions(
+    payload: MobileTransactionPayloadDto,
+    companyId: string, // companyId is part of the payload but passed for clarity
+  ): Promise<AccountingAIResponseDto | null> {
+    this.logger.log(`Processing mobile transaction for AI suggestions for company ${companyId}, transaction ID: ${payload.transactionId}`);
+
+    const company = await this.companyService.findById(companyId);
+    if (!company) {
+      this.logger.warn(`Company not found: ${companyId} while processing mobile transaction ${payload.transactionId}`);
+      return null;
+    }
+
+    const allowMobileDataForAI = await this.companyService.isDataSharingPreferenceEnabled(
+      companyId,
+      DataSharingPreferenceKey.ALLOW_MOBILE_DATA_FOR_AI,
+    );
+
+    if (!allowMobileDataForAI) {
+      this.logger.warn(`Data sharing for mobile data (ALLOW_MOBILE_DATA_FOR_AI) was disabled for company ${companyId} before processing transaction ${payload.transactionId}. Aborting.`);
+      return null;
+    }
+
+    const accountingStandardToUse = company.metadata?.accountingStandard as AccountingStandard || AccountingStandard.SYSCOHADA;
+    const fiscalYearToUse = company.currentFiscalYear;
+    if (!fiscalYearToUse) {
+      this.logger.warn(`Current fiscal year not set for company ${companyId} while processing mobile transaction ${payload.transactionId}`);
+      return null; 
+    }
+
+    let attachmentsForAI: Array<{ id: string; type: string; content: string; fileName: string }> = [];
+    if (payload.attachments && payload.attachments.length > 0) {
+      this.logger.log(`Processing ${payload.attachments.length} attachments for mobile transaction ${payload.transactionId}`);
+      for (const attachment of payload.attachments) {
+        let content = attachment.base64Content;
+        const fileType = attachment.mimeType || 'application/octet-stream';
+        const fileName = attachment.fileName || `mobile-attachment-${Date.now()}`;
+
+        if (!content && attachment.url) {
+          this.logger.log(`Attachment ${fileName} has a URL (${attachment.url}). Fetching content...`);
+          try {
+            const response = await firstValueFrom(
+              this.httpService.get(attachment.url, { responseType: 'arraybuffer' }),
+            );
+            content = Buffer.from(response.data).toString('base64');
+            this.logger.log(`Successfully fetched and encoded content for ${fileName} from URL.`);
+          } catch (fetchError: any) {
+            this.logger.error(`Failed to fetch attachment from URL ${attachment.url} for transaction ${payload.transactionId}: ${fetchError.message}`);
+            continue; 
+          }
+        }
+
+        if (!content) {
+            this.logger.warn(`Attachment ${fileName} for transaction ${payload.transactionId} has no content (and no URL or fetching failed). Skipping.`);
+            continue;
+        }
+        
+        attachmentsForAI.push({
+          id: attachment.id || `mobile-attach-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          type: fileType,
+          content: content,
+          fileName: fileName,
+        });
+      }
+    }
+
+    const accountingContext = await this.chatService.getAccountingContext(companyId, fiscalYearToUse, accountingStandardToUse);
+    const aiMessage = `Transaction mobile: ${payload.description || 'N/A'}. Montant: ${payload.amount} ${payload.currency}. Date: ${payload.transactionDate}. Type: ${payload.category || 'Non spécifié'}.`;
+
+    const transactionDetailsContext: MobileTransactionContextDto = {
+        transactionId: payload.transactionId,
+        userId: payload.userId, // Ensured userId is present
+        amount: payload.amount,
+        currency: payload.currency,
+        date: payload.transactionDate,
+        category: payload.category,
+        type: payload.metadata?.type, 
+        merchant: payload.metadata?.merchant,
+        notes: payload.metadata?.notes,
+    };
+
+    const aiContextData: AIContextDataDto = {
+        companyId,
+        fiscalYear: fiscalYearToUse,
+        accountingStandard: accountingStandardToUse,
+        userId: payload.userId, // Ensured userId is present
+        accounts: accountingContext.accounts.map((acc: { code: string; name: string; type: string }) => ({ code: acc.code, name: acc.name, type: acc.type })),
+        recentJournals: accountingContext.recentJournals.map((j: { journalType: JournalType; description: string; lines: Array<{debit: number; credit: number}> }) => ({
+          type: j.journalType.toString(),
+          description: j.description,
+          amount: j.lines.reduce((sum: number, line: { debit: number; credit: number; }) => sum + line.debit - line.credit, 0)
+        })),
+        attachments: attachmentsForAI.length > 0 ? attachmentsForAI : undefined,
+        source: 'mobile_transaction',
+        transactionDetails: transactionDetailsContext,
+    };
+
+    const aiRequest: AccountingAIRequestDto = {
+      message: aiMessage,
+      contextData: aiContextData,
+    };
+
+    try {
+      this.logger.debug(`Sending AI Request for mobile transaction ${payload.transactionId} to ${this.djangoServiceUrl}: ${JSON.stringify(aiRequest).substring(0, 500)}...`);
+      const response = await firstValueFrom(
+        this.httpService.post<AccountingAIResponseDto>(
+          `${this.djangoServiceUrl}/api/accounting/process`,
+          aiRequest,
+        ),
+      );
+      this.logger.log(`Received AI response for mobile transaction ${payload.transactionId} for company ${companyId}`);
+      
+      if (response.data.suggestions && response.data.suggestions.length > 0) {
+        this.logger.log(`AI provided ${response.data.suggestions.length} suggestions for mobile transaction ${payload.transactionId}.`);
+        
+        const autoCreatePreference = await this.companyService.getStructuredDataSharingPreference<
+          { enabled: boolean; minConfidence: number } 
+        >(
+          companyId,
+          DataSharingPreferenceKey.AUTO_CREATE_JOURNAL_FROM_MOBILE_AI
+        );
+
+        if (autoCreatePreference?.enabled) {
+          this.logger.log(`Auto-creation of journal from mobile AI suggestion is ENABLED for company ${companyId}. Min confidence: ${autoCreatePreference.minConfidence}`);
+          for (const suggestion of response.data.suggestions) {
+            const overallConfidence = response.data.confidence || 0;
+            const suggestionConfidence = suggestion.confidenceScore || overallConfidence; 
+
+            if (suggestionConfidence >= autoCreatePreference.minConfidence) {
+              this.logger.log(`Suggestion confidence (${suggestionConfidence}) meets threshold (${autoCreatePreference.minConfidence}). Attempting to create journal.`);
+              try {
+                const createdJournal = await this.createJournalFromAISuggestion(suggestion, companyId, payload.userId);
+                if (createdJournal) {
+                  this.logger.log(`Successfully created journal entry from AI suggestion for transaction ${payload.transactionId}, journal ID: ${createdJournal.id}`);
+                } else {
+                  this.logger.warn(`Journal creation from AI suggestion was not successful for transaction ${payload.transactionId} (suggestion: ${suggestion.description}). It might be unbalanced or have other issues.`);
+                }
+              } catch (journalCreateError: any) {
+                this.logger.error(`Error auto-creating journal from AI suggestion for transaction ${payload.transactionId}: ${journalCreateError.message}`, journalCreateError.stack);
+              }
+            } else {
+              this.logger.log(`Suggestion confidence (${suggestionConfidence}) is BELOW threshold (${autoCreatePreference.minConfidence}). Journal will not be auto-created.`);
+            }
+          }
+        } else {
+          this.logger.log(`Auto-creation of journal from mobile AI suggestion is DISABLED for company ${companyId}.`);
+        }
+      } else {
+        this.logger.log(`No suggestions provided by AI for mobile transaction ${payload.transactionId}.`);
+      }
+      return response.data;
+
+    } catch (error: any) {
+      this.logger.error(`Error communicating with Django AI service for mobile transaction ${payload.transactionId} (company ${companyId}): ${error.message}`, error.stack);
+      return {
+        reply: 'Erreur lors du traitement de la transaction mobile par l\'IA.',
+        confidence: 0,
+        needsReview: true,
+        error: {
+          message: error.message || 'Unknown AI service communication error for mobile transaction',
+          service: 'ExternalAICommunicationError',
+        }
+      };
     }
   }
 }

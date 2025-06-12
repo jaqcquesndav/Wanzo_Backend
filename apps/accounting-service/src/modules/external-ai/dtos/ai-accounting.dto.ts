@@ -19,6 +19,19 @@ export interface AISingleAttachmentDto {
   content: string; // base64 encoded content or extracted text
 }
 
+export interface MobileTransactionContextDto {
+    transactionId: string;
+    userId: string; // User who initiated the transaction on mobile
+    amount: number;
+    currency: string;
+    date: string; // ISO 8601 date string
+    type?: string; // e.g., 'expense', 'income' - maps to 'category' from MobileTransactionPayloadDto
+    category?: string;
+    merchant?: string; // Optional: if available from mobile payload metadata
+    notes?: string;    // Optional: if available from mobile payload metadata
+    // any other relevant fields from MobileTransactionPayloadDto.metadata can be added here
+}
+
 export interface AIContextDataDto {
   companyId: string;
   fiscalYear: string;
@@ -27,6 +40,8 @@ export interface AIContextDataDto {
   accounts: AISingleAccountDto[];
   recentJournals: AISingleRecentJournalDto[];
   attachments?: AISingleAttachmentDto[]; // Optional
+  source?: string; // To indicate the origin of the data, e.g., 'chat', 'mobile_transaction'
+  transactionDetails?: MobileTransactionContextDto; // Specific details for mobile transactions
 }
 
 export interface AccountingAIRequestDto {
