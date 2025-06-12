@@ -3,19 +3,33 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable Helmet
+  // Enable Helmet for security headers
   app.use(helmet());
 
-  app.setGlobalPrefix('api'); // As per API documentation base URL
+  // Set global prefix for all routes as per API documentation
+  app.setGlobalPrefix('api');
+  
+  // Enable CORS for the mobile app
+  app.enableCors();
+  
+  // Add global validation pipe
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true, // Strip away properties that do not have any decorators
     forbidNonWhitelisted: true, // Throw an error if non-whitelisted values are provided
     transform: true, // Automatically transform payloads to DTO instances
   }));
+  
+  // Add global interceptor to standardize successful responses
+  app.useGlobalInterceptors(new ApiResponseInterceptor());
+  
+  // Add global filter to standardize error responses
+  app.useGlobalFilters(new HttpExceptionFilter());
   // Swagger Setup
   const config = new DocumentBuilder()
     .setTitle('Wanzo App Mobile Service API')

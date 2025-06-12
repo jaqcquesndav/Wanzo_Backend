@@ -189,4 +189,37 @@ export class AuthService {
     console.warn('Auth0 Management API Token retrieval is not implemented.');
     throw new Error('Auth0 Management API Token retrieval not implemented.');
   }
+
+  async generateManagementToken(userId: string, resourceId: string, resourceType: string): Promise<{ token: string; expiresIn: number; resourceId: string; resourceType: string }> {
+    // Verify the user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify the resource exists based on resourceType
+    // This would need to be expanded based on the actual resource types supported
+    // For example, checking if a document exists in the document repository, etc.
+
+    // Generate a management token with limited scope and short expiration
+    const expiresIn = 1800; // 30 minutes in seconds
+    const payload = {
+      sub: userId,
+      resourceId: resourceId,
+      resourceType: resourceType,
+      scope: 'management',
+    };
+
+    const token = this.jwtService.sign(payload, {
+      expiresIn: expiresIn,
+      secret: this.configService.get<string>('JWT_SECRET'),
+    });
+
+    return {
+      token,
+      expiresIn,
+      resourceId,
+      resourceType,
+    };
+  }
 }

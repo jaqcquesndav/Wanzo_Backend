@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ManagementTokenRequestDto, ManagementTokenResponseDto } from './dto/management-token.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -140,5 +141,33 @@ export class AuthController {
   getProfile(@CurrentUser() user: User) {
     // Return user data directly since password is not included in the User interface
     return user;
+  }
+
+  @Post('management-token')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Générer un jeton de gestion', 
+    description: 'Génère un jeton limité en portée pour accéder à une ressource spécifique'
+  })
+  @ApiBody({ type: ManagementTokenRequestDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Jeton de gestion généré avec succès',
+    type: ManagementTokenResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Requête invalide' })
+  @ApiResponse({ status: 401, description: 'Non autorisé' })
+  @ApiResponse({ status: 404, description: 'Ressource non trouvée' })
+  async generateManagementToken(
+    @CurrentUser() user: User,
+    @Body() managementTokenRequestDto: ManagementTokenRequestDto
+  ): Promise<ManagementTokenResponseDto> {
+    return this.authService.generateManagementToken(
+      user.id,
+      managementTokenRequestDto.resourceId,
+      managementTokenRequestDto.resourceType
+    );
   }
 }

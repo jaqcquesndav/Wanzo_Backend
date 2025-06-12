@@ -26,6 +26,7 @@ import { ListExpensesDto } from './dto/list-expenses.dto';
 import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
 import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
 import { ListExpenseCategoriesDto } from './dto/list-expense-categories.dto';
+import { ExpenseResponseDto } from './dto/expense-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../auth/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -229,7 +230,6 @@ export class ExpensesController {
     // }
     return this.expensesService.createExpense(createExpenseDto, user.id);
   }
-
   @Get()
   @ApiOperation({ 
     summary: 'Récupérer toutes les dépenses', 
@@ -238,16 +238,30 @@ export class ExpensesController {
   @ApiResponse({ 
     status: 200, 
     description: 'Liste des dépenses récupérée avec succès',
-    type: [Expense]
+    type: ExpenseResponseDto,
+    isArray: true
   })
   @ApiResponse({ 
     status: 401, 
     description: 'Non autorisé'
-  })
-  findAllExpenses(@Query() listExpensesDto: ListExpensesDto, @CurrentUser() user: User) {
-    return this.expensesService.findAllExpenses(listExpensesDto, user.id);
-  }
-  @Get(':id')
+  })  async findAllExpenses(@Query() listExpensesDto: ListExpensesDto, @CurrentUser() user: User) {
+    const result = await this.expensesService.findAllExpenses(listExpensesDto, user.id);
+    
+    // Transformer les entités en DTO pour le format attendu par le frontend
+    const transformedData = result.data.map(expense => 
+      ExpenseResponseDto.fromEntity(expense, expense.category)
+    );
+    
+    return {
+      success: true,
+      message: 'Liste des dépenses récupérée avec succès',
+      data: transformedData,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      statusCode: 200
+    };
+  }@Get(':id')
   @ApiOperation({ 
     summary: 'Récupérer une dépense spécifique', 
     description: 'Récupère une dépense par son identifiant unique'
@@ -261,7 +275,14 @@ export class ExpensesController {
   @ApiResponse({ 
     status: 200, 
     description: 'Dépense récupérée avec succès',
-    type: Expense
+    schema: {
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Dépense récupérée avec succès' },
+        data: { $ref: '#/components/schemas/ExpenseResponseDto' },
+        statusCode: { type: 'number', example: 200 }
+      }
+    }
   })
   @ApiResponse({ 
     status: 404, 
@@ -270,9 +291,16 @@ export class ExpensesController {
   @ApiResponse({ 
     status: 401, 
     description: 'Non autorisé'
-  })
-  findOneExpense(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
-    return this.expensesService.findOneExpense(id, user.id);
+  })  async findOneExpense(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    const expense = await this.expensesService.findOneExpense(id, user.id);
+    const responseDto = ExpenseResponseDto.fromEntity(expense, expense.category);
+    
+    return {
+      success: true,
+      message: 'Dépense récupérée avec succès',
+      data: responseDto,
+      statusCode: 200
+    };
   }
 
   @Patch(':id')

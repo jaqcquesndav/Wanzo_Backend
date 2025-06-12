@@ -9,6 +9,7 @@ import { ListExpensesDto } from './dto/list-expenses.dto';
 import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
 import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
 import { ListExpenseCategoriesDto } from './dto/list-expense-categories.dto';
+import { ExpenseResponseDto } from './dto/expense-response.dto';
 
 @Injectable()
 export class ExpensesService {
@@ -75,9 +76,7 @@ export class ExpensesService {
       // attachmentUrls will be handled separately if file uploads are involved
     });
     return this.expenseRepository.save(newExpense);
-  }
-
-  async findAllExpenses(
+  }    async findAllExpenses(
     listExpensesDto: ListExpensesDto,
     userId: string,
   ): Promise<{ data: Expense[], total: number, page: number, limit: number }> {
@@ -94,7 +93,7 @@ export class ExpensesService {
       where.category = { id: categoryId };
     }
 
-    const [data, total] = await this.expenseRepository.findAndCount({
+    const [expenses, total] = await this.expenseRepository.findAndCount({
       where,
       relations: ['category', 'supplier'], // Eager load category and supplier if needed for list view
       skip,
@@ -102,10 +101,8 @@ export class ExpensesService {
       order: { [sortBy]: sortOrder.toUpperCase() },
     });
 
-    return { data, total, page, limit };
-  }
-
-  async findOneExpense(id: string, userId: string): Promise<Expense> {
+    return { data: expenses, total, page, limit };
+  }async findOneExpense(id: string, userId: string): Promise<Expense> {
     const expense = await this.expenseRepository.findOne({
       where: { id, userId },
       relations: ['category', 'supplier'],
@@ -113,7 +110,16 @@ export class ExpensesService {
     if (!expense) {
       throw new NotFoundException(`Expense with ID "${id}" not found or access denied.`);
     }
+    
     return expense;
+  }
+  
+  /**
+   * Get expense by ID and convert to frontend DTO format
+   */
+  async findOneExpenseDto(id: string, userId: string): Promise<ExpenseResponseDto> {
+    const expense = await this.findOneExpense(id, userId);
+    return ExpenseResponseDto.fromEntity(expense, expense.category);
   }
 
   async updateExpense(id: string, updateExpenseDto: UpdateExpenseDto, userId: string): Promise<Expense> {
