@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { AccountingStandard } from '../../../common/enums/accounting.enum';
 
 // Enum to define possible data sharing preferences keys
 export enum DataSharingPreferenceKey {
@@ -30,9 +31,16 @@ export class Company {
   // Store preferences as JSONB for flexibility
   @Column('jsonb', { nullable: true, default: {} })
   dataSharingPreferences!: CompanyDataSharingPreferences;
-
   @Column({ nullable: true })
   currentFiscalYear!: string;
+
+  @Column({
+    type: 'enum',
+    enum: AccountingStandard,
+    default: AccountingStandard.SYSCOHADA,
+    nullable: true
+  })
+  accountingStandard!: AccountingStandard;
 
   // For accountingStandard, and other company-specific settings
   @Column('jsonb', { nullable: true, default: {} })

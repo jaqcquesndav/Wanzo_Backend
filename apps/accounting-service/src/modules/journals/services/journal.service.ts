@@ -189,8 +189,12 @@ export class JournalService {
       .leftJoinAndSelect('journal.lines', 'line')
       .where('line.accountId = :accountId', { accountId });
 
+    if (filters.companyId) { // Added companyId filter
+      query.andWhere('journal.companyId = :companyId', { companyId: filters.companyId });
+    }
+
     if (filters.fiscalYear) {
-      query.andWhere('journal.fiscalYear = :fiscalYear', { fiscalYear: filters.fiscalYear });
+      query.andWhere('journal.fiscalYearId = :fiscalYearId', { fiscalYearId: filters.fiscalYear }); // Corrected to fiscalYearId
     }
 
     if (filters.startDate && filters.endDate) {
@@ -214,7 +218,7 @@ export class JournalService {
       .getMany();
   }
 
-  async getAccountBalance(accountId: string, fiscalYear: string, asOfDate?: Date): Promise<{
+  async getAccountBalance(accountId: string, fiscalYearId: string, companyId: string, asOfDate?: Date): Promise<{
     debit: number;
     credit: number;
     balance: number;
@@ -223,7 +227,8 @@ export class JournalService {
       .createQueryBuilder('line')
       .leftJoin('line.journal', 'journal')
       .where('line.accountId = :accountId', { accountId })
-      .andWhere('journal.fiscalYear = :fiscalYear', { fiscalYear })
+      .andWhere('journal.companyId = :companyId', { companyId })
+      .andWhere('journal.fiscalYearId = :fiscalYearId', { fiscalYearId })
       .andWhere('journal.status = :status', { status: JournalStatus.POSTED });
 
     if (asOfDate) {
@@ -243,7 +248,75 @@ export class JournalService {
     return {
       debit: totalDebit,
       credit: totalCredit,
-      balance: totalDebit - totalCredit,
+      balance: totalDebit - totalCredit, // Note: Balance calculation depends on account type (Asset/Liability/Equity vs Income/Expense)
+                                        // For a generic balance, this is fine. Specific reports might need to consider account nature.
     };
+  }
+
+  async getAccountMovements(
+    accountId: string,
+    companyId: string,
+    fiscalYearId: string,
+    periodStartDate: Date,
+    periodEndDate: Date,
+    // status: JournalStatus = JournalStatus.POSTED, // Optional: if we need to filter by status
+  ): Promise<{ totalDebit: number; totalCredit: number }> {
+    const result = await this.journalLineRepository
+      .createQueryBuilder('line')
+      .leftJoin('line.journal', 'journal')
+      .select([
+        'SUM(line.debit) as totalDebit',
+        'SUM(line.credit) as totalCredit',
+      ])
+      .where('line.accountId = :accountId', { accountId })
+      .andWhere('journal.companyId = :companyId', { companyId })
+      .andWhere('journal.fiscalYearId = :fiscalYearId', { fiscalYearId })
+      .andWhere('journal.status = :status', { status: JournalStatus.POSTED })
+      .andWhere('journal.date >= :periodStartDate', { periodStartDate })
+      .andWhere('journal.date <= :periodEndDate', { periodEndDate })
+      .getRawOne();
+
+    return {
+      totalDebit: parseFloat(result?.totalDebit) || 0,
+      totalCredit: parseFloat(result?.totalCredit) || 0,
+    };
+  }
+
+  async findLinesByAccountAndFilters(
+    accountId: string,
+    filters: {
+      companyId: string;
+      fiscalYearId: string;
+      startDate?: Date;
+      endDate?: Date;
+      status?: JournalStatus;
+    },
+  ): Promise<JournalLine[]> {
+    const query = this.journalLineRepository
+      .createQueryBuilder('line')
+      .innerJoinAndSelect('line.journal', 'journal') // Ensure journal data is loaded
+      .where('line.accountId = :accountId', { accountId })
+      .andWhere('journal.companyId = :companyId', { companyId: filters.companyId })
+      .andWhere('journal.fiscalYearId = :fiscalYearId', { fiscalYearId: filters.fiscalYearId });
+
+    if (filters.status) {
+      query.andWhere('journal.status = :status', { status: filters.status });
+    }
+
+    // Date filtering
+    if (filters.startDate && filters.endDate) {
+      query.andWhere('journal.date BETWEEN :startDate AND :endDate', {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      });
+    } else if (filters.startDate) {
+      query.andWhere('journal.date >= :startDate', { startDate: filters.startDate });
+    } else if (filters.endDate) {
+      query.andWhere('journal.date <= :endDate', { endDate: filters.endDate });
+    }
+
+    query.orderBy('journal.date', 'ASC').addOrderBy('journal.createdAt', 'ASC'); // Chronological order
+
+    return await query.getMany();
   }
 }

@@ -2,6 +2,8 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { JournalLine } from './journal-line.entity';
 import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
+export { JournalLine }; // Re-export JournalLine
+
 export enum JournalType {
   GENERAL = 'general',
   SALES = 'sales',
