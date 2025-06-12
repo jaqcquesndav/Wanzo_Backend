@@ -1,13 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
-export enum TaxType {
+export enum DeclarationType {
   TVA = 'TVA',
-  IS = 'IS',
   IPR = 'IPR',
+  IB = 'IB',
   CNSS = 'CNSS',
-  INPP = 'INPP',
-  ONEM = 'ONEM',
-  OTHER = 'OTHER',
+  TPI = 'TPI',
+  TE = 'TE',
 }
 
 export enum DeclarationStatus {
@@ -30,17 +30,11 @@ export class TaxDeclaration {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  kiotaId!: string;
-
-  @Column()
-  fiscalYear!: string;
-
   @Column({
     type: 'enum',
-    enum: TaxType,
+    enum: DeclarationType,
   })
-  type!: TaxType;
+  type!: DeclarationType;
 
   @Column()
   period!: string;
@@ -52,16 +46,7 @@ export class TaxDeclaration {
   periodicity!: DeclarationPeriodicity;
 
   @Column()
-  documentNumber!: string;
-
-  @Column()
   dueDate!: Date;
-
-  @Column('decimal', { precision: 15, scale: 2 })
-  taxableBase!: number;
-
-  @Column('decimal', { precision: 15, scale: 2 })
-  taxRate!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
   amount!: number;
@@ -80,22 +65,17 @@ export class TaxDeclaration {
   submittedAt?: Date;
 
   @Column({ nullable: true })
-  paidBy?: string;
+  reference?: string;
 
-  @Column({ nullable: true })
-  paidAt?: Date;
+  @Column('simple-array', { nullable: true })
+  attachments?: string[];
 
-  @Column({ nullable: true })
-  paymentReference?: string;
+  @Column()
+  fiscalYearId!: string;
 
-  @Column({ nullable: true })
-  rejectionReason?: string;
-
-  @Column({ nullable: true })
-  journalEntryId?: string;
-
-  @Column('jsonb', { nullable: true })
-  metadata?: Record<string, any>;
+  @ManyToOne(() => FiscalYear)
+  @JoinColumn({ name: 'fiscalYearId' })
+  fiscalYear!: FiscalYear;
 
   @Column({ nullable: true })
   companyId?: string;

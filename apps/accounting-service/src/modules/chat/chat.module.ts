@@ -6,12 +6,14 @@ import { ChatService } from './services/chat.service';
 import { ChatController } from './controllers/chat.controller';
 import { JournalsModule } from '../journals/journals.module';
 import { AccountsModule } from '../accounts/accounts.module';
+import { FilesModule } from '../files/files.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, ChatMessage]),
     JournalsModule,
     AccountsModule,
+    FilesModule,
   ],
   providers: [ChatService],
   controllers: [ChatController],

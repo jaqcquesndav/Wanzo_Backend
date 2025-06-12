@@ -1,20 +1,34 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { JournalLine } from './journal-line.entity';
+import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
 export enum JournalType {
-  GENERAL = 'GENERAL',
-  SALES = 'SALES',
-  PURCHASES = 'PURCHASES',
-  BANK = 'BANK',
-  CASH = 'CASH'
+  GENERAL = 'general',
+  SALES = 'sales',
+  PURCHASES = 'purchases',
+  BANK = 'bank',
+  CASH = 'cash'
 }
 
 export enum JournalStatus {
   DRAFT = 'draft',
   PENDING = 'pending',
+  APPROVED = 'approved',
   POSTED = 'posted',
   REJECTED = 'rejected',
   CANCELLED = 'cancelled'
+}
+
+export enum JournalSource {
+  MANUAL = 'manual',
+  AGENT = 'agent',
+  IMPORT = 'import'
+}
+
+export enum ValidationStatus {
+  PENDING = 'pending',
+  VALIDATED = 'validated',
+  REJECTED = 'rejected'
 }
 
 @Entity('journals')
@@ -22,26 +36,32 @@ export class Journal {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  kiotaId!: string;
+  @Column({ nullable: true }) // kiotaId can be optional
+  kiotaId?: string;
 
   @Column()
-  fiscalYear!: string;
+  date!: Date;
 
   @Column({
     type: 'enum',
     enum: JournalType,
   })
-  type!: JournalType;
-
-  @Column()
-  reference!: string;
-
-  @Column()
-  date!: Date;
+  journalType!: JournalType;
 
   @Column('text')
   description!: string;
+
+  @Column({ nullable: true })
+  reference?: string;
+
+  @Column('decimal', { precision: 20, scale: 2 })
+  totalDebit!: number;
+
+  @Column('decimal', { precision: 20, scale: 2 })
+  totalCredit!: number;
+
+  @Column('decimal', { precision: 20, scale: 2, default: 0 })
+  totalVat!: number;
 
   @Column({
     type: 'enum',
@@ -50,17 +70,37 @@ export class Journal {
   })
   status!: JournalStatus;
 
-  @Column('decimal', { precision: 20, scale: 2 })
-  totalDebit!: number;
+  @Column({
+    type: 'enum',
+    enum: JournalSource,
+    default: JournalSource.MANUAL
+  })
+  source!: JournalSource;
 
-  @Column('decimal', { precision: 20, scale: 2 })
-  totalCredit!: number;
+  @Column({ nullable: true })
+  agentId?: string;
 
-  @Column({ default: 'CDF' })
-  currency!: string;
+  @Column({
+    type: 'enum',
+    enum: ValidationStatus,
+    nullable: true
+  })
+  validationStatus?: ValidationStatus;
 
-  @Column('decimal', { precision: 20, scale: 6, default: 1 })
-  exchangeRate!: number;
+  @Column({ nullable: true })
+  validatedBy?: string;
+
+  @Column({ nullable: true })
+  validatedAt?: Date;
+
+  @Column({ nullable: true })
+  postedBy?: string; // Added
+
+  @Column({ nullable: true })
+  postedAt?: Date; // Added
+
+  @Column('text', { nullable: true })
+  rejectionReason?: string; // Added
 
   @OneToMany(() => JournalLine, line => line.journal, {
     cascade: true,
@@ -68,17 +108,21 @@ export class Journal {
   })
   lines!: JournalLine[];
 
-  @Column({ nullable: true })
-  postedBy?: string;
-
-  @Column({ nullable: true })
-  postedAt?: Date;
-
-  @Column({ nullable: true })
-  rejectionReason?: string;
-
   @Column('jsonb', { nullable: true })
-  metadata?: Record<string, any>;
+  attachments?: Array<{
+    id: string;
+    name: string;
+    url?: string;
+    localUrl?: string;
+    status: 'pending' | 'uploading' | 'uploaded' | 'error';
+  }>;
+
+  @Column()
+  fiscalYearId!: string;
+
+  @ManyToOne(() => FiscalYear)
+  @JoinColumn({ name: 'fiscalYearId' })
+  fiscalYear!: FiscalYear;
 
   @Column({ nullable: true })
   companyId?: string;

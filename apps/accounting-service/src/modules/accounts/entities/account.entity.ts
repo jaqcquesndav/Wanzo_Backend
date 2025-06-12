@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
+import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
 export enum AccountType {
   ASSET = 'asset',
@@ -13,9 +14,6 @@ export class Account {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  kiotaId!: string;
-
   @Column({ unique: true })
   code!: string;
 
@@ -28,6 +26,12 @@ export class Account {
   })
   type!: AccountType;
 
+  @Column({ length: 1 })
+  class!: string;
+
+  @Column({ default: false })
+  isAnalytic!: boolean;
+
   @Column({ nullable: true })
   parentId?: string;
 
@@ -38,8 +42,12 @@ export class Account {
   @OneToMany(() => Account, account => account.parent)
   children?: Account[];
 
-  @Column({ default: false })
-  isAnalytic!: boolean;
+  @Column()
+  fiscalYearId!: string;
+
+  @ManyToOne(() => FiscalYear)
+  @JoinColumn({ name: 'fiscalYearId' })
+  fiscalYear!: FiscalYear;
 
   @Column({ default: true })
   active!: boolean;

@@ -12,13 +12,17 @@ export class AccountService {
   ) {}
 
   async create(createAccountDto: CreateAccountDto, userId: string): Promise<Account> {
-    // Vérifier si le code existe déjà
+    // Vérifier si le code existe déjà pour cette companyId et fiscalYearId
     const existingAccount = await this.accountRepository.findOne({
-      where: { code: createAccountDto.code }
+      where: { 
+        code: createAccountDto.code, 
+        companyId: createAccountDto.companyId,
+        fiscalYearId: createAccountDto.fiscalYearId 
+      }
     });
 
     if (existingAccount) {
-      throw new ConflictException(`Account with code ${createAccountDto.code} already exists`);
+      throw new ConflictException(`Account with code ${createAccountDto.code} already exists for company ${createAccountDto.companyId} and fiscal year ${createAccountDto.fiscalYearId}`);
     }
 
     // Vérifier le compte parent si spécifié
@@ -32,12 +36,14 @@ export class AccountService {
       }
     }
 
-    const kiotaId = `KIOTA-CPT-${createAccountDto.code}${Math.random().toString(36).substr(2, 6).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
+    // const kiotaId = `KIOTA-CPT-${createAccountDto.code}${Math.random().toString(36).substr(2, 6).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
 
     const account = this.accountRepository.create({
       ...createAccountDto,
-      kiotaId,
+      // kiotaId, // kiotaId is not part of Account entity
       createdBy: userId,
+      // companyId is now part of createAccountDto
+      // fiscalYearId is now part of createAccountDto
     });
 
     return await this.accountRepository.save(account);
@@ -72,8 +78,32 @@ export class AccountService {
     }
 
     if (filters.search) {
+      // Assuming search targets name and code
       where.name = Like(`%${filters.search}%`);
+      // Or handle multiple fields for search:
+      // where = [
+      //   { ...where, name: Like(`%${filters.search}%`) },
+      //   { ...where, code: Like(`%${filters.search}%`) },
+      // ];
     }
+    
+    if (filters.companyId) {
+      where.companyId = filters.companyId;
+    }
+
+    if (filters.fiscalYear) {
+      // Assuming Account entity has fiscalYearId
+      where.fiscalYearId = filters.fiscalYear;
+    }
+    
+    // AccountingStandard might be trickier if it's not a direct field.
+    // If it's part of company metadata or fiscal year metadata, this would need a more complex query.
+    // For now, we assume it might be part of the account's fiscalYear relation or similar.
+    // This part remains a placeholder for further refinement based on exact data model.
+    // if (filters.accountingStandard) {
+    //   // Example: join with fiscalYear and check standard on fiscalYear.metadata
+    // }
+
 
     const [accounts, total] = await this.accountRepository.findAndCount({
       where,
@@ -105,6 +135,7 @@ export class AccountService {
   }
 
   async findByCode(code: string): Promise<Account> {
+    // This method might need companyId as well if codes are not globally unique
     const account = await this.accountRepository.findOne({
       where: { code },
       relations: ['parent', 'children'],
@@ -115,6 +146,12 @@ export class AccountService {
     }
 
     return account;
+  }
+
+  async findOneByCodeAndCompany(code: string, companyId: string): Promise<Account | null> {
+    return await this.accountRepository.findOne({
+      where: { code, companyId: companyId },
+    });
   }
 
   async update(id: string, updateAccountDto: UpdateAccountDto): Promise<Account> {

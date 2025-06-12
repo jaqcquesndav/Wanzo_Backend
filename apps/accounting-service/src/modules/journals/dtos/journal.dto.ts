@@ -77,11 +77,9 @@ export class CreateJournalDto {
   @IsOptional()
   metadata?: Record<string, any>;
 
-
-  @ApiPropertyOptional({ description: 'Company ID' })
-  @IsOptional()
+  @ApiProperty({ description: 'Company ID' }) // Changed from ApiPropertyOptional
   @IsUUID()
-  companyId?: string;
+  companyId!: string; // Changed from optional
 }
 
 export class UpdateJournalStatusDto {
@@ -101,37 +99,32 @@ export class JournalFilterDto {
   @IsString()
   fiscalYear?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by type', enum: JournalType })
+  @ApiPropertyOptional({ description: 'Filter by journal type', enum: JournalType })
   @IsOptional()
   @IsEnum(JournalType)
   type?: JournalType;
 
-  @ApiPropertyOptional({ description: 'Filter by status', enum: JournalStatus })
+  @ApiPropertyOptional({ description: 'Filter by journal status', enum: JournalStatus })
   @IsOptional()
   @IsEnum(JournalStatus)
   status?: JournalStatus;
 
-  @ApiPropertyOptional({ description: 'Start date' })
+  @ApiPropertyOptional({ description: 'Filter by start date' })
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   startDate?: Date;
 
-  @ApiPropertyOptional({ description: 'End date' })
+  @ApiPropertyOptional({ description: 'Filter by end date' })
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   endDate?: Date;
 
-  @ApiPropertyOptional({ description: 'Search term' })
+  @ApiPropertyOptional({ description: 'Search term for description' })
   @IsOptional()
   @IsString()
   search?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by account ID' })
-  @IsOptional()
-  @IsUUID()
-  accountId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by company ID' })
   @IsOptional()

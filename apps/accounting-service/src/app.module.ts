@@ -15,6 +15,11 @@ import { DataImportModule } from './modules/data-import/data-import.module';
 import { CreditScoreModule } from './modules/credit-score/credit-score.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
 import { HealthModule } from './modules/health/health.module';
+import { FiscalYearsModule } from './modules/fiscal-years/fiscal-years.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { SyncModule } from './modules/sync/sync.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 // Import du MonitoringModule qui contient PrometheusController
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -49,9 +54,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
-    }),
-
-    // 3) Import de tous tes modules métier
+    }),    // 3) Import de tous tes modules métier
     AuthModule,
     AccountsModule,
     JournalsModule,
@@ -60,9 +63,12 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     TaxesModule,
     ChatModule,
     CreditScoreModule,
-    ActivitiesModule,
-    DataImportModule,
-    HealthModule,
+    ActivitiesModule,    DataImportModule,
+    HealthModule,    FiscalYearsModule,
+    OrganizationModule,
+    SyncModule,
+    SettingsModule,
+    AuditModule,
 
     // 4) Import du module qui gère Prometheus
     MonitoringModule,

@@ -6,6 +6,7 @@ import { ChatMessage, MessageRole } from '../entities/chat-message.entity';
 import { CreateChatDto, CreateMessageDto, ChatFilterDto } from '../dtos/chat.dto';
 import { JournalService } from '../../journals/services/journal.service';
 import { AccountService } from '../../accounts/services/account.service';
+import { AccountingStandard } from '../../../common/enums/accounting.enum'; // Added import
 
 @Injectable()
 export class ChatService {
@@ -150,10 +151,10 @@ export class ChatService {
   }
 
   // Méthodes spécifiques au service de comptabilité
-  async getAccountingContext(companyId: string): Promise<Record<string, any>> {
+  async getAccountingContext(companyId: string, fiscalYear: string, accountingStandard: AccountingStandard): Promise<Record<string, any>> {
     const [accounts, journals] = await Promise.all([
-      this.accountService.findAll({ companyId }),
-      this.journalService.findAll({ companyId }, 1, 10),
+      this.accountService.findAll({ companyId, fiscalYear, accountingStandard }), // Pass fiscalYear and accountingStandard
+      this.journalService.findAll({ companyId, fiscalYear }, 1, 10), // Pass fiscalYear
     ]);
 
     return {
@@ -163,10 +164,32 @@ export class ChatService {
         type: acc.type,
       })),
       recentJournals: journals.journals.map(journal => ({
-        type: journal.type,
+        journalType: journal.journalType,
         description: journal.description,
         amount: journal.totalDebit,
       })),
     };
+  }
+
+  /**
+   * Find a chat message by its ID
+   */
+  async findMessageById(id: string): Promise<ChatMessage> {
+    const message = await this.messageRepository.findOne({
+      where: { id }
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message with ID ${id} not found`);
+    }
+
+    return message;
+  }
+
+  /**
+   * Update a chat message
+   */
+  async updateMessage(message: ChatMessage): Promise<ChatMessage> {
+    return await this.messageRepository.save(message);
   }
 }
