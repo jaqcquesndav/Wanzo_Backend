@@ -11,6 +11,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import helmet from 'helmet';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   // Configure Winston logger
@@ -32,6 +33,28 @@ async function bootstrap() {
   // **On ne crée qu'une seule application** basée sur AppModule
   const app = await NestFactory.create(AppModule, { logger });
   const configService = app.get(ConfigService);
+
+  // Connect to Kafka as a client for producing messages
+  // This setup allows the admin-service to send messages to Kafka.
+  // If admin-service also needs to consume messages, a similar setup for a consumer group would be needed.
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId: configService.get<string>('KAFKA_CLIENT_ID', 'admin-service-producer'), // Unique client ID
+        brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+        // Add SSL/SASL options here if needed, configured via environment variables
+        // ssl: configService.get<string>(\'KAFKA_SSL_ENABLED\') === \'true\' ? {} : false,
+        // sasl: configService.get<string>(\'KAFKA_SASL_MECHANISM\') ? { mechanism: ..., username: ..., password: ...} : undefined,
+      },
+      // producer: { // Optional: Add producer-specific configurations if needed
+      //   allowAutoTopicCreation: configService.get<boolean>('KAFKA_PRODUCER_ALLOW_AUTO_TOPIC_CREATION', true),
+      // },
+    },
+  }, { inheritAppConfig: true }); // inheritAppConfig allows sharing HTTP configurations if needed
+
+  // Start all microservices (including the Kafka client connection)
+  await app.startAllMicroservices();
 
   // Enable versioning
   app.enableVersioning({
@@ -145,7 +168,7 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document, customOptions);
 
   const port = configService.get<number>('PORT', 3001); // Port par défaut 3001 pour admin-service
-  await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  await app.listen(configService.get<number>('ADMIN_PORT', 3001)); // Use config for port
+  logger.log(`Admin Service is running on port ${configService.get<number>('ADMIN_PORT', 3001)}`);
 }
 bootstrap();

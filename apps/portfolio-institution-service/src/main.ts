@@ -6,6 +6,8 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import { ConfigService } from '@nestjs/config';
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
 
 async function bootstrap() {
   // Configure Winston logger
@@ -40,6 +42,11 @@ async function bootstrap() {
 
   // 1) Crée une seule application Nest à partir d'AppModule
   const app = await NestFactory.create(AppModule, { logger });
+  const configService = app.get(ConfigService);
+
+  // Kafka microservice connection
+  const kafkaConfig = getKafkaConfig(configService);
+  app.connectMicroservice(kafkaConfig);
   
   // 2) Enable versioning
   app.enableVersioning({
@@ -97,8 +104,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Start all microservices
+  await app.startAllMicroservices();
+
   // 7) Lance le service sur le port 3005
-  await app.listen(3005);
-  logger.log(`Portfolio Institution Service is running on port 3005`);
+  await app.listen(configService.get<number>('PORTFOLIO_INSTITUTION_SERVICE_PORT', 3005));
+  logger.log(`Portfolio Institution Service is running on: ${await app.getUrl()}`);
 }
 bootstrap();

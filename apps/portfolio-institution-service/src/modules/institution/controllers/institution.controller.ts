@@ -44,9 +44,13 @@ export class InstitutionController {
     @Body() updateInstitutionDto: UpdateInstitutionDto,
     @Req() req: any,
   ) {
+    if (!req.user || !req.user.id) {
+      throw new Error('User ID not found in request. Ensure authentication is working correctly.');
+    }
     const institution = await this.institutionService.update(
       req.user.institutionId,
       updateInstitutionDto,
+      req.user.id,
     );
     return {
       success: true,

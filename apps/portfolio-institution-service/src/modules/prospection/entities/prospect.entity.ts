@@ -127,6 +127,14 @@ export class Prospect {
   @OneToMany(() => ProspectDocument, document => document.prospect)
   documents!: ProspectDocument[];
 
+  @Column('jsonb', { nullable: true })
+  consentData?: {
+    shareWithAll: boolean;
+    targetInstitutionTypes?: string[];
+    lastUpdatedBy: string;
+    lastUpdatedAt: Date;
+  };
+
   @Column('uuid')
   institutionId!: string;
 

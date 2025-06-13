@@ -11,6 +11,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { HealthModule } from './modules/health/health.module';
 import { DataSharingModule } from './modules/data-sharing/data-sharing.module';
+import { EventsModule } from './modules/events/events.module'; // Import EventsModule
 
 // ✨ Import de ton MonitoringModule (celui avec PrometheusController)
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -55,9 +56,8 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     ReportsModule,
     HealthModule,
     DataSharingModule,
-
-    // ✨ 4) Ajout du MonitoringModule ici
-    MonitoringModule,
+    MonitoringModule, // ✨ Ajout du MonitoringModule ici
+    EventsModule, // Add EventsModule here
   ],
   providers: [
     // Filtrage global

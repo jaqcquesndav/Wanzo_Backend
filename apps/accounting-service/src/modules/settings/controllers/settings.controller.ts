@@ -96,17 +96,19 @@ export class SettingsController {
   @ApiOperation({ summary: 'Update data sharing settings' })
   async updateDataSharingSettings(
     @Body() updateDto: UpdateDataSharingSettingsDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { companyId: string, userId: string } } // Added userId to req.user type
   ): Promise<any> {
     const settings = await this.settingsService.updateDataSharingSettings(
       req.user.companyId, 
-      updateDto
+      updateDto,
+      req.user.userId, // Pass userId to the service method
     );
     return {
       success: true,
       data: {
         enabled: settings.status === 'enabled',
-        providers: settings.providers
+        providers: settings.providers,
+        // Optionally, return the derived shareWithAll and targetInstitutionTypes if useful for the client
       }
     };
   }

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { Portfolio, PortfolioType } from '../entities/portfolio.entity';
+import { Portfolio, PortfolioType, RiskProfile } from '../entities/portfolio.entity'; // Added RiskProfile import
 import { FinancialProduct } from '../entities/financial-product.entity';
 import { Equipment } from '../entities/equipment.entity';
 import { CreatePortfolioDto, UpdatePortfolioDto, PortfolioFilterDto } from '../dtos/portfolio.dto';
@@ -83,6 +83,37 @@ export class PortfolioService {
   async update(id: string, updatePortfolioDto: UpdatePortfolioDto): Promise<Portfolio> {
     const portfolio = await this.findById(id);
     Object.assign(portfolio, updatePortfolioDto);
+    return await this.portfolioRepository.save(portfolio);
+  }
+
+  async createDefaultPortfolioForOrganization(organizationId: string, userId: string, organizationName: string): Promise<Portfolio> {
+    const kiotaId = `KIOTA-PORT-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
+    
+    const defaultPortfolioData: Partial<Portfolio> = {
+      name: `Default Portfolio for ${organizationName}`,
+      type: PortfolioType.TRADITIONAL, // Or any other default type
+      riskProfile: RiskProfile.MODERATE, // Corrected to use RiskProfile enum
+      companyId: organizationId,
+      kiotaId,
+      createdBy: userId,
+      active: true,
+      // Add any other necessary default fields for a portfolio
+      // For example, initializing metrics or other fields if necessary
+      targetAmount: 0, // Default target amount
+      targetReturn: 0, // Default target return
+      targetSectors: [], // Default target sectors
+      metrics: { // Default metrics
+        netValue: 0,
+        averageReturn: 0,
+        riskPortfolio: 0,
+        sharpeRatio: 0,
+        volatility: 0,
+        alpha: 0,
+        beta: 0,
+      }
+    };
+
+    const portfolio = this.portfolioRepository.create(defaultPortfolioData as Portfolio); // Added 'as Portfolio' for type assertion if create expects full entity
     return await this.portfolioRepository.save(portfolio);
   }
 

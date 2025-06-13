@@ -8,7 +8,8 @@ import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { ConfigService } from '@nestjs/config';
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config'; // Import shared Kafka config
+import { ConfigService } from '@nestjs/config'; // Added import for ConfigService
 
 async function bootstrap() {
   // Configure Winston logger
@@ -43,23 +44,21 @@ async function bootstrap() {
 
   // 1) Crée l'application à partir de AppModule
   const app = await NestFactory.create(AppModule, { logger });
-
-  // Get ConfigService to access environment variables for Kafka
   const configService = app.get(ConfigService);
 
-  // Kafka Microservice Connection
+  // Configure and connect Kafka consumer for accounting-service
+  const kafkaConsumerOptions = getKafkaConfig(configService); // Get base config
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.KAFKA,
+    ...kafkaConsumerOptions, // Spread base config (transport and options)
     options: {
+      ...kafkaConsumerOptions.options!,
       client: {
-        clientId: configService.get<string>('KAFKA_CLIENT_ID', 'accounting-service-client'),
-        brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
-        // Add SSL/SASL options here if needed, configured via environment variables
-        // ssl: configService.get<string>(\'KAFKA_SSL_ENABLED\') === \'true\' ? {} : false,
-        // sasl: configService.get<string>(\'KAFKA_SASL_MECHANISM\') ? { mechanism: ..., username: ..., password: ...} : undefined,
+        ...kafkaConsumerOptions.options!.client!,
+        clientId: 'accounting-service-consumer', // Specific client ID
       },
       consumer: {
-        groupId: configService.get<string>('KAFKA_CONSUMER_GROUP_ID', 'accounting-consumer-group'),
+        ...kafkaConsumerOptions.options!.consumer!,
+        groupId: 'accounting-consumer-group', // Specific consumer group ID
       },
     },
   });

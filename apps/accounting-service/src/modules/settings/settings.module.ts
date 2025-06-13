@@ -6,6 +6,7 @@ import { AccountingSettings } from '@/modules/settings/entities/accounting-setti
 import { Currency } from '@/modules/settings/entities/currency.entity';
 import { DataSharingSettings } from '@/modules/settings/entities/data-sharing-settings.entity';
 import { DataSource as SettingsDataSource } from '@/modules/settings/entities/data-source.entity';
+import { EventsModule } from '@/modules/events/events.module';
 
 @Module({  imports: [
     TypeOrmModule.forFeature([
@@ -14,6 +15,7 @@ import { DataSource as SettingsDataSource } from '@/modules/settings/entities/da
       DataSharingSettings,
       SettingsDataSource,
     ]),
+    EventsModule,
   ],
   controllers: [SettingsController],
   providers: [SettingsService],

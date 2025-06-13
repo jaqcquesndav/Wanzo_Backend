@@ -15,6 +15,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { SystemModule } from './modules/system/system.module';
 import { TokensModule } from './modules/tokens/tokens.module';
+import { KafkaModule } from './modules/kafka/kafka.module'; // Added KafkaModule import
 
 // --- Import du module de monitoring ---
 import { MonitoringModule } from './monitoring/monitoring.module'; // Corrected path
@@ -60,6 +61,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
     SettingsModule,
     SystemModule,    TokensModule,
     DashboardModule,
+    KafkaModule, // Added KafkaModule
   ],
   controllers: [HealthController],
   providers: [

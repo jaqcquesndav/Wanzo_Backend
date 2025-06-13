@@ -28,15 +28,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any): Promise<Record<string, any>> {
     this.logger.debug(`Validating JWT payload for user: ${payload.sub}`);
 
+    // Determine institutionId: prioritize payload.institutionId, then payload.companyId
+    const institutionId = payload.institutionId || payload.companyId;
+
+    if (!institutionId) {
+        this.logger.warn(`institutionId (from payload.institutionId or payload.companyId) not found in JWT payload for user: ${payload.sub}.`);
+        // Depending on whether an institution context is always required,
+        // this could be an error or handled downstream.
+        // For now, it will be undefined if not present.
+    }
+
     return {
-      id: payload.sub,
+      id: payload.sub, // User's own ID (maps to req.user.id)
       email: payload.email,
       name: payload.name,
       role: payload.role,
       permissions: payload.permissions,
-      companyId: payload.companyId,
+      institutionId: institutionId, // This will map to req.user.institutionId
       isSystemAdmin: payload.role === 'admin',
       metadata: payload.metadata || {}
+      // companyId is no longer explicitly returned if institutionId serves its purpose
     };
   }
 }

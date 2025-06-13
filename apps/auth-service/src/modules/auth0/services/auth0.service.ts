@@ -7,6 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
+import { EventsService } from '../../events/events.service';
+import { UserCreatedEventData, EventUserType } from '@wanzo/shared/events/kafka-config'; // Corrected import for UserCreatedEventData and added EventUserType
 
 @Injectable()
 export class Auth0Service {
@@ -20,6 +22,7 @@ export class Auth0Service {
   constructor(
     private configService: ConfigService,
     private jwtService: JwtService,
+    private eventsService: EventsService, // Injected EventsService
   ) {}
 
   /**
@@ -222,6 +225,24 @@ export class Auth0Service {
       if (userData.role) {
         await this.assignRoleToUser(createdUser.user_id, userData.role);
       }
+
+      // Prepare UserCreatedEventData payload
+      const nameParts = userData.name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ');
+
+      const eventPayload: UserCreatedEventData = {
+        userId: createdUser.user_id,
+        email: createdUser.email,
+        userType: userData.app_metadata?.role as EventUserType || EventUserType.SME_USER, // Mapped to EventUserType, defaulting to SME_USER
+        timestamp: new Date(),
+        firstName: createdUser.given_name || firstName,
+        lastName: createdUser.family_name || lastName,
+        organizationDetails: userData.companyId ? { id: userData.companyId, name: userData.metadata?.initialCompanyName || '' } : undefined,
+        phoneNumber: createdUser.phone_number || userData.user_metadata?.phone_number, // Added phoneNumber
+      };
+
+      await this.eventsService.publishUserCreatedEvent(eventPayload);
       
       this.logger.debug(`User created in Auth0: ${createdUser.user_id}`);
       return createdUser;
@@ -497,7 +518,7 @@ export class Auth0Service {
 
       this.logger.debug(`Initial account created successfully for user ID: ${user.user_id}`);
 
-      // Dans un vrai système, on notifierait le service admin (webhook ou MQ)
+      // Dans a vrai système, on notifierait le service admin (webhook ou MQ)
       return {
         user,
         companyId,

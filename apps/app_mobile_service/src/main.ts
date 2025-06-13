@@ -5,9 +5,34 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { MicroserviceOptions } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config'; // Added import for ConfigService
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Connect to Kafka as a client (producer/consumer)
+  // For app_mobile_service, it will primarily be a producer.
+  // If it also needs to consume events, the same connection can be used,
+  // and specific consumer setup will be in the relevant modules/controllers.
+  const configService = app.get(ConfigService); // Get ConfigService instance
+  const baseKafkaConfig = getKafkaConfig(configService);
+  const kafkaConfig: MicroserviceOptions = {
+    ...baseKafkaConfig,
+    options: {
+      ...baseKafkaConfig.options,
+      client: {
+        ...(baseKafkaConfig.options?.client || {}),
+        clientId: 'app-mobile-service-client', // Set specific client ID
+        // Ensure brokers are also correctly sourced
+        brokers: (baseKafkaConfig.options?.client?.brokers && baseKafkaConfig.options.client.brokers.length > 0) 
+                 ? baseKafkaConfig.options.client.brokers 
+                 : [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
+      },
+    },
+  };
+  app.connectMicroservice<MicroserviceOptions>(kafkaConfig);
 
   // Enable Helmet for security headers
   app.use(helmet());
@@ -102,6 +127,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document, customOptions);
   // Add other global configurations: CORS, etc.
   const port = process.env.PORT || 3006; // Port unique pour app_mobile_service
+  await app.startAllMicroservices(); // Start Kafka client
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

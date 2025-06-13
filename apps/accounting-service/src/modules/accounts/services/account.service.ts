@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindOptionsWhere } from 'typeorm';
 import { Account } from '../entities/account.entity';
 import { CreateAccountDto, UpdateAccountDto, AccountFilterDto } from '../dtos/account.dto';
+import { AccountType } from '../entities/account.entity'; // Import AccountType
+import { FiscalYearsService } from '../../fiscal-years/services/fiscal-years.service'; // Corrected import path
 
 @Injectable()
 export class AccountService {
   constructor(
     @InjectRepository(Account)
     private accountRepository: Repository<Account>,
+    private readonly fiscalYearsService: FiscalYearsService, // Inject FiscalYearsService
   ) {}
 
   async create(createAccountDto: CreateAccountDto, userId: string): Promise<Account> {
@@ -213,5 +216,77 @@ export class AccountService {
     }
 
     return await query.getMany();
+  }
+
+  async setupDefaultChartOfAccounts(companyId: string, userId: string): Promise<void> {
+    // This is a placeholder. Implement logic to create a default set of accounts.
+    // You might have a predefined template for the chart of accounts.
+    
+    // Determine the current fiscal year for the new organization
+    let currentFiscalYearId: string;
+    try {
+      const currentFiscalYear = await this.fiscalYearsService.findCurrentFiscalYear(companyId);
+      currentFiscalYearId = currentFiscalYear.id;
+    } catch (error) {
+      // If no current fiscal year is found (e.g., for a brand new company),
+      // create a default one or handle as per business logic.
+      // For now, we'll log an error and use a placeholder. 
+      // This part needs robust handling: e.g., create a fiscal year if none exists.
+      console.error(`Error finding current fiscal year for company ${companyId}:`, error);
+      // As a fallback, create a default fiscal year for the company if none exists
+      // This is a simplified example; you might want more sophisticated logic
+      const year = new Date().getFullYear();
+      try {
+        const newFiscalYear = await this.fiscalYearsService.create({
+          code: `FY${year}`,
+          startDate: `${year}-01-01`,
+          endDate: `${year}-12-31`,
+          // status: FiscalYearStatus.OPEN, // Default status is OPEN in entity
+        }, companyId, userId);
+        currentFiscalYearId = newFiscalYear.id;
+        console.log(`Created default fiscal year ${newFiscalYear.code} for company ${companyId}`);
+      } catch (creationError) {
+        console.error(`Failed to create default fiscal year for company ${companyId}:`, creationError);
+        throw new ConflictException(`Could not establish a fiscal year for company ${companyId}. Please set up a fiscal year manually.`);
+      }
+    }
+
+    const defaultAccounts: Partial<CreateAccountDto>[] = [
+      { code: '101', name: 'Cash', type: AccountType.ASSET, companyId, fiscalYearId: currentFiscalYearId }, 
+      { code: '401', name: 'Accounts Payable', type: AccountType.LIABILITY, companyId, fiscalYearId: currentFiscalYearId },
+      { code: '301', name: 'Common Stock', type: AccountType.EQUITY, companyId, fiscalYearId: currentFiscalYearId },
+      { code: '501', name: 'Service Revenue', type: AccountType.REVENUE, companyId, fiscalYearId: currentFiscalYearId },
+      { code: '601', name: 'Office Supplies Expense', type: AccountType.EXPENSE, companyId, fiscalYearId: currentFiscalYearId },
+      // ... more accounts based on a standard chart (e.g., SYSCOHADA or other relevant standards)
+    ];
+
+    for (const accDto of defaultAccounts) {
+      if (accDto.code) { // Ensure code is defined
+        const existing = await this.findOneByCodeAndCompany(accDto.code, companyId);
+        if (!existing) {
+          // Ensure all required fields for CreateAccountDto are present
+          const completeAccDto: CreateAccountDto = {
+            code: accDto.code,
+            name: accDto.name || 'Unnamed Account',
+            type: accDto.type || AccountType.EXPENSE, // Default to a type if undefined, though should be set
+            companyId: companyId,
+            fiscalYearId: accDto.fiscalYearId || currentFiscalYearId, // Ensure fiscalYearId is set
+            // kiotaId: '', // kiotaId is not part of Account entity, and not in CreateAccountDto based on previous context
+            // parentId: undefined, // Set if applicable
+            // description: undefined, // Set if applicable
+            // active: true, // Set if applicable
+            // isAnalytic: false, // Set if applicable
+            // currency: 'USD', // Set if applicable, or get from company settings
+            // openingBalance: 0, // Set if applicable
+            // balance: 0, // Set if applicable
+            // createdBy: userId, // Already passed to create method
+            // updatedBy: userId, // Set if applicable
+          };
+          await this.create(completeAccDto, userId);
+        }
+      }
+    }
+    // Consider logging the outcome
+    console.log(`Default chart of accounts setup initiated for company ${companyId} by user ${userId}`);
   }
 }

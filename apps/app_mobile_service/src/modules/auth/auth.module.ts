@@ -12,6 +12,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard'; // Added
 import { HttpModule } from '@nestjs/axios'; // Added
 import { CompanyModule } from '../company/company.module';
+import { EventsModule } from '../events/events.module'; // Import EventsModule
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CompanyModule } from '../company/company.module';
       timeout: 5000,
       maxRedirects: 5,
     }),
+    EventsModule, // Add EventsModule to imports
   ],
   providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
   controllers: [AuthController],

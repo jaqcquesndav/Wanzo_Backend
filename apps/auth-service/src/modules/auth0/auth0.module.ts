@@ -13,6 +13,7 @@ import { TokenBlacklist } from '@wanzo/shared/security/token-blacklist.entity'; 
 import { TokenController } from '../auth/controllers/token.controller';
 import { TokenBlacklistService } from '../auth/services/token-blacklist.service';
 import auth0Config from '../../config/auth0.config';
+import { EventsModule } from '../events/events.module'; // Added import for EventsModule
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import auth0Config from '../../config/auth0.config';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([User, Company, TokenBlacklist]),
+    EventsModule, // Added EventsModule to imports
   ],
   controllers: [Auth0Controller, TokenController],
   providers: [Auth0Strategy, Auth0Service, TokenBlacklistService],

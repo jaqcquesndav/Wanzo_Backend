@@ -103,4 +103,17 @@ export class Organization {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  // Add fields for subscription management
+  @Column({ nullable: true })
+  subscriptionPlan?: string; // e.g., 'basic_pme', 'premium_pme'
+
+  @Column({ nullable: true })
+  subscriptionStatus?: string; // e.g., 'active', 'inactive', 'trial', 'past_due', 'canceled'
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  subscriptionExpiresAt?: Date;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  subscriptionStartedAt?: Date;
 }

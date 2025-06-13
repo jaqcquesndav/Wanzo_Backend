@@ -22,6 +22,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { KafkaModule } from './modules/kafka/kafka.module';
 import { ReportingModule } from './modules/reporting/reporting.module'; // Added import
+import { EventsModule } from './modules/events/events.module'; // Import the new EventsModule
 
 // Import du MonitoringModule qui contient PrometheusController
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -73,6 +74,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     AuditModule,
     KafkaModule,
     ReportingModule, // Added ReportingModule
+    EventsModule, // Add EventsModule to imports
 
     // 4) Import du module qui gère Prometheus
     MonitoringModule,

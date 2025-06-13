@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, Like } from 'typeorm';
 import { Prospect } from '../entities/prospect.entity';
@@ -10,6 +10,8 @@ export class ProspectService {
   delete(_id: string) {
     throw new Error('Method not implemented.');
   }
+  private readonly logger = new Logger(ProspectService.name);
+
   constructor(
     @InjectRepository(Prospect)
     private prospectRepository: Repository<Prospect>,
@@ -147,5 +149,48 @@ export class ProspectService {
     });
 
     return await this.prospectRepository.save(prospect);
+  }
+
+  public async updateSmeDataSharingConsent(
+    smeOrganizationId: string, // Assuming this is the Prospect ID for now
+    shareWithAll: boolean,
+    targetInstitutionTypes: string[] | undefined,
+    consentingUserId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Updating consent for SME Organization ID (Prospect ID): ${smeOrganizationId}`,
+    );
+
+    const prospect = await this.prospectRepository.findOne({ where: { id: smeOrganizationId } });
+
+    if (!prospect) {
+      this.logger.warn(
+        `Prospect with ID ${smeOrganizationId} not found. Cannot update consent.`,
+      );
+      return; // Exit if prospect not found
+    }
+
+    prospect.consentData = {
+      shareWithAll,
+      targetInstitutionTypes: targetInstitutionTypes || [], // Ensure it's an array
+      lastUpdatedBy: consentingUserId,
+      lastUpdatedAt: new Date(),
+    };
+
+    try {
+      await this.prospectRepository.save(prospect);
+      this.logger.log(
+        `Successfully updated consent data for Prospect ID: ${smeOrganizationId}`,
+      );
+    } catch (error) {
+      // Log the error with more details if available
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      this.logger.error(
+        `Failed to save consent data for Prospect ID: ${smeOrganizationId}`,
+        errorMessage,
+      );
+      // Re-throw or handle error as appropriate
+      throw error;
+    }
   }
 }

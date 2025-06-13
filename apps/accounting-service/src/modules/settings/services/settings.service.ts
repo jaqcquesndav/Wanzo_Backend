@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AccountingSettings, DepreciationMethod, JournalEntryValidation } from '@/modules/settings/entities/accounting-settings.entity';
@@ -7,6 +7,8 @@ import { DataSharingSettings, DataSharingStatus, ProviderType, ProviderStatus } 
 import { DataSource as SettingsDataSource, DataSourceStatus } from '@/modules/settings/entities/data-source.entity';
 import { AccountingMode } from '@/modules/organization/entities/organization.entity';
 import { UpdateAccountingSettingsDto } from '@/modules/settings/dtos/update-accounting-settings.dto';
+import { EventsService } from '@/modules/events/events.service';
+import { DataSharingConsentChangedEventData } from '@wanzo/shared/events/kafka-config'; // Using path alias
 
 // Temporary interfaces to resolve import issues
 export interface UpdateCurrencyDto {
@@ -39,6 +41,8 @@ export interface ProviderDto {
 export interface UpdateDataSharingSettingsDto {
   enabled: boolean;
   providers?: ProviderDto[];
+  shareWithAll?: boolean;
+  targetInstitutionTypes?: string[];
 }
 
 export interface DataSourceUpdateDto {
@@ -66,8 +70,12 @@ export class SettingsService {
     
     @InjectRepository(DataSharingSettings)
     private dataSharingSettingsRepository: Repository<DataSharingSettings>,
-      @InjectRepository(SettingsDataSource)
+    
+    @InjectRepository(SettingsDataSource)
     private dataSourceRepository: Repository<SettingsDataSource>,
+
+    @Inject(EventsService)
+    private readonly eventsService: EventsService,
   ) {}
 
   // Accounting Settings
@@ -189,43 +197,92 @@ export class SettingsService {
 
   async updateDataSharingSettings(
     companyId: string, 
-    updateDto: UpdateDataSharingSettingsDto
+    updateDto: UpdateDataSharingSettingsDto,
+    userId: string,
   ): Promise<DataSharingSettings> {
     let settings = await this.dataSharingSettingsRepository.findOne({
       where: { companyId }
     });
-      if (!settings) {
+
+    let isNewSettings = false;
+    if (!settings) {
+      isNewSettings = true;
       settings = new DataSharingSettings();
       settings.companyId = companyId;
-      settings.status = updateDto.enabled ? DataSharingStatus.ENABLED : DataSharingStatus.DISABLED;
-      settings.providers = updateDto.providers || [];
+    }
+
+    let shareWithAll: boolean;
+    let targetInstitutionTypes: string[] | null = null;
+
+    if (typeof updateDto.shareWithAll === 'boolean') {
+      shareWithAll = updateDto.shareWithAll;
+      if (shareWithAll) {
+        settings.providers = [];
+      } else if (updateDto.targetInstitutionTypes) {
+        settings.providers = updateDto.targetInstitutionTypes.map(type => ({ 
+          type: type as ProviderType, 
+          name: type,
+          status: ProviderStatus.CONNECTED // Changed from ACTIVE to CONNECTED
+        }));
+        targetInstitutionTypes = updateDto.targetInstitutionTypes;
+      } else {
+        if (updateDto.providers) {
+            settings.providers = updateDto.providers;
+        }
+        targetInstitutionTypes = settings.providers?.map(p => p.type) || [];
+      }
     } else {
-      settings.status = updateDto.enabled ? DataSharingStatus.ENABLED : DataSharingStatus.DISABLED;
-      
-      if (updateDto.providers) {
-        // Update existing providers or add new ones
+      if (updateDto.enabled && (!updateDto.providers || updateDto.providers.length === 0)) {
+        shareWithAll = true;
+        settings.providers = [];
+      } else {
+        shareWithAll = false;
+        if (updateDto.providers) {
+          settings.providers = updateDto.providers;
+        }
+        targetInstitutionTypes = settings.providers?.map(p => p.type) || [];
+      }
+    }
+
+    settings.status = updateDto.enabled ? DataSharingStatus.ENABLED : DataSharingStatus.DISABLED;
+    if (!updateDto.enabled) {
+        shareWithAll = false;
+        targetInstitutionTypes = [];
+        settings.providers = [];
+    }
+
+    if (updateDto.providers && typeof updateDto.shareWithAll !== 'boolean') { 
         if (!settings.providers) {
           settings.providers = [];
         }
-        
         for (const provider of updateDto.providers) {
           const existingIndex = settings.providers.findIndex(
             p => p.name === provider.name && p.type === provider.type
           );
-          
           if (existingIndex >= 0) {
-            settings.providers[existingIndex] = {
-              ...settings.providers[existingIndex],
-              ...provider,
-            };
+            settings.providers[existingIndex] = { ...settings.providers[existingIndex], ...provider };
           } else {
             settings.providers.push(provider);
           }
         }
-      }
+        targetInstitutionTypes = settings.providers.map(p => p.type);
+        shareWithAll = updateDto.enabled && settings.providers.length === 0;
     }
+
+
+    const savedSettings = await this.dataSharingSettingsRepository.save(settings);
+
+    const eventData: DataSharingConsentChangedEventData = {
+      smeOrganizationId: companyId,
+      consentingUserId: userId,
+      shareWithAll: shareWithAll,
+      targetInstitutionTypes: shareWithAll ? null : (targetInstitutionTypes || []),
+      timestamp: new Date(),
+      changedBy: userId,
+    };
+    await this.eventsService.publishDataSharingConsentChanged(eventData);
     
-    return this.dataSharingSettingsRepository.save(settings);
+    return savedSettings;
   }
   // Data Sources
   async getDataSources(companyId: string): Promise<SettingsDataSource[]> {

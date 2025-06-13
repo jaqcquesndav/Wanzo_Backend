@@ -3,6 +3,9 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import { ConfigService } from '@nestjs/config'; // Added for Kafka config
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -11,6 +14,35 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  const configService = app.get(ConfigService); // Get ConfigService instance
+
+  // Get base Kafka configuration
+  const kafkaBaseConfig = getKafkaConfig(configService);
+
+  // Configure Kafka consumer for auth-service
+  const consumerMicroserviceOptions: MicroserviceOptions = {
+    transport: Transport.KAFKA, // Explicitly set the transport
+    options: {
+      // Spread all properties from the base configuration's 'options' object.
+      // getKafkaConfig ensures baseKafkaOptions.options and its nested client/consumer are defined.
+      ...kafkaBaseConfig.options!, // Non-null assertion as getKafkaConfig defines it
+
+      // Override client-specific settings
+      client: {
+        // Spread the original 'client' content (brokers, ssl, etc.)
+        ...kafkaBaseConfig.options!.client!, // Non-null assertion
+        clientId: 'auth-service-consumer',   // Override clientId for this specific consumer
+      },
+      // Override consumer-specific settings
+      consumer: {
+        // Spread the original 'consumer' content
+        ...kafkaBaseConfig.options!.consumer!, // Non-null assertion
+        groupId: 'auth-consumer-group',       // Override groupId for this specific consumer group
+      },
+    },
+  };
+  app.connectMicroservice<MicroserviceOptions>(consumerMicroserviceOptions);
   
   // Enable Helmet
   app.use(helmet());
@@ -104,7 +136,10 @@ async function bootstrap() {
   
   SwaggerModule.setup('api', app, document, customOptions);
 
-  const port = process.env.PORT || 3000;
+  await app.startAllMicroservices(); // Start Kafka consumer along with HTTP server
+  logger.log('Kafka consumer started for Auth Service.');
+
+  const port = configService.get<number>('PORT', 3000); // Use ConfigService for port
   await app.listen(port);
   logger.log(`Auth Service is running on port ${port}`);
 }

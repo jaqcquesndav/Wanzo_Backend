@@ -13,6 +13,9 @@ export class InstitutionUser {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ unique: true }) // Added: Link to the central auth user ID
+  authUserId!: string;
+
   @Column()
   kiotaId!: string;
 
@@ -55,6 +58,9 @@ export class InstitutionUser {
 
   @Column({ default: true })
   active!: boolean;
+
+  @Column({ nullable: true }) // Added: To store descriptive status from events
+  status?: string;
 
   @Column('jsonb', { nullable: true })
   metadata!: Record<string, any>;

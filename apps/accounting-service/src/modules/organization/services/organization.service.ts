@@ -11,39 +11,31 @@ export class OrganizationService {
     private organizationRepository: Repository<Organization>,
   ) {}
 
-  async findByCompanyId(companyId: string): Promise<Organization> {
-    const organization = await this.organizationRepository.findOneBy({ id: companyId });
-    
+  async findById(id: string): Promise<Organization | null> {
+    return await this.organizationRepository.findOneBy({ id });
+  }
+
+  async findByCompanyId(companyId: string): Promise<Organization | null> {
+    return this.findById(companyId);
+  }
+
+  async update(id: string, updateDto: Partial<Organization>): Promise<Organization> {
+    const organization = await this.findById(id);
     if (!organization) {
-      throw new NotFoundException(`Organization with ID ${companyId} not found`);
+      throw new NotFoundException(`Organization with ID ${id} not found`);
     }
     
-    return organization;
+    Object.assign(organization, updateDto);
+    
+    return await this.organizationRepository.save(organization);
   }
 
-  async update(companyId: string, updateOrganizationDto: UpdateOrganizationDto): Promise<Organization> {
-    // Find the organization first
-    const organization = await this.findByCompanyId(companyId);
-    
-    // Update the organization
-    const updatedOrganization = {
-      ...organization,
-      ...updateOrganizationDto
-    };
-    
-    // Save the changes and cast the result to Organization
-    const saved = await this.organizationRepository.save(updatedOrganization);
-    return saved as unknown as Organization;
-  }
-
-  async create(organizationData: any, userId: string): Promise<Organization> {
+  async create(organizationData: Partial<Organization>, userId?: string): Promise<Organization> {
     const organization = this.organizationRepository.create({
       ...organizationData,
-      createdBy: userId
+      createdBy: userId,
     });
     
-    // Save the entity and cast the result to Organization
-    const saved = await this.organizationRepository.save(organization);
-    return saved as unknown as Organization;
+    return await this.organizationRepository.save(organization);
   }
 }

@@ -6,6 +6,8 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import { ConfigService } from '@nestjs/config';
+import { getKafkaConfig } from '../../../packages/shared/events/kafka-config'; // Corrected import path again
 
 async function bootstrap() {
   // Configure Winston logger
@@ -41,6 +43,11 @@ async function bootstrap() {
   // 1) Crée l'application principale à partir d'AppModule
   const app = await NestFactory.create(AppModule, { logger });
   
+  // Connect to Kafka
+  const configService = app.get(ConfigService);
+  app.connectMicroservice(getKafkaConfig(configService));
+  await app.startAllMicroservices();
+
   // 2) Enable versioning
   app.enableVersioning({
     type: VersioningType.URI,
