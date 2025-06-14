@@ -5,6 +5,7 @@ import { Institution } from '../entities/institution.entity';
 import { EventsService } from '../../events/events.service';
 import { InstitutionUser } from '../entities/institution-user.entity'; // Corrected import path
 import { EntityType } from '@wanzo/shared/events/subscription-types';
+import { LessThan } from 'typeorm';
 
 // Mock User and Institution data
 const mockAdminUser = { id: 'admin-user-1', role: 'admin' } as unknown as InstitutionUser;
@@ -96,7 +97,7 @@ describe('TokenMonitorService', () => {
       await service.monitorLowTokenBalances();
 
       expect(mockInstitutionRepository.find).toHaveBeenCalledWith({
-        where: { tokenBalance: { lessThan: service['LOW_TOKEN_THRESHOLD'] } },
+        where: { tokenBalance: LessThan(service['LOW_TOKEN_THRESHOLD']) }, // Changed to use LessThan
         relations: ['users'],
       });
       expect(mockEventsService.publishTokenAlert).toHaveBeenCalledTimes(1);
@@ -143,12 +144,12 @@ describe('TokenMonitorService', () => {
     
     it('should handle errors during monitoring', async () => {
       const errorMessage = 'Database error';
-      mockInstitutionRepository.find.mockRejectedValueOnce(new Error(errorMessage));
+      const error = new Error(errorMessage);
+      mockInstitutionRepository.find.mockRejectedValueOnce(error);
       await service.monitorLowTokenBalances();
-      expect(mockEventsService.publishTokenAlert).not.toHaveBeenCalled();
-      expect(service['logger'].error).toHaveBeenCalledWith(
+      expect(mockEventsService.publishTokenAlert).not.toHaveBeenCalled();      expect(service['logger'].error).toHaveBeenCalledWith(
         `Error monitoring token balances: ${errorMessage}`,
-        expect.any(Error),
+        error.stack
       );
     });
   });

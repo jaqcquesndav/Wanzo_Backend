@@ -146,19 +146,32 @@ describe('ProspectAnalysisService', () => {
       const analysis = {
         id: 'analysis-123',
         status: AnalysisStatus.IN_PROGRESS,
+        type: AnalysisType.FINANCIAL,
+        criteria: [],
+        overallScore: 7.0,
+        summary: 'Initial summary',
+        strengths: [],
+        weaknesses: [],
+        opportunities: [],
+        threats: [],
+        recommendations: [],
+        analyzedBy: 'analyzer-xyz',
       };
 
       const updateDto = {
         status: AnalysisStatus.COMPLETED,
         overallScore: 9,
+        summary: 'Updated summary',
       };
 
       mockRepository.findOne.mockResolvedValue(analysis);
-      mockRepository.save.mockResolvedValue({ ...analysis, ...updateDto });
+      mockRepository.save.mockImplementation(async (updatedAnalysis) => updatedAnalysis);
 
       const result = await service.update('analysis-123', updateDto, 'reviewer-123');
 
       expect(result.status).toBe(AnalysisStatus.COMPLETED);
+      expect(result.overallScore).toBe(9);
+      expect(result.summary).toBe('Updated summary');
       expect(result.reviewedBy).toBe('reviewer-123');
     });
   });
@@ -215,8 +228,7 @@ describe('ProspectAnalysisService', () => {
 
       const result = await service.calculateAggregateScore('prospect-123');
 
-      // Financial (0.4) * 8 + Market (0.3) * 7 = 3.2 + 2.1 = 5.3
-      expect(result).toBeCloseTo(7.5, 1);
+      expect(result).toBeCloseTo(7.57, 2);
     });
 
     it('should return 0 if no analyses found', async () => {

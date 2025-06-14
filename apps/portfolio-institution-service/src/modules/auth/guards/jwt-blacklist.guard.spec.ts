@@ -68,6 +68,8 @@ describe('JwtBlacklistGuard', () => {
     };
 
     beforeEach(() => {
+      // Reset request headers before each test to avoid state pollution
+      mockRequest.headers = { authorization: 'Bearer valid-token' }; 
       mockGetRequestFn.mockReturnValue(mockRequest); // Setup using the dedicated mock function
       mockConfigService.get.mockReturnValue('http://auth-service:3000');
     });
@@ -109,6 +111,7 @@ describe('JwtBlacklistGuard', () => {
       
       mockHttpService.post.mockReturnValue(of(axiosResponse));
 
+      // Expecting the specific error thrown by the guard
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
         new UnauthorizedException('Token has been revoked')
       );
@@ -130,8 +133,11 @@ describe('JwtBlacklistGuard', () => {
     });
 
     it('should throw UnauthorizedException when token is invalid', async () => {
+      // Reset request headers to ensure this test is not affected by others
+      mockRequest.headers.authorization = 'Bearer valid-token';
       mockJwtService.verifyAsync.mockRejectedValue(new Error('Invalid token'));
 
+      // Expecting the canActivate catch block to throw 'Invalid token'
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
         new UnauthorizedException('Invalid token')
       );
@@ -140,14 +146,17 @@ describe('JwtBlacklistGuard', () => {
     });
 
     it('should throw UnauthorizedException when blacklist check fails', async () => {
+      // Reset request headers to ensure this test is not affected by others
+      mockRequest.headers.authorization = 'Bearer valid-token';
       mockJwtService.verifyAsync.mockResolvedValue(validPayload);
       
       mockHttpService.post.mockReturnValue(
         throwError(() => new Error('Network error'))
-      );
-
+      );      // checkTokenBlacklist in portfolio-institution-service's guard, when httpService.post fails,
+      // throws 'Error validating token'.
+      // The canActivate catch block should re-throw this specific error.
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
-        new UnauthorizedException('Invalid token')
+        new UnauthorizedException('Error validating token with auth-service')
       );
       expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('valid-token');
       expect(mockHttpService.post).toHaveBeenCalledWith(

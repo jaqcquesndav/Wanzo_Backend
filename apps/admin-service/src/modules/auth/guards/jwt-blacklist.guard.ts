@@ -45,7 +45,10 @@ export class JwtBlacklistGuard implements CanActivate {
       const errorMessage = error instanceof Error ? error.message : 'Unknown JWT validation error';
       const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`JWT validation error: ${errorMessage}`, errorStack);
-      throw new UnauthorizedException('Invalid token');
+      if (error instanceof UnauthorizedException) {
+        throw error; // Re-throw specific UnauthorizedException
+      }
+      throw new UnauthorizedException('Invalid token'); // Default for other errors
     }
   }
 

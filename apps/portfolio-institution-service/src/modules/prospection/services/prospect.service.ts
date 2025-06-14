@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, Like } from 'typeorm';
-import { Prospect } from '../entities/prospect.entity';
+import { Prospect, ProspectStatus } from '../entities/prospect.entity'; // Import ProspectStatus
 import { ProspectDocument, DocumentType } from '../entities/prospect-document.entity';
 import { CreateProspectDto, UpdateProspectDto, ProspectFilterDto } from '../dtos/prospect.dto';
 
@@ -101,6 +101,22 @@ export class ProspectService {
 
   async update(id: string, updateProspectDto: UpdateProspectDto): Promise<Prospect> {
     const prospect = await this.findById(id);
+
+    // Validate status transition
+    if (updateProspectDto.status && prospect.status !== updateProspectDto.status) {
+      const allowedTransitions: Record<ProspectStatus, ProspectStatus[]> = {
+        [ProspectStatus.NEW]: [ProspectStatus.IN_ANALYSIS, ProspectStatus.QUALIFIED, ProspectStatus.REJECTED],
+        [ProspectStatus.IN_ANALYSIS]: [ProspectStatus.QUALIFIED, ProspectStatus.REJECTED],
+        [ProspectStatus.QUALIFIED]: [ProspectStatus.CONVERTED, ProspectStatus.REJECTED],
+        [ProspectStatus.REJECTED]: [], // Cannot transition from rejected
+        [ProspectStatus.CONVERTED]: [], // Cannot transition from converted via this method
+      };
+
+      if (!allowedTransitions[prospect.status]?.includes(updateProspectDto.status as ProspectStatus)) {
+        throw new BadRequestException(`Invalid status transition from ${prospect.status} to ${updateProspectDto.status}`);
+      }
+    }
+
     Object.assign(prospect, updateProspectDto);
     return await this.prospectRepository.save(prospect);
   }

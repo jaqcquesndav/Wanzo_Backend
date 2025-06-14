@@ -8,11 +8,10 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
-  setupFiles: ['dotenv/config'],
-  moduleNameMapper: {
+  setupFiles: ['dotenv/config'],  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  // Configurer un preset pour les tests d'intégration
-  // qui utilisent une base de données de test
-  preset: '@shelf/jest-mongodb',
+  // Utilisez un environnement node standard pour les tests
+  // car nous utilisons PostgreSQL via TypeORM, pas MongoDB
+  // preset: '@shelf/jest-mongodb',
 };

@@ -45,7 +45,10 @@ export class JwtBlacklistGuard implements CanActivate {
       const errorMessage = error instanceof Error ? error.message : 'Unknown JWT validation error';
       const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`JWT validation error: ${errorMessage}`, errorStack);
-      throw new UnauthorizedException('Invalid token');
+      if (error instanceof UnauthorizedException) {
+        throw error; // Re-throw specific UnauthorizedException
+      }
+      throw new UnauthorizedException('Invalid token'); // Default for other errors
     }
   }
 
@@ -55,8 +58,8 @@ export class JwtBlacklistGuard implements CanActivate {
   }
 
   private async checkTokenBlacklist(jti: string, userId: string): Promise<boolean> {
+    const authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL');
     try {
-      const authServiceUrl = this.configService.get<string>('AUTH_SERVICE_URL');
       const response = await firstValueFrom(
         this.httpService.post(`${authServiceUrl}/auth/token/check-blacklist`, {
           jti,
@@ -65,19 +68,32 @@ export class JwtBlacklistGuard implements CanActivate {
           catchError((error) => {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error checking token blacklist';
             const errorStack = error instanceof Error ? error.stack : undefined;
-            this.logger.error(`Error checking token blacklist: ${errorMessage}`, errorStack);
-            throw new UnauthorizedException('Error validating token');
+            this.logger.error(`Error checking token blacklist (via HttpService): ${errorMessage}`, errorStack);
+            // This specific exception will be caught by canActivate's try-catch
+            throw new UnauthorizedException('Error validating token with auth-service');
           }),
         ),
       );
-      
-      return response.data.blacklisted;
+
+      if (response && response.data && typeof response.data.blacklisted === 'boolean') {
+        return response.data.blacklisted;
+      } else {
+        this.logger.error('Invalid response structure from auth service blacklist check');
+        throw new UnauthorizedException('Invalid response from auth-service');
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error in checkTokenBlacklist';
-      this.logger.error(`Failed to check token blacklist: ${errorMessage}`);
-      // Fail open or closed based on your security requirements
-      // For higher security, return true (fail closed)
-      return true;
+      // This catch block will now primarily handle errors propagated from the pipe,
+      // or if configService.get fails, or if new UnauthorizedException('Invalid response from auth-service') is thrown.
+      if (error instanceof UnauthorizedException) {
+        // Re-throw the specific UnauthorizedExceptions that we expect to be handled by canActivate
+        throw error;
+      }
+      // For other unexpected errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error in checkTokenBlacklist processing';
+      this.logger.error(`Unexpected error in checkTokenBlacklist: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      // Default to fail-closed for security if the blacklist status cannot be determined by throwing an error
+      // that canActivate will handle as a validation failure.
+      throw new UnauthorizedException('Failed to determine token blacklist status');
     }
   }
 }

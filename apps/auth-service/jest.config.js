@@ -1,9 +1,10 @@
+const path = require('path'); // Added
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\\.ts$': 'ts-jest', // Only process .ts files with ts-jest
   },
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
@@ -11,9 +12,7 @@ module.exports = {
   setupFiles: ['dotenv/config'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@wanzo/shared/(.*)$': path.resolve(__dirname, '../../packages/shared/$1'), // Changed
   },
-  // Configuration spécifique pour l'authentification
-  testTimeout: 20000, // Les tests d'authentification peuvent prendre plus de temps
-  // Mise en place de mocks pour Auth0
-  setupFilesAfterEnv: ['<rootDir>/../test/setupTests.js'],
+  // preset: '@shelf/jest-mongodb', // commenté car non nécessaire pour PostgreSQL
 };

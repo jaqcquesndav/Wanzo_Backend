@@ -61,26 +61,41 @@ describe('SubscriptionController', () => {
     });
   });
   describe('updateSubscription', () => {
-    const plan = SubscriptionPlan.PROFESSIONAL; // Using valid enum value
-    const expiresAt = new Date();
-    const body = { plan, expiresAt };
-
     it('should update subscription and return updated details', async () => {
-      const updatedInstitution = {
-        subscriptionPlan: plan,
+      const mockInstitutionId = 'inst-123';
+      const mockCallingUserId = 'user-calling-service-id'; // Added for clarity
+      const plan = SubscriptionPlan.PROFESSIONAL;
+      const expiresAtDate = new Date(); 
+      const mockRequest = { user: { institutionId: mockInstitutionId, id: mockCallingUserId } } as any; // Added user.id
+      const body = { plan, expiresAt: expiresAtDate };
+
+      const serviceResponse = { // This is what the service mock returns (simulating an Institution entity)
+        id: mockInstitutionId,
+        name: 'Test Institution',
         subscriptionStatus: SubscriptionStatus.ACTIVE,
-        subscriptionExpiresAt: expiresAt,
+        subscriptionPlan: SubscriptionPlan.PROFESSIONAL,
+        subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       };
-      mockSubscriptionService.updateSubscription.mockResolvedValue(updatedInstitution);
+      mockSubscriptionService.updateSubscription.mockResolvedValue(serviceResponse as any);
 
       const result = await controller.updateSubscription(body, mockRequest);
 
-      expect(result).toEqual({ success: true, subscription: updatedInstitution });
+      const expectedControllerResponse = {
+        success: true,
+        subscription: {
+          id: serviceResponse.id,
+          name: serviceResponse.name,
+          plan: serviceResponse.subscriptionPlan,
+          status: serviceResponse.subscriptionStatus,
+          expiresAt: serviceResponse.subscriptionExpiresAt,
+        },
+      };
+      expect(result).toEqual(expectedControllerResponse);
       expect(subscriptionService.updateSubscription).toHaveBeenCalledWith(
         mockInstitutionId,
         plan,
-        expiresAt, // The controller passes new Date(body.expiresAt)
-        mockUserId,
+        expiresAtDate, 
+        mockCallingUserId, // Ensure userId is checked
       );
     });
   });

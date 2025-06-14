@@ -44,6 +44,8 @@ export class SubscriptionController {
     return {
       success: true,
       subscription: {
+        id: institution.id, // Add id
+        name: institution.name, // Add name
         plan: institution.subscriptionPlan,
         status: institution.subscriptionStatus,
         expiresAt: institution.subscriptionExpiresAt,

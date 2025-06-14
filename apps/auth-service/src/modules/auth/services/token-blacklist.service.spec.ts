@@ -182,7 +182,7 @@ describe('TokenBlacklistService', () => {
       await service.cleanupExpiredTokens();
 
       expect(mockTokenBlacklistRepository.delete).toHaveBeenCalledWith({
-        expiresAt: expect.any(LessThanOrEqual),
+        expiresAt: LessThanOrEqual(expect.any(Date)), // Changed
       });
       expect(service['logger'].log).toHaveBeenCalledWith('Cleaning up expired blacklisted tokens');
       expect(service['logger'].log).toHaveBeenCalledWith('Removed 5 expired blacklisted tokens');
@@ -195,7 +195,7 @@ describe('TokenBlacklistService', () => {
       await service.cleanupExpiredTokens();
 
       expect(mockTokenBlacklistRepository.delete).toHaveBeenCalledWith({
-        expiresAt: expect.any(LessThanOrEqual),
+        expiresAt: LessThanOrEqual(expect.any(Date)), // Changed
       });
       expect(service['logger'].log).toHaveBeenCalledWith('Removed 0 expired blacklisted tokens');
     });

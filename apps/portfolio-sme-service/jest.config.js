@@ -1,3 +1,5 @@
+const path = require('path'); // Added
+
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
@@ -11,9 +13,10 @@ module.exports = {
   setupFiles: ['dotenv/config'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@wanzo/shared/(.*)$': path.resolve(__dirname, '../../packages/shared/$1'), // Changed
   },
   // Configuration pour les tests avec base de données
-  preset: '@shelf/jest-mongodb',
+  // preset: '@shelf/jest-mongodb',
   // Ignorer certains fichiers lors des tests
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 };

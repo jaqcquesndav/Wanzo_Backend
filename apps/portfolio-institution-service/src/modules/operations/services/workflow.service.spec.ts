@@ -42,7 +42,6 @@ describe('WorkflowService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-
   describe('createInitialWorkflow', () => {
     it('should create workflow with steps for credit operation', async () => {
       const operation = {
@@ -50,26 +49,44 @@ describe('WorkflowService', () => {
         type: OperationType.CREDIT,
       };
 
+      const workflowSteps = [
+        {
+          id: 'step-1',
+          stepType: StepType.DOCUMENT_UPLOAD,
+          status: StepStatus.PENDING,
+        },
+        {
+          id: 'step-2',
+          stepType: StepType.MANAGER_VALIDATION,
+          status: StepStatus.PENDING,
+        },
+        {
+          id: 'step-3',
+          stepType: StepType.SYSTEM_CHECK,
+          status: StepStatus.PENDING,
+        }
+      ];
+
       const workflow = {
         id: 'workflow-123',
         name: 'Workflow for credit operation',
         type: WorkflowType.VALIDATION,
         status: WorkflowStatus.PENDING,
-        steps: [
-          {
-            id: 'step-1',
-            stepType: StepType.DOCUMENT_UPLOAD,
-            status: StepStatus.PENDING,
-          },
-        ],
+        steps: workflowSteps,
+      };
+
+      const savedWorkflow = {
+        ...workflow,
+        currentStepId: 'step-1'
       };
 
       mockWorkflowRepository.create.mockReturnValue(workflow);
-      mockWorkflowRepository.save.mockResolvedValue(workflow);
+      mockWorkflowRepository.save.mockResolvedValueOnce(workflow);
+      mockWorkflowRepository.save.mockResolvedValueOnce(savedWorkflow);
 
       const result = await service.createInitialWorkflow(operation as Operation);
 
-      expect(result).toEqual(workflow);
+      expect(result).toEqual(savedWorkflow);
       expect(mockWorkflowRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: workflow.name,
@@ -77,6 +94,7 @@ describe('WorkflowService', () => {
           status: workflow.status,
         }),
       );
+      expect(mockWorkflowRepository.save).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -271,19 +289,44 @@ describe('WorkflowService', () => {
       expect((result as any).metadata?.systemCheck?.result).toBe('Pass');
     });
   });
-
   describe('refresh', () => {
     it('should refresh workflow state', async () => {
-      const workflow = {
+      const initialWorkflowState = {
         id: 'workflow-123',
-        steps: [],
+        steps: [
+          { 
+            id: 'step-1', 
+            status: StepStatus.COMPLETED 
+          },
+          { 
+            id: 'step-2', 
+            status: StepStatus.PENDING 
+          }
+        ],
+        currentStepId: 'step-1'
       };
-
-      mockWorkflowRepository.findOne.mockResolvedValue(workflow);
+      
+      mockWorkflowRepository.findOne.mockResolvedValue(initialWorkflowState);
+      mockWorkflowRepository.save.mockImplementation(workflow => workflow);
 
       const result = await service.refresh('workflow-123');
 
-      expect(result).toEqual(workflow);
+      // Expect the status to be IN_PROGRESS after refresh since we have one completed step and one pending
+      expect(result).toEqual({
+        id: 'workflow-123',
+        steps: [
+          { 
+            id: 'step-1', 
+            status: StepStatus.COMPLETED 
+          },
+          { 
+            id: 'step-2', 
+            status: StepStatus.PENDING 
+          }
+        ],
+        currentStepId: 'step-2',
+        status: WorkflowStatus.IN_PROGRESS
+      });
     });
   });
 });
