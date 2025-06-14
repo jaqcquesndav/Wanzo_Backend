@@ -1,5 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt'; // Import JwtModule
+import { HttpModule } from '@nestjs/axios'; // Import HttpModule
 import { Institution } from './entities/institution.entity';
 import { InstitutionUser } from './entities/institution-user.entity';
 import { InstitutionDocument } from './entities/institution-document.entity';
@@ -19,13 +21,16 @@ import { EventsModule } from '../events/events.module';
   imports: [
     TypeOrmModule.forFeature([Institution, InstitutionUser, InstitutionDocument]),
     forwardRef(() => EventsModule), // Use forwardRef to break circular dependency
+    JwtModule.register({}), // Ajoutez JwtModule.register({}) aux imports
+    HttpModule, // Ajoutez HttpModule aux imports
   ],
   providers: [
     InstitutionService,
     InstitutionUserService,
     DocumentValidationService,
     SubscriptionService,
-    TokenEventHandler,    TokenMonitorService,
+    TokenEventHandler,
+    TokenMonitorService,
   ],
   controllers: [
     InstitutionController,

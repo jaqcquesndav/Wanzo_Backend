@@ -8,6 +8,8 @@ import { ProspectionModule } from '../prospection/prospection.module';
 // Import le module Kafka producer et sa constante
 import { KafkaProducerModule, PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
+export { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE }; // Ajoutez cette ligne pour réexporter la constante
+
 @Module({
   imports: [
     ConfigModule,
