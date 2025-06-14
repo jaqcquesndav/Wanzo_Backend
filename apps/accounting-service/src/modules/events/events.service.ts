@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { ACCOUNTING_KAFKA_PRODUCER_SERVICE } from './events.module';
+import { ACCOUNTING_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 import { UserEventTopics, DataSharingConsentChangedEventData } from '../../../../../packages/shared/events/kafka-config';
 
 @Injectable()

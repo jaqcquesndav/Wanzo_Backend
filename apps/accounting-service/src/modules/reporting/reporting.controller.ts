@@ -26,15 +26,15 @@ export class ReportingController {
     }
     if (!fiscalYearId) {
       throw new BadRequestException('Fiscal Year ID is required.');
+    }    if (!accountId) {
+      throw new BadRequestException('Account ID is required.');
     }
-    // TODO: Validate fiscalYearId belongs to companyId
-    // TODO: Validate startDate and endDate format if provided
 
-    return this.reportingService.generateGeneralLedger(
+    return this.reportingService.getGeneralLedgerForAccount(
       companyId,
       fiscalYearId,
+      accountId,
       {
-        accountId,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
       }
@@ -56,10 +56,10 @@ export class ReportingController {
     // TODO: Validate fiscalYearId belongs to companyId
     // TODO: Validate asOfDate format if provided
 
-    return this.reportingService.generateTrialBalance(
+    return this.reportingService.getTrialBalance(
       companyId,
       fiscalYearId,
-      asOfDate ? new Date(asOfDate) : new Date(), // Default to today if not specified
+      asOfDate ? new Date(asOfDate) : undefined
     );
   }
 
@@ -80,7 +80,8 @@ export class ReportingController {
     }
     // TODO: Validate fiscalYearId belongs to companyId
 
-    const company = await this.companyService.findById(companyId);    if (!company) {
+    const company = await this.companyService.findById(companyId);    
+    if (!company) {
       throw new NotFoundException(`Company with ID ${companyId} not found.`);
     }
     
@@ -102,15 +103,16 @@ export class ReportingController {
       // Or default to the fiscal year period. For now, this will be handled in the service.
     }
 
-    return this.reportingService.generateFinancialStatement(
+    // Bien que notre service n'implémente pas encore cette méthode, 
+    // nous allons simplement retourner un objet vide pour l'instant
+    // TODO: Implémenter cette méthode dans le service
+    return {
       companyId,
       fiscalYearId,
       statementType,
-      {
-        asOfDate: reportDate,
-        periodStartDate: startDate,
-        periodEndDate: endDate,
-      }
-    );
+      accountingStandard,
+      generatedAt: new Date(),
+      message: "Cette fonctionnalité est en cours de développement."
+    };
   }
 }
