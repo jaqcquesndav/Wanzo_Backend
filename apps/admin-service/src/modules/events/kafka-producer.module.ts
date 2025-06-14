@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
-import { getKafkaConfigWithFallback } from '@wanzo/shared/events/kafka-config-fallback';
+import { ClientsModule, KafkaOptions, Transport } from '@nestjs/microservices';
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
 
 // Define a unique injection token for the Kafka producer client in this service
 export const ADMIN_KAFKA_PRODUCER_SERVICE = 'ADMIN_KAFKA_PRODUCER_SERVICE';
@@ -19,8 +19,10 @@ export const ADMIN_KAFKA_PRODUCER_SERVICE = 'ADMIN_KAFKA_PRODUCER_SERVICE';
         useFactory: (configService: ConfigService): KafkaOptions => {
           // Only register Kafka client if USE_KAFKA is true
           const useKafka = configService.get<string>('USE_KAFKA', 'false') === 'true';
+          
           if (useKafka) {
-            const baseKafkaConfig = getKafkaConfigWithFallback(configService) as KafkaOptions;
+            // Utiliser la fonction partagée getKafkaConfig
+            const baseKafkaConfig = getKafkaConfig(configService) as KafkaOptions;
             return {
               ...baseKafkaConfig,
               options: {
@@ -30,11 +32,28 @@ export const ADMIN_KAFKA_PRODUCER_SERVICE = 'ADMIN_KAFKA_PRODUCER_SERVICE';
                   clientId: 'admin-service-producer',
                   brokers: baseKafkaConfig.options?.client?.brokers || [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
                 },
+                // S'assurer que la configuration du consommateur est toujours présente
+                consumer: {
+                  ...(baseKafkaConfig.options?.consumer || {}),
+                  groupId: configService.get<string>('KAFKA_GROUP_ID', 'admin-service-group'),
+                  allowAutoTopicCreation: true,
+                },
               },
             };
-          }
-          // Return a placeholder config that won't be used (needed for the module)
-          return { options: {} } as KafkaOptions;
+          }          // Return a placeholder config with minimal required fields
+          return {
+            transport: Transport.KAFKA,
+            options: {
+              client: {
+                clientId: 'admin-service-dummy',
+                brokers: ['localhost:9092'],
+              },
+              consumer: {
+                groupId: 'admin-service-dummy-group',
+                allowAutoTopicCreation: true,
+              },
+            },
+          };
         },
         inject: [ConfigService],
       },

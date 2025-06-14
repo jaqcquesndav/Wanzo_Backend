@@ -3,7 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KafkaProducerService } from './kafka-producer.service';
 // Import the shared config function
-import { getKafkaConfig } from '../../../../../packages/shared/events/kafka-config';
+import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
 
 @Module({
   imports: [
@@ -24,8 +24,12 @@ import { getKafkaConfig } from '../../../../../packages/shared/events/kafka-conf
               producer: {
                 allowAutoTopicCreation: configService.get<boolean>('KAFKA_PRODUCER_ALLOW_AUTO_TOPIC_CREATION', true),
               },
-              // Remove consumer part from shared config if it exists, as this is a producer client
-              consumer: undefined,
+              // S'assurer que la configuration du consommateur est toujours présente
+              consumer: {
+                ...(kafkaOptions.options?.consumer || {}),
+                groupId: configService.get<string>('KAFKA_GROUP_ID', 'admin-service-group'),
+                allowAutoTopicCreation: true,
+              },
             }
           };
         },
@@ -35,8 +39,7 @@ import { getKafkaConfig } from '../../../../../packages/shared/events/kafka-conf
       // it must also provide a ClientKafka named 'EVENTS_SERVICE'
       {
         name: 'EVENTS_SERVICE', // For the shared TokenService from packages/shared/events/token.service.ts
-        imports: [ConfigModule],
-        useFactory: (configService: ConfigService) => {
+        imports: [ConfigModule],        useFactory: (configService: ConfigService) => {
           const kafkaOptions = getKafkaConfig(configService);
           return {
             ...kafkaOptions,
@@ -49,7 +52,12 @@ import { getKafkaConfig } from '../../../../../packages/shared/events/kafka-conf
               producer: {
                 allowAutoTopicCreation: configService.get<boolean>('KAFKA_PRODUCER_ALLOW_AUTO_TOPIC_CREATION', true),
               },
-              consumer: undefined, // Ensure this client is configured as a producer
+              // S'assurer que la configuration du consommateur est toujours présente
+              consumer: {
+                ...(kafkaOptions.options?.consumer || {}),
+                groupId: configService.get<string>('KAFKA_GROUP_ID', 'admin-events-proxy-group'),
+                allowAutoTopicCreation: true,
+              },
             }
           };
         },

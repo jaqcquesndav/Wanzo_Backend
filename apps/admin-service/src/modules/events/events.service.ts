@@ -30,15 +30,19 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
     if (!this.kafkaEnabled) {
       this.logger.log('Kafka is disabled. Events will not be published.');
       return;
-    }
-
-    try {
-      // Wait for connection to Kafka
-      await this.eventsClient.connect();
+    }    try {
+      // Wait for connection to Kafka with timeout
+      const connectPromise = this.eventsClient.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Kafka connection timeout after 5000ms')), 5000)
+      );
+      
+      await Promise.race([connectPromise, timeoutPromise]);
       this.logger.log('Connected to Kafka event bus');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error connecting to Kafka';
       this.logger.warn(`Failed to connect to Kafka: ${errorMessage}. Events will be disabled.`);
+      this.kafkaEnabled = false;
       this.kafkaEnabled = false;
     }
   }

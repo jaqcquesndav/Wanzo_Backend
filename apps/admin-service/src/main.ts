@@ -44,17 +44,27 @@ async function bootstrap() {
         clientId: configService.get<string>('KAFKA_CLIENT_ID', 'admin-service-producer'), // Unique client ID
         brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
         // Add SSL/SASL options here if needed, configured via environment variables
-        // ssl: configService.get<string>(\'KAFKA_SSL_ENABLED\') === \'true\' ? {} : false,
-        // sasl: configService.get<string>(\'KAFKA_SASL_MECHANISM\') ? { mechanism: ..., username: ..., password: ...} : undefined,
+        // ssl: configService.get<string>('KAFKA_SSL_ENABLED') === 'true' ? {} : false,
+        // sasl: configService.get<string>('KAFKA_SASL_MECHANISM') ? { mechanism: ..., username: ..., password: ...} : undefined,
       },
       // producer: { // Optional: Add producer-specific configurations if needed
       //   allowAutoTopicCreation: configService.get<boolean>('KAFKA_PRODUCER_ALLOW_AUTO_TOPIC_CREATION', true),
       // },
+      consumer: {
+        groupId: configService.get<string>('KAFKA_GROUP_ID', 'admin-service-consumer-group'),
+        allowAutoTopicCreation: true,
+      },
     },
   }, { inheritAppConfig: true }); // inheritAppConfig allows sharing HTTP configurations if needed
-
-  // Start all microservices (including the Kafka client connection)
-  await app.startAllMicroservices();
+  // Start all microservices (including the Kafka client connection) with error handling
+  try {
+    await app.startAllMicroservices();
+    logger.log('Successfully connected to all microservices, including Kafka');
+  } catch (error) {
+    logger.warn('Failed to connect to some microservices. Application will continue without them.');
+    logger.error(`Microservice connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // L'application continue de fonctionner même si Kafka n'est pas disponible
+  }
 
   // Enable versioning
   app.enableVersioning({
