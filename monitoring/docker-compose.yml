@@ -7,7 +7,6 @@
 # 2. Ajoutez votre source de données Prometheus dans Grafana
 # 3. Importez le tableau de bord JSON fourni à la fin de ce fichier
 
-version: '3'
 services:
   grafana:
     image: grafana/grafana:latest
