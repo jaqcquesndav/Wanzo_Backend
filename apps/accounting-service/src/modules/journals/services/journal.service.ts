@@ -205,7 +205,7 @@ export class JournalService {
     }
 
     if (filters.type) {
-      query.andWhere('journal.type = :type', { type: filters.type });
+      query.andWhere('journal.journalType = :type', { type: filters.type }); // Changed from journal.type to journal.journalType
     }
 
     if (filters.status) {
@@ -218,7 +218,7 @@ export class JournalService {
       .getMany();
   }
 
-  async getAccountBalance(accountId: string, fiscalYearId: string, companyId: string, asOfDate?: Date): Promise<{
+  async getAccountBalance(accountId: string, fiscalYearId: string, companyId: string, asOfDate?: Date): Promise<{ // Signature updated
     debit: number;
     credit: number;
     balance: number;

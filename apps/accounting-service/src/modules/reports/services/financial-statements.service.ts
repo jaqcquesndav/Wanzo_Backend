@@ -20,7 +20,7 @@ export class FinancialStatementsService {
     const accounts = await this.accountService.findAll({ companyId });
     const balances = await Promise.all(
       accounts.accounts.map(account =>
-        this.journalService.getAccountBalance(account.id, fiscalYear, asOfDate)
+        this.journalService.getAccountBalance(account.id, fiscalYear, companyId, asOfDate)
       )
     );
 
@@ -93,7 +93,7 @@ export class FinancialStatementsService {
     const accounts = await this.accountService.findAll({ companyId });
     const balances = await Promise.all(
       accounts.accounts.map(account =>
-        this.journalService.getAccountBalance(account.id, fiscalYear, endDate)
+        this.journalService.getAccountBalance(account.id, fiscalYear, companyId, endDate)
       )
     );
 
@@ -143,7 +143,7 @@ export class FinancialStatementsService {
     const accounts = await this.accountService.findAll({ companyId });
     const balances = await Promise.all(
       accounts.accounts.map(account =>
-        this.journalService.getAccountBalance(account.id, fiscalYear, endDate)
+        this.journalService.getAccountBalance(account.id, fiscalYear, companyId, endDate)
       )
     );
 
@@ -229,7 +229,7 @@ export class FinancialStatementsService {
     const accounts = await this.accountService.findAll({ companyId });
     const balances = await Promise.all(
       accounts.accounts.map(account =>
-        this.journalService.getAccountBalance(account.id, fiscalYear, asOfDate)
+        this.journalService.getAccountBalance(account.id, fiscalYear, companyId, asOfDate)
       )
     );
 

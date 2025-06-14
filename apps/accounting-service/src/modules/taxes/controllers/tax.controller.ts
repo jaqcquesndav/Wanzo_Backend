@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { TaxService } from '../services/tax.service';
-import { CreateTaxDeclarationDto, UpdateTaxDeclarationStatusDto, TaxDeclarationFilterDto } from '../dtos/tax.dto';
+import { CreateTaxDeclarationDto, UpdateTaxDeclarationStatusDto, TaxFilterDto } from '../dtos/tax.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -40,11 +40,21 @@ export class TaxController {
   @ApiQuery({ name: 'search', required: false })
   @ApiResponse({ status: 200, description: 'Tax declarations retrieved successfully' })
   async findAll(
-    @Query('page') page = 1,
-    @Query('per_page') perPage = 20,
-    @Query() filters: TaxDeclarationFilterDto,
+    @Query() queryFilters: TaxFilterDto,
+    @Req() req: any,
   ) {
-    const result = await this.taxService.findAll(filters, +page, +perPage);
+    const companyId = req.user.companyId;
+    const page = queryFilters.page ? +queryFilters.page : 1;
+    const perPage = queryFilters.perPage ? +queryFilters.perPage : 20;
+
+    const filters: TaxFilterDto = {
+      ...queryFilters,
+      companyId,
+      page,
+      perPage,
+    };
+
+    const result = await this.taxService.findAll(filters);
     return {
       success: true,
       ...result,
@@ -84,10 +94,11 @@ export class TaxController {
 
   @Get('summary/:fiscalYear')
   @ApiOperation({ summary: 'Get tax summary for fiscal year' })
-  @ApiParam({ name: 'fiscalYear', description: 'Fiscal year' })
+  @ApiParam({ name: 'fiscalYear', description: 'Fiscal year ID' })
   @ApiResponse({ status: 200, description: 'Tax summary retrieved successfully' })
-  async getTaxSummary(@Param('fiscalYear') fiscalYear: string) {
-    const summary = await this.taxService.getTaxSummary(fiscalYear);
+  async getTaxSummary(@Param('fiscalYear') fiscalYearId: string, @Req() req: any) {
+    const companyId = req.user.companyId;
+    const summary = await this.taxService.getTaxSummary(fiscalYearId, companyId);
     return {
       success: true,
       summary,

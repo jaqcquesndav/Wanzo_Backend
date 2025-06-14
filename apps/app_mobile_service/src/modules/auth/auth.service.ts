@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common'; // Added BadRequestException, Logger
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common'; // Added forwardRef, Inject
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm'; // Added EntityManager
 import { User, UserRole } from '../auth/entities/user.entity';
@@ -30,7 +30,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
-    private readonly eventsService: EventsService, // Inject EventsService
+    @Inject(forwardRef(() => EventsService)) private readonly eventsService: EventsService, // Use forwardRef for EventsService
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {

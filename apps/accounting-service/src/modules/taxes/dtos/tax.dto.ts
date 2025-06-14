@@ -1,16 +1,16 @@
-import { IsString, IsEnum, IsDate, IsNumber, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsEnum, IsDate, IsNumber, IsOptional, IsObject, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TaxType, DeclarationStatus, DeclarationPeriodicity } from '../entities/tax-declaration.entity';
+import { DeclarationType, DeclarationStatus, DeclarationPeriodicity } from '../entities/tax-declaration.entity';
 
 export class CreateTaxDeclarationDto {
-  @ApiProperty({ description: 'Fiscal year' })
-  @IsString()
-  fiscalYear!: string;
+  @ApiProperty({ description: 'Fiscal year ID' })
+  @IsUUID()
+  fiscalYearId!: string;
 
-  @ApiProperty({ description: 'Tax type', enum: TaxType })
-  @IsEnum(TaxType)
-  type!: TaxType;
+  @ApiProperty({ description: 'Tax type', enum: DeclarationType })
+  @IsEnum(DeclarationType)
+  type!: DeclarationType;
 
   @ApiProperty({ description: 'Declaration period (e.g. 2024-03 for March 2024)' })
   @IsString()
@@ -41,6 +41,10 @@ export class CreateTaxDeclarationDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
+
+  @ApiProperty({ description: 'Company ID' })
+  @IsUUID()
+  companyId!: string;
 }
 
 export class UpdateTaxDeclarationStatusDto {
@@ -57,47 +61,125 @@ export class UpdateTaxDeclarationStatusDto {
   @IsOptional()
   @IsString()
   rejectionReason?: string;
-}
 
-export class TaxDeclarationFilterDto {
-  @ApiPropertyOptional({ description: 'Filter by fiscal year' })
+  @ApiPropertyOptional({ description: 'Paid At' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  paidAt?: Date;
+
+  @ApiPropertyOptional({ description: 'Paid By' })
   @IsOptional()
   @IsString()
-  fiscalYear?: string;
+  paidBy?: string;
+}
 
-  @ApiPropertyOptional({ description: 'Filter by type', enum: TaxType })
+export class UpdateTaxDeclarationDto {
+  @ApiPropertyOptional({ enum: DeclarationType, description: 'Type of tax declaration' })
   @IsOptional()
-  @IsEnum(TaxType)
-  type?: TaxType;
+  @IsEnum(DeclarationType)
+  type?: DeclarationType;
+
+  @ApiPropertyOptional({ description: 'Fiscal year ID' })
+  @IsOptional()
+  @IsUUID()
+  fiscalYearId?: string;
+
+  @ApiPropertyOptional({ description: 'Declaration period (e.g. 2024-03 for March 2024)' })
+  @IsOptional()
+  @IsString()
+  period?: string;
+
+  @ApiPropertyOptional({ description: 'Declaration periodicity', enum: DeclarationPeriodicity })
+  @IsOptional()
+  @IsEnum(DeclarationPeriodicity)
+  periodicity?: DeclarationPeriodicity;
+
+  @ApiPropertyOptional({ description: 'Document number' })
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Due date' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  dueDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Taxable base amount' })
+  @IsOptional()
+  @IsNumber()
+  taxableBase?: number;
+
+  @ApiPropertyOptional({ description: 'Tax rate (percentage)' })
+  @IsOptional()
+  @IsNumber()
+  taxRate?: number;
+
+  @ApiPropertyOptional({ description: 'Tax amount' })
+  @IsOptional()
+  @IsNumber()
+  amount?: number;
+
+  @ApiPropertyOptional({ description: 'Additional metadata' })
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
+
+  @ApiPropertyOptional({ description: 'Company ID' })
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
+
+  @ApiPropertyOptional({ description: 'Journal Entry ID' })
+  @IsOptional()
+  @IsUUID()
+  journalEntryId?: string;
+
+  @ApiPropertyOptional({ description: 'Paid At' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  paidAt?: Date;
+
+  @ApiPropertyOptional({ description: 'Paid By' })
+  @IsOptional()
+  @IsString()
+  paidBy?: string;
+
+  @ApiPropertyOptional({ description: 'Payment Reference' })
+  @IsOptional()
+  @IsString()
+  paymentReference?: string;
+
+  @ApiPropertyOptional({ description: 'Rejection Reason' })
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}
+
+export class TaxFilterDto {
+  @ApiPropertyOptional({ description: 'Filter by fiscal year ID' })
+  @IsOptional()
+  @IsUUID()
+  fiscalYearId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by tax type', enum: DeclarationType })
+  @IsOptional()
+  @IsEnum(DeclarationType)
+  type?: DeclarationType;
 
   @ApiPropertyOptional({ description: 'Filter by status', enum: DeclarationStatus })
   @IsOptional()
   @IsEnum(DeclarationStatus)
   status?: DeclarationStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by period' })
+  @ApiPropertyOptional({ description: 'Filter by company ID' })
   @IsOptional()
-  @IsString()
-  period?: string;
+  @IsUUID()
+  companyId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by periodicity', enum: DeclarationPeriodicity })
-  @IsOptional()
-  @IsEnum(DeclarationPeriodicity)
-  periodicity?: DeclarationPeriodicity;
-
-  @ApiPropertyOptional({ description: 'Start date' })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  startDate?: Date;
-
-  @ApiPropertyOptional({ description: 'End date' })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  endDate?: Date;
-
-  @ApiPropertyOptional({ description: 'Search term' })
+  @ApiPropertyOptional({ description: 'Search term for description or reference' })
   @IsOptional()
   @IsString()
   search?: string;

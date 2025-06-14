@@ -5,7 +5,8 @@ import * as http from 'http';
 
 @Injectable()
 export class PrometheusService implements OnModuleInit {
-  private server: http.Server;
+  private server!: http.Server; // Added definite assignment assertion
+  private readonly register = new client.Registry();
   private prefix = 'accounting_service_';
   
   // Métriques standard

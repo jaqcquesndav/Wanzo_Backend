@@ -1,12 +1,13 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { UserEventTopics, UserStatusChangedEvent, UserRoleChangedEvent, SubscriptionChangedEvent, TokenTransactionEvent, UserCreatedEventData } from '@wanzo/shared/events/kafka-config'; // Import event topics and interfaces
+import { AUTH_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventsService.name);
 
-  constructor(@Inject('AUTH_KAFKA_PRODUCER_SERVICE') private readonly kafkaClient: ClientKafka) {}
+  constructor(@Inject(AUTH_KAFKA_PRODUCER_SERVICE) private readonly kafkaClient: ClientKafka) {}
   async onModuleInit() {
     try {
       await this.kafkaClient.connect();

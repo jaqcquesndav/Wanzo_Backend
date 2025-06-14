@@ -5,6 +5,7 @@ import { CreateChatDto, CreateMessageDto, ChatFilterDto } from '../dtos/chat.dto
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { AccountingStandard } from '../../../common/enums/accounting.enum';
 
 @ApiTags('chat')
 @Controller('chat')
@@ -128,9 +129,15 @@ export class ChatController {
   @Roles('admin', 'accountant')
   @ApiOperation({ summary: 'Get accounting context for AI' })
   @ApiParam({ name: 'companyId', description: 'Company ID' })
+  @ApiQuery({ name: 'fiscalYear', required: true, type: String, description: 'Fiscal Year' })
+  @ApiQuery({ name: 'accountingStandard', required: true, enum: AccountingStandard, description: 'Accounting Standard', type: String })
   @ApiResponse({ status: 200, description: 'Accounting context retrieved successfully' })
-  async getAccountingContext(@Param('companyId') companyId: string) {
-    const context = await this.chatService.getAccountingContext(companyId);
+  async getAccountingContext(
+    @Param('companyId') companyId: string,
+    @Query('fiscalYear') fiscalYear: string,
+    @Query('accountingStandard') accountingStandard: AccountingStandard,
+  ) {
+    const context = await this.chatService.getAccountingContext(companyId, fiscalYear, accountingStandard);
     return {
       success: true,
       context,

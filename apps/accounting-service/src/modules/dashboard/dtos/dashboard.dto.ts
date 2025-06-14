@@ -21,6 +21,10 @@ export class DashboardFilterDto {
   @IsString()
   fiscalYear!: string;
 
+  @ApiProperty({ description: 'Company ID' })
+  @IsString()
+  companyId!: string;
+
   @ApiProperty({ description: 'Period type', enum: PeriodType })
   @IsEnum(PeriodType)
   periodType!: PeriodType;

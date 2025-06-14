@@ -226,6 +226,7 @@ export class TreasuryService {
   private async createJournalEntry(transaction: TreasuryTransaction, userId: string) {
     const journalEntry = await this.journalService.create({
       fiscalYear: transaction.fiscalYear,
+      companyId: transaction.companyId!, // Added non-null assertion
       type: JournalType.BANK,
       reference: transaction.reference,
       date: new Date(),

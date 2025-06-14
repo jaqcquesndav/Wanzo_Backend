@@ -54,6 +54,7 @@ export class DataImportService {
         // Create journal entry
         await this.journalService.create({
           fiscalYear: data.fiscalYear,
+          companyId: companyId, // Added companyId
           type: JournalType.GENERAL,
           date: new Date(entry.date),
           reference: entry.reference,

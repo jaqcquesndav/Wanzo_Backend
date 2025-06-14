@@ -1,48 +1,22 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, Transport, KafkaOptions } from '@nestjs/microservices'; // Import KafkaOptions
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
-import { EventsService } from './events.service';
+import { Module, forwardRef } from '@nestjs/common';
 import { UserEventsConsumer } from './consumers/user-events.consumer';
 import { SubscriptionEventsConsumer } from './consumers/subscription-events.consumer';
 import { TokenEventsConsumer } from './consumers/token-events.consumer';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../auth/entities/user.entity';
-import { UserSubscription } from '../subscriptions/entities/user-subscription.entity';
+import { SharedModule } from '../shared/shared.module';
+import { AuthModule } from '../auth/auth.module';
+import { EventsCoreModule } from './events-core.module';
 
-export const APP_MOBILE_KAFKA_PRODUCER_SERVICE = 'APP_MOBILE_KAFKA_PRODUCER_SERVICE';
-
+/**
+ * EventsModule uses EventsCoreModule for its core functionality
+ * and handles the circular dependencies with AuthModule.
+ */
 @Module({
   imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([User, UserSubscription]),
-    ClientsModule.registerAsync([
-      {
-        name: APP_MOBILE_KAFKA_PRODUCER_SERVICE,
-        imports: [ConfigModule],
-        useFactory: (configService: ConfigService) => {
-          // Get the base Kafka configuration
-          const baseKafkaConfig = getKafkaConfig(configService) as KafkaOptions;
-
-          // Override the clientId for this specific producer
-          const producerSpecificOptions: KafkaOptions = {
-            ...baseKafkaConfig,
-            options: {
-              ...baseKafkaConfig.options,
-              client: {
-                ...(baseKafkaConfig.options?.client || {}),
-                clientId: 'app-mobile-service-producer',
-                brokers: baseKafkaConfig.options?.client?.brokers || [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
-              },
-            },
-          };
-          return producerSpecificOptions;
-        },
-        inject: [ConfigService],
-      },
-    ]),
+    EventsCoreModule,
+    SharedModule,
+    forwardRef(() => AuthModule),
   ],
-  providers: [EventsService, UserEventsConsumer, SubscriptionEventsConsumer, TokenEventsConsumer],
-  exports: [EventsService],
+  providers: [UserEventsConsumer, SubscriptionEventsConsumer, TokenEventsConsumer],
+  exports: [EventsCoreModule],
 })
 export class EventsModule {}

@@ -149,7 +149,7 @@ export class DashboardService {
   }
 
   private async getTaxSummary(filters: DashboardFilterDto): Promise<any> {
-    const summary = await this.taxService.getTaxSummary(filters.fiscalYear);
+    const summary = await this.taxService.getTaxSummary(filters.fiscalYear, filters.companyId);
 
     return {
       totalDue: summary.totalDue,
@@ -178,7 +178,8 @@ export class DashboardService {
         const balance = await this.journalService.getAccountBalance(
           account.id,
           filters.fiscalYear,
-          filters.endDate,
+          filters.companyId, 
+          filters.endDate ? new Date(filters.endDate) : undefined,
         );
         return {
           account: {
@@ -209,8 +210,8 @@ export class DashboardService {
     const recentJournals = await this.journalService.findAll(
       {
         fiscalYear: filters.fiscalYear,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
+        startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+        endDate: filters.endDate ? new Date(filters.endDate) : undefined,
       },
       1,
       10,
@@ -220,7 +221,7 @@ export class DashboardService {
       date: journal.date,
       reference: journal.reference,
       description: journal.description,
-      type: journal.type,
+      type: journal.journalType, 
       amount: journal.totalDebit, // Les montants sont équilibrés donc on peut prendre soit débit soit crédit
       status: journal.status,
     }));
@@ -236,7 +237,8 @@ export class DashboardService {
         this.journalService.getAccountBalance(
           account.id,
           filters.fiscalYear,
-          filters.endDate,
+          filters.companyId, 
+          filters.endDate ? new Date(filters.endDate) : undefined,
         ),
       ),
     );

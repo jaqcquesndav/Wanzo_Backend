@@ -88,4 +88,35 @@ export class TaxDeclaration {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  // Added fields based on previous errors and DTOs
+  @Column({ nullable: true })
+  kiotaId?: string;
+
+  @Column({ nullable: true })
+  documentNumber?: string;
+
+  @Column({ nullable: true })
+  journalEntryId?: string;
+
+  @Column({ nullable: true })
+  paidBy?: string;
+
+  @Column({ nullable: true })
+  paidAt?: Date;
+
+  @Column({ nullable: true })
+  paymentReference?: string;
+
+  @Column({ nullable: true })
+  rejectionReason?: string;
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  taxRate?: number;
+
+  @Column('jsonb', { nullable: true })
+  metadata?: Record<string, any>;
+
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  taxableBase?: number;
 }

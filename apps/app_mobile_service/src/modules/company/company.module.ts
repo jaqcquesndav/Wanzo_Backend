@@ -1,15 +1,10 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Company } from './entities/company.entity';
+import { Module } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CompanyController } from './company.controller';
-import { AuthModule } from '../auth/auth.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Company]),
-    forwardRef(() => AuthModule),
-  ],
+  imports: [SharedModule],
   providers: [CompanyService],
   controllers: [CompanyController],
   exports: [CompanyService],

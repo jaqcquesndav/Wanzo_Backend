@@ -7,6 +7,7 @@ import {
   UserRoleChangedEvent,
   SubscriptionChangedEvent
 } from '@wanzo/shared/events/kafka-config';
+import { ADMIN_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {
@@ -14,7 +15,7 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   private kafkaEnabled = false;
 
   constructor(
-    @Optional() @Inject('EVENTS_SERVICE') private readonly eventsClient: ClientKafka,
+    @Optional() @Inject(ADMIN_KAFKA_PRODUCER_SERVICE) private readonly eventsClient: ClientKafka,
     private readonly configService: ConfigService,
   ) {
     this.kafkaEnabled = this.configService.get<string>('USE_KAFKA', 'false') === 'true';

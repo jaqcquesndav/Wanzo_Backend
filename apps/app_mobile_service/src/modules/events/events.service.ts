@@ -6,9 +6,9 @@ import {
   UserRoleChangedEvent,
   SubscriptionChangedEvent,
   TokenTransactionEvent,
-  UserCreatedEventData // Import UserCreatedEventData
+  UserCreatedEventData
 } from '@wanzo/shared/events/kafka-config';
-import { APP_MOBILE_KAFKA_PRODUCER_SERVICE } from './events.module'; // Import the token
+import { APP_MOBILE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
 export class EventsService {

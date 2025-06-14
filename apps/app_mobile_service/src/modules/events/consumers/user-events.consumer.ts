@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserEventTopics, UserStatusChangedEvent, UserRoleChangedEvent } from '@wanzo/shared/events/kafka-config';

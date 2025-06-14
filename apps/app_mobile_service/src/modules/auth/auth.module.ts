@@ -1,22 +1,20 @@
-import { Module, forwardRef } from '@nestjs/common'; // Import forwardRef
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
-import { Company } from '../company/entities/company.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard'; // Added
-import { HttpModule } from '@nestjs/axios'; // Added
+import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
+import { HttpModule } from '@nestjs/axios';
 import { CompanyModule } from '../company/company.module';
-import { EventsModule } from '../events/events.module'; // Import EventsModule
+import { SharedModule } from '../shared/shared.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Company]),
+    SharedModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -27,15 +25,14 @@ import { EventsModule } from '../events/events.module'; // Import EventsModule
       inject: [ConfigService],
     }),
     ConfigModule,
-    forwardRef(() => CompanyModule), // Use forwardRef here for CompanyModule
-    HttpModule.register({ // Added HttpModule configuration
+    forwardRef(() => CompanyModule),
+    HttpModule.register({
       timeout: 5000,
       maxRedirects: 5,
     }),
-    EventsModule, // Add EventsModule to imports
-  ],
-  providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
+    forwardRef(() => EventsModule),
+  ],  providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
+  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Updated exports
 })
 export class AuthModule {}

@@ -1,28 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule } from '@nestjs/microservices';
-import { getKafkaConfigWithFallback } from '@wanzo/shared/events/kafka-config-fallback';
+import { ADMIN_KAFKA_PRODUCER_SERVICE, KafkaProducerModule } from './kafka-producer.module';
 import { EventsService } from './events.service';
 import { MockEventsService } from './mock-events-service';
 
 @Module({
   imports: [
     ConfigModule,
-    ClientsModule.registerAsync([
-      {
-        name: 'EVENTS_SERVICE',
-        useFactory: (configService: ConfigService) => {
-          // Only register Kafka client if USE_KAFKA is true
-          const useKafka = configService.get<string>('USE_KAFKA', 'false') === 'true';
-          if (useKafka) {
-            return getKafkaConfigWithFallback(configService);
-          }
-          // Return a placeholder config that won't be used (needed for the module)
-          return { options: {} };
-        },
-        inject: [ConfigService],
-      },
-    ]),
+    KafkaProducerModule,
   ],
   providers: [
     {
@@ -35,7 +20,7 @@ import { MockEventsService } from './mock-events-service';
           return new MockEventsService();
         }
       },
-      inject: [ConfigService, 'EVENTS_SERVICE'],
+      inject: [ConfigService, ADMIN_KAFKA_PRODUCER_SERVICE],
     },
   ],
   exports: [EventsService],

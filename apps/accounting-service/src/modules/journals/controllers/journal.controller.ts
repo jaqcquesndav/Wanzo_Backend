@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JournalService } from '../services/journal.service';
 import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto } from '../dtos/journal.dto';
@@ -110,9 +110,14 @@ export class JournalController {
   async getAccountBalance(
     @Param('accountId') accountId: string,
     @Query('fiscal_year') fiscalYear: string,
-    @Query('as_of_date') asOfDate?: Date,
+    @Req() req: any,
+    @Query('as_of_date') asOfDate?: string,
   ) {
-    const balance = await this.journalService.getAccountBalance(accountId, fiscalYear, asOfDate);
+    const companyId = req.user.companyId;
+    if (!companyId) {
+      throw new BadRequestException('Company ID not found in request.');
+    }
+    const balance = await this.journalService.getAccountBalance(accountId, fiscalYear, companyId, asOfDate ? new Date(asOfDate) : undefined);
     return {
       success: true,
       balance,
