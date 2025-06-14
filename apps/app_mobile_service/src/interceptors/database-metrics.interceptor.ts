@@ -1,7 +1,8 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { PrometheusService } from '../../monitoring/prometheus.service';
+import { PrometheusService } from '../monitoring/prometheus.service'; // Corrected import path
+import { GqlExecutionContext } from '@nestjs/graphql';
 
 @Injectable()
 export class DatabaseMetricsInterceptor implements NestInterceptor {
