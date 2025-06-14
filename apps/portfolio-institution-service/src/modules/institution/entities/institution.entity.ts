@@ -10,6 +10,23 @@ export enum InstitutionType {
   // ... other types
 }
 
+// Export enums for backward compatibility
+export { SubscriptionPlanType as SubscriptionPlan };
+export { SubscriptionStatusType as SubscriptionStatus };
+export enum RegulatoryStatus {
+  APPROVED = 'approved',
+  PENDING = 'pending',
+  REJECTED = 'rejected',
+  COMPLIANT = 'compliant'
+}
+
+export enum LicenseType {
+  FULL = 'full',
+  PROVISIONAL = 'provisional',
+  RESTRICTED = 'restricted',
+  NATIONAL = 'national'
+}
+
 @Entity('institutions')
 export class Institution {
   @PrimaryGeneratedColumn('uuid')
@@ -75,4 +92,31 @@ export class Institution {
 
   @Column({ type: 'timestamp with time zone', nullable: true })
   lastSubscriptionChangeAt?: Date | null;
+  
+  // Renamed to match what's used in the code
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  subscriptionExpiresAt?: Date | null;
+  
+  // Token-related fields
+  @Column({ type: 'integer', default: 0 })
+  tokenBalance!: number;
+  
+  @Column({ type: 'integer', default: 0 })
+  tokensUsed!: number;
+  
+  @Column({ type: 'jsonb', default: [] })
+  tokenUsageHistory!: Array<{
+    date: Date;
+    amount: number;
+    operation: string;
+    balance: number;
+  }>;
+  
+  // Regulatory fields
+  @Column({
+    type: 'enum',
+    enum: RegulatoryStatus,
+    nullable: true
+  })
+  regulatoryStatus?: RegulatoryStatus;
 }

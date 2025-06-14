@@ -3,6 +3,7 @@ import { EventsService } from '../../events/events.service';
 import { UserStatus } from '../entities/enums/user-status.enum';
 import { UserRole } from '../entities/enums/user-role.enum';
 import { UserType } from '../entities/enums/user-type.enum';
+import { EventUserType } from '@wanzo/shared/events/kafka-config';
 
 @Injectable()
 export class UserEventsHandler {
@@ -20,7 +21,7 @@ export class UserEventsHandler {
       userId,
       previousStatus,
       newStatus,
-      userType,
+      userType: this.mapUserTypeToEventUserType(userType),
       timestamp: new Date(),
       changedBy,
       reason,
@@ -38,9 +39,21 @@ export class UserEventsHandler {
       userId,
       previousRole,
       newRole,
-      userType,
+      userType: this.mapUserTypeToEventUserType(userType),
       timestamp: new Date(),
       changedBy,
     });
+  }
+  
+  // Helper method to map UserType to EventUserType
+  private mapUserTypeToEventUserType(userType: UserType): EventUserType {
+    switch (userType) {
+      case UserType.INTERNAL:
+        return EventUserType.INTERNAL_ADMIN;
+      case UserType.EXTERNAL:
+        return EventUserType.SME_USER; // Default mapping, adjust as needed
+      default:
+        return EventUserType.SME_USER; // Fallback
+    }
   }
 }

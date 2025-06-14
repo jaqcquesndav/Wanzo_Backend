@@ -121,12 +121,10 @@ describe('InstitutionService', () => {
       const updateDto = {
         name: 'Updated Name',
         regulatoryStatus: RegulatoryStatus.COMPLIANT,
-      };
-
-      mockInstitutionRepository.findOne.mockResolvedValue(institution);
+      };      mockInstitutionRepository.findOne.mockResolvedValue(institution);
       mockInstitutionRepository.save.mockResolvedValue({ ...institution, ...updateDto });
 
-      const result = await service.update('inst-123', updateDto);
+      const result = await service.update('inst-123', updateDto, 'user-456');
 
       expect(result.name).toBe('Updated Name');
       expect(mockInstitutionRepository.save).toHaveBeenCalledWith(

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
 import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
 import { UserEventsConsumer } from './consumers/user-events.consumer';
+import { EventsService } from './events.service'; // Import EventsService
 // Import modules providing services needed by consumers using forwardRef
 import { InstitutionModule } from '../institution/institution.module';
 import { ProspectionModule } from '../prospection/prospection.module';
@@ -42,15 +43,14 @@ export const PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE = 'PORTFOLIO_INSTITUTI
       // If this module's consumers need a very specific Kafka client instance (e.g., different groupId not covered by global),
       // then you would register another client here. Otherwise, the global setup is sufficient.
     ]),
-  ],
-  controllers: [UserEventsConsumer], // Consumers are controllers that listen to topics
+  ],  controllers: [UserEventsConsumer], // Consumers are controllers that listen to topics
   providers: [
     UserEventsConsumer,
-    // EventsService, // If you add an EventsService to abstract producer logic
+    EventsService, // Add EventsService to providers
   ],
   exports: [
     ClientsModule, // Export ClientsModule so KAFKA_PRODUCER_SERVICE can be injected
-    // EventsService,
+    EventsService, // Export EventsService
   ],
 })
 export class EventsModule {}

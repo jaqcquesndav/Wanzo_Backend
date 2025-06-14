@@ -28,6 +28,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
 // Removed import for ValidationPipe as it's handled in main.ts
 
 @Module({
@@ -82,7 +83,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware)
+      .apply(LoggerMiddleware, PrometheusMiddleware)
       .forRoutes('*');
   }
 }

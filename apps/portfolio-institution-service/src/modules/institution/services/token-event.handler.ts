@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { TokenTransactionEvent } from '@wanzo/shared/events/kafka-config';
 import { EntityType } from '@wanzo/shared/events/subscription-types';
 import { EventsService } from '../../events/events.service';
 
 @Injectable()
 export class TokenEventHandler {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    @Inject(forwardRef(() => EventsService))
+    private readonly eventsService: EventsService
+  ) {}
 
   async handleTokenPurchase(
     userId: string,

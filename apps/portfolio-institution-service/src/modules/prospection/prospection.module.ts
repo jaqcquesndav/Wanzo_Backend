@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Prospect } from './entities/prospect.entity';
 import { ProspectAnalysis } from './entities/prospect-analysis.entity';
@@ -9,11 +9,13 @@ import { RiskAnalysisService } from './services/risk-analysis.service';
 import { ProspectController } from './controllers/prospect.controller';
 import { ProspectAnalysisController } from './controllers/prospect-analysis.controller';
 import { InstitutionModule } from '../institution/institution.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Prospect, ProspectAnalysis, ProspectDocument]),
-    InstitutionModule,
+    forwardRef(() => InstitutionModule), // Use forwardRef to break circular dependency
+    forwardRef(() => EventsModule),      // Add forwardRef to EventsModule
   ],
   providers: [
     ProspectService,

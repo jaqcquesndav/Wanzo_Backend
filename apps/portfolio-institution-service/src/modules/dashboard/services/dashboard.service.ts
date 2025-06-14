@@ -42,8 +42,8 @@ export class DashboardService {
     const institution = await this.institutionService.findById(institutionId);
     return {
       name: institution.name,
-      type: institution.type,
-      regulatoryStatus: institution.regulatoryStatus,
+      type: institution.type.toString(),
+      regulatoryStatus: institution.regulatoryStatus ? institution.regulatoryStatus.toString() : 'unknown',
       metrics: {
         totalUsers: institution.users.length,
         totalPortfolios: 0, // Will be updated

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm'; // Imported LessThan
 import { Institution } from '../entities/institution.entity';
@@ -14,6 +14,7 @@ export class TokenMonitorService {
   constructor(
     @InjectRepository(Institution)
     private readonly institutionRepository: Repository<Institution>,
+    @Inject(forwardRef(() => EventsService))
     private readonly eventsService: EventsService,
   ) {}
 

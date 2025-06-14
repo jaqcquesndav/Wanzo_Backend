@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Institution } from './entities/institution.entity';
 import { InstitutionUser } from './entities/institution-user.entity';
@@ -18,7 +18,7 @@ import { EventsModule } from '../events/events.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Institution, InstitutionUser, InstitutionDocument]),
-    EventsModule,
+    forwardRef(() => EventsModule), // Use forwardRef to break circular dependency
   ],
   providers: [
     InstitutionService,

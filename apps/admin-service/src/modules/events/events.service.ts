@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { 
@@ -14,10 +14,15 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   private kafkaEnabled = false;
 
   constructor(
-    @Inject('EVENTS_SERVICE') private readonly eventsClient: ClientKafka,
+    @Optional() @Inject('EVENTS_SERVICE') private readonly eventsClient: ClientKafka,
     private readonly configService: ConfigService,
   ) {
     this.kafkaEnabled = this.configService.get<string>('USE_KAFKA', 'false') === 'true';
+    // Safety check to ensure we have a client if Kafka is enabled
+    if (this.kafkaEnabled && !this.eventsClient) {
+      this.logger.warn('Kafka is enabled but no client was injected. Disabling Kafka.');
+      this.kafkaEnabled = false;
+    }
   }
 
   async onModuleInit() {
@@ -38,7 +43,7 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.kafkaEnabled) {
+    if (this.kafkaEnabled && this.eventsClient) {
       try {
         await this.eventsClient.close();
         this.logger.log('Disconnected from Kafka event bus');

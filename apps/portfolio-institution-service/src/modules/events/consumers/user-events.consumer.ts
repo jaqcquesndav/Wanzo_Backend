@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, forwardRef } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import {
   UserCreatedEventData,
@@ -17,8 +17,8 @@ export class UserEventsConsumer implements OnModuleInit {
   private readonly logger = new Logger(UserEventsConsumer.name);
 
   constructor(
-    @Inject(InstitutionService) private readonly institutionService: InstitutionService,
-    @Inject(ProspectService) private readonly prospectService: ProspectService,
+    @Inject(forwardRef(() => InstitutionService)) private readonly institutionService: InstitutionService,
+    @Inject(forwardRef(() => ProspectService)) private readonly prospectService: ProspectService,
   ) {}
 
   onModuleInit() {

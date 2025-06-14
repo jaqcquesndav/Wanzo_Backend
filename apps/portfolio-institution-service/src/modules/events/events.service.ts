@@ -45,12 +45,10 @@ export class EventsService {
     this.logger.log(`Publishing subscription expired event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_EXPIRED, event);
   }
-  
-  async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
+    async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.TOKEN_PURCHASE, event);
-  }
-
+  }  
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(UserEventTopics.TOKEN_USAGE, event);

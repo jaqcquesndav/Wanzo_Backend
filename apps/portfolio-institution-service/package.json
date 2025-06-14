@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nest build",
     "start": "nest start",
-    "dev": "nest start --watch",
+    "dev": "nest build && node dist/apps/portfolio-institution-service/src/main.js",
     "debug": "nest start --debug --watch",
     "test": "jest",
     "test:watch": "jest --watch",

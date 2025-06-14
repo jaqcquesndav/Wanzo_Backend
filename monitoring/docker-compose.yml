@@ -1,0 +1,232 @@
+# Wanzo Backend - Configuration Grafana
+# Ce fichier contient les instructions pour configurer un dashboard Grafana 
+# qui visualise les métriques Prometheus de tous les microservices Wanzo.
+
+# Comment utiliser cette configuration:
+# 1. Installez Grafana (https://grafana.com/docs/grafana/latest/installation/)
+# 2. Ajoutez votre source de données Prometheus dans Grafana
+# 3. Importez le tableau de bord JSON fourni à la fin de ce fichier
+
+version: '3'
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: wanzo-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=wanzo-secret
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - wanzo-monitoring
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: wanzo-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - wanzo-monitoring
+
+volumes:
+  grafana-storage:
+  prometheus-data:
+
+networks:
+  wanzo-monitoring:
+    driver: bridge
+
+# ----------------------------------------
+# Exemple de fichier prometheus.yml
+# ----------------------------------------
+# global:
+#   scrape_interval: 15s
+#   evaluation_interval: 15s
+#
+# scrape_configs:
+#   - job_name: 'admin-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9464']
+#
+#   - job_name: 'accounting-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9464']
+#
+#   - job_name: 'analytics-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9465']
+#
+#   - job_name: 'api-gateway'
+#     static_configs:
+#       - targets: ['host.docker.internal:9464']
+#
+#   - job_name: 'app-mobile-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9466']
+#
+#   - job_name: 'auth-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9467']
+#
+#   - job_name: 'portfolio-institution-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9468']
+#
+#   - job_name: 'portfolio-sme-service'
+#     static_configs:
+#       - targets: ['host.docker.internal:9469']
+
+# ----------------------------------------
+# Instructions pour le Dashboard Grafana
+# ----------------------------------------
+# Après avoir lancé Grafana et Prometheus, vous pouvez importer un dashboard
+# en utilisant le JSON ci-dessous. Allez dans:
+# 1. Grafana > Dashboards > Import 
+# 2. Collez le JSON et configurez la source de données Prometheus
+
+# Exemple de Dashboard JSON:
+# {
+#   "annotations": {
+#     "list": [
+#       {
+#         "builtIn": 1,
+#         "datasource": "-- Grafana --",
+#         "enable": true,
+#         "hide": true,
+#         "iconColor": "rgba(0, 211, 255, 1)",
+#         "name": "Annotations & Alerts",
+#         "type": "dashboard"
+#       }
+#     ]
+#   },
+#   "editable": true,
+#   "gnetId": null,
+#   "graphTooltip": 0,
+#   "id": 1,
+#   "links": [],
+#   "panels": [
+#     {
+#       "aliasColors": {},
+#       "bars": false,
+#       "dashLength": 10,
+#       "dashes": false,
+#       "datasource": null,
+#       "fieldConfig": {
+#         "defaults": {},
+#         "overrides": []
+#       },
+#       "fill": 1,
+#       "fillGradient": 0,
+#       "gridPos": {
+#         "h": 8,
+#         "w": 12,
+#         "x": 0,
+#         "y": 0
+#       },
+#       "hiddenSeries": false,
+#       "id": 2,
+#       "legend": {
+#         "avg": false,
+#         "current": false,
+#         "max": false,
+#         "min": false,
+#         "show": true,
+#         "total": false,
+#         "values": false
+#       },
+#       "lines": true,
+#       "linewidth": 1,
+#       "nullPointMode": "null",
+#       "options": {
+#         "alertThreshold": true
+#       },
+#       "percentage": false,
+#       "pluginVersion": "7.5.7",
+#       "pointradius": 2,
+#       "points": false,
+#       "renderer": "flot",
+#       "seriesOverrides": [],
+#       "spaceLength": 10,
+#       "stack": false,
+#       "steppedLine": false,
+#       "targets": [
+#         {
+#           "expr": "sum(rate(http_requests_total[5m])) by (job)",
+#           "interval": "",
+#           "legendFormat": "{{job}}",
+#           "refId": "A"
+#         }
+#       ],
+#       "thresholds": [],
+#       "timeFrom": null,
+#       "timeRegions": [],
+#       "timeShift": null,
+#       "title": "Requêtes HTTP par service",
+#       "tooltip": {
+#         "shared": true,
+#         "sort": 0,
+#         "value_type": "individual"
+#       },
+#       "type": "graph",
+#       "xaxis": {
+#         "buckets": null,
+#         "mode": "time",
+#         "name": null,
+#         "show": true,
+#         "values": []
+#       },
+#       "yaxes": [
+#         {
+#           "format": "short",
+#           "label": null,
+#           "logBase": 1,
+#           "max": null,
+#           "min": null,
+#           "show": true
+#         },
+#         {
+#           "format": "short",
+#           "label": null,
+#           "logBase": 1,
+#           "max": null,
+#           "min": null,
+#           "show": true
+#         }
+#       ],
+#       "yaxis": {
+#         "align": false,
+#         "alignLevel": null
+#       }
+#     }
+#   ],
+#   "refresh": "5s",
+#   "schemaVersion": 27,
+#   "style": "dark",
+#   "tags": [],
+#   "templating": {
+#     "list": []
+#   },
+#   "time": {
+#     "from": "now-6h",
+#     "to": "now"
+#   },
+#   "timepicker": {},
+#   "timezone": "",
+#   "title": "Wanzo Backend Metrics",
+#   "uid": "wanzo-metrics",
+#   "version": 1
+# }

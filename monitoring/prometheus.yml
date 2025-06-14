@@ -1,0 +1,56 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'admin-service'
+    static_configs:
+      - targets: ['host.docker.internal:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'accounting-service'
+    static_configs:
+      - targets: ['host.docker.internal:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['host.docker.internal:9465']
+    metrics_path: '/metrics'
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['host.docker.internal:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'app-mobile-service'
+    static_configs:
+      - targets: ['host.docker.internal:9466']
+    metrics_path: '/metrics'
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['host.docker.internal:9467']
+    metrics_path: '/metrics'
+
+  - job_name: 'portfolio-institution-service'
+    static_configs:
+      - targets: ['host.docker.internal:9468']
+    metrics_path: '/metrics'
+
+  - job_name: 'portfolio-sme-service'
+    static_configs:
+      - targets: ['host.docker.internal:9469']
+    metrics_path: '/metrics'
+
+# Alerte sur les erreurs HTTP
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+# Règles d'alerte
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"

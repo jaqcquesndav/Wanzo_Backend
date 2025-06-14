@@ -4,6 +4,9 @@ import { ConfigService } from '@nestjs/config';
 export const getKafkaConfigWithFallback = (configService: ConfigService): KafkaOptions => {
   const useKafka = configService.get<string>('USE_KAFKA', 'false') === 'true';
   
+  // Define consumer group ID with a fallback
+  const consumerGroupId = configService.get<string>('KAFKA_CONSUMER_GROUP_ID', 'wanzo-default-group');
+  
   // If USE_KAFKA is false, use a dummy transport
   if (!useKafka) {
     console.log('Kafka is disabled. Using dummy transport.');
@@ -12,10 +15,10 @@ export const getKafkaConfigWithFallback = (configService: ConfigService): KafkaO
       options: {
         client: {
           clientId: 'dummy-client',
-          brokers: [], // Empty broker list
+          brokers: ['localhost:9092'], // Add a dummy broker to prevent errors
         },
         consumer: {
-          groupId: 'dummy-group',
+          groupId: consumerGroupId || 'dummy-group', // Use the environment variable or fallback
         },
       },
     };
@@ -31,7 +34,7 @@ export const getKafkaConfigWithFallback = (configService: ConfigService): KafkaO
         ssl: configService.get<boolean>('KAFKA_SSL', false),
       },
       consumer: {
-        groupId: configService.get<string>('KAFKA_GROUP_ID', 'wanzo-backend'),
+        groupId: consumerGroupId, // Always use the same variable for consistency
         allowAutoTopicCreation: true,
       },
     },
