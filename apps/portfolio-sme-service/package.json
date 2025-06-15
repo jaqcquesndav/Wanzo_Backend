@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
+    "start": "node dist/apps/portfolio-sme-service/src/main.js",
     "dev": "nest build && node dist/apps/portfolio-sme-service/src/main.js",
     "debug": "nest start --debug --watch",
     "test": "jest",
