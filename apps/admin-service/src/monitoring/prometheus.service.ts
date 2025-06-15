@@ -50,7 +50,7 @@ export class PrometheusService implements OnModuleInit {
   
   onModuleInit() {
     // Démarrage du serveur Prometheus sur un port séparé
-    const port = this.configService.get<number>('PROMETHEUS_PORT', 9464);
+    const port = this.configService.get<number>('PROMETHEUS_PORT', 9465);
     this.server = http.createServer(async (req, res) => {
       if (req.url === '/metrics') {
         res.setHeader('Content-Type', client.register.contentType);
