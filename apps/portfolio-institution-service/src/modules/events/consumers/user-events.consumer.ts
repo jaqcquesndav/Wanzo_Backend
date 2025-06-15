@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit, forwardRef } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, forwardRef, Controller } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import {
   UserCreatedEventData,
@@ -12,6 +12,7 @@ import {
 import { InstitutionService } from '../../institution/services/institution.service';
 import { ProspectService } from '../../prospection/services/prospect.service';
 
+@Controller() // Added @Controller() decorator
 @Injectable()
 export class UserEventsConsumer implements OnModuleInit {
   private readonly logger = new Logger(UserEventsConsumer.name);

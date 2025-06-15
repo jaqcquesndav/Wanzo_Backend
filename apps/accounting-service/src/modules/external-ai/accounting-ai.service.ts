@@ -16,7 +16,7 @@ import { MobileTransactionPayloadDto, MobileTransactionAttachmentDto } from '../
 @Injectable()
 export class AccountingAIService {
   private readonly logger = new Logger(AccountingAIService.name);
-  private readonly djangoServiceUrl: string;
+  private readonly djangoServiceUrl: string | undefined;
 
   constructor(
     private readonly httpService: HttpService,
@@ -27,10 +27,11 @@ export class AccountingAIService {
   ) {
     const serviceUrl = this.configService.get<string>('DJANGO_AI_SERVICE_URL');
     if (!serviceUrl) {
-      this.logger.error('DJANGO_AI_SERVICE_URL is not configured.');
-      throw new InternalServerErrorException('AI service URL is not configured.');
+      this.logger.warn('DJANGO_AI_SERVICE_URL is not configured. AI features will be unavailable.');
+      // this.djangoServiceUrl will remain undefined
+    } else {
+      this.djangoServiceUrl = serviceUrl;
     }
-    this.djangoServiceUrl = serviceUrl;
   }
 
   /**
@@ -45,6 +46,19 @@ export class AccountingAIService {
     processedAttachmentsFromController?: Array<{ id: string; type: string; content: string; fileName: string }>,
   ): Promise<AccountingAIResponseDto> {
     this.logger.log(`Processing accounting query for company ${companyId}, chat ${chatId}`);
+
+    if (!this.djangoServiceUrl) {
+      this.logger.warn('DJANGO_AI_SERVICE_URL is not configured. AI processing is unavailable.');
+      return {
+        reply: 'Les fonctionnalités d\'IA ne sont pas disponibles actuellement en raison d\'un problème de configuration. Veuillez contacter l\'administrateur.',
+        confidence: 0,
+        needsReview: true,
+        error: {
+          message: 'DJANGO_AI_SERVICE_URL is not configured. AI features are unavailable.',
+          service: 'ConfigurationError',
+        }
+      };
+    }
 
     const company = await this.companyService.findById(companyId);
     if (!company) {
@@ -140,6 +154,12 @@ export class AccountingAIService {
     companyId: string,
     userId: string, // Added userId for auditing, assuming it's relevant for AI-created journals too
   ): Promise<any | null> { // Return type can be more specific, e.g., Journal entity type
+    if (!this.djangoServiceUrl) {
+      this.logger.warn('DJANGO_AI_SERVICE_URL is not configured. Cannot create journal from AI suggestion.');
+      // Potentially throw an error or return a specific response indicating AI is disabled
+      throw new InternalServerErrorException('AI features are unavailable due to configuration issues.');
+    }
+
     if (!suggestion) {
       this.logger.warn('No suggestion provided for journal creation');
       return null;
@@ -231,6 +251,19 @@ export class AccountingAIService {
     companyId: string, // companyId is part of the payload but passed for clarity
   ): Promise<AccountingAIResponseDto | null> {
     this.logger.log(`Processing mobile transaction for AI suggestions for company ${companyId}, transaction ID: ${payload.transactionId}`);
+
+    if (!this.djangoServiceUrl) {
+      this.logger.warn('DJANGO_AI_SERVICE_URL is not configured. AI processing for mobile transactions is unavailable.');
+      return {
+        reply: 'Les fonctionnalités d\'IA ne sont pas disponibles actuellement en raison d\'un problème de configuration. Veuillez contacter l\'administrateur.',
+        confidence: 0,
+        needsReview: true,
+        error: {
+          message: 'DJANGO_AI_SERVICE_URL is not configured. AI features for mobile transactions are unavailable.',
+          service: 'ConfigurationError',
+        }
+      };
+    }
 
     const company = await this.companyService.findById(companyId);
     if (!company) {

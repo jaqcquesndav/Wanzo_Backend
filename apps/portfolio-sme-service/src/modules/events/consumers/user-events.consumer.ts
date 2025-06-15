@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import { Controller, Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { UserCreatedEventData, UserEventTopics, UserStatusChangedEvent, SubscriptionChangedEvent } from '../../../../../../packages/shared/events/kafka-config'; // Corrected import path
 // Import services from portfolio-sme-service that need to react to these events
 import { PortfolioService } from '../../portfolios/services/portfolio.service'; // Corrected import path
 // e.g., import { OrganizationService } from '../organization/services/organization.service'; // If you have an org concept here
 
+@Controller() // Added Controller decorator
 @Injectable()
 export class UserEventsConsumer implements OnModuleInit {
   private readonly logger = new Logger(UserEventsConsumer.name);
