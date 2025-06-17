@@ -1,14 +1,29 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
+import { CustomerDocument } from '@/modules/customers/entities/document.entity';
+import { CustomerActivity } from '@/modules/customers/entities/activity.entity';
+import { ValidationProcess } from '@/modules/customers/entities/validation.entity';
+import { PmeSpecificData } from '@/modules/customers/entities/pme-specific-data.entity';
+import { FinancialInstitutionSpecificData } from '@/modules/customers/entities/financial-institution-specific-data.entity';
 
 export enum CustomerType {
-  INDIVIDUAL = 'individual',
-  CORPORATE = 'corporate'
+  PME = 'pme',
+  FINANCIAL = 'financial'
 }
 
 export enum CustomerStatus {
+  ACTIVE = 'active',
   PENDING = 'pending',
-  VERIFIED = 'verified',
-  REJECTED = 'rejected'
+  SUSPENDED = 'suspended',
+  INACTIVE = 'inactive',
+  NEEDS_VALIDATION = 'needs_validation',
+  VALIDATION_IN_PROGRESS = 'validation_in_progress'
+}
+
+export enum AccountType {
+  FREEMIUM = 'freemium',
+  STANDARD = 'standard',
+  PREMIUM = 'premium',
+  ENTERPRISE = 'enterprise'
 }
 
 @Entity('customers')
@@ -16,30 +31,29 @@ export class Customer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  name: string;
+
   @Column({
     type: 'enum',
-    enum: CustomerType,
-    default: CustomerType.INDIVIDUAL
+    enum: CustomerType
   })
   type: CustomerType;
-
-  @Column({ nullable: true })
-  firstName: string;
-
-  @Column({ nullable: true })
-  lastName: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  phoneNumber: string;
+  @Column()
+  phone: string;
 
-  @Column({ nullable: true })
-  companyName: string;
+  @Column()
+  address: string;
 
-  @Column({ nullable: true })
-  registrationNumber: string;
+  @Column()
+  city: string;
+
+  @Column()
+  country: string;
 
   @Column({
     type: 'enum',
@@ -48,98 +62,70 @@ export class Customer {
   })
   status: CustomerStatus;
 
-  @Column('simple-json', { nullable: true })
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  };
+  @Column()
+  billingContactName: string;
+
+  @Column()
+  billingContactEmail: string;
+
+  @Column({ default: 0 })
+  tokenAllocation: number;
+
+  @Column({
+    type: 'enum',
+    enum: AccountType
+  })
+  accountType: AccountType;
 
   @Column({ nullable: true })
-  dateOfBirth: Date;
+  ownerId: string;
 
   @Column({ nullable: true })
-  nationality: string;
+  ownerEmail: string;
 
   @Column({ nullable: true })
-  taxId: string;
+  validatedAt: Date;
 
-  @Column({ default: false })
-  isOnboarded: boolean;
+  @Column({ nullable: true })
+  validatedBy: string;
 
-  @Column({ default: false })
-  emailVerified: boolean;
+  @Column({ nullable: true })
+  suspendedAt: Date;
 
-  @Column({ default: false })
-  phoneVerified: boolean;
+  @Column({ nullable: true })
+  suspendedBy: string;
+
+  @Column({ nullable: true })
+  suspensionReason: string;
+
+  @Column({ nullable: true })
+  reactivatedAt: Date;
+
+  @Column({ nullable: true })
+  reactivatedBy: string;
+
+  @Column('jsonb', { nullable: true })
+  validationHistory: Array<{
+    date: Date;
+    action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
+    by: string;
+    notes?: string;
+  }>;
 
   @OneToMany(() => CustomerDocument, document => document.customer)
   documents: CustomerDocument[];
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @OneToMany(() => CustomerActivity, activity => activity.customer)
+  activities: CustomerActivity[];
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
+  @OneToMany(() => ValidationProcess, process => process.customer)
+  validationProcesses: ValidationProcess[];
 
-export enum DocumentType {
-  IDENTITY = 'identity',
-  ADDRESS = 'address',
-  BUSINESS_REGISTRATION = 'business_registration',
-  COMPANY_PROFILE = 'company_profile',
-  TAX_CERTIFICATE = 'tax_certificate',
-  OTHER = 'other'
-}
+  @OneToOne(() => PmeSpecificData, pmeData => pmeData.customer, { cascade: true, nullable: true })
+  pmeData: PmeSpecificData;
 
-export enum DocumentStatus {
-  PENDING = 'pending',
-  VERIFIED = 'verified',
-  REJECTED = 'rejected',
-  EXPIRED = 'expired'
-}
-
-@Entity('customer_documents')
-export class CustomerDocument {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  customerId: string;
-
-  @ManyToOne(() => Customer, customer => customer.documents)
-  @JoinColumn({ name: 'customerId' })
-  customer: Customer;
-
-  @Column({
-    type: 'enum',
-    enum: DocumentType
-  })
-  type: DocumentType;
-
-  @Column()
-  name: string;
-
-  @Column()
-  fileUrl: string;
-
-  @Column({
-    type: 'enum',
-    enum: DocumentStatus,
-    default: DocumentStatus.PENDING
-  })
-  status: DocumentStatus;
-
-  @Column({ nullable: true })
-  verifiedAt: Date;
-
-  @Column({ nullable: true })
-  rejectionReason: string;
-
-  @Column({ nullable: true })
-  expiryDate: Date;
+  @OneToOne(() => FinancialInstitutionSpecificData, financialData => financialData.customer, { cascade: true, nullable: true })
+  financialInstitutionData: FinancialInstitutionSpecificData;
 
   @CreateDateColumn()
   createdAt: Date;

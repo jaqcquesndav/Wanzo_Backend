@@ -14,27 +14,33 @@ Represents a user in the system.
   "role": "company_user", // e.g., "super_admin", "cto", "growth_finance", "customer_support", "content_manager", "company_admin", "company_user"
   "userType": "internal", // "internal" or "external"
   "customerAccountId": "pme-123", // Optional, required if userType is "external"
+  "customerName": "Customer Company Name", // Optional, for external users
+  "customerType": "pme", // Optional, "pme" or "financial_institution"
   "status": "active", // e.g., "active", "pending", "suspended", "inactive"
   "avatar": "url_to_avatar_image.png", // Optional
-  "createdAt": "2023-01-15T10:30:00Z", // ISO 8601 timestamp
-  "updatedAt": "2023-01-18T11:00:00Z", // ISO 8601 timestamp, optional
-  "lastLogin": "2023-01-20T14:45:00Z", // ISO 8601 timestamp, optional
+  "createdAt": "2025-01-15T10:30:00Z", // ISO 8601 timestamp
+  "updatedAt": "2025-01-18T11:00:00Z", // ISO 8601 timestamp, optional
+  "lastLogin": "2025-01-20T14:45:00Z", // ISO 8601 timestamp, optional
   "permissions": [
-    // Array of strings defining specific permissions based on ROLE_PERMISSIONS
-    "view_own_profile",
-    "edit_own_profile"
+    {
+      "applicationId": "default",
+      "permissions": ["view_own_profile", "edit_own_profile"]
+    }
   ],
   "departement": "Sales", // Optional, typically for "internal" users
-  "phoneNumber": "+1234567890" // Optional
+  "phoneNumber": "+243123456789", // Optional
+  "position": "Senior Manager" // Optional, job title or position
 }
 ```
 
 **Key changes:**
 *   `role`: Updated example roles to include `company_admin` and `company_user`.
-*   `userType`: Added. Indicates if the user is internal to Kiota or an external client user.
+*   `userType`: Added. Indicates if the user is internal to wanzo or an external client user.
 *   `customerAccountId`: Added. Links an external user to their company/customer account.
+*   `customerName`: Added. Optional field for external users to specify the associated customer company name.
+*   `customerType`: Added. Optional field to specify the type of customer, e.g., "pme" or "financial_institution".
 *   `updatedAt`: Added. Timestamp of the last update to the user object.
-*   `permissions`: Clarified that permissions are now derived from `ROLE_PERMISSIONS` based on the user's role. Direct assignment of arbitrary permissions is deprecated.
+*   `permissions`: Updated structure to be an array of objects, each with an `applicationId` and a list of `permissions`. This allows for more granular and application-specific permissions.
 *   Removed `company` and `companyId` as `customerAccountId` serves a similar and more structured purpose for external users.
 
 ## 2. List Users

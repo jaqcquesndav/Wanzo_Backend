@@ -1,0 +1,186 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AdhaContextSource, AdhaContextType, ZoneCibleType } from '../entities/adha-context.entity';
+import {
+    CreateAdhaContextSourceDto,
+    UpdateAdhaContextSourceDto,
+    AdhaContextQueryDto,
+    ToggleActiveDto,
+    FileUploadResponseDto
+} from '../dtos/adha-context.dto';
+
+@Injectable()
+export class AdhaContextService {
+    constructor(
+        @InjectRepository(AdhaContextSource)
+        private adhaContextRepository: Repository<AdhaContextSource>,
+    ) {}
+
+    async findAll(query: AdhaContextQueryDto): Promise<{ data: AdhaContextSource[]; pagination: any }> {
+        const page = query.page || 1;
+        const pageSize = query.pageSize || 10;
+        const skip = (page - 1) * pageSize;
+
+        // Build query with filters
+        const queryBuilder = this.adhaContextRepository.createQueryBuilder('source');
+
+        // Apply filters
+        if (query.search) {
+            queryBuilder.andWhere(
+                '(source.titre ILIKE :search OR source.description ILIKE :search)',
+                { search: `%${query.search}%` }
+            );
+        }
+
+        if (query.type) {
+            queryBuilder.andWhere('source.type = :type', { type: query.type });
+        }
+
+        if (query.domaine && query.domaine.length) {            // For simple-array column, need to check if any element is in the array
+            const domainConditions = query.domaine.map((d, i) => 
+                `source.domaine LIKE :domain${i}`
+            ).join(' OR ');
+            const domainParams: Record<string, string> = {};
+            query.domaine.forEach((d, i) => {
+                domainParams[`domain${i}`] = `%${d}%`;
+            });
+            queryBuilder.andWhere(`(${domainConditions})`, domainParams);
+        }
+
+        if (query.zoneType && query.zoneValue) {
+            queryBuilder.andWhere(
+                `jsonb_exists_any(source.zoneCible, array['{"type":"${query.zoneType}","value":"${query.zoneValue}"}']::jsonb[])`
+            );
+        }
+
+        if (query.niveau) {
+            queryBuilder.andWhere('source.niveau = :niveau', { niveau: query.niveau });
+        }
+
+        if (query.active === 'true' || query.active === 'false') {
+            queryBuilder.andWhere('source.active = :active', { active: query.active === 'true' });
+        }
+
+        if (query.tags && query.tags.length) {            // For simple-array column, need to check if any element is in the array
+            const tagConditions = query.tags.map((tag, i) => 
+                `source.tags LIKE :tag${i}`
+            ).join(' OR ');
+            const tagParams: Record<string, string> = {};
+            query.tags.forEach((tag, i) => {
+                tagParams[`tag${i}`] = `%${tag}%`;
+            });
+            queryBuilder.andWhere(`(${tagConditions})`, tagParams);
+        }
+
+        if (query.expire === 'true') {
+            queryBuilder.andWhere('source.canExpire = true AND source.dateFin < NOW()');
+        } else if (query.expire === 'false') {
+            queryBuilder.andWhere('(source.canExpire = false OR source.dateFin >= NOW())');
+        }
+
+        if (query.dateValidite) {
+            const validityDate = new Date(query.dateValidite);
+            queryBuilder.andWhere(
+                '(source.canExpire = false OR (source.dateDebut <= :date AND source.dateFin >= :date))',
+                { date: validityDate }
+            );
+        }
+
+        // Count total before pagination
+        const totalItems = await queryBuilder.getCount();
+        const totalPages = Math.ceil(totalItems / pageSize);
+
+        // Apply pagination
+        queryBuilder.skip(skip).take(pageSize);
+        queryBuilder.orderBy('source.createdAt', 'DESC');
+
+        const data = await queryBuilder.getMany();
+        
+        return {
+            data,
+            pagination: {
+                page,
+                pageSize,
+                totalItems,
+                totalPages
+            }
+        };
+    }
+
+    async findOne(id: string): Promise<AdhaContextSource> {
+        const source = await this.adhaContextRepository.findOne({ where: { id } });
+        if (!source) {
+            throw new NotFoundException(`AdhaContext source with ID ${id} not found`);
+        }
+        return source;
+    }    async create(createDto: CreateAdhaContextSourceDto): Promise<AdhaContextSource> {
+        const source = this.adhaContextRepository.create({
+            ...createDto,
+            // Convert string dates to Date objects
+            dateDebut: new Date(createDto.dateDebut),
+            dateFin: new Date(createDto.dateFin),
+            // If downloadUrl and coverImageUrl aren't provided, use the url
+            downloadUrl: createDto.url,
+            coverImageUrl: createDto.url + '_thumbnail' // This would be generated by the file upload service
+        });
+        return this.adhaContextRepository.save(source);
+    }
+
+    async update(id: string, updateDto: UpdateAdhaContextSourceDto): Promise<AdhaContextSource> {
+        const source = await this.findOne(id);
+        const updated = this.adhaContextRepository.merge(source, updateDto);
+        return this.adhaContextRepository.save(updated);
+    }
+
+    async remove(id: string): Promise<void> {
+        const source = await this.findOne(id);
+        await this.adhaContextRepository.remove(source);
+    }
+
+    async toggleActive(id: string, toggleDto: ToggleActiveDto): Promise<{ id: string; active: boolean; updatedAt: Date }> {
+        const source = await this.findOne(id);
+        source.active = toggleDto.active;
+        const updated = await this.adhaContextRepository.save(source);
+        return {
+            id: updated.id,
+            active: updated.active,
+            updatedAt: updated.updatedAt
+        };
+    }
+
+    async uploadFile(file: Express.Multer.File): Promise<FileUploadResponseDto> {
+        // This would normally use a file upload service like Cloudinary
+        // For now, we'll return mock URLs
+        const mockUrl = `https://cloudinary.com/url/${file.originalname}`;
+        return {
+            url: mockUrl,
+            coverImageUrl: `${mockUrl}_thumbnail`
+        };
+    }
+
+    async getTagSuggestions(): Promise<string[]> {
+        // This would normally query the database for unique tags
+        // For now, return the sample tags from the documentation
+        return [
+            "marché", "statistiques", "juridique", "innovation", "RDC", "Kinshasa",
+            "agriculture", "industrie", "banque", "startup", "énergie", "mines",
+            "commerce", "santé", "éducation", "export", "import", "PME", "financement",
+            "formation", "loi", "fiscalité", "prix", "tendance", "analyse", "benchmark",
+            "licence", "propriété intellectuelle", "open data", "public", "privé",
+            "zone économique", "province", "ville", "Afrique", "international"
+        ];
+    }
+
+    async getZoneSuggestions(): Promise<{ type: ZoneCibleType; value: string }[]> {
+        // This would normally query the database for unique zones
+        // For now, return the sample zones from the documentation
+        return [
+            { type: ZoneCibleType.PAYS, value: "RDC" },
+            { type: ZoneCibleType.VILLE, value: "Kinshasa" },
+            { type: ZoneCibleType.PROVINCE, value: "Kinshasa" },
+            { type: ZoneCibleType.PROVINCE, value: "Haut-Katanga" },
+            { type: ZoneCibleType.PROVINCE, value: "Kasaï" }
+        ];
+    }
+}

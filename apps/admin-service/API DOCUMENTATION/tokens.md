@@ -1,6 +1,6 @@
 # API Documentation: Token Management
 
-This document outlines the API endpoints for managing tokens within the AdminKS system. Tokens are used to access various features and services.
+This document outlines the API endpoints for managing tokens within the Wanzo Admin system. Tokens are digital credits that customers use to access various AI features and services.
 
 ## Base URL
 
@@ -8,15 +8,134 @@ All API endpoints are relative to the base URL: `/api`
 
 ## Authentication
 
-All endpoints require Bearer Token authentication.
+All endpoints require Bearer Token authentication. Refer to the [Auth API Documentation](./auth.md) for details on authentication.
+
+## Tokens Data Models
+
+### TokenPackage
+
+```typescript
+interface TokenPackage {
+  id: string;
+  name: string;
+  description?: string;
+  tokenAmount: number;
+  priceUSD: number;
+  priceLocal?: number;
+  localCurrency?: string;
+  isPopular?: boolean;
+  validityDays: number;
+  targetCustomerTypes: CustomerType[];
+  customerTypeSpecific: CustomerTypeSpecificMetadata[];
+  minimumPurchase?: number;
+  discountPercentages?: {
+    tier1: {
+      minAmount: number;
+      percentage: number;
+    };
+    tier2: {
+      minAmount: number;
+      percentage: number;
+    };
+    tier3: {
+      minAmount: number;
+      percentage: number;
+    };
+  };
+}
+```
+
+### TokenBalance
+
+```typescript
+interface TokenBalance {
+  customerId: string;
+  tokenType: TokenType;
+  balance: number;
+  lastUpdatedAt: string; // ISO date string
+}
+```
+
+### TokenTransaction
+
+```typescript
+interface TokenTransaction {
+  id: string;
+  customerId: string;
+  subscriptionId?: string;
+  packageId?: string;
+  type: TokenTransactionType; // 'purchase' | 'usage' | 'refund' | 'adjustment' | 'expiry' | 'bonus'
+  amount: number;
+  balance: number;
+  description?: string;
+  timestamp: string;
+  expiryDate?: string;
+  metadata?: {
+    operation?: string;
+    apiEndpoint?: string;
+    sessionId?: string;
+    paymentId?: string;
+  };
+}
+```
+
+### TokenUsage
+
+```typescript
+interface TokenUsage {
+  id: string;
+  customerId: string;
+  userId: string;
+  appType: AppType;
+  tokensUsed: number;
+  date: string;
+  feature: string;
+  prompt?: string;
+  responseTokens: number;
+  requestTokens: number;
+  cost: number;
+}
+```
+
+### TokenStatistics
+
+```typescript
+interface TokenStatistics {
+  totalTokensAllocated: number;
+  totalTokensUsed: number;
+  totalTokensPurchased: number;
+  totalTokenCost?: number;
+  tokenUsageGrowth?: number;
+  tokenUsageByPeriod: Array<{
+    period: string;
+    tokensUsed: number;
+  }>;
+  tokenUsageByCustomerType: {
+    pme: number;
+    financial: number;
+  };
+  averageTokensPerCustomer: number;
+  top10TokenConsumers: Array<{
+    customerId: string;
+    customerName: string;
+    tokensConsumed: number;
+  }>;
+  tokenUsageTrend: Array<{
+    date: string;
+    used: number;
+    cost: number;
+    revenue: number;
+  }>;
+}
+```
 
 ## Endpoints
 
 ### 1. Get Token Balance
 
 *   **Endpoint:** `GET /tokens/balance`
-*   **Description:** Retrieves the current token balance for the authenticated user (or company).
-*   **Permissions Required:** `tokens:read` (or user-specific access)
+*   **Description:** Retrieves the current token balance for the authenticated user or company.
+*   **Permissions Required:** `tokens:read`
 *   **Successful Response (200 OK):**
     ```json
     {
@@ -32,7 +151,7 @@ All endpoints require Bearer Token authentication.
 
 *   **Endpoint:** `GET /tokens/packages`
 *   **Description:** Retrieves a list of available token packages for purchase.
-*   **Permissions Required:** `tokens:read` (or public access)
+*   **Permissions Required:** `tokens:read`
 *   **Successful Response (200 OK):**
     ```json
     {
@@ -41,21 +160,33 @@ All endpoints require Bearer Token authentication.
           "id": "pkg_small_1000",
           "name": "Small Pack",
           "description": "1,000 Tokens",
-          "tokens": 1000,
-          "price": 10.00,
-          "currency": "USD",
-          "features": ["Basic API Access", "Limited AI Usage"],
-          "isPopular": false
-        },
-        {
-          "id": "pkg_medium_5000",
-          "name": "Medium Pack",
-          "description": "5,000 Tokens + 5% Bonus",
-          "tokens": 5250,
-          "price": 45.00,
-          "currency": "USD",
-          "features": ["Standard API Access", "Moderate AI Usage", "Priority Support"],
-          "isPopular": true
+          "tokenAmount": 1000,
+          "priceUSD": 10.00,
+          "priceLocal": 9.00,
+          "localCurrency": "EUR",
+          "isPopular": false,
+          "validityDays": 365,
+          "targetCustomerTypes": ["pme", "financial"],
+          "customerTypeSpecific": [
+            {
+              "type": "financial",
+              "minimumPurchase": 5000
+            }
+          ],
+          "discountPercentages": {
+            "tier1": {
+              "minAmount": 10000,
+              "percentage": 5
+            },
+            "tier2": {
+              "minAmount": 50000,
+              "percentage": 10
+            },
+            "tier3": {
+              "minAmount": 100000,
+              "percentage": 15
+            }
+          }
         }
         // ... more packages
       ]
@@ -66,8 +197,8 @@ All endpoints require Bearer Token authentication.
 ### 3. Purchase Tokens
 
 *   **Endpoint:** `POST /tokens/purchase`
-*   **Description:** Initiates a token purchase. If `proofDocument` is provided, it's uploaded to a storage service (e.g., Cloudinary) first, and its URL is sent to the backend.
-*   **Permissions Required:** `tokens:purchase` (or user-specific access)
+*   **Description:** Initiates a token purchase. If `proofDocument` is provided, it's uploaded to Cloudinary first, and its URL is sent to the backend.
+*   **Permissions Required:** `tokens:purchase`
 *   **Request Body (application/json or multipart/form-data if `proofDocument` is included):**
     ```json
     {
@@ -75,27 +206,27 @@ All endpoints require Bearer Token authentication.
       "paymentMethod": "credit_card", // e.g., "credit_card", "bank_transfer", "paypal"
       "transactionReference": "txn_123abc456def", // Optional, for bank transfers etc.
       // "proofDocument": (File object if using multipart/form-data)
-      // If proofDocument was uploaded, backend expects:
-      // "proofDocumentUrl": "https://res.cloudinary.com/.../image.jpg",
-      // "proofDocumentPublicId": "payment-proofs/..."
     }
     ```
-*   **Successful Response (200 OK or 201 Created):**
+*   **Successful Response (201 Created):**
     ```json
     {
       "transaction": {
         "id": "trans_789xyz",
+        "customerId": "cust_123",
         "packageId": "pkg_medium_5000",
-        "tokensPurchased": 5250,
-        "amountPaid": 45.00,
-        "currency": "USD",
-        "paymentMethod": "credit_card",
-        "status": "completed", // or "pending_verification" if proof is required
-        "transactionDate": "2024-06-01T16:00:00Z",
-        "proofDocumentUrl": null // or URL if provided
+        "type": "purchase",
+        "amount": 5250,
+        "balance": 6750,
+        "description": "Purchase of Medium Pack",
+        "timestamp": "2024-06-01T16:00:00Z",
+        "expiryDate": "2025-06-01T16:00:00Z",
+        "metadata": {
+          "paymentId": "pay_abc123"
+        }
       },
       "newBalance": {
-        "available": 6750, // old balance + purchased tokens
+        "available": 6750,
         "allocated": 7250,
         "used": 500,
         "lastUpdated": "2024-06-01T16:00:00Z"
@@ -103,48 +234,44 @@ All endpoints require Bearer Token authentication.
     }
     ```
 *   **Error Responses:**
-    *   `400 Bad Request`: Invalid package ID, payment method, or missing required fields.
-    *   `402 Payment Required`: If payment fails.
-    *   See [Standard Error Responses](#standard-error-responses).
+    - `400 Bad Request`: Invalid request parameters
+    - `402 Payment Required`: Payment failed
+    - `404 Not Found`: Package not found
+    - See also [Standard Error Responses](#standard-error-responses).
 
 ### 4. Get Token Usage History
 
 *   **Endpoint:** `GET /tokens/usage`
-*   **Description:** Retrieves the history of token usage for the authenticated user/company, with optional filtering.
-*   **Permissions Required:** `tokens:read_usage` (or user-specific access)
+*   **Description:** Retrieves the token usage history for the authenticated user or company.
+*   **Permissions Required:** `tokens:read`
 *   **Query Parameters:**
-    *   `startDate` (string, optional): ISO 8601 date (e.g., "2024-01-01").
-    *   `endDate` (string, optional): ISO 8601 date.
-    *   `appType` (string, optional): Filter by application type (e.g., "ai_assistant", "data_analysis").
-    *   `feature` (string, optional): Filter by specific feature used (e.g., "text_generation", "report_generation").
-    *   `page` (number, optional, default: 1).
-    *   `limit` (number, optional, default: 20).
+    - `startDate` (optional): Filter by start date (ISO format)
+    - `endDate` (optional): Filter by end date (ISO format)
+    - `appType` (optional): Filter by application type
+    - `feature` (optional): Filter by feature
+    - `page` (optional): Page number for pagination (default: 1)
+    - `limit` (optional): Items per page (default: 20)
 *   **Successful Response (200 OK):**
     ```json
     {
       "usages": [
         {
-          "id": "usage_abc123",
-          "timestamp": "2024-05-30T10:00:00Z",
-          "tokensUsed": 50,
-          "appType": "ai_assistant",
-          "feature": "text_generation",
-          "description": "Generated marketing copy for product X.",
-          "userId": "user_def456"
-        },
-        {
-          "id": "usage_def456",
-          "timestamp": "2024-05-29T15:20:00Z",
-          "tokensUsed": 120,
-          "appType": "data_analysis",
-          "feature": "trend_prediction",
-          "description": "Analyzed sales data for Q1 2024.",
-          "userId": "user_def456"
+          "id": "usage_123",
+          "customerId": "cust_123",
+          "userId": "user_456",
+          "appType": "text-generation",
+          "tokensUsed": 250,
+          "date": "2024-05-28T15:45:00Z",
+          "feature": "content-generation",
+          "prompt": "Generate a blog post about...",
+          "responseTokens": 200,
+          "requestTokens": 50,
+          "cost": 0.0075
         }
         // ... more usage records
       ],
-      "totalCount": 57,
-      "totalTokensUsed": 2350
+      "totalCount": 150,
+      "totalTokensUsed": 37500
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -152,43 +279,50 @@ All endpoints require Bearer Token authentication.
 ### 5. Get Token Transaction History
 
 *   **Endpoint:** `GET /tokens/history`
-*   **Description:** Retrieves the history of token transactions (purchases, allocations) for the authenticated user/company.
-*   **Permissions Required:** `tokens:read_transactions` (or user-specific access)
+*   **Description:** Retrieves the token transaction history for the authenticated user or company.
+*   **Permissions Required:** `tokens:read`
 *   **Query Parameters:**
-    *   `startDate` (string, optional): ISO 8601 date.
-    *   `endDate` (string, optional): ISO 8601 date.
-    *   `status` (string, optional): Filter by transaction status (e.g., "completed", "pending", "failed").
-    *   `page` (number, optional, default: 1).
-    *   `limit` (number, optional, default: 20).
+    - `startDate` (optional): Filter by start date (ISO format)
+    - `endDate` (optional): Filter by end date (ISO format)
+    - `status` (optional): Filter by transaction status
+    - `page` (optional): Page number for pagination (default: 1)
+    - `limit` (optional): Items per page (default: 20)
 *   **Successful Response (200 OK):**
     ```json
     {
       "transactions": [
         {
           "id": "trans_789xyz",
-          "packageId": "pkg_medium_5000",
-          "tokensPurchased": 5250,
-          "amountPaid": 45.00,
-          "currency": "USD",
-          "paymentMethod": "credit_card",
-          "status": "completed",
-          "transactionDate": "2024-06-01T16:00:00Z",
-          "proofDocumentUrl": null
+          "customerId": "cust_123",
+          "customerName": "Acme Corp",
+          "type": "purchase",
+          "amount": 5250,
+          "balance": 6750,
+          "description": "Purchase of Medium Pack",
+          "timestamp": "2024-06-01T16:00:00Z",
+          "expiryDate": "2025-06-01T16:00:00Z",
+          "metadata": {
+            "paymentId": "pay_abc123"
+          }
         },
         {
-          "id": "trans_alloc_001",
-          "packageId": null,
-          "tokensPurchased": 100, // or tokensAllocated
-          "amountPaid": 0.00,
-          "currency": "USD",
-          "paymentMethod": "allocation",
-          "status": "completed",
-          "transactionDate": "2024-05-15T09:00:00Z",
-          "notes": "Promotional bonus"
+          "id": "trans_456def",
+          "customerId": "cust_123",
+          "customerName": "Acme Corp",
+          "type": "usage",
+          "amount": -250,
+          "balance": 6500,
+          "description": "API usage - text generation",
+          "timestamp": "2024-06-02T10:15:00Z",
+          "metadata": {
+            "operation": "text-generation",
+            "apiEndpoint": "/api/text/generate",
+            "sessionId": "sess_xyz789"
+          }
         }
-        // ... more transaction records
+        // ... more transactions
       ],
-      "totalCount": 12
+      "totalCount": 75
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -196,23 +330,18 @@ All endpoints require Bearer Token authentication.
 ### 6. Get Token Usage Statistics by Period
 
 *   **Endpoint:** `GET /tokens/usage/stats`
-*   **Description:** Retrieves token usage statistics grouped by a specified period.
-*   **Permissions Required:** `tokens:read_stats`
+*   **Description:** Retrieves token usage statistics for different time periods.
+*   **Permissions Required:** `tokens:read`
 *   **Query Parameters:**
-    *   `period` (string, optional, default: 'monthly'): Time period to group stats by. Values: 'daily', 'weekly', 'monthly', 'yearly'.
+    - `period` (optional): Time period ('daily', 'weekly', 'monthly', 'yearly'). Default: 'monthly'
 *   **Successful Response (200 OK):**
     ```json
-    // Example for period = 'monthly'
     {
-      "2024-03": 1200,
-      "2024-04": 1500,
-      "2024-05": 2350
-    }
-    // Example for period = 'daily'
-    {
-      "2024-05-29": 300,
-      "2024-05-30": 250,
-      "2024-06-01": 180
+      "2024-05": 12500,
+      "2024-04": 10750,
+      "2024-03": 8900,
+      "2024-02": 7650,
+      "2024-01": 6200
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -221,29 +350,30 @@ All endpoints require Bearer Token authentication.
 
 *   **Endpoint:** `GET /tokens/usage/features`
 *   **Description:** Retrieves token usage statistics grouped by feature.
-*   **Permissions Required:** `tokens:read_stats`
+*   **Permissions Required:** `tokens:read`
 *   **Successful Response (200 OK):**
     ```json
     {
-      "text_generation": 5500,
-      "image_analysis": 3200,
-      "data_export": 1200,
-      "report_generation": 4500
+      "text-generation": 18500,
+      "image-generation": 12000,
+      "chat-completion": 9750,
+      "embeddings": 5600,
+      "text-to-speech": 4150
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-### 8. Get Token Usage Statistics by Application
+### 8. Get Token Usage Statistics by App
 
 *   **Endpoint:** `GET /tokens/usage/apps`
 *   **Description:** Retrieves token usage statistics grouped by application.
-*   **Permissions Required:** `tokens:read_stats`
+*   **Permissions Required:** `tokens:read`
 *   **Successful Response (200 OK):**
     ```json
     {
-      "ai_assistant_v1": 8000,
-      "customer_support_bot": 4200,
-      "internal_reporting_tool": 2200
+      "web-dashboard": 15200,
+      "mobile-app": 12800,
+      "api-direct": 22000
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -251,37 +381,59 @@ All endpoints require Bearer Token authentication.
 ### 9. Get All Token Statistics (Admin Only)
 
 *   **Endpoint:** `GET /admin/tokens/statistics`
-*   **Description:** Retrieves comprehensive token statistics. (Admin access required)
-*   **Permissions Required:** `admin:tokens:read_all_stats`
+*   **Description:** Retrieves comprehensive token statistics for admin dashboard.
+*   **Permissions Required:** `admin:tokens:read`
 *   **Query Parameters:**
-    *   `period` (string, optional, default: 'monthly'): Time period for some stats. Values: 'daily', 'weekly', 'monthly', 'yearly'.
+    - `period` (optional): Time period ('daily', 'weekly', 'monthly', 'yearly'). Default: 'monthly'
 *   **Successful Response (200 OK):**
     ```json
     {
-      "totalTokensPurchased": 100000,
-      "totalTokensUsed": 65000,
-      "totalTokensAvailable": 35000,
-      "totalRevenue": 4500.00,
-      "currency": "USD",
-      "activeSubscriptionsWithTokens": 150,
-      "averageTokensUsedPerUser": {
-        "daily": 25,
-        "weekly": 150,
-        "monthly": 600
+      "totalTokensAllocated": 5000000,
+      "totalTokensUsed": 1727300,
+      "totalTokensPurchased": 2500000,
+      "totalTokenCost": 52.49,
+      "tokenUsageGrowth": 15.3,
+      "tokenUsageByPeriod": [
+        {
+          "period": "2024-05",
+          "tokensUsed": 527000
+        },
+        {
+          "period": "2024-04",
+          "tokensUsed": 456000
+        }
+      ],
+      "tokenUsageByCustomerType": {
+        "pme": 650000,
+        "financial": 1077300
       },
-      "usageByPeriod": {
-        "2024-03": 12000,
-        "2024-04": 25000,
-        "2024-05": 28000
-      },
-      "topFeaturesByUsage": {
-        "text_generation": 30000,
-        "report_generation": 20000
-      },
-      "topAppsByUsage": {
-        "ai_assistant_v1": 40000,
-        "customer_support_bot": 15000
-      }
+      "averageTokensPerCustomer": 86365,
+      "top10TokenConsumers": [
+        {
+          "customerId": "cust-2",
+          "customerName": "Crédit Maritime",
+          "tokensConsumed": 829650
+        },
+        {
+          "customerId": "cust-5",
+          "customerName": "MicroFinance SA",
+          "tokensConsumed": 318750
+        }
+      ],
+      "tokenUsageTrend": [
+        {
+          "date": "2024-05-28",
+          "used": 58750,
+          "cost": 1.76,
+          "revenue": 4.70
+        },
+        {
+          "date": "2024-05-27",
+          "used": 52000,
+          "cost": 1.56,
+          "revenue": 4.16
+        }
+      ]
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -289,14 +441,14 @@ All endpoints require Bearer Token authentication.
 ### 10. Allocate Tokens to Customer (Admin Only)
 
 *   **Endpoint:** `POST /admin/tokens/allocate`
-*   **Description:** Allows an administrator to allocate tokens directly to a customer.
-*   **Permissions Required:** `admin:tokens:allocate`
-*   **Request Body (application/json):**
+*   **Description:** Allocates tokens to a specific customer (admin function).
+*   **Permissions Required:** `admin:tokens:write`
+*   **Request Body:**
     ```json
     {
-      "customerId": "cust_abc123",
-      "amount": 500, // Number of tokens to allocate
-      "reason": "Customer loyalty bonus for Q1 2024"
+      "customerId": "cust_123",
+      "amount": 1000,
+      "reason": "Compensation for service outage"
     }
     ```
 *   **Successful Response (200 OK):**
@@ -304,156 +456,58 @@ All endpoints require Bearer Token authentication.
     {
       "success": true,
       "newBalance": {
-        "customerId": "cust_abc123", // Or could be the general balance if not customer-specific
-        "available": 2000, // Customer's new available balance
-        "allocated": 2500,
+        "available": 7750,
+        "allocated": 8250,
         "used": 500,
-        "lastUpdated": "2024-06-01T17:00:00Z"
-      },
-      "message": "Successfully allocated 500 tokens to cust_abc123."
+        "lastUpdated": "2024-06-05T11:20:00Z"
+      }
     }
     ```
 *   **Error Responses:**
-    *   `400 Bad Request`: Invalid customer ID, amount, or missing reason.
-    *   `404 Not Found`: If the customer ID does not exist.
-    *   See [Standard Error Responses](#standard-error-responses).
-
-## Data Models
-
-### TokenPackage
-
-| Field         | Type     | Description                                      | Example                                                              |
-|---------------|----------|--------------------------------------------------|----------------------------------------------------------------------|
-| `id`          | string   | Unique identifier for the package.               | `"pkg_medium_5000"`                                                  |
-| `name`        | string   | Name of the package.                             | `"Medium Pack"`                                                      |
-| `description` | string   | Description of the package.                      | `"5,000 Tokens + 5% Bonus"`                                          |
-| `tokens`      | number   | Number of tokens included.                       | `5250`                                                               |
-| `price`       | number   | Price of the package.                            | `45.00`                                                              |
-| `currency`    | string   | Currency code (e.g., USD, EUR).                  | `"USD"`                                                              |
-| `features`    | string[] | List of features or benefits included.           | `["Standard API Access", "Moderate AI Usage", "Priority Support"]` |
-| `isPopular`   | boolean  | Whether this package is marked as popular.       | `true`                                                               |
-
-### TokenTransaction
-
-| Field                | Type   | Description                                                              | Example                               |
-|----------------------|--------|--------------------------------------------------------------------------|---------------------------------------|
-| `id`                 | string | Unique identifier for the transaction.                                   | `"trans_789xyz"`                      |
-| `packageId`          | string | ID of the package purchased (if applicable).                             | `"pkg_medium_5000"`                   |
-| `tokensPurchased`    | number | Number of tokens acquired in this transaction.                           | `5250`                                |
-| `amountPaid`         | number | Amount paid for the tokens.                                              | `45.00`                               |
-| `currency`           | string | Currency of the transaction.                                             | `"USD"`                               |
-| `paymentMethod`      | string | Method of payment (e.g., "credit_card", "bank_transfer", "allocation"). | `"credit_card"`                       |
-| `status`             | string | Status of the transaction (e.g., "completed", "pending", "failed").      | `"completed"`                         |
-| `transactionDate`    | string | ISO 8601 timestamp of the transaction.                                   | `"2024-06-01T16:00:00Z"`              |
-| `proofDocumentUrl`   | string | URL of the payment proof document (if applicable).                       | `null` or `"https://.../proof.pdf"` |
-| `notes`              | string | Additional notes for the transaction (e.g., reason for allocation).      | `"Promotional bonus"`                 |
-
-### TokenUsage
-
-| Field         | Type   | Description                                                     | Example                                       |
-|---------------|--------|-----------------------------------------------------------------|-----------------------------------------------|
-| `id`          | string | Unique identifier for the usage record.                         | `"usage_abc123"`                              |
-| `timestamp`   | string | ISO 8601 timestamp of when the tokens were used.                | `"2024-05-30T10:00:00Z"`                      |
-| `tokensUsed`  | number | Number of tokens consumed in this instance.                     | `50`                                          |
-| `appType`     | string | Type of application that consumed the tokens.                   | `"ai_assistant"`                              |
-| `feature`     | string | Specific feature that consumed the tokens.                      | `"text_generation"`                           |
-| `description` | string | Optional description of the usage.                              | `"Generated marketing copy for product X."`   |
-| `userId`      | string | ID of the user who performed the action consuming the tokens.   | `"user_def456"`                               |
-
-### TokenBalanceResponse
-
-| Field         | Type   | Description                               | Example                 |
-|---------------|--------|-------------------------------------------|-------------------------|
-| `available`   | number | Number of tokens currently available.     | `1500`                  |
-| `allocated`   | number | Total tokens allocated (purchased/given). | `2000`                  |
-| `used`        | number | Total tokens used so far.                 | `500`                   |
-| `lastUpdated` | string | ISO 8601 timestamp of last balance update. | `"2024-05-28T10:30:00Z"` |
-
-### TokenStatistics (Admin)
-
-| Field                           | Type            | Description                                                                 | Example (values illustrative)                                     |
-|---------------------------------|-----------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------|
-| `totalTokensPurchased`          | number          | Total tokens ever purchased across the system.                              | `100000`                                                          |
-| `totalTokensUsed`               | number          | Total tokens ever used across the system.                                   | `65000`                                                           |
-| `totalTokensAvailable`          | number          | Total tokens currently available across all users/companies.                | `35000`                                                           |
-| `totalRevenue`                  | number          | Total revenue generated from token sales.                                   | `4500.00`                                                         |
-| `currency`                      | string          | Currency for the total revenue.                                             | `"USD"`                                                           |
-| `activeSubscriptionsWithTokens` | number          | Number of active subscriptions that utilize tokens.                         | `150`                                                             |
-| `averageTokensUsedPerUser`      | object          | Average token usage per user for different periods.                         | `{"daily": 25, "weekly": 150, "monthly": 600}`                  |
-| `usageByPeriod`                 | object          | Token usage grouped by the specified period (e.g., month: count).           | `{"2024-03": 12000, "2024-04": 25000, "2024-05": 28000}`         |
-| `topFeaturesByUsage`            | object          | Top features by token consumption (feature: count).                         | `{"text_generation": 30000, "report_generation": 20000}`        |
-| `topAppsByUsage`                | object          | Top applications by token consumption (app: count).                         | `{"ai_assistant_v1": 40000, "customer_support_bot": 15000}` |
+    - `400 Bad Request`: Invalid request parameters
+    - `404 Not Found`: Customer not found
+    - See also [Standard Error Responses](#standard-error-responses).
 
 ## Standard Error Responses
 
-### 400 Bad Request
-
-*   **Description:** The server could not understand the request due to invalid syntax or missing parameters.
-*   **Response Body:**
+*   **401 Unauthorized:**
     ```json
     {
-      "error": "Bad Request",
-      "message": "Invalid input data: [Details about the error]",
-      "statusCode": 400
+      "error": "unauthorized",
+      "message": "Authentication token is missing or invalid"
     }
     ```
 
-### 401 Unauthorized
-
-*   **Description:** The request requires user authentication, but the authentication credentials were missing or invalid.
-*   **Response Body:**
+*   **403 Forbidden:**
     ```json
     {
-      "error": "Unauthorized",
-      "message": "Authentication token is missing or invalid.",
-      "statusCode": 401
+      "error": "forbidden",
+      "message": "You do not have permission to access this resource"
     }
     ```
 
-### 402 Payment Required
-
-*   **Description:** Payment is required to proceed with the request (e.g., token purchase failed).
-*   **Response Body:**
+*   **429 Too Many Requests:**
     ```json
     {
-      "error": "Payment Required",
-      "message": "Payment processing failed. Please check your payment details or try another method.",
-      "statusCode": 402
+      "error": "rate_limit_exceeded",
+      "message": "Rate limit exceeded. Try again in X seconds",
+      "retryAfter": 30
     }
     ```
 
-### 403 Forbidden
-
-*   **Description:** The authenticated user does not have the necessary permissions to perform the requested action.
-*   **Response Body:**
+*   **500 Internal Server Error:**
     ```json
     {
-      "error": "Forbidden",
-      "message": "You do not have permission to access this resource.",
-      "statusCode": 403
+      "error": "server_error",
+      "message": "An unexpected error occurred",
+      "requestId": "req_abc123"
     }
     ```
 
-### 404 Not Found
+## Additional Notes
 
-*   **Description:** The requested resource (e.g., package, customer) could not be found.
-*   **Response Body:**
-    ```json
-    {
-      "error": "Not Found",
-      "message": "The requested resource was not found.",
-      "statusCode": 404
-    }
-    ```
-
-### 500 Internal Server Error
-
-*   **Description:** An unexpected error occurred on the server.
-*   **Response Body:**
-    ```json
-    {
-      "error": "Internal Server Error",
-      "message": "An unexpected error occurred. Please try again later.",
-      "statusCode": 500
-    }
-    ```
+1. Token purchases may require approval depending on the payment method and amount.
+2. Token usage is tracked in real-time and deducted from the available balance.
+3. Tokens may have an expiration date based on the package purchased.
+4. Different features may consume different amounts of tokens based on complexity and resource usage.
+5. The API supports both direct purchase and invoicing for token acquisition.

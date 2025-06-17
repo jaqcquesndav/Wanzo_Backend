@@ -1,176 +1,187 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Customer } from '../../customers/entities/customer.entity';
+import { User } from '../../users/entities/user.entity';
 
-export enum TokenTransactionType {
-  PURCHASE = 'purchase',
-  CONSUMPTION = 'consumption',
-  REFUND = 'refund',
-  ADJUSTMENT = 'adjustment',
-  BONUS = 'bonus'
+export enum CustomerType {
+    PME = 'pme',
+    FINANCIAL = 'financial',
 }
 
-export enum TokenTransactionStatus {
-  COMPLETED = 'completed',
-  PENDING = 'pending',
-  PENDING_VERIFICATION = 'pending_verification',
-  FAILED = 'failed',
-  CANCELED = 'canceled'
+export enum TokenType {
+    PURCHASED = 'purchased',
+    BONUS = 'bonus',
+    REWARD = 'reward',
+}
+
+export enum TokenTransactionType {
+    PURCHASE = 'purchase',
+    USAGE = 'usage',
+    REFUND = 'refund',
+    ADJUSTMENT = 'adjustment',
+    EXPIRY = 'expiry',
+    BONUS = 'bonus',
+    ALLOCATION = 'allocation',
+}
+
+export enum AppType {
+    TEXT_GENERATION = 'text-generation',
+    IMAGE_GENERATION = 'image-generation',
+    CHAT_COMPLETION = 'chat-completion',
+    EMBEDDINGS = 'embeddings',
+    TEXT_TO_SPEECH = 'text-to-speech',
+    WEB_DASHBOARD = 'web-dashboard',
+    MOBILE_APP = 'mobile-app',
+    API_DIRECT = 'api-direct',
 }
 
 @Entity('token_packages')
 export class TokenPackage {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-  @Column()
-  name: string;
+    @Column()
+    name: string;
 
-  @Column()
-  description: string;
+    @Column({ type: 'text', nullable: true })
+    description?: string;
 
-  @Column('int')
-  tokens: number;
+    @Column()
+    tokenAmount: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  price: number;
+    @Column('decimal', { precision: 10, scale: 2 })
+    priceUSD: number;
 
-  @Column({ default: 'USD' })
-  currency: string;
+    @Column('decimal', { precision: 10, scale: 2, nullable: true })
+    priceLocal?: number;
 
-  @Column('simple-array')
-  features: string[];
+    @Column({ nullable: true })
+    localCurrency?: string;
 
-  @Column({ default: false })
-  isPopular: boolean;
+    @Column({ default: false })
+    isPopular?: boolean;
 
-  @Column({ default: true })
-  isActive: boolean;
+    @Column()
+    validityDays: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  bonusPercentage: number;
+    @Column('simple-array')
+    targetCustomerTypes: CustomerType[];
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @Column('jsonb', { nullable: true })
+    customerTypeSpecific?: any[]; // CustomerTypeSpecificMetadata
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
+    @Column({ nullable: true })
+    minimumPurchase?: number;
 
-@Entity('token_transactions')
-export class TokenTransaction {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  userId: string;
-
-  @Column({ nullable: true })
-  customerAccountId: string;
-
-  @Column({
-    type: 'enum',
-    enum: TokenTransactionType
-  })
-  type: TokenTransactionType;
-
-  @Column('int')
-  tokenAmount: number;
-
-  @Column('decimal', { precision: 10, scale: 2 })
-  amount: number;
-
-  @Column({ default: 'USD' })
-  currency: string;
-
-  @Column({ nullable: true })
-  packageId: string;
-
-  @Column({ nullable: true })
-  paymentMethod: string;
-
-  @Column({
-    type: 'enum',
-    enum: TokenTransactionStatus,
-    default: TokenTransactionStatus.COMPLETED
-  })
-  status: TokenTransactionStatus;
-
-  @Column({ nullable: true })
-  transactionReference: string;
-
-  @Column({ nullable: true })
-  proofDocumentUrl: string;
-
-  @Column({ nullable: true })
-  notes: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @Column('jsonb', { nullable: true })
+    discountPercentages?: any; // Discount tiers
 }
 
 @Entity('token_balances')
 export class TokenBalance {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+    @PrimaryGeneratedColumn('uuid')
+    id: string; // Added for TypeORM
 
-  @Column()
-  userId: string;
+    @Column()
+    customerId: string;
 
-  @Column({ nullable: true })
-  customerAccountId: string;
+    @ManyToOne(() => Customer)
+    @JoinColumn({ name: 'customerId' })
+    customer: Customer;
 
-  @Column('int', { default: 0 })
-  available: number;
+    @Column({ type: 'enum', enum: TokenType })
+    tokenType: TokenType;
 
-  @Column('int', { default: 0 })
-  allocated: number;
+    @Column()
+    balance: number;
 
-  @Column('int', { default: 0 })
-  used: number;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @UpdateDateColumn()
+    lastUpdatedAt: Date;
 }
 
-@Entity('token_consumption_logs')
-export class TokenConsumptionLog {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+@Entity('token_transactions')
+export class TokenTransaction {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-  @Column()
-  userId: string;
+    @Column()
+    customerId: string;
 
-  @Column({ nullable: true })
-  customerAccountId: string;
+    @ManyToOne(() => Customer)
+    @JoinColumn({ name: 'customerId' })
+    customer: Customer;
 
-  @Column('int')
-  tokensConsumed: number;
+    @Column({ nullable: true })
+    subscriptionId?: string;
 
-  @Column()
-  featureUsed: string;
+    @Column({ nullable: true })
+    packageId?: string;
 
-  @Column({ nullable: true })
-  resourceId: string;
+    @ManyToOne(() => TokenPackage)
+    @JoinColumn({ name: 'packageId' })
+    package: TokenPackage;
 
-  @Column({ nullable: true })
-  resourceType: string;
+    @Column({ type: 'enum', enum: TokenTransactionType })
+    type: TokenTransactionType;
 
-  @Column({ nullable: true })
-  sessionId: string;
+    @Column()
+    amount: number;
 
-  @CreateDateColumn()
-  timestamp: Date;
+    @Column()
+    balance: number;
+
+    @Column({ type: 'text', nullable: true })
+    description?: string;
+
+    @CreateDateColumn()
+    timestamp: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    expiryDate?: Date;
+
+    @Column('jsonb', { nullable: true })
+    metadata?: Record<string, any>;
+}
+
+@Entity('token_usages')
+export class TokenUsage {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @Column()
+    customerId: string;
+
+    @ManyToOne(() => Customer)
+    @JoinColumn({ name: 'customerId' })
+    customer: Customer;
+
+    @Column()
+    userId: string;
+
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'userId' })
+    user: User;
+
+    @Column({ type: 'enum', enum: AppType })
+    appType: AppType;
+
+    @Column()
+    tokensUsed: number;
+
+    @Column({ type: 'timestamp' })
+    date: Date;
+
+    @Column()
+    feature: string;
+
+    @Column({ type: 'text', nullable: true })
+    prompt?: string;
+
+    @Column()
+    responseTokens: number;
+
+    @Column()
+    requestTokens: number;
+
+    @Column('decimal', { precision: 10, scale: 4 })
+    cost: number;
 }

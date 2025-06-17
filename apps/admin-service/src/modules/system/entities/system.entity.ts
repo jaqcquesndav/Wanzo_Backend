@@ -1,55 +1,96 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToMany,
-  ManyToOne,
-  JoinColumn
-} from 'typeorm';
 
-@Entity('audit_logs')
-export class AuditLog {
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+
+// Enums from documentation
+export enum LogLevel {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical',
+}
+
+export enum AlertLevel {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical',
+}
+
+export enum AiModelType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  VOICE = 'voice',
+  EMBEDDING = 'embedding',
+  OTHER = 'other',
+}
+
+// Entities based on documentation
+
+@Entity('system_logs')
+export class SystemLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @CreateDateColumn()
+  timestamp: Date;
+
+  @Column({ type: 'enum', enum: LogLevel })
+  level: LogLevel;
+
   @Column()
-  action: string;
+  service: string;
+
+  @Column('text')
+  message: string;
+
+  @Column('jsonb', { nullable: true })
+  details?: Record<string, any>;
 
   @Column({ nullable: true })
-  entityType: string;
+  correlationId?: string;
 
   @Column({ nullable: true })
-  entityId: string;
-
-  @Column({ type: 'json', nullable: true })
-  previousState: Record<string, any>;
-
-  @Column({ type: 'json', nullable: true })
-  newState: Record<string, any>;
+  userId?: string;
 
   @Column({ nullable: true })
-  userId: string;
+  ipAddress?: string;
+}
 
-  @Column({ nullable: true })
-  userIp: string;
-
-  @Column({ nullable: true })
-  userAgent: string;
+@Entity('system_alerts')
+export class SystemAlert {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @CreateDateColumn()
   timestamp: Date;
+
+  @Column({ type: 'enum', enum: AlertLevel })
+  level: AlertLevel;
+
+  @Column()
+  title: string;
+
+  @Column('text')
+  message: string;
+
+  @Column()
+  service: string;
+
+  @Column({ default: false })
+  isResolved: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resolvedAt?: Date;
+
+  @Column({ nullable: true })
+  resolvedBy?: string;
+
+  @Column('text', { nullable: true })
+  resolutionNotes?: string;
 }
 
-export enum NotificationPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high'
-}
-
-@Entity('notification_templates')
-export class NotificationTemplate {
+@Entity('ai_model_configs')
+export class AiModelConfig {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -57,91 +98,50 @@ export class NotificationTemplate {
   name: string;
 
   @Column()
-  type: string; // 'email', 'sms', 'push', 'in-app'
+  provider: string;
 
-  @Column()
-  subject: string;
+  @Column({ type: 'enum', enum: AiModelType })
+  type: AiModelType;
 
-  @Column('text')
-  content: string;
-
-  @Column({ type: 'json', nullable: true })
-  parameters: Record<string, string>;
-
-  @Column({ type: 'boolean', default: true })
+  @Column({ default: true })
   isActive: boolean;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column({ type: 'int', nullable: true })
+  tokensPerRequest: number;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
+  @Column('decimal', { precision: 10, scale: 8, nullable: true })
+  costPerToken: number;
 
-@Entity('system_notifications')
-export class SystemNotification {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @Column({ type: 'int', nullable: true })
+  maxTokens: number;
 
-  @Column()
-  title: string;
-
-  @Column('text')
-  message: string;
-
-  @Column({
-    type: 'enum',
-    enum: NotificationPriority,
-    default: NotificationPriority.MEDIUM
-  })
-  priority: NotificationPriority;
-
-  @Column({ type: 'boolean', default: true })
-  isActive: boolean;
-
-  @Column({ type: 'timestamp', nullable: true })
-  expiresAt: Date;
+  @Column('float', { nullable: true })
+  temperature: number;
 
   @Column({ nullable: true })
-  actionLink: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
-
-@Entity('user_notifications')
-export class UserNotification {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  userId: string;
-
-  @Column()
-  title: string;
-
-  @Column('text')
-  message: string;
-
-  @Column({
-    type: 'enum',
-    enum: NotificationPriority,
-    default: NotificationPriority.MEDIUM
-  })
-  priority: NotificationPriority;
-
-  @Column({ type: 'boolean', default: false })
-  isRead: boolean;
+  apiEndpoint?: string;
 
   @Column({ nullable: true })
-  actionLink: string;
+  apiVersion?: string;
+}
 
-  @CreateDateColumn()
-  createdAt: Date;
+@Entity('system_maintenance')
+export class SystemMaintenance {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @Column({ default: false })
+    inMaintenance: boolean;
+
+    @Column({ type: 'timestamp', nullable: true })
+    estimatedEndTime: Date | null;
+
+    @Column('text', { nullable: true })
+    message: string | null;
+
+    @Column({ nullable: true })
+    enabledBy: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    enabledAt: Date;
 }

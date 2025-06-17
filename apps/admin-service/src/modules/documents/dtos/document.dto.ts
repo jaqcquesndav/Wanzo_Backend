@@ -4,214 +4,138 @@ import {
   IsEnum, 
   IsInt, 
   IsUrl, 
-  IsObject, 
-  IsBoolean,
-  IsISO8601,
-  IsUUID
+  IsUUID,
+  Min
 } from 'class-validator';
-import { DocumentStatus, DocumentType } from '../entities';
+import { ApiProperty } from '@nestjs/swagger';
+import { DocumentStatus, DocumentType } from '../entities/document.entity';
 
 export class DocumentDto {
+  @ApiProperty({
+    description: 'Unique identifier of the document',
+    example: 'doc_123'
+  })
   id: string;
+
+  @ApiProperty({
+    description: 'ID of the company that owns this document',
+    example: 'comp_abc'
+  })
   companyId: string;
-  name: string;
+
+  @ApiProperty({
+    description: 'Type of document',
+    example: 'rccm',
+    enum: DocumentType
+  })
   type: DocumentType;
-  size: number;
-  url: string;
+
+  @ApiProperty({
+    description: 'Name of the document file',
+    example: 'RCCM_Certificate.pdf'
+  })
+  fileName: string;
+
+  @ApiProperty({
+    description: 'URL to access the document file',
+    example: 'https://storage.wanzo.com/documents/doc_123/RCCM_Certificate.pdf'
+  })
+  fileUrl: string;
+
+  @ApiProperty({
+    description: 'MIME type of the document file',
+    example: 'application/pdf'
+  })
+  mimeType: string;
+
+  @ApiProperty({
+    description: 'Size of the document file in bytes',
+    example: 102400
+  })
+  fileSize: number;
+
+  @ApiProperty({
+    description: 'Status of the document',
+    example: 'verified',
+    enum: DocumentStatus
+  })
   status: DocumentStatus;
-  uploadedBy: string;
-  metadata?: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-  folderId?: string;
-  description?: string;
-  mimeType?: string;
-  thumbnail?: string;
-  isPublic: boolean;
-  expiresAt?: Date;
+
+  @ApiProperty({
+    description: 'Date when the document was uploaded',
+    example: '2024-03-15T10:00:00Z'
+  })
+  uploadedAt: Date;
 }
 
-export class CreateDocumentDto {
-  @IsString()
-  companyId: string;
-
-  @IsString()
-  name: string;
-
-  @IsEnum(DocumentType)
-  type: DocumentType;
-
-  @IsOptional()
-  @IsUUID()
-  folderId?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsObject()
-  metadata?: Record<string, any>;
-
-  @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
-
-  @IsOptional()
-  @IsISO8601()
-  expiresAt?: string;
-}
-
-export class UpdateDocumentDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsEnum(DocumentType)
-  type?: DocumentType;
-
-  @IsOptional()
+export class UpdateDocumentStatusDto {
+  @ApiProperty({
+    description: 'New status for the document',
+    example: 'verified',
+    enum: DocumentStatus
+  })
   @IsEnum(DocumentStatus)
-  status?: DocumentStatus;
-
-  @IsOptional()
-  @IsUUID()
-  folderId?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsObject()
-  metadata?: Record<string, any>;
-
-  @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
-
-  @IsOptional()
-  @IsISO8601()
-  expiresAt?: string;
+  status: DocumentStatus;
 }
 
-export class DocumentQueryParamsDto {
-  @IsOptional()
-  @IsEnum(DocumentType)
-  type?: DocumentType;
-
-  @IsOptional()
-  @IsEnum(DocumentStatus)
-  status?: DocumentStatus;
-
-  @IsOptional()
-  @IsUUID()
-  folderId?: string;
-
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @IsOptional()
-  @IsInt()
-  page?: number;
-
-  @IsOptional()
-  @IsInt()
-  limit?: number;
-
-  @IsOptional()
-  @IsString()
-  sortBy?: string;
-
-  @IsOptional()
-  @IsString()
-  sortOrder?: 'asc' | 'desc';
-}
-
-export class DocumentFolderDto {
-  id: string;
-  name: string;
-  companyId: string;
-  parentFolderId?: string;
-  description?: string;
-  isPublic: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export class CreateDocumentFolderDto {
-  @IsString()
-  name: string;
-
-  @IsString()
-  companyId: string;
-
-  @IsOptional()
-  @IsUUID()
-  parentFolderId?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
-}
-
-export class UpdateDocumentFolderDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsUUID()
-  parentFolderId?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isPublic?: boolean;
-}
-
-export class FolderQueryParamsDto {
-  @IsOptional()
-  @IsUUID()
-  parentFolderId?: string;
-
-  @IsOptional()
-  @IsString()
-  search?: string;
-}
-
-export class DocumentUploadResponseDto {
-  data: DocumentDto;
-  message: string;
+export class DocumentsResponseDto {
+  @ApiProperty({
+    description: 'Array of document objects',
+    type: [DocumentDto]
+  })
+  data: DocumentDto[];
 }
 
 export class DocumentResponseDto {
+  @ApiProperty({
+    description: 'Document object',
+    type: DocumentDto
+  })
   data: DocumentDto;
 }
 
-export class DocumentsListResponseDto {
-  data: DocumentDto[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
-}
+export class DocumentUploadResponseDto {
+  @ApiProperty({
+    description: 'ID of the newly created document',
+    example: 'doc_789'
+  })
+  id: string;
 
-export class DocumentFolderResponseDto {
-  data: DocumentFolderDto;
-}
+  @ApiProperty({
+    description: 'Name of the uploaded file',
+    example: 'Tax_Certificate.pdf'
+  })
+  fileName: string;
 
-export class DocumentFoldersListResponseDto {
-  data: DocumentFolderDto[];
+  @ApiProperty({
+    description: 'URL to access the uploaded file',
+    example: 'https://storage.wanzo.com/documents/doc_789/Tax_Certificate.pdf'
+  })
+  fileUrl: string;
+
+  @ApiProperty({
+    description: 'Type of the document',
+    example: 'taxNumber',
+    enum: DocumentType
+  })
+  type: DocumentType;
+
+  @ApiProperty({
+    description: 'Status of the document',
+    example: 'pending',
+    enum: DocumentStatus
+  })
+  status: DocumentStatus;
+
+  @ApiProperty({
+    description: 'Date when the document was uploaded',
+    example: '2024-06-15T09:45:00Z'
+  })
+  uploadedAt: string;
+
+  @ApiProperty({
+    description: 'Success message',
+    example: 'Document uploaded successfully'
+  })
+  message: string;
 }

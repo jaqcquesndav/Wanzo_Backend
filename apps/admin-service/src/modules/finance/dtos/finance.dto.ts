@@ -1,581 +1,960 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsNumber, 
-  IsEnum, 
-  IsArray, 
-  IsBoolean, 
-  IsISO8601,
-  IsUUID,
-  Min,
-  ValidateNested
-} from 'class-validator';
+
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsNumber, IsEnum, IsArray, IsBoolean, IsISO8601, IsUUID, Min, ValidateNested, IsNotEmpty, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
-import { 
-  PlanStatus, 
-  BillingCycle, 
-  CustomerType, 
-  SubscriptionStatus,
-  InvoiceStatus,
-  TransactionType,
-  TransactionStatus
-} from '../entities';
+import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus, TokenType, TokenTransactionType } from '../entities/finance.entity';
 
-// SubscriptionPlan DTOs
+// Common
+class PaginationDto {
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
+}
+
+// 1. Subscription Plan
+export class SubscriptionPlanMetadataDto {
+  @ApiProperty()
+  @IsNumber()
+  maxUsers: number;
+
+  @ApiProperty()
+  @IsString()
+  storageLimit: string;
+}
+
 export class SubscriptionPlanDto {
+  @ApiProperty()
   id: string;
-  name: string;
-  description?: string;
-  basePriceUSD: number;
-  billingCycles: BillingCycle[];
-  features: string[];
-  tokenAllocation: number;
-  maxUsers?: number;
-  targetCustomerTypes: CustomerType[];
-  status: PlanStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-export class CreateSubscriptionPlanDto {
-  @IsString()
+  @ApiProperty()
   name: string;
 
-  @IsString()
-  @IsOptional()
-  description?: string;
+  @ApiProperty()
+  description: string;
 
-  @IsNumber()
-  @Min(0)
-  basePriceUSD: number;
+  @ApiProperty()
+  price: number;
 
-  @IsArray()
-  @IsEnum(BillingCycle, { each: true })
-  billingCycles: BillingCycle[];
+  @ApiProperty()
+  currency: string;
 
-  @IsArray()
-  @IsString({ each: true })
+  @ApiProperty({ enum: BillingCycle })
+  billingCycle: BillingCycle;
+
+  @ApiProperty({ type: [String] })
   features: string[];
 
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  tokenAllocation?: number;
+  @ApiProperty()
+  isActive: boolean;
 
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  maxUsers?: number;
+  @ApiProperty()
+  trialPeriodDays: number;
 
-  @IsArray()
-  @IsEnum(CustomerType, { each: true })
-  targetCustomerTypes: CustomerType[];
-
-  @IsEnum(PlanStatus)
-  @IsOptional()
-  status?: PlanStatus;
+  @ApiProperty({ type: SubscriptionPlanMetadataDto })
+  metadata: SubscriptionPlanMetadataDto;
 }
 
-export class UpdateSubscriptionPlanDto {
-  @IsString()
-  @IsOptional()
-  name?: string;
+// 2. Subscription
+export class ListSubscriptionsQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
 
-  @IsString()
-  @IsOptional()
-  description?: string;
+    @ApiPropertyOptional({ enum: SubscriptionStatus })
+    @IsOptional()
+    @IsEnum(SubscriptionStatus)
+    status?: SubscriptionStatus;
 
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  basePriceUSD?: number;
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    planId?: string;
 
-  @IsArray()
-  @IsEnum(BillingCycle, { each: true })
-  @IsOptional()
-  billingCycles?: BillingCycle[];
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    customerId?: string;
 
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  features?: string[];
+    @ApiPropertyOptional({ enum: BillingCycle })
+    @IsOptional()
+    @IsEnum(BillingCycle)
+    billingCycle?: BillingCycle;
 
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  tokenAllocation?: number;
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDateBefore?: string;
 
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  maxUsers?: number;
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDateAfter?: string;
 
-  @IsArray()
-  @IsEnum(CustomerType, { each: true })
-  @IsOptional()
-  targetCustomerTypes?: CustomerType[];
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDateBefore?: string;
 
-  @IsEnum(PlanStatus)
-  @IsOptional()
-  status?: PlanStatus;
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDateAfter?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    page?: number = 1;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    limit?: number = 10;
 }
 
-export class SubscriptionPlanQueryParamsDto {
-  @IsEnum(CustomerType)
-  @IsOptional()
-  customerType?: CustomerType;
-
-  @IsEnum(PlanStatus)
-  @IsOptional()
-  status?: PlanStatus;
-}
-
-// CustomerSubscription DTOs
-export class CustomerSubscriptionDto {
+export class SubscriptionDto {
+  @ApiProperty()
   id: string;
+
+  @ApiProperty()
   customerId: string;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty()
   planId: string;
-  plan: SubscriptionPlanDto;
+
+  @ApiProperty()
+  planName: string;
+
+  @ApiProperty({ enum: SubscriptionStatus })
   status: SubscriptionStatus;
-  billingCycle: BillingCycle;
-  priceUSD: number;
-  startDate: Date;
-  endDate?: Date;
-  trialEndDate?: Date;
-  autoRenew: boolean;
-  canceledAt?: Date;
-  cancellationReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-export class CreateCustomerSubscriptionDto {
-  @IsString()
-  customerId: string;
-
-  @IsString()
-  planId: string;
-
-  @IsEnum(BillingCycle)
-  billingCycle: BillingCycle;
-
-  @IsISO8601()
+  @ApiProperty()
   startDate: string;
 
-  @IsISO8601()
-  @IsOptional()
-  endDate?: string;
+  @ApiProperty()
+  endDate: string;
 
-  @IsISO8601()
-  @IsOptional()
-  trialEndDate?: string;
+  @ApiProperty()
+  currentPeriodStart: string;
 
-  @IsBoolean()
-  @IsOptional()
-  autoRenew?: boolean;
+  @ApiProperty()
+  currentPeriodEnd: string;
+
+  @ApiProperty()
+  nextBillingDate: string;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ enum: BillingCycle })
+  billingCycle: BillingCycle;
+
+  @ApiProperty()
+  autoRenew: boolean;
+
+  @ApiProperty()
+  createdAt: string;
+
+  @ApiProperty()
+  updatedAt: string;
+
+  @ApiPropertyOptional()
+  paymentMethodId?: string;
+
+  @ApiPropertyOptional({ type: 'string', format: 'date-time', nullable: true })
+  trialEndsAt?: string | null;
+
+  @ApiPropertyOptional({ type: 'string', format: 'date-time', nullable: true })
+  canceledAt?: string | null;
+
+  @ApiPropertyOptional({ type: 'string', nullable: true })
+  cancellationReason?: string | null;
+
+  @ApiPropertyOptional()
+  metadata?: Record<string, any>;
 }
 
-export class UpdateCustomerSubscriptionDto {
+export class PaginatedSubscriptionsDto extends PaginationDto {
+  @ApiProperty({ type: [SubscriptionDto] })
+  @ValidateNested({ each: true })
+  @Type(() => SubscriptionDto)
+  items: SubscriptionDto[];
+}
+
+export class CreateSubscriptionDto {
+  @ApiProperty()
+  @IsUUID()
+  customerId: string;
+
+  @ApiProperty()
   @IsString()
+  planId: string;
+
+  @ApiPropertyOptional({ description: 'ISO date format' })
   @IsOptional()
+  @IsISO8601()
+  startDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  autoRenew?: boolean = true;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  paymentMethodId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  trialPeriodDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
+}
+
+export class UpdateSubscriptionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   planId?: string;
 
-  @IsEnum(SubscriptionStatus)
+  @ApiPropertyOptional()
   @IsOptional()
-  status?: SubscriptionStatus;
-
-  @IsEnum(BillingCycle)
-  @IsOptional()
-  billingCycle?: BillingCycle;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  priceUSD?: number;
-
-  @IsISO8601()
-  @IsOptional()
-  endDate?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  trialEndDate?: string;
-
   @IsBoolean()
-  @IsOptional()
   autoRenew?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  paymentMethodId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }
 
 export class CancelSubscriptionDto {
+  @ApiProperty()
   @IsString()
-  @IsOptional()
-  reason?: string;
+  @IsNotEmpty()
+  reason: string;
 }
 
-export class SubscriptionQueryParamsDto {
-  @IsString()
-  @IsOptional()
-  customerId?: string;
+export class CancelSubscriptionResponseDto extends SubscriptionDto {
+    @ApiProperty({ enum: SubscriptionStatus, default: SubscriptionStatus.CANCELED })
+    status: SubscriptionStatus.CANCELED;
 
-  @IsEnum(SubscriptionStatus)
-  @IsOptional()
-  status?: SubscriptionStatus;
+    @ApiProperty({ type: 'string', format: 'date-time' })
+    canceledAt: string;
 
-  @IsString()
-  @IsOptional()
-  planId?: string;
+    @ApiProperty()
+    cancellationReason: string;
 
-  @IsISO8601()
-  @IsOptional()
-  startDate?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  endDate?: string;
-
-  @IsNumber()
-  @IsOptional()
-  page?: number = 1;
-
-  @IsNumber()
-  @IsOptional()
-  limit?: number = 10;
+    @ApiProperty({ type: 'string', format: 'date-time' })
+    endDate: string;
 }
 
-// Invoice DTOs
+// 3. Invoice
+export class ListInvoicesQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @ApiPropertyOptional({ enum: InvoiceStatus })
+    @IsOptional()
+    @IsEnum(InvoiceStatus)
+    status?: InvoiceStatus;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    customerId?: string;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    page?: number = 1;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    limit?: number = 10;
+}
+
 export class InvoiceItemDto {
+  @ApiProperty()
   id: string;
-  invoiceId: string;
+
+  @ApiProperty()
   description: string;
-  amount: number;
+
+  @ApiProperty()
   quantity: number;
-  periodStart?: Date;
-  periodEnd?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-export class CreateInvoiceItemDto {
-  @IsString()
-  description: string;
+  @ApiProperty()
+  unitPrice: number;
 
-  @IsNumber()
-  @Min(0)
-  amount: number;
+  @ApiProperty()
+  subtotal: number;
 
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  quantity?: number;
+  @ApiPropertyOptional()
+  taxRate?: number;
 
-  @IsISO8601()
-  @IsOptional()
-  periodStart?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  periodEnd?: string;
+  @ApiPropertyOptional()
+  taxAmount?: number;
 }
 
 export class InvoiceDto {
+  @ApiProperty()
   id: string;
-  subscriptionId: string;
-  customerId: string;
+
+  @ApiProperty()
   invoiceNumber: string;
-  amountDue: number;
-  amountPaid: number;
-  dueDate: Date;
+
+  @ApiProperty()
+  customerId: string;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ enum: InvoiceStatus })
   status: InvoiceStatus;
-  pdfUrl?: string;
-  paymentId?: string;
-  paymentMethod?: string;
-  paymentDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+
+  @ApiProperty()
+  issueDate: string;
+
+  @ApiProperty()
+  dueDate: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  paidDate?: string | null;
+
+  @ApiProperty({ type: [InvoiceItemDto] })
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceItemDto)
   items: InvoiceItemDto[];
+
+  @ApiProperty()
+  subtotal: number;
+
+  @ApiProperty()
+  taxAmount: number;
+
+  @ApiProperty()
+  discountAmount: number;
+
+  @ApiProperty()
+  totalAmount: number;
+
+  @ApiPropertyOptional({ nullable: true })
+  notes?: string | null;
+}
+
+export class PaginatedInvoicesDto extends PaginationDto {
+  @ApiProperty({ type: [InvoiceDto] })
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceDto)
+  items: InvoiceDto[];
+}
+
+export class CreateInvoiceItemDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  subtotal: number;
 }
 
 export class CreateInvoiceDto {
-  @IsString()
-  subscriptionId: string;
-
-  @IsString()
+  @ApiProperty()
+  @IsUUID()
   customerId: string;
 
-  @IsString()
-  @IsOptional()
-  invoiceNumber?: string;
-
-  @IsNumber()
-  @Min(0)
-  amountDue: number;
-
-  @IsISO8601()
-  dueDate: string;
-
-  @IsEnum(InvoiceStatus)
-  @IsOptional()
-  status?: InvoiceStatus;
-
+  @ApiProperty({ type: [CreateInvoiceItemDto] })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceItemDto)
   items: CreateInvoiceItemDto[];
+
+  @ApiProperty({ description: 'ISO date format' })
+  @IsISO8601()
+  dueDate: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  currency: string;
 }
 
 export class UpdateInvoiceDto {
-  @IsNumber()
-  @Min(0)
+  @ApiPropertyOptional({ description: 'ISO date format' })
   @IsOptional()
-  amountDue?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  amountPaid?: number;
-
   @IsISO8601()
-  @IsOptional()
   dueDate?: string;
 
-  @IsEnum(InvoiceStatus)
+  @ApiPropertyOptional()
   @IsOptional()
-  status?: InvoiceStatus;
-
   @IsString()
-  @IsOptional()
-  pdfUrl?: string;
-
-  @IsString()
-  @IsOptional()
-  paymentId?: string;
-
-  @IsString()
-  @IsOptional()
-  paymentMethod?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  paymentDate?: string;
+  notes?: string;
 }
 
-export class InvoiceQueryParamsDto {
-  @IsString()
-  @IsOptional()
-  customerId?: string;
-
-  @IsEnum(InvoiceStatus)
-  @IsOptional()
-  status?: InvoiceStatus;
-
-  @IsISO8601()
-  @IsOptional()
-  startDate?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  endDate?: string;
-
-  @IsNumber()
-  @IsOptional()
-  page?: number = 1;
-
-  @IsNumber()
-  @IsOptional()
-  limit?: number = 10;
+export class SendInvoiceReminderResponseDto {
+  @ApiProperty()
+  message: string;
 }
 
-// Transaction DTOs
-export class TransactionDto {
+// 4. Payment
+export class ListPaymentsQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @ApiPropertyOptional({ enum: PaymentStatus })
+    @IsOptional()
+    @IsEnum(PaymentStatus)
+    status?: PaymentStatus;
+
+    @ApiPropertyOptional({ enum: PaymentMethod })
+    @IsOptional()
+    @IsEnum(PaymentMethod)
+    paymentMethod?: PaymentMethod;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    customerId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    page?: number = 1;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    limit?: number = 10;
+}
+
+export class PaymentDto {
+  @ApiProperty()
   id: string;
+
+  @ApiProperty()
+  invoiceId: string;
+
+  @ApiProperty()
   customerId: string;
-  invoiceId?: string;
-  type: TransactionType;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty()
   amount: number;
-  currency?: string;
-  status: TransactionStatus;
-  paymentMethod?: string;
-  paymentIntentId?: string;
-  paymentMethodDetails?: string;
-  failureCode?: string;
-  failureMessage?: string;
-  refundReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ enum: PaymentMethod })
+  method: PaymentMethod;
+
+  @ApiProperty()
+  proofType: string;
+
+  @ApiProperty()
+  proofUrl: string;
+
+  @ApiProperty({ enum: PaymentStatus })
+  status: PaymentStatus;
+
+  @ApiProperty()
+  transactionReference: string;
+
+  @ApiProperty()
+  paidAt: string;
+
+  @ApiProperty()
+  createdAt: string;
+
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty()
+  verifiedBy: string;
+
+  @ApiProperty()
+  verifiedAt: string;
+
+  @ApiProperty()
+  metadata: { approvalNotes: string };
+}
+
+export class PaginatedPaymentsDto extends PaginationDto {
+  @ApiProperty({ type: [PaymentDto] })
+  @ValidateNested({ each: true })
+  @Type(() => PaymentDto)
+  items: PaymentDto[];
+}
+
+export class RecordManualPaymentDto {
+  @ApiProperty()
+  @IsUUID()
+  customerId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  currency: string;
+
+  @ApiProperty({ enum: PaymentMethod })
+  @IsEnum(PaymentMethod)
+  method: PaymentMethod;
+
+  @ApiProperty()
+  @IsString()
+  transactionReference: string;
+
+  @ApiProperty({ description: 'ISO date format' })
+  @IsISO8601()
+  paidAt: string;
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsString()
+  proofType: string;
+
+  @ApiProperty()
+  @IsString()
+  proofUrl: string;
+}
+
+export class VerifyPaymentDto {
+  @ApiProperty()
+  @IsUUID()
+  paymentId: string;
+
+  @ApiProperty({ enum: PaymentStatus })
+  @IsEnum(PaymentStatus)
+  status: PaymentStatus.VERIFIED | PaymentStatus.REJECTED;
+
+  @ApiProperty()
+  @IsString()
+  adminNotes: string;
+}
+
+export class VerifyPaymentResponseDto extends PaymentDto {
+    @ApiProperty({ enum: PaymentStatus })
+    status: PaymentStatus;
+
+    @ApiProperty()
+    verifiedBy: string;
+
+    @ApiProperty({ type: 'string', format: 'date-time' })
+    verifiedAt: string;
+
+    @ApiProperty()
+    metadata: { approvalNotes: string };
+}
+
+// 5. Transaction
+export class ListTransactionsQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @ApiPropertyOptional({ enum: TransactionType })
+    @IsOptional()
+    @IsEnum(TransactionType)
+    type?: TransactionType;
+
+    @ApiPropertyOptional({ enum: ApiTransactionStatus })
+    @IsOptional()
+    @IsEnum(ApiTransactionStatus)
+    status?: ApiTransactionStatus;
+
+    @ApiPropertyOptional({ enum: PaymentMethod })
+    @IsOptional()
+    @IsEnum(PaymentMethod)
+    paymentMethod?: PaymentMethod;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    customerId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    page?: number = 1;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    limit?: number = 10;
+}
+
+export class TransactionDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  reference: string;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ enum: TransactionType })
+  type: TransactionType;
+
+  @ApiProperty({ enum: ApiTransactionStatus })
+  status: ApiTransactionStatus;
+
+  @ApiProperty()
+  createdAt: string;
+
+  @ApiProperty()
+  updatedAt: string;
+
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty()
+  customerId: string;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty({ enum: PaymentMethod })
+  paymentMethod: PaymentMethod;
+
+  @ApiPropertyOptional()
+  metadata?: { invoiceId: string; paymentId: string };
+}
+
+export class PaginatedTransactionsDto extends PaginationDto {
+  @ApiProperty({ type: [TransactionDto] })
+  @ValidateNested({ each: true })
+  @Type(() => TransactionDto)
+  items: TransactionDto[];
 }
 
 export class CreateTransactionDto {
-  @IsString()
+  @ApiProperty()
+  @IsUUID()
   customerId: string;
 
-  @IsString()
-  @IsOptional()
-  invoiceId?: string;
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
 
+  @ApiProperty()
+  @IsString()
+  currency: string;
+
+  @ApiProperty({ enum: TransactionType })
   @IsEnum(TransactionType)
   type: TransactionType;
 
-  @IsNumber()
-  @Min(0)
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty({ enum: PaymentMethod })
+  @IsEnum(PaymentMethod)
+  paymentMethod: PaymentMethod;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  metadata?: { approvedBy: string; reason: string };
+}
+
+// 6. Token
+export class TokenPackageDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty()
+  price: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty()
+  tokensIncluded: number;
+
+  @ApiProperty({ enum: TokenType })
+  tokenType: TokenType;
+
+  @ApiProperty()
+  isActive: boolean;
+}
+
+export class ListTokenTransactionsQueryDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    customerId?: string;
+
+    @ApiPropertyOptional({ enum: TokenTransactionType })
+    @IsOptional()
+    @IsEnum(TokenTransactionType)
+    type?: TokenTransactionType;
+
+    @ApiPropertyOptional({ enum: TokenType })
+    @IsOptional()
+    @IsEnum(TokenType)
+    tokenType?: TokenType;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
+
+    @ApiPropertyOptional({ description: 'ISO date format' })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    page?: number = 1;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    limit?: number = 10;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    sortBy?: string;
+
+    @ApiPropertyOptional({ enum: ['ASC', 'DESC'] })
+    @IsOptional()
+    @IsEnum(['ASC', 'DESC'])
+    sortDirection?: 'ASC' | 'DESC';
+}
+
+export class TokenTransactionDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  customerId: string;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty({ enum: TokenTransactionType })
+  type: TokenTransactionType;
+
+  @ApiProperty({ enum: TokenType })
+  tokenType: TokenType;
+
+  @ApiProperty()
   amount: number;
 
-  @IsString()
-  @IsOptional()
-  currency?: string;
+  @ApiProperty()
+  balanceAfterTransaction: number;
 
-  @IsEnum(TransactionStatus)
-  status: TransactionStatus;
+  @ApiProperty()
+  transactionDate: string;
 
-  @IsString()
-  @IsOptional()
-  paymentMethod?: string;
+  @ApiProperty()
+  description: string;
 
-  @IsString()
-  @IsOptional()
-  paymentIntentId?: string;
+  @ApiPropertyOptional()
+  relatedPurchaseId?: string;
 
-  @IsString()
-  @IsOptional()
-  paymentMethodDetails?: string;
-
-  @IsString()
-  @IsOptional()
-  failureCode?: string;
-
-  @IsString()
-  @IsOptional()
-  failureMessage?: string;
-
-  @IsString()
-  @IsOptional()
-  refundReason?: string;
+  @ApiPropertyOptional()
+  relatedInvoiceId?: string;
 }
 
-export class UpdateTransactionDto {
-  @IsEnum(TransactionStatus)
-  @IsOptional()
-  status?: TransactionStatus;
-
-  @IsString()
-  @IsOptional()
-  paymentIntentId?: string;
-
-  @IsString()
-  @IsOptional()
-  paymentMethodDetails?: string;
-
-  @IsString()
-  @IsOptional()
-  failureCode?: string;
-
-  @IsString()
-  @IsOptional()
-  failureMessage?: string;
-
-  @IsString()
-  @IsOptional()
-  refundReason?: string;
+export class PaginatedTokenTransactionsDto extends PaginationDto {
+  @ApiProperty({ type: [TokenTransactionDto] })
+  @ValidateNested({ each: true })
+  @Type(() => TokenTransactionDto)
+  items: TokenTransactionDto[];
 }
 
-export class TransactionQueryParamsDto {
-  @IsString()
+export class GetTokenBalanceQueryDto {
+  @ApiPropertyOptional({ enum: TokenType })
   @IsOptional()
+  @IsEnum(TokenType)
+  tokenType?: TokenType;
+}
+
+export class TokenBalanceDto {
+  @ApiProperty()
+  customerId: string;
+
+  @ApiProperty({ enum: TokenType })
+  tokenType: TokenType;
+
+  @ApiProperty()
+  balance: number;
+
+  @ApiProperty()
+  lastUpdatedAt: string;
+}
+
+// 7. Financial Summary
+export class GetFinancialSummaryQueryDto {
+  @ApiPropertyOptional({ enum: ['daily', 'weekly', 'monthly', 'yearly'] })
+  @IsOptional()
+  @IsEnum(['daily', 'weekly', 'monthly', 'yearly'])
+  period?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
   customerId?: string;
-
-  @IsEnum(TransactionType)
-  @IsOptional()
-  type?: TransactionType;
-
-  @IsEnum(TransactionStatus)
-  @IsOptional()
-  status?: TransactionStatus;
-
-  @IsISO8601()
-  @IsOptional()
-  startDate?: string;
-
-  @IsISO8601()
-  @IsOptional()
-  endDate?: string;
-
-  @IsNumber()
-  @IsOptional()
-  page?: number = 1;
-
-  @IsNumber()
-  @IsOptional()
-  limit?: number = 10;
 }
 
-// Response DTOs
-export class SubscriptionPlansResponseDto {
-  data: SubscriptionPlanDto[];
+export class TopCustomerDto {
+  @ApiProperty()
+  customerId: string;
+
+  @ApiProperty()
+  customerName: string;
+
+  @ApiProperty()
+  totalSpent: number;
 }
 
-export class SubscriptionPlanResponseDto {
-  data: SubscriptionPlanDto;
-}
-
-export class CustomerSubscriptionsResponseDto {
-  data: CustomerSubscriptionDto[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
-}
-
-export class CustomerSubscriptionResponseDto {
-  data: CustomerSubscriptionDto;
-}
-
-export class InvoicesResponseDto {
-  data: InvoiceDto[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
-}
-
-export class InvoiceResponseDto {
-  data: InvoiceDto;
-}
-
-export class TransactionsResponseDto {
-  data: TransactionDto[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
-}
-
-export class TransactionResponseDto {
-  data: TransactionDto;
-}
-
-// Statistics and reporting DTOs
-export class RevenueStatisticsDto {
+export class FinancialSummaryDto {
+  @ApiProperty()
   totalRevenue: number;
-  revenueByMonth: { month: string; amount: number }[]; // Changed type
-  transactionCount: number;
-  averageTransactionValue: number;
-}
 
-export class SubscriptionStatisticsDto {
-  activeSubscriptions: number;
-  subscriptionsByPlan: { [key: string]: number };
-  mrr: number; // Added
-  averageSubscriptionValue: number; // Added
-}
+  @ApiProperty()
+  pendingInvoices: number;
 
-export class FinanceDashboardDto {
-  revenueStatistics: RevenueStatisticsDto;
-  subscriptionStatistics: SubscriptionStatisticsDto;
-  recentTransactions: TransactionDto[];
-  pendingInvoices: InvoiceDto[];
+  @ApiProperty()
+  pendingAmount: number;
+
+  @ApiProperty()
+  overdueAmount: number;
+
+  @ApiProperty()
+  paidInvoices: number;
+
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
+  revenueByMonth: Record<string, number>;
+
+  @ApiProperty({ type: [TopCustomerDto] })
+  topCustomers: TopCustomerDto[];
 }

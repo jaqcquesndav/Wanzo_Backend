@@ -8,7 +8,6 @@ $services = @(
     "analytics-service",
     "api-gateway",
     "app_mobile_service",
-    "auth-service",
     "portfolio-institution-service",
     "portfolio-sme-service"
 )

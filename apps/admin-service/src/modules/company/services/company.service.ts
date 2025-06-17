@@ -1,18 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Company } from '../entities';
-import { CompanyProfileDto, UpdateCompanyProfileDto } from '../dtos';
+import { Company, LocationType } from '../entities/company.entity';
+import { Location } from '../entities/location.entity'; // Import Location entity
+import { 
+  CompanyProfileDto, 
+  UpdateCompanyProfileDto,
+  AddLocationDto,
+  UpdateLocationDto
+} from '../dtos/company.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CompanyService {
   constructor(
     @InjectRepository(Company)
     private readonly companyRepository: Repository<Company>,
+    @InjectRepository(Location)
+    private readonly locationRepository: Repository<Location>, // Inject Location repository
   ) {}
 
-  // Singleton company ID for Kiota
-  private readonly KIOTA_COMPANY_ID = 'kiota_singleton_id';
+  // Singleton company ID for Wanzo
+  private readonly WANZO_COMPANY_ID = 'wanzo_singleton_id';
 
   /**
    * Retrieve the company profile
@@ -29,10 +38,7 @@ export class CompanyService {
     const company = await this.findCompany();
     
     // Update company fields
-    Object.assign(company, {
-      ...updateDto,
-      // Handle any special field transformations here if needed
-    });
+    Object.assign(company, updateDto);
 
     const updatedCompany = await this.companyRepository.save(company);
     return this.mapToDto(updatedCompany);
@@ -45,28 +51,198 @@ export class CompanyService {
     // In a real implementation, this would handle file upload to a storage service
     // For now, we'll simulate a successful upload with a dummy URL
     const company = await this.findCompany();
-    const logoUrl = `https://cdn.kiota.com/logos/${filename}`;
     
-    company.logoUrl = logoUrl;
+    // In production, this would be handled by a file storage service
+    const logoUrl = `https://cdn.wanzo.com/logos/${filename.replace(/\s+/g, '_')}`;
+    
+    company.logo = logoUrl;
     await this.companyRepository.save(company);
     
     return { logoUrl };
   }
 
   /**
-   * Helper method to find the singleton company entity
+   * Upload a company document
+   */
+  async uploadDocument(fileBuffer: Buffer, filename: string, type: string): Promise<{
+    documentId: string;
+    type: string;
+    fileUrl: string;
+    uploadedAt: string;
+  }> {
+    const company = await this.findCompany();
+    
+    // Validate document type
+    if (!['rccmFile', 'nationalIdFile', 'taxNumberFile', 'cnssFile'].includes(type)) {
+      throw new BadRequestException(`Invalid document type: ${type}`);
+    }
+    
+    // In production, this would be handled by a file storage service
+    const fileUrl = `https://cdn.wanzo.com/docs/${type}_${filename.replace(/\s+/g, '_')}`;
+    
+    // Update company documents
+    company.documents = {
+      ...company.documents,
+      [type]: fileUrl
+    };
+    
+    await this.companyRepository.save(company);
+    
+    return {
+      documentId: uuidv4(), // Generate a unique ID for the document
+      type,
+      fileUrl,
+      uploadedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * List all company documents
+   */
+  async listDocuments(): Promise<{
+    id: string;
+    type: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    uploadedAt: string;
+  }[]> {
+    const company = await this.findCompany();
+    const result = [];
+    
+    // Convert the documents object to an array for the response
+    for (const [type, fileUrl] of Object.entries(company.documents)) {
+      if (fileUrl) {
+        const fileName = fileUrl.split('/').pop();
+        result.push({
+          id: `doc_${uuidv4().substring(0, 5)}`, // Generate a shorter unique ID
+          type,
+          fileUrl,
+          fileName,
+          fileSize: 1000000, // Mock file size
+          mimeType: 'application/pdf', // Mock mime type
+          uploadedAt: company.updatedAt.toISOString()
+        });
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Add a company location
+   */
+  async addLocation(locationData: AddLocationDto): Promise<Location> {
+    const company = await this.findCompany();
+    
+    const newLocation = this.locationRepository.create({
+      ...locationData,
+      company: company,
+    });
+    
+    return this.locationRepository.save(newLocation);
+  }
+
+  /**
+   * Update a company location
+   */
+  async updateLocation(locationId: string, updateDto: UpdateLocationDto): Promise<Location> {
+    const location = await this.locationRepository.findOne({ where: { id: locationId } });
+
+    if (!location) {
+      throw new NotFoundException(`Location with ID ${locationId} not found`);
+    }
+    
+    Object.assign(location, updateDto);
+    
+    return this.locationRepository.save(location);
+  }
+
+  /**
+   * Delete a company location
+   */
+  async deleteLocation(locationId: string): Promise<void> {
+    const result = await this.locationRepository.delete(locationId);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Location with ID ${locationId} not found`);
+    }
+  }
+
+  /**
+   * Get company statistics
+   */
+  async getCompanyStatistics(): Promise<{
+    activeUsers: number;
+    activeCompanies: number;
+    activeSubscriptions: number;
+    totalRevenue: { usd: number; cdf: number };
+  }> {
+    // In a real implementation, this would query the database for actual statistics
+    // For this demo, we'll return mock data
+    return {
+      activeUsers: 125,
+      activeCompanies: 45,
+      activeSubscriptions: 38,
+      totalRevenue: {
+        usd: 15000,
+        cdf: 37500000
+      }
+    };
+  }
+
+  /**
+   * Helper method to find the singleton company entity or create it if it doesn't exist
    */
   private async findCompany(): Promise<Company> {
     // Try to find the singleton company
-    let company = await this.companyRepository.findOneBy({ id: this.KIOTA_COMPANY_ID });
+    let company = await this.companyRepository.findOne({
+      where: { id: this.WANZO_COMPANY_ID }
+    });
     
     // If not found, create it (this should only happen on first run)
     if (!company) {
       company = this.companyRepository.create({
-        id: this.KIOTA_COMPANY_ID,
-        name: 'Kiota Inc.',
-        // Default values for other fields
+        id: this.WANZO_COMPANY_ID,
+        name: 'Wanzo Inc.',
+        rccmNumber: 'CD/KIN/RCCM/123456',
+        nationalId: 'NAT12345',
+        taxNumber: 'TAX12345',
+        cnssNumber: 'CNSS12345',
+        address: {
+          street: '123 Innovation Drive',
+          city: 'Kinshasa',
+          province: 'Kinshasa',
+          commune: 'Gombe',
+          quartier: 'Centre-ville',
+          coordinates: {
+            lat: -4.325,
+            lng: 15.322
+          }
+        },
+        locations: [
+          {
+            address: '456 Business Avenue, Kinshasa',
+            coordinates: {
+              lat: -4.327,
+              lng: 15.324
+            },
+            type: LocationType.HEADQUARTERS
+          }
+        ],
+        documents: {
+          rccmFile: null,
+          nationalIdFile: null,
+          taxNumberFile: null,
+          cnssFile: null
+        },
+        contactEmail: 'info@wanzo.com',
+        contactPhone: ['+243123456789'],
+        representativeName: 'John Doe',
+        representativeRole: 'CEO'
       });
+      
       await this.companyRepository.save(company);
     }
     
@@ -80,18 +256,23 @@ export class CompanyService {
     return {
       id: company.id,
       name: company.name,
-      registrationNumber: company.registrationNumber,
-      taxId: company.taxId,
-      address: company.address,
-      contactEmail: company.contactEmail,
-      phoneNumber: company.phoneNumber,
-      website: company.website,
-      logoUrl: company.logoUrl,
-      industry: company.industry,
-      foundedDate: company.foundedDate?.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      rccmNumber: company.rccmNumber,
+      nationalId: company.nationalId,
+      taxNumber: company.taxNumber,
+      cnssNumber: company.cnssNumber,
+      logo: company.logo,
+      legalForm: company.legalForm,
+      businessSector: company.businessSector,
       description: company.description,
-      updatedAt: company.updatedAt,
-      createdAt: company.createdAt,
+      address: company.address,
+      locations: company.locations,
+      documents: company.documents,
+      contactEmail: company.contactEmail,
+      contactPhone: company.contactPhone,
+      representativeName: company.representativeName,
+      representativeRole: company.representativeRole,
+      updatedAt: company.updatedAt.toISOString(),
+      createdAt: company.createdAt.toISOString(),
     };
   }
 }

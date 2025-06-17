@@ -1,638 +1,616 @@
-# System & Configuration API Documentation
+# API Documentation: System Management
 
-This document outlines the API endpoints for System Settings, Configuration, Notifications, Audit Logs, and advanced Roles & Permissions management.
+This document outlines the API endpoints for system management, monitoring, and administration within the Wanzo Admin platform.
 
-## I. General System Settings
+## Base URL
 
-### 1. Get All System Settings
+All API endpoints are relative to the base URL: `/api`
 
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/settings`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
+## Authentication
+
+All endpoints require Bearer Token authentication. System administration endpoints require high-level admin permissions.
+
+## System Data Models
+
+### System Health
+
+```typescript
+interface SystemHealth {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  uptime: number; // in seconds
+  services: {
+    api: {
+      status: 'operational' | 'degraded' | 'down';
+      responseTime: number; // in ms
+      errorRate: number; // percentage
+    };
+    database: {
+      status: 'operational' | 'degraded' | 'down';
+      connections: number;
+      queryTime: number; // in ms
+    };
+    cache: {
+      status: 'operational' | 'degraded' | 'down';
+      hitRate: number; // percentage
+      memoryUsage: number; // in MB
+    };
+    storage: {
+      status: 'operational' | 'degraded' | 'down';
+      capacity: number; // in GB
+      used: number; // in GB
+      available: number; // in GB
+    };
+    ai: {
+      status: 'operational' | 'degraded' | 'down';
+      responseTime: number; // in ms
+      errorRate: number; // percentage
+    };
+  };
+  memory: {
+    total: number; // in MB
+    used: number; // in MB
+    free: number; // in MB
+  };
+  cpu: {
+    usage: number; // percentage
+    cores: number;
+  };
+}
+```
+
+### System Log
+
+```typescript
+interface SystemLog {
+  id: string;
+  timestamp: string; // ISO date string
+  level: 'info' | 'warning' | 'error' | 'critical';
+  service: string;
+  message: string;
+  details?: Record<string, any>;
+  correlationId?: string;
+  userId?: string;
+  ipAddress?: string;
+}
+```
+
+### System Alert
+
+```typescript
+interface SystemAlert {
+  id: string;
+  timestamp: string; // ISO date string
+  level: 'info' | 'warning' | 'error' | 'critical';
+  title: string;
+  message: string;
+  service: string;
+  isResolved: boolean;
+  resolvedAt?: string; // ISO date string
+  resolvedBy?: string;
+  resolutionNotes?: string;
+}
+```
+
+### API Performance Metric
+
+```typescript
+interface ApiPerformanceMetric {
+  endpoint: string;
+  method: string;
+  averageResponseTime: number; // in ms
+  p95ResponseTime: number; // in ms
+  requestCount: number;
+  errorCount: number;
+  errorRate: number; // percentage
+  timestamp: string; // ISO date string
+}
+```
+
+### Database Metric
+
+```typescript
+interface DatabaseMetric {
+  name: string;
+  type: 'postgres' | 'mongodb' | 'redis' | 'other';
+  status: 'operational' | 'degraded' | 'down';
+  size: number; // in MB
+  connections: number;
+  queryCount: number;
+  averageQueryTime: number; // in ms
+  slowQueries: number;
+}
+```
+
+### AI Configuration
+
+```typescript
+interface AiModelConfig {
+  id: string;
+  name: string;
+  provider: string;
+  type: 'text' | 'image' | 'voice' | 'embedding' | 'other';
+  isActive: boolean;
+  tokensPerRequest: number;
+  costPerToken: number;
+  maxTokens: number;
+  temperature: number;
+  apiEndpoint?: string;
+  apiVersion?: string;
+}
+```
+
+## System Administration Endpoints
+
+### 1. Get System Health
+
+*   **Endpoint:** `GET /admin/system/health`
+*   **Description:** Retrieves the current health status of the system and its components.
+*   **Permissions Required:** `admin:system:read`
+*   **Successful Response (200 OK):**
     ```json
     {
-      "general": {
-        "companyName": "string",
-        "language": "string", // e.g., "en", "fr"
-        "timezone": "string", // e.g., "UTC", "America/New_York"
-        "dateFormat": "string", // e.g., "YYYY-MM-DD", "DD/MM/YYYY"
-        "logoUrl": "string" (optional),
-        "primaryColor": "string" (optional), // Hex color code
-        "secondaryColor": "string" (optional) // Hex color code
-      },
-      "security": {
-        "passwordPolicy": {
-          "minLength": "number",
-          "requireUppercase": "boolean",
-          "requireLowercase": "boolean",
-          "requireNumbers": "boolean",
-          "requireSpecialChars": "boolean",
-          "expiryDays": "number" // 0 for no expiry
+      "status": "healthy",
+      "uptime": 1209600,
+      "services": {
+        "api": {
+          "status": "operational",
+          "responseTime": 45,
+          "errorRate": 0.02
         },
-        "twoFactorEnabledGlobally": "boolean", // If 2FA is enforced/available system-wide
-        "defaultTwoFactorMethods": ["email", "sms", "authenticator"],
-        "sessionTimeout": "number" // in minutes
-      },
-      "notifications": {
-        "emailEnabled": "boolean",
-        "smsEnabled": "boolean",
-        "pushEnabled": "boolean",
-        "inAppEnabled": "boolean",
-        "defaultNotificationPreferences": {
-          "newCustomer": "boolean",
-          "newInvoice": "boolean",
-          "paymentReceived": "boolean",
-          "lowTokens": "boolean",
-          "securityAlerts": "boolean"
+        "database": {
+          "status": "operational",
+          "connections": 12,
+          "queryTime": 5
+        },
+        "cache": {
+          "status": "operational",
+          "hitRate": 89.5,
+          "memoryUsage": 512
+        },
+        "storage": {
+          "status": "operational",
+          "capacity": 1000,
+          "used": 350,
+          "available": 650
+        },
+        "ai": {
+          "status": "operational",
+          "responseTime": 250,
+          "errorRate": 0.5
         }
       },
-      "billing": {
-        "defaultCurrency": "string", // e.g., "USD", "EUR"
-        "taxRate": "number" (optional),
-        "defaultPaymentMethods": ["string"], // e.g., ["credit_card", "bank_transfer"]
-        "invoiceDueDays": "number",
-        "invoiceNotes": "string" (optional),
-        "autoGenerateInvoices": "boolean"
+      "memory": {
+        "total": 16384,
+        "used": 8192,
+        "free": 8192
       },
-      "appearance": {
-        "defaultTheme": "light" | "dark" | "system",
-        "allowUserThemeOverride": "boolean",
-        "density": "compact" | "comfortable" | "spacious",
-        "fontFamily": "string",
-        "fontSize": "string", // e.g., "14px"
-        "customCss": "string" (optional)
+      "cpu": {
+        "usage": 35,
+        "cores": 8
       }
     }
     ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Error Responses (General):**
+### 2. Get System Logs
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view system settings.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2. Update System Settings Section
-
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/settings/{section}`
-    *   `section` can be: `general`, `security`, `notifications`, `billing`, `appearance`.
-*   **Request Structure (JSON):** The structure of the specific section being updated (see response of "Get All System Settings").
-    *Example for updating `general` section:*
-    ```json
-    {
-      "companyName": "New Company Name",
-      "language": "fr"
-      // ... other general settings fields to update
-    }
-    ```
-*   **Response Structure (JSON):** The updated section object.
-    *Example for `general` section update:*
-    ```json
-    {
-      "companyName": "New Company Name",
-      "language": "fr",
-      "timezone": "UTC",
-      "dateFormat": "YYYY-MM-DD",
-      "logoUrl": null,
-      "primaryColor": null,
-      "secondaryColor": null
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body (e.g., incorrect data types, missing required fields within the section).
-    ```json
-    {
-      "error": "Validation failed for section 'general'.",
-      "details": {
-        "companyName": "must be a string"
-      }
-    }
-    ```
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to update this settings section.
-*   **404 Not Found:** If the specified `section` does not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-## II. Internationalization (i18n)
-
-### 1. Get Available Languages
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/languages`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "languages": [
-        {
-          "code": "string", // e.g., "en", "fr"
-          "name": "string"  // e.g., "English", "Français"
-        }
-      ]
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2. Get Translations for a Language
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/translations/{langCode}`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):** A key-value pair object representing the translation strings.
-    ```json
-    {
-      "settings.title": "Paramètres",
-      "users.newUser": "Nouvel Utilisateur",
-      // ... other translation keys
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **404 Not Found:** If translations for the specified `langCode` do not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-## III. Roles and Permissions (Advanced)
-
-This section assumes a more granular role and permission system beyond basic user roles, potentially for admin users managing other admins or specific system capabilities.
-
-### 1. List All System Roles
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/roles`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "roles": [
-        {
-          "id": "string",
-          "name": "string", // e.g., "Super Administrator", "Finance Manager"
-          "description": "string" (optional),
-          "permissions": ["string"] // List of permission keys
-        }
-      ]
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to list system roles.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2. Create System Role
-
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/system/roles`
-*   **Request Structure (JSON):**
-    ```json
-    {
-      "name": "string",
-      "description": "string" (optional),
-      "permissions": ["string"] // List of permission keys
-    }
-    ```
-*   **Response Structure (JSON):** The created role object.
-    ```json
-    {
-      "id": "string",
-      "name": "string",
-      "description": "string" (optional),
-      "permissions": ["string"]
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body (e.g., missing `name`, invalid permission keys).
-    ```json
-    {
-      "error": "Validation failed.",
-      "details": {
-        "name": "Role name is required.",
-        "permissions": "Invalid permission key: 'manage_everything'"
-      }
-    }
-    ```
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to create system roles.
-*   **409 Conflict:** If a role with the same name already exists.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3. Get System Role Details
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/roles/{roleId}`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "id": "string",
-      "name": "string",
-      "description": "string" (optional),
-      "permissions": ["string"]
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view this role.
-*   **404 Not Found:** If the role with the specified `roleId` does not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4. Update System Role
-
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/system/roles/{roleId}`
-*   **Request Structure (JSON):**
-    ```json
-    {
-      "name": "string" (optional),
-      "description": "string" (optional),
-      "permissions": ["string"] (optional)
-    }
-    ```
-*   **Response Structure (JSON):** The updated role object.
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body (e.g., invalid permission keys).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to update this role.
-*   **404 Not Found:** If the role with the specified `roleId` does not exist.
-*   **409 Conflict:** If trying to rename to a role name that already exists.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 5. Delete System Role
-
-*   **HTTP Method:** `DELETE`
-*   **URL:** `/api/system/roles/{roleId}`
-*   **Request Structure:** (None)
-*   **Response Structure:** (Status 204 No Content or similar success status)
-
-*   **Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to delete this role (e.g., trying to delete a protected system role).
-*   **404 Not Found:** If the role with the specified `roleId` does not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 6. List All Available System Permissions
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/permissions`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "permissions": [
-        {
-          "key": "string", // e.g., "manage_users", "view_audit_logs", "configure_settings_general"
-          "description": "string"
-        }
-      ]
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to list system permissions.
-*   **500 Internal Server Error:** Unexpected server error.
-
-## IV. Audit Logs
-
-### 1. Get Audit Logs
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/audit-logs`
+*   **Endpoint:** `GET /admin/system/logs`
+*   **Description:** Retrieves system logs with optional filtering and pagination.
+*   **Permissions Required:** `admin:system:read`
 *   **Query Parameters:**
-    *   `page` (optional): `number`
-    *   `limit` (optional): `number`
-    *   `userId` (optional): `string` - Filter by user who performed the action.
-    *   `actionType` (optional): `string` - Filter by type of action (e.g., "USER_LOGIN", "SETTINGS_UPDATE").
-    *   `startDate` (optional): `Date` (ISO 8601 format)
-    *   `endDate` (optional): `Date` (ISO 8601 format)
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
+    - `startDate` (optional): Filter logs from this date (ISO format)
+    - `endDate` (optional): Filter logs until this date (ISO format)
+    - `level` (optional): Filter by log level ('info', 'warning', 'error', 'critical')
+    - `service` (optional): Filter by service name
+    - `search` (optional): Search in log messages
+    - `page` (optional): Page number for pagination (default: 1)
+    - `limit` (optional): Items per page (default: 50)
+*   **Successful Response (200 OK):**
     ```json
     {
       "logs": [
         {
-          "id": "string",
-          "timestamp": "Date",
-          "userId": "string" (optional, if action is user-specific),
-          "userName": "string" (optional),
-          "actionType": "string", // e.g., "USER_LOGIN_SUCCESS", "SETTINGS_UPDATED", "ROLE_CREATED"
-          "entityType": "string" (optional), // e.g., "User", "Settings", "Role"
-          "entityId": "string" (optional), // ID of the affected entity
-          "ipAddress": "string" (optional),
-          "userAgent": "string" (optional),
-          "details": "object" (optional) // Additional context-specific details
+          "id": "log_123",
+          "timestamp": "2024-06-05T10:15:20Z",
+          "level": "error",
+          "service": "api",
+          "message": "Database connection failed",
+          "details": {
+            "errorCode": "ECONNREFUSED",
+            "database": "main"
+          },
+          "correlationId": "req_abc123",
+          "userId": null,
+          "ipAddress": "10.0.0.2"
+        },
+        {
+          "id": "log_122",
+          "timestamp": "2024-06-05T10:14:30Z",
+          "level": "warning",
+          "service": "auth",
+          "message": "Failed login attempt",
+          "details": {
+            "reason": "Invalid password"
+          },
+          "correlationId": "req_def456",
+          "userId": null,
+          "ipAddress": "41.243.11.22"
         }
       ],
-      "totalCount": "number",
-      "currentPage": "number",
-      "totalPages": "number"
+      "totalCount": 1532,
+      "page": 1,
+      "totalPages": 31
     }
     ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Error Responses (General):**
+### 3. Get System Alerts
 
-*   **400 Bad Request:** Invalid query parameters (e.g., invalid date format).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view audit logs.
-*   **500 Internal Server Error:** Unexpected server error when gathering metrics.
-
-## V. System Health & Metrics
-
-### 1. Get System Health Status
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/health`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
+*   **Endpoint:** `GET /admin/system/alerts`
+*   **Description:** Retrieves active and/or resolved system alerts.
+*   **Permissions Required:** `admin:system:read`
+*   **Query Parameters:**
+    - `status` (optional): Filter by status ('active', 'resolved', 'all') (default: 'active')
+    - `level` (optional): Filter by alert level ('info', 'warning', 'error', 'critical')
+    - `service` (optional): Filter by service name
+    - `startDate` (optional): Filter alerts from this date (ISO format)
+    - `endDate` (optional): Filter alerts until this date (ISO format)
+    - `page` (optional): Page number for pagination (default: 1)
+    - `limit` (optional): Items per page (default: 20)
+*   **Successful Response (200 OK):**
     ```json
     {
-      "status": "HEALTHY" | "DEGRADED" | "UNHEALTHY",
-      "timestamp": "Date",
-      "checks": [
+      "alerts": [
         {
-          "name": "string", // e.g., "DatabaseConnection", "ApiService", "CacheService"
-          "status": "UP" | "DOWN" | "DEGRADED",
-          "message": "string" (optional)
+          "id": "alert_456",
+          "timestamp": "2024-06-05T08:00:00Z",
+          "level": "warning",
+          "title": "High CPU Usage",
+          "message": "Server CPU usage exceeded 80% for more than 10 minutes",
+          "service": "system",
+          "isResolved": false,
+          "resolvedAt": null,
+          "resolvedBy": null,
+          "resolutionNotes": null
+        },
+        {
+          "id": "alert_455",
+          "timestamp": "2024-06-04T22:15:10Z",
+          "level": "critical",
+          "title": "Database Connection Failure",
+          "message": "Multiple failed attempts to connect to primary database",
+          "service": "database",
+          "isResolved": true,
+          "resolvedAt": "2024-06-04T23:45:20Z",
+          "resolvedBy": "admin_123",
+          "resolutionNotes": "Restarted database service and verified connections"
         }
-      ]
+      ],
+      "totalCount": 18,
+      "page": 1,
+      "totalPages": 1
     }
     ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Error Responses (General):**
+### 4. Resolve System Alert
 
-*   **500 Internal Server Error:** If the health check mechanism itself fails.
-*   **503 Service Unavailable:** If the system is unhealthy (this might be reflected in the body as well).
-
-### 2. Get System Metrics
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/metrics`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):** (Structure can be extensive and vary based on monitored components)
+*   **Endpoint:** `PUT /admin/system/alerts/{alertId}/resolve`
+*   **Description:** Marks a system alert as resolved.
+*   **Parameters:**
+    - `alertId` (path, required): The ID of the alert to resolve.
+*   **Permissions Required:** `admin:system:write`
+*   **Request Body (application/json):**
     ```json
     {
-      "serverHealth": {
-        "cpuUsage": "number", // percentage
-        "memoryUsage": {
-          "usedMb": "number",
-          "totalMb": "number",
-          "percentage": "number"
-        },
-        "diskUsage": {
-          "usedGb": "number",
-          "totalGb": "number",
-          "percentage": "number"
-        },
-        "uptimeSeconds": "number"
-      },
-      "databaseMetrics": {
-        // Specific metrics for each DB (PostgreSQL, Neo4j, Timescale)
-        "postgresql": {
-          "activeConnections": "number",
-          "queryPerformanceMs": "number", // average
-          "storageUsageMb": "number"
-        }
-        // ... other DBs
-      },
-      "apiMetrics": {
-        "totalRequests": "number",
-        "requestsPerMinute": "number",
-        "averageResponseTimeMs": "number",
-        "errorRatePercentage": "number",
-        "requestsByEndpoint": {
-          "/api/users": "number",
-          "/api/auth/login": "number"
-          // ... other endpoints
-        }
-      },
-      "aiServiceMetrics": {
-        "totalRequests": "number",
-        "tokensProcessed": "number",
-        "averageProcessingTimeMs": "number",
-        "errorRatePercentage": "number",
-        "costIncurredUSD": "number",
-        "requestsByModel": {
-          "gpt-4": "number",
-          "claude-2": "number"
-          // ... other models
-        }
-      }
-      // ... other relevant metrics (e.g., queue lengths, cache hit rates)
+      "resolutionNotes": "Fixed by restarting the affected service"
     }
     ```
-
-*   **Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid (if metrics are protected).
-*   **403 Forbidden:** Authenticated user does not have permission to view system metrics.
-*   **500 Internal Server Error:** Unexpected server error when gathering metrics.
-
-## VI. Application Configuration (Advanced)
-
-This refers to more deeply embedded configurations, potentially managed via a UI for super admins or through deployment configurations.
-
-### 1. Get Backend Configuration (Sensitive - Admin Only)
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/config/backend`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
+*   **Successful Response (200 OK):**
     ```json
     {
-      "environment": "development" | "staging" | "production",
-      "dbConnections": {
-        "postgresql": "string", // Connection string (masked or partial for security)
-        "neo4j": "string",
-        "timescale": "string"
-      },
-      "aiProviders": {
-        "openai": {
-          "modelConfiguration": {
-            "gpt-4": {
-              "enabled": "boolean",
-              "costPerToken": "number",
-              "rateLimit": "number"
-            }
-            // ... other models
-          },
-          "apiKeysConfigured": "boolean" // Indicates if keys are set, not the keys themselves
+      "id": "alert_456",
+      "timestamp": "2024-06-05T08:00:00Z",
+      "level": "warning",
+      "title": "High CPU Usage",
+      "message": "Server CPU usage exceeded 80% for more than 10 minutes",
+      "service": "system",
+      "isResolved": true,
+      "resolvedAt": "2024-06-05T14:30:15Z",
+      "resolvedBy": "admin_123",
+      "resolutionNotes": "Fixed by restarting the affected service"
+    }
+    ```
+*   **Error Responses:**
+    - `400 Bad Request`: If the alert is already resolved
+    - `404 Not Found`: If the alert doesn't exist
+    - See also [Standard Error Responses](#standard-error-responses).
+
+### 5. Get API Performance Metrics
+
+*   **Endpoint:** `GET /admin/system/api/performance`
+*   **Description:** Retrieves performance metrics for API endpoints.
+*   **Permissions Required:** `admin:system:read`
+*   **Query Parameters:**
+    - `period` (optional): Time period ('hour', 'day', 'week', 'month') (default: 'day')
+    - `startDate` (optional): Filter metrics from this date (ISO format)
+    - `endDate` (optional): Filter metrics until this date (ISO format)
+    - `endpoint` (optional): Filter by specific endpoint
+    - `method` (optional): Filter by HTTP method
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "metrics": [
+        {
+          "endpoint": "/api/users",
+          "method": "GET",
+          "averageResponseTime": 45,
+          "p95ResponseTime": 120,
+          "requestCount": 1250,
+          "errorCount": 5,
+          "errorRate": 0.4,
+          "timestamp": "2024-06-05T00:00:00Z"
+        },
+        {
+          "endpoint": "/api/auth/login",
+          "method": "POST",
+          "averageResponseTime": 180,
+          "p95ResponseTime": 350,
+          "requestCount": 560,
+          "errorCount": 12,
+          "errorRate": 2.14,
+          "timestamp": "2024-06-05T00:00:00Z"
         }
-        // ... other AI providers
-      },
-      "featureFlags": {
-        "newDashboardFeature": "boolean",
-        "extendedReporting": "boolean"
+      ],
+      "summary": {
+        "totalRequests": 15240,
+        "totalErrors": 87,
+        "overallErrorRate": 0.57,
+        "averageResponseTime": 75
       }
     }
     ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Error Responses (General):**
+### 6. Get Database Metrics
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view backend configuration.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2. Update Feature Flag
-
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/system/config/feature-flags/{flagName}`
-*   **Request Structure (JSON):**
+*   **Endpoint:** `GET /admin/system/databases`
+*   **Description:** Retrieves performance metrics for system databases.
+*   **Permissions Required:** `admin:system:read`
+*   **Successful Response (200 OK):**
     ```json
     {
-      "enabled": "boolean"
-    }
-    ```
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "flagName": "string",
-      "enabled": "boolean"
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body (e.g., `enabled` not a boolean).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to update feature flags.
-*   **404 Not Found:** If the `flagName` does not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-## VII. Data Management (Advanced)
-
-### 1. Export Data
-
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/system/data/export`
-*   **Request Structure (JSON):**
-    ```json
-    {
-      "format": "json" | "csv" | "xlsx",
-      "dataType": "all" | "users" | "audit_logs" | "settings" // etc.
-      // Potentially add date ranges or other filters
-    }
-    ```
-*   **Response Structure:** File download (e.g., `application/json`, `text/csv`). The API might return a job ID for asynchronous exports, with another endpoint to check status and get the download link.
-    *Synchronous (for small exports):*
-      File stream
-    *Asynchronous (for large exports):*
-    ```json
-    {
-      "jobId": "string",
-      "status": "PENDING",
-      "message": "Data export initiated. You will be notified upon completion."
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body (e.g., invalid `format` or `dataType`).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to export data.
-*   **500 Internal Server Error:** Unexpected server error during export process.
-
-### 2. Import Data
-
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/system/data/import`
-*   **Request Structure:** `multipart/form-data` containing the file and metadata.
-    *   `file`: The data file.
-    *   `dataType`: `string` (e.g., "users", "settings_backup")
-    *   `options` (optional JSON string): `{"overwrite": true, "dryRun": false}`
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "jobId": "string" (if asynchronous),
-      "status": "SUCCESS" | "PENDING" | "FAILED",
-      "message": "string",
-      "errors": [] (optional, list of errors if any)
-    }
-    ```
-
-*   **Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request (e.g., missing file, unsupported `dataType`, invalid options).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to import data.
-*   **422 Unprocessable Entity:** If the data in the file is invalid or causes conflicts.
-    ```json
-    {
-      "jobId": "string",
-      "status": "FAILED",
-      "message": "Import failed due to data validation errors.",
-      "errors": [
-        { "row": 2, "field": "email", "error": "Invalid email format" }
-      ]
-    }
-    ```
-*   **500 Internal Server Error:** Unexpected server error during import process.
-
-### 3. Get Database Backup Status
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/system/database/backups`
-*   **Request Structure:** (None)
-*   **Response Structure (JSON):**
-    ```json
-    {
-      "backups": [
+      "databases": [
         {
-          "databaseName": "string", // e.g., "PostgreSQLPrimary", "Neo4jGraph"
-          "lastBackupTime": "Date",
-          "backupSizeMb": "number",
-          "status": "success" | "failed" | "in_progress",
-          "location": "string" (e.g., "S3 Bucket Path", "Local Path"),
-          "retentionDays": "number"
+          "name": "main-postgres",
+          "type": "postgres",
+          "status": "operational",
+          "size": 1240,
+          "connections": 15,
+          "queryCount": 58720,
+          "averageQueryTime": 4.2,
+          "slowQueries": 12
+        },
+        {
+          "name": "redis-cache",
+          "type": "redis",
+          "status": "operational",
+          "size": 512,
+          "connections": 35,
+          "queryCount": 245600,
+          "averageQueryTime": 0.8,
+          "slowQueries": 0
         }
       ]
     }
     ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Error Responses (General):**
+### 7. Get AI Model Configurations
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view backup status.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4. Trigger Database Backup
-
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/system/database/backups/trigger`
-*   **Request Structure (JSON):**
+*   **Endpoint:** `GET /admin/system/ai/models`
+*   **Description:** Retrieves the configuration for AI models used in the system.
+*   **Permissions Required:** `admin:system:read`
+*   **Successful Response (200 OK):**
     ```json
     {
-      "databaseName": "string" // Optional: specific DB, or all if omitted
+      "models": [
+        {
+          "id": "model_text_gpt4",
+          "name": "GPT-4 Turbo",
+          "provider": "OpenAI",
+          "type": "text",
+          "isActive": true,
+          "tokensPerRequest": 4000,
+          "costPerToken": 0.00001,
+          "maxTokens": 8000,
+          "temperature": 0.7,
+          "apiEndpoint": "https://api.openai.com/v1/chat/completions",
+          "apiVersion": "2023-05-15"
+        },
+        {
+          "id": "model_image_dalle3",
+          "name": "DALL-E 3",
+          "provider": "OpenAI",
+          "type": "image",
+          "isActive": true,
+          "tokensPerRequest": 0,
+          "costPerToken": 0,
+          "maxTokens": 0,
+          "temperature": 0,
+          "apiEndpoint": "https://api.openai.com/v1/images/generations",
+          "apiVersion": "2023-05-15"
+        }
+      ]
     }
     ```
-*   **Response Structure (JSON):**
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 8. Update AI Model Configuration
+
+*   **Endpoint:** `PUT /admin/system/ai/models/{modelId}`
+*   **Description:** Updates the configuration for a specific AI model.
+*   **Parameters:**
+    - `modelId` (path, required): The ID of the AI model to update.
+*   **Permissions Required:** `admin:system:write`
+*   **Request Body (application/json):**
     ```json
     {
-      "jobId": "string",
-      "status": "STARTED",
-      "message": "Database backup process initiated for {databaseName or all databases}."
+      "isActive": true,
+      "tokensPerRequest": 4000,
+      "maxTokens": 8000,
+      "temperature": 0.8,
+      "apiEndpoint": "https://api.openai.com/v1/chat/completions",
+      "apiVersion": "2023-05-15"
+    }
+    ```
+    *Only include fields to be updated.*
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "id": "model_text_gpt4",
+      "name": "GPT-4 Turbo",
+      "provider": "OpenAI",
+      "type": "text",
+      "isActive": true,
+      "tokensPerRequest": 4000,
+      "costPerToken": 0.00001,
+      "maxTokens": 8000,
+      "temperature": 0.8,
+      "apiEndpoint": "https://api.openai.com/v1/chat/completions",
+      "apiVersion": "2023-05-15"
+    }
+    ```
+*   **Error Responses:**
+    - `400 Bad Request`: If input data is invalid
+    - `404 Not Found`: If the model doesn't exist
+    - See also [Standard Error Responses](#standard-error-responses).
+
+## System Monitoring Endpoints
+
+### 1. Get System Status
+
+*   **Endpoint:** `GET /system/status`
+*   **Description:** Retrieves a simplified status of the system for health checks and monitoring.
+*   **Permissions Required:** Basic authentication or API key.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "status": "operational",
+      "version": "1.5.2",
+      "uptime": 1209600,
+      "timestamp": "2024-06-05T15:00:00Z",
+      "services": {
+        "api": "operational",
+        "database": "operational",
+        "ai": "operational",
+        "payments": "operational"
+      }
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 2. Get Public Maintenance Status
+
+*   **Endpoint:** `GET /system/maintenance`
+*   **Description:** Checks if the system is in maintenance mode. This endpoint is public and does not require authentication.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "inMaintenance": false,
+      "estimatedEndTime": null,
+      "message": null
+    }
+    ```
+    Or if in maintenance:
+    ```json
+    {
+      "inMaintenance": true,
+      "estimatedEndTime": "2024-06-05T18:00:00Z",
+      "message": "Scheduled database upgrade in progress. Services will be restored shortly."
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 3. Set Maintenance Mode
+
+*   **Endpoint:** `PUT /admin/system/maintenance`
+*   **Description:** Enables or disables maintenance mode for the system.
+*   **Permissions Required:** `admin:system:write`
+*   **Request Body (application/json):**
+    ```json
+    {
+      "enable": true,
+      "estimatedEndTime": "2024-06-05T18:00:00Z",
+      "message": "Scheduled database upgrade in progress. Services will be restored shortly."
+    }
+    ```
+    Or to disable:
+    ```json
+    {
+      "enable": false
+    }
+    ```
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "inMaintenance": true,
+      "estimatedEndTime": "2024-06-05T18:00:00Z",
+      "message": "Scheduled database upgrade in progress. Services will be restored shortly.",
+      "enabledBy": "admin_123",
+      "enabledAt": "2024-06-05T16:30:00Z"
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+## Standard Error Responses
+
+*   **401 Unauthorized:**
+    ```json
+    {
+      "error": "unauthorized",
+      "message": "Authentication token is missing or invalid"
     }
     ```
 
-*   **Error Responses (General):**
+*   **403 Forbidden:**
+    ```json
+    {
+      "error": "forbidden",
+      "message": "You do not have permission to access this resource"
+    }
+    ```
 
-*   **400 Bad Request:** Invalid request body (e.g., invalid `databaseName`).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to trigger backups.
-*   **409 Conflict:** If a backup process is already in progress for the specified database.
-*   **500 Internal Server Error:** Unexpected server error.
+*   **404 Not Found:**
+    ```json
+    {
+      "error": "not_found",
+      "message": "The requested resource was not found"
+    }
+    ```
+
+*   **429 Too Many Requests:**
+    ```json
+    {
+      "error": "rate_limit_exceeded",
+      "message": "Rate limit exceeded. Try again in X seconds",
+      "retryAfter": 30
+    }
+    ```
+
+*   **500 Internal Server Error:**
+    ```json
+    {
+      "error": "server_error",
+      "message": "An unexpected error occurred",
+      "requestId": "req_abc123"
+    }
+    ```
+
+## Additional Notes
+
+1. System administration endpoints are restricted to users with the appropriate admin permissions.
+2. System logs may be filtered by various criteria to help troubleshoot issues.
+3. API performance metrics can help identify bottlenecks and optimize system performance.
+4. Database metrics provide insights into database health and performance.
+5. AI model configurations allow administrators to adjust parameters for different AI models used in the system.

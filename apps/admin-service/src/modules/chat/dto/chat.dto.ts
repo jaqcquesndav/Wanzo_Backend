@@ -1,6 +1,8 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsUUID, IsBoolean } from 'class-validator';
-import { ChatSessionStatus, ChatPriority, ChatMessageSender } from '../entities';
+import { IsString, IsOptional, IsEnum, IsArray, IsUUID, IsBoolean, IsObject, IsNumber, IsDate, IsDateString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ChatSessionStatus, ChatPriority, ChatMessageSender, MessageStatus } from '../entities';
 
+// Chat Session DTOs
 export class ChatSessionDto {
   id: string;
   userId: string;
@@ -13,15 +15,22 @@ export class ChatSessionDto {
   tags?: string[];
 }
 
+export class ChatSessionsResponseDto {
+  sessions: ChatSessionDto[];
+  totalCount: number;
+}
+
 export class GetChatSessionsQueryDto {
   @IsOptional()
   @IsEnum(ChatSessionStatus)
   status?: ChatSessionStatus;
 
   @IsOptional()
+  @IsNumber()
   page?: number;
 
   @IsOptional()
+  @IsNumber()
   limit?: number;
 }
 
@@ -32,14 +41,13 @@ export class CreateChatSessionDto {
 
   @IsOptional()
   @IsEnum(ChatPriority)
-  priority?: ChatPriority;
+  priority?: ChatPriority = ChatPriority.MEDIUM;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
 
-  // userId might be inferred or explicitly set by an admin
   @IsOptional()
   @IsUUID()
   userId?: string;
@@ -50,12 +58,31 @@ export class AssignAgentDto {
   agentId: string;
 }
 
+// Chat Message DTOs
+export class ChatAttachmentMetadataDto {
+  @IsOptional()
+  @IsNumber()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @IsOptional()
+  @IsNumber()
+  duration?: number;
+
+  @IsOptional()
+  [key: string]: any;
+}
+
 export class ChatAttachmentDto {
   id: string;
   url: string;
   type: string;
   name: string;
   size: number;
+  metadata?: ChatAttachmentMetadataDto;
 }
 
 export class ChatMessageDto {
@@ -64,28 +91,29 @@ export class ChatMessageDto {
   sender: ChatMessageSender;
   timestamp: Date;
   read: boolean;
+  status: MessageStatus;
   attachments?: ChatAttachmentDto[];
-  sessionId: string; // Added sessionId for context
+}
+
+export class ChatMessagesResponseDto {
+  messages: ChatMessageDto[];
+  totalCount: number;
+  hasMore: boolean;
 }
 
 export class GetChatMessagesQueryDto {
   @IsOptional()
   @IsString()
-  before?: string; // messageId
+  before?: string;
 
   @IsOptional()
+  @IsNumber()
   limit?: number;
 }
 
 export class SendMessageDto {
   @IsString()
   content: string;
-
-  // Attachments would be handled via multipart/form-data, not directly in DTO for validation here
-  // but can be represented for response or internal handling if needed.
-  @IsOptional()
-  @IsArray()
-  attachments?: any[]; // Placeholder for how attachments might be processed
 }
 
 export class MarkMessagesAsReadDto {
@@ -94,15 +122,38 @@ export class MarkMessagesAsReadDto {
   messageIds: string[];
 }
 
+// Typing Events
 export class TypingEventDto {
   @IsBoolean()
   isTyping: boolean;
-  // userId might be inferred
 }
 
+export class ChatTypingEventDto {
+  userId: string;
+  isTyping: boolean;
+  timestamp: Date;
+}
+
+// Statistics
 export class ChatStatsDto {
   totalSessions: number;
   activeSessions: number;
   averageResponseTime: number;
   messagesExchanged: number;
+}
+
+// WebSocket Events
+export class WebSocketMessageEventDto {
+  type: 'message';
+  data: ChatMessageDto;
+}
+
+export class WebSocketTypingEventDto {
+  type: 'typing';
+  data: ChatTypingEventDto;
+}
+
+export class WebSocketSessionUpdateEventDto {
+  type: 'session_update';
+  data: ChatSessionDto;
 }

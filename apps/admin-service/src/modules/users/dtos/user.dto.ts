@@ -17,25 +17,193 @@ import {
   Max
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserRole, UserStatus, UserType } from '../entities/enums';
 
 // User DTOs
 export class UserDto {
+  @ApiProperty({
+    description: 'ID unique de l\'utilisateur',
+    example: 'user-id-string'
+  })
+  @IsString()
   id: string;
+
+  @ApiProperty({
+    description: 'Nom complet de l\'utilisateur',
+    example: 'User Name'
+  })
+  @IsString()
   name: string;
+
+  @ApiProperty({
+    description: 'Adresse email de l\'utilisateur',
+    example: 'user@example.com'
+  })
+  @IsEmail()
   email: string;
+
+  @ApiProperty({
+    description: 'Rôle de l\'utilisateur',
+    example: 'company_user',
+    enum: UserRole
+  })
+  @IsEnum(UserRole)
   role: UserRole;
-  userType: UserType;
+
+  @ApiProperty({
+    description: 'Type d\'utilisateur',
+    example: 'internal',
+    enum: UserType
+  })
+  @IsEnum(UserType)
+  userType: UserType;  @ApiProperty({
+    description: 'ID du compte client (optionnel, requis si userType est "external")',
+    example: 'pme-123',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
   customerAccountId?: string;
+
+  @ApiProperty({
+    description: 'Nom du client (optionnel, pour les utilisateurs externes)',
+    example: 'Customer Company Name',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  customerName?: string;
+
+  @ApiProperty({
+    description: 'Type de client (optionnel)',
+    example: 'pme',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  customerType?: string;
+
+  @ApiProperty({
+    description: 'Statut de l\'utilisateur',
+    example: 'active',
+    enum: UserStatus
+  })
+  @IsEnum(UserStatus)
   status: UserStatus;
+
+  @ApiProperty({
+    description: 'URL de l\'avatar',
+    example: 'url_to_avatar_image.png',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
   avatar?: string;
-  createdAt: Date;
-  updatedAt?: Date;
-  lastLogin?: Date;
-  permissions?: string[];
+
+  @ApiProperty({
+    description: 'Date de création du compte',
+    example: '2025-01-15T10:30:00Z'
+  })
+  @IsDateString()
+  createdAt: string;
+
+  @ApiProperty({
+    description: 'Date de dernière mise à jour',
+    example: '2025-01-18T11:00:00Z',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  updatedAt?: string;
+
+  @ApiProperty({
+    description: 'Date de dernière connexion',
+    example: '2025-01-20T14:45:00Z',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  lastLogin?: string;  @ApiProperty({
+    description: 'Permissions de l\'utilisateur',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        applicationId: { type: 'string', example: 'default' },
+        permissions: { type: 'array', items: { type: 'string' }, example: ['view_own_profile', 'edit_own_profile'] }
+      }
+    },
+    required: false
+  })
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  permissions?: {
+    applicationId: string;
+    permissions: string[];
+  }[];
+
+  @ApiProperty({
+    description: 'Département',
+    example: 'Sales',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
   departement?: string;
+
+  @ApiProperty({
+    description: 'Numéro de téléphone',
+    example: '+243123456789',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
   phoneNumber?: string;
-  isTwoFactorEnabled: boolean;
+
+  @ApiProperty({
+    description: 'Poste / Position',
+    example: 'Senior Manager',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  position?: string;
+
+  @ApiProperty({
+    description: 'ID Agent',
+    example: 'IKH12345',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  idAgent?: string;
+
+  @ApiProperty({
+    description: 'Date de fin de validité',
+    example: '2026-06-17T00:00:00.000Z',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  validityEnd?: string;
+
+  @ApiProperty({
+    description: 'Informations KYC',
+    required: false,
+    type: 'object'
+  })
+  @IsOptional()
+  kyc?: {
+    status: 'pending' | 'verified' | 'rejected';
+    verifiedAt?: string;
+    documents?: Array<{
+      type: string;
+      verified: boolean;
+      uploadedAt: string;
+    }>;
+  };
 }
 
 export class CreateUserDto {

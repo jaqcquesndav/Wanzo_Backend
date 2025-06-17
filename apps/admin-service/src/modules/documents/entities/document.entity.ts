@@ -3,29 +3,19 @@ import {
   PrimaryGeneratedColumn, 
   Column, 
   CreateDateColumn, 
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn
+  UpdateDateColumn
 } from 'typeorm';
-import { DocumentFolder } from './document-folder.entity'; // Import DocumentFolder
 
 export enum DocumentStatus {
-  DRAFT = 'draft',
-  UPLOADED = 'uploaded',
-  PROCESSING = 'processing',
+  PENDING = 'pending',
   VERIFIED = 'verified',
-  ARCHIVED = 'archived',
-  DELETED = 'deleted'
+  REJECTED = 'rejected'
 }
 
 export enum DocumentType {
-  INVOICE = 'invoice',
-  CONTRACT = 'contract',
-  RECEIPT = 'receipt',
-  REPORT = 'report',
-  FORM = 'form',
-  LEGAL = 'legal',
-  OTHER = 'other'
+  RCCM = 'rccm',
+  NATIONAL_ID = 'nationalId',
+  TAX_NUMBER = 'taxNumber'
 }
 
 @Entity('documents')
@@ -36,60 +26,40 @@ export class Document {
   @Column()
   companyId: string;
 
-  @Column()
-  name: string;
-
   @Column({
     type: 'enum',
-    enum: DocumentType,
-    default: DocumentType.OTHER
+    enum: DocumentType
   })
   type: DocumentType;
 
-  @Column({ type: 'bigint' })
-  size: number; // in bytes
+  @Column()
+  fileName: string;
 
   @Column()
-  url: string;
+  fileUrl: string;
+
+  @Column()
+  mimeType: string;
+
+  @Column('bigint')
+  fileSize: number; // in bytes
 
   @Column({
     type: 'enum',
     enum: DocumentStatus,
-    default: DocumentStatus.UPLOADED
+    default: DocumentStatus.PENDING
   })
   status: DocumentStatus;
 
-  @Column()
-  uploadedBy: string;
+  @CreateDateColumn({ name: 'uploaded_at' })
+  uploadedAt: Date;
 
-  @Column('simple-json', { nullable: true })
-  metadata: Record<string, any>;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @Column({ nullable: true })
-  folderId: string;
+  verifiedBy?: string;
 
-  @ManyToOne(() => DocumentFolder, folder => folder.documents, { nullable: true })
-  @JoinColumn({ name: 'folderId' })
-  folder: DocumentFolder;
-
-  @Column({ nullable: true })
-  description: string;
-
-  @Column({ nullable: true })
-  mimeType: string;
-
-  @Column({ nullable: true })
-  thumbnail: string;
-
-  @Column({ default: false })
-  isPublic: boolean;
-
-  @Column({ nullable: true })
-  expiresAt: Date;
+  @Column({ nullable: true, type: 'timestamp' })
+  verifiedAt?: Date;
 }

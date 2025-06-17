@@ -3,135 +3,142 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Body,
   Param,
   Query,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
-  UseGuards
+  UseGuards,
+  ParseUUIDPipe,
+  ParseIntPipe,
+  NotFoundException,
+  HttpCode
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SettingsService } from '../services';
+import { SettingsService } from '../services/settings.service';
 import {
+  AllSettingsDto,
+  GeneralSettingsDto,
+  SecuritySettingsDto,
+  NotificationSettingsDto,
+  BillingSettingsDto,
+  AppearanceSettingsDto,
+  UpdateSettingDto,
   UserProfileDto,
   UpdateUserProfileDto,
   ChangePasswordDto,
   TwoFactorSettingsDto,
-  SessionSettingsDto,
-  NotificationChannelsDto,
-  NotificationPreferencesDto,
-  SystemSettingsResponseDto,
-  SystemSettingSection,
-  UpdateSystemSettingDto
-} from '../dtos';
-import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard';
+  ActiveSessionsResponseDto,
+  LoginHistoryResponseDto,
+  NotificationPreferencesResponseDto,
+  UpdateNotificationPreferenceDto,
+  UpdateAllNotificationPreferencesDto,
+  AppSettingsResponseDto
+} from '../dtos/settings.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { User } from '../../users/entities/user.entity';
 
 @ApiTags('Settings')
 @ApiBearerAuth()
-@UseGuards(JwtBlacklistGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
-  // User Profile Endpoints
-  @Get('users/me/profile')
-  async getUserProfile(@Query('userId') userId: string): Promise<UserProfileDto> {
-    return this.settingsService.getUserProfile(userId);
+  /* System Settings Endpoints */
+
+  @ApiOperation({ summary: 'Get all settings' })
+  @ApiResponse({ status: 200, description: 'Return all system settings', type: AllSettingsDto })
+  @Get()
+  @Roles('admin:settings:read')
+  async getAllSettings(): Promise<AllSettingsDto> {
+    return this.settingsService.getAllSettings();
   }
 
-  @Put('users/me/profile')
-  async updateUserProfile(
-    @Query('userId') userId: string,
-    @Body() updateDto: UpdateUserProfileDto
-  ): Promise<UserProfileDto> {
-    return this.settingsService.updateUserProfile(userId, updateDto);
+  @ApiOperation({ summary: 'Get general settings' })
+  @ApiResponse({ status: 200, description: 'Return general settings', type: GeneralSettingsDto })
+  @Get('general')
+  @Roles('admin:settings:read')
+  async getGeneralSettings(): Promise<GeneralSettingsDto> {
+    return this.settingsService.getSettingsBySection('general');
   }
 
-  @Post('users/me/avatar')
-  @UseInterceptors(FileInterceptor('avatar'))
-  async uploadUserAvatar(
-    @Query('userId') userId: string,
-    @UploadedFile() file: Express.Multer.File
-  ): Promise<{ avatarUrl: string }> {
-    // In a real implementation, the file would be uploaded to a storage service like S3
-    // and the URL would be returned
+  @ApiOperation({ summary: 'Get security settings' })
+  @ApiResponse({ status: 200, description: 'Return security settings', type: SecuritySettingsDto })
+  @Get('security')
+  @Roles('admin:settings:read')
+  async getSecuritySettings(): Promise<SecuritySettingsDto> {
+    return this.settingsService.getSettingsBySection('security');
+  }
 
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
+  @ApiOperation({ summary: 'Get notification settings' })
+  @ApiResponse({ status: 200, description: 'Return notification settings', type: NotificationSettingsDto })
+  @Get('notifications')
+  @Roles('admin:settings:read')
+  async getNotificationSettings(): Promise<NotificationSettingsDto> {
+    return this.settingsService.getSettingsBySection('notifications');
+  }
+
+  @ApiOperation({ summary: 'Get billing settings' })
+  @ApiResponse({ status: 200, description: 'Return billing settings', type: BillingSettingsDto })
+  @Get('billing')
+  @Roles('admin:settings:read')
+  async getBillingSettings(): Promise<BillingSettingsDto> {
+    return this.settingsService.getSettingsBySection('billing');
+  }
+
+  @ApiOperation({ summary: 'Get appearance settings' })
+  @ApiResponse({ status: 200, description: 'Return appearance settings', type: AppearanceSettingsDto })
+  @Get('appearance')
+  @Roles('admin:settings:read')
+  async getAppearanceSettings(): Promise<AppearanceSettingsDto> {
+    return this.settingsService.getSettingsBySection('appearance');
+  }
+
+  @ApiOperation({ summary: 'Update settings for a specific section' })
+  @ApiParam({ name: 'section', enum: ['general', 'security', 'notifications', 'billing', 'appearance'] })
+  @ApiBody({ description: 'Updated settings for the specified section' })
+  @ApiResponse({ status: 200, description: 'Return updated settings for the specified section' })
+  @Put(':section')
+  @Roles('admin:settings:write')
+  async updateSettings(
+    @Param('section') section: string,
+    @Body() updateDto: Record<string, any>
+  ): Promise<any> {
+    return this.settingsService.updateSettings(section, updateDto);
+  }
+
+  /* App-level Settings */
+
+  @ApiOperation({ summary: 'Get app-level settings' })
+  @ApiResponse({ status: 200, description: 'Return app-level settings', type: AppSettingsResponseDto })
+  @Get('app')
+  @Roles('admin:settings:read')
+  async getAppSettings(): Promise<AppSettingsResponseDto> {
+    const settings = await this.settingsService.getApplicationSettings();
+    if (!settings) {
+      throw new NotFoundException('App settings not found.');
     }
-
-    // Mock avatar URL
-    const avatarUrl = `https://example.com/avatars/${userId}_${Date.now()}.jpg`;
-    
-    return this.settingsService.updateUserAvatar(userId, avatarUrl);
+    return settings;
   }
 
-  // Security Settings Endpoints
-  @Post('users/me/security/change-password')
-  async changePassword(
-    @Query('userId') userId: string,
-    @Body() changePasswordDto: ChangePasswordDto
-  ): Promise<{ message: string }> {
-    return this.settingsService.changePassword(userId, changePasswordDto);
-  }
-
-  @Put('users/me/security/two-factor')
-  async updateTwoFactorSettings(
-    @Query('userId') userId: string,
-    @Body() twoFactorDto: TwoFactorSettingsDto
+  @ApiOperation({ summary: 'Update an application setting' })
+  @ApiResponse({ status: 200, description: 'App setting updated successfully' })
+  @HttpCode(200)
+  @Put('app/:id')
+  @Roles('admin:settings:write')
+  async updateApplicationSetting(
+    @Param('id') settingId: string,
+    @Body() updateDto: UpdateSettingDto,
   ) {
-    return this.settingsService.updateTwoFactorSettings(userId, twoFactorDto);
-  }
-
-  @Put('users/me/security/session')
-  async updateSessionSettings(
-    @Query('userId') userId: string,
-    @Body() sessionDto: SessionSettingsDto
-  ) {
-    return this.settingsService.updateSessionSettings(userId, sessionDto);
-  }
-
-  // Notification Settings Endpoints
-  @Get('users/me/notifications')
-  async getNotificationSettings(@Query('userId') userId: string) {
-    return this.settingsService.getNotificationSettings(userId);
-  }
-
-  @Put('users/me/notifications/channels')
-  async updateNotificationChannels(
-    @Query('userId') userId: string,
-    @Body() channelsDto: NotificationChannelsDto
-  ) {
-    return this.settingsService.updateNotificationChannels(userId, channelsDto);
-  }
-
-  @Put('users/me/notifications/preferences')
-  async updateNotificationPreferences(
-    @Query('userId') userId: string,
-    @Body() preferencesDto: NotificationPreferencesDto
-  ) {
-    return this.settingsService.updateNotificationPreferences(userId, preferencesDto);
-  }
-
-  // System Settings Endpoints
-  @Get('system')
-  async getAllSystemSettings(): Promise<SystemSettingsResponseDto> {
-    return this.settingsService.getAllSystemSettings();
-  }
-
-  @Get('system/:section')
-  async getSystemSettingsBySection(@Param('section') section: SystemSettingSection) {
-    return this.settingsService.getSystemSettingsBySection(section);
-  }
-
-  @Put('system/:section')
-  async updateSystemSettings(
-    @Param('section') section: SystemSettingSection,
-    @Body() updateDto: UpdateSystemSettingDto
-  ) {
-    return this.settingsService.updateSystemSettings(section, updateDto);
+    return this.settingsService.updateApplicationSetting(settingId, updateDto);
   }
 }

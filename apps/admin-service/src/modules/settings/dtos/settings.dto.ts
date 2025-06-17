@@ -6,96 +6,15 @@ import {
   IsObject, 
   IsNumber, 
   IsEnum, 
+  IsArray,
   MinLength, 
-  Matches 
+  IsIn,
+  Matches,
+  ValidateNested
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
-// User Profile DTOs
-export class UserProfileDto {
-  id: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  position: string;
-  avatarUrl: string;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export class UpdateUserProfileDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  position?: string;
-}
-
-// Security Settings DTOs
-export class ChangePasswordDto {
-  @IsString()
-  currentPassword: string;
-
-  @IsString()
-  @MinLength(8)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
-    message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
-  })
-  newPassword: string;
-
-  @IsString()
-  confirmNewPassword: string;
-}
-
-export class TwoFactorSettingsDto {
-  @IsBoolean()
-  enabled: boolean;
-
-  @IsOptional()
-  @IsString()
-  method?: 'email' | 'sms' | 'authenticator';
-}
-
-export class SessionSettingsDto {
-  @IsNumber()
-  timeout: number; // in minutes
-}
-
-// Notification Settings DTOs
-export class NotificationChannelsDto {
-  @IsBoolean()
-  emailEnabled: boolean;
-
-  @IsBoolean()
-  smsEnabled: boolean;
-
-  @IsBoolean()
-  inAppEnabled: boolean;
-
-  @IsBoolean()
-  pushEnabled: boolean;
-}
-
-export class NotificationPreferencesDto {
-  @IsObject()
-  preferences: Record<string, boolean>;
-}
-
-// System Settings DTOs
-export enum SystemSettingSection {
-  GENERAL = 'general',
-  SECURITY = 'security',
-  NOTIFICATIONS = 'notifications',
-  BILLING = 'billing',
-  APPEARANCE = 'appearance'
-}
-
+// General Settings DTOs
 export class GeneralSettingsDto {
   @IsString()
   companyName: string;
@@ -122,55 +41,275 @@ export class GeneralSettingsDto {
   secondaryColor?: string;
 }
 
+// Security Settings DTOs
+export class PasswordPolicyDto {
+  @IsNumber()
+  minLength: number;
+
+  @IsBoolean()
+  requireUppercase: boolean;
+
+  @IsBoolean()
+  requireLowercase: boolean;
+
+  @IsBoolean()
+  requireNumbers: boolean;
+
+  @IsBoolean()
+  requireSpecialChars: boolean;
+
+  @IsNumber()
+  expiryDays: number;
+}
+
 export class SecuritySettingsDto {
-  passwordPolicy: {
-    minLength: number;
-    requireUppercase: boolean;
-    requireLowercase: boolean;
-    requireNumbers: boolean;
-    requireSpecialChars: boolean;
-    expiryDays: number;
-  };
-  twoFactorEnabledGlobally: boolean;
-  defaultTwoFactorMethods: string[];
+  @ValidateNested()
+  @Type(() => PasswordPolicyDto)
+  passwordPolicy: PasswordPolicyDto;
+
+  @IsBoolean()
+  twoFactorEnabled: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(['email', 'sms', 'authenticator'], { each: true })
+  twoFactorMethods: ('email' | 'sms' | 'authenticator')[];
+
+  @IsNumber()
   sessionTimeout: number;
 }
 
+export class NotifyOnDto {
+  @IsBoolean()
+  newCustomer: boolean;
+
+  @IsBoolean()
+  newInvoice: boolean;
+
+  @IsBoolean()
+  paymentReceived: boolean;
+
+  @IsBoolean()
+  lowTokens: boolean;
+
+  @IsBoolean()
+  securityAlerts: boolean;
+}
+
 export class NotificationSettingsDto {
-  emailEnabled: boolean;
-  smsEnabled: boolean;
-  pushEnabled: boolean;
-  inAppEnabled: boolean;
-  defaultNotificationPreferences: Record<string, boolean>;
+  @IsBoolean()
+  email: boolean;
+
+  @IsBoolean()
+  sms: boolean;
+
+  @IsBoolean()
+  push: boolean;
+
+  @IsBoolean()
+  inApp: boolean;
+
+  @ValidateNested()
+  @Type(() => NotifyOnDto)
+  notifyOn: NotifyOnDto;
 }
 
 export class BillingSettingsDto {
+  @IsString()
   defaultCurrency: string;
-  taxRate?: number;
-  defaultPaymentMethods: string[];
+
+  @IsNumber()
+  taxRate: number;
+
+  @IsArray()
+  @IsString({ each: true })
+  paymentMethods: string[];
+
+  @IsNumber()
   invoiceDueDays: number;
-  invoiceNotes?: string;
+
+  @IsString()
+  invoiceNotes: string;
+
+  @IsBoolean()
   autoGenerateInvoices: boolean;
 }
 
 export class AppearanceSettingsDto {
-  defaultTheme: 'light' | 'dark' | 'system';
-  allowUserThemeOverride: boolean;
+  @IsString()
+  @IsIn(['light', 'dark', 'system'])
+  theme: 'light' | 'dark' | 'system';
+
+  @IsString()
+  @IsIn(['compact', 'comfortable', 'spacious'])
   density: 'compact' | 'comfortable' | 'spacious';
+
+  @IsString()
   fontFamily: string;
+
+  @IsString()
   fontSize: string;
+
+  @IsOptional()
+  @IsString()
   customCss?: string;
 }
 
-export class SystemSettingsResponseDto {
+export class AllSettingsDto {
+  @ValidateNested()
+  @Type(() => GeneralSettingsDto)
   general: GeneralSettingsDto;
+
+  @ValidateNested()
+  @Type(() => SecuritySettingsDto)
   security: SecuritySettingsDto;
+
+  @ValidateNested()
+  @Type(() => NotificationSettingsDto)
   notifications: NotificationSettingsDto;
+
+  @ValidateNested()
+  @Type(() => BillingSettingsDto)
   billing: BillingSettingsDto;
+
+  @ValidateNested()
+  @Type(() => AppearanceSettingsDto)
   appearance: AppearanceSettingsDto;
 }
 
-export class UpdateSystemSettingDto {
+export class UpdateSettingDto {
   @IsObject()
-  settings: Record<string, any>;
+  value: any;
+}
+
+// User Profile DTOs
+export class UserProfileDto {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  position: string;
+  avatarUrl: string;
+  role: string;
+  language: string;
+  timezone: string;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
+export class UpdateUserProfileDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+}
+
+// Security Settings User-specific DTOs
+export class ChangePasswordDto {
+  @IsString()
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class TwoFactorSettingsDto {
+  @IsBoolean()
+  enabled: boolean;
+}
+
+// Active Session DTOs
+export class ActiveSessionDto {
+  id: string;
+  device: string;
+  location: string;
+  ipAddress: string;
+  lastActive: string; // ISO date string
+  isCurrent: boolean;
+  browser?: string;
+  os?: string;
+}
+
+export class ActiveSessionsResponseDto {
+  sessions: ActiveSessionDto[];
+}
+
+// Login History DTOs
+export class LoginAttemptDto {
+  id: string;
+  date: string; // ISO date string
+  ipAddress: string;
+  device: string;
+  location: string;
+  status: 'successful' | 'failed';
+  userAgent?: string;
+}
+
+export class LoginHistoryResponseDto {
+  history: LoginAttemptDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// Notification Preferences DTOs
+export class NotificationPreferenceDto {
+  id: string;
+  label: string;
+  description: string;
+  channel: 'email' | 'push' | 'sms';
+  type: string;
+  isEnabled: boolean;
+}
+
+export class NotificationPreferencesResponseDto {
+  preferences: NotificationPreferenceDto[];
+}
+
+export class UpdateNotificationPreferenceDto {
+  @IsBoolean()
+  isEnabled: boolean;
+}
+
+export class UpdateAllNotificationPreferencesDto {
+  @ValidateNested({ each: true })
+  @Type(() => UpdatePreferenceItemDto)
+  preferences: UpdatePreferenceItemDto[];
+}
+
+export class UpdatePreferenceItemDto {
+  @IsString()
+  id: string;
+
+  @IsBoolean()
+  isEnabled: boolean;
+}
+
+// Application Settings DTOs
+export class AppSettingDto {
+  id: string;
+  name: string;
+  value: string;
+  description: string;
+  category: string;
+}
+
+export class AppSettingsResponseDto {
+  data: AppSettingDto[];
 }

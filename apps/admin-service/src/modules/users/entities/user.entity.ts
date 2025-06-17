@@ -24,9 +24,14 @@ export class User {
     enum: UserType,
   })
   userType: UserType;
-
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'customer_account_id' })
   customerAccountId?: string;
+  
+  @Column({ nullable: true, name: 'customer_name' })
+  customerName?: string;
+  
+  @Column({ nullable: true, name: 'customer_type' })
+  customerType?: string;
 
   @Column({
     type: 'enum',
@@ -38,27 +43,57 @@ export class User {
   @Column({ nullable: true })
   avatar?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ nullable: true })
+  @UpdateDateColumn({ nullable: true, name: 'updated_at' })
   updatedAt?: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'last_login' })
   lastLogin?: Date;
-
-  @Column('simple-array', { nullable: true })
-  permissions?: string[];
+  @Column('simple-json', { nullable: true })
+  permissions?: {
+    applicationId: string;
+    permissions: string[];
+  }[];
 
   @Column({ nullable: true })
   departement?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'phone_number' })
   phoneNumber?: string;
-
+  
+  @Column({ nullable: true })
+  position?: string;
+  
+  @Column({ nullable: true, name: 'id_agent' })
+  idAgent?: string;
+  
+  @Column({ nullable: true, name: 'validity_end' })
+  validityEnd?: Date;
+  
+  @Column({ nullable: true })
+  language?: string;
+  
+  @Column({ nullable: true })
+  timezone?: string;
+  
+  @Column({ type: 'simple-json', nullable: true })
+  kyc?: {
+    status: 'pending' | 'verified' | 'rejected';
+    verifiedAt?: string;
+    documents?: Array<{
+      type: string;
+      verified: boolean;
+      uploadedAt: string;
+    }>;
+  };
   // Relation to Company (if a user can belong to one company)
   // @ManyToOne(() => Company, company => company.users, { nullable: true })
   // company?: Company;
+
+  @Column({ nullable: true, name: 'auth0_id' })
+  auth0Id?: string;
 
   // Relation to Auth (if you store auth specific details separately)
   // @OneToOne(() => Auth, auth => auth.user)

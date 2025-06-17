@@ -5,11 +5,6 @@ Kiota Suit is a comprehensive financial management platform built with a microse
 
 ## Services Architecture
 
-### Auth Service (Port 3000)
-- Authentication and authorization
-- User management
-- OAuth2/OIDC provider
-
 ### Admin Service (Port 3001)
 - System administration
 - Company management
@@ -60,7 +55,6 @@ npm install
 
 3. Create environment files:
 ```bash
-cp apps/auth-service/.env.example apps/auth-service/.env
 cp apps/admin-service/.env.example apps/admin-service/.env
 cp apps/analytics-service/.env.example apps/analytics-service/.env
 cp apps/accounting-service/.env.example apps/accounting-service/.env
@@ -77,7 +71,6 @@ npm run dev
 
 Or start individual services:
 ```bash
-npm run dev --filter=auth-service
 npm run dev --filter=admin-service
 npm run dev --filter=analytics-service
 npm run dev --filter=accounting-service
@@ -87,7 +80,6 @@ npm run dev --filter=portfolio-institution-service
 
 ## API Documentation
 Each service exposes its own Swagger documentation at `/api`:
-- Auth Service: http://localhost:3000/api
 - Admin Service: http://localhost:3001/api
 - Analytics Service: http://localhost:3002/api
 - Accounting Service: http://localhost:3003/api

@@ -1,467 +1,600 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, FindOptionsWhere, Between, MoreThanOrEqual, LessThanOrEqual, Like } from 'typeorm';
 import {
   SubscriptionPlan,
-  CustomerSubscription,
+  Subscription,
   Invoice,
   Transaction,
-  PlanStatus,
-  SubscriptionStatus,
-  TransactionStatus, 
-  InvoiceStatus,
+  InvoiceItem,
+  TransactionStatus,
+  PaymentStatus,
+  InvoiceStatus as EntityInvoiceStatus,
+  BillingCycle,
+  SubscriptionStatus
 } from '../entities/finance.entity';
 import {
-  CreateSubscriptionPlanDto,
-  UpdateSubscriptionPlanDto,
-  SubscriptionPlanQueryParamsDto,
   SubscriptionPlanDto,
-  CreateCustomerSubscriptionDto,
-  UpdateCustomerSubscriptionDto,
+  SubscriptionPlanMetadataDto,
+  CreateSubscriptionDto,
+  UpdateSubscriptionDto,
   CancelSubscriptionDto,
-  SubscriptionQueryParamsDto,
-  CustomerSubscriptionDto,
+  SubscriptionDto,
   CreateInvoiceDto,
   UpdateInvoiceDto,
-  InvoiceQueryParamsDto,
   InvoiceDto,
+  RecordManualPaymentDto,
+  VerifyPaymentDto,
+  PaymentDto,
   CreateTransactionDto,
-  UpdateTransactionDto,
-  TransactionQueryParamsDto,
   TransactionDto,
-  RevenueStatisticsDto,
-  SubscriptionStatisticsDto,
-  FinanceDashboardDto,
+  FinancialSummaryDto,
+  ListSubscriptionsQueryDto,
+  ListInvoicesQueryDto,
+  ListPaymentsQueryDto,
+  ListTransactionsQueryDto,
+  GetFinancialSummaryQueryDto,
 } from '../dtos';
+import { User } from '../../users/entities/user.entity';
+import { EventsService } from '../../events/events.service';
+import { InvoiceStatus as KafkaInvoiceStatus } from '@wanzo/shared/events/kafka-config';
 
 @Injectable()
 export class FinanceService {
   constructor(
     @InjectRepository(SubscriptionPlan)
     private subscriptionPlanRepository: Repository<SubscriptionPlan>,
-    @InjectRepository(CustomerSubscription)
-    private customerSubscriptionRepository: Repository<CustomerSubscription>,
+    @InjectRepository(Subscription)
+    private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Invoice)
     private invoiceRepository: Repository<Invoice>,
     @InjectRepository(Transaction)
-    private transactionRepository: Repository<Transaction>
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private readonly eventsService: EventsService,
   ) {}
 
-  // Subscription Plans
-  async findAllPlans(queryParams: SubscriptionPlanQueryParamsDto): Promise<SubscriptionPlanDto[]> {
-    const { customerType, status } = queryParams;
+  // --- Subscription Plan Endpoints ---
+
+  async listSubscriptionPlans(query: ListSubscriptionsQueryDto): Promise<SubscriptionPlanDto[]> {
     const where: FindOptionsWhere<SubscriptionPlan> = {};
-
-    if (status) {
-      where.status = status as PlanStatus;
+    
+    // Ajout de conditions seulement si ces propriétés existent dans la query
+    if (query.billingCycle) {
+      where.billingCycle = query.billingCycle as BillingCycle;
     }
     
-    let plans = await this.subscriptionPlanRepository.find({
-      where,
-      order: { basePriceUSD: 'ASC' }
-    });
-
-    // Filter by customerType if provided
-    if (customerType) {
-      plans = plans.filter(plan => 
-        plan.targetCustomerTypes.includes(customerType as any)
-      );
-    }
-
-    return plans;
+    const plans = await this.subscriptionPlanRepository.find({ where });
+    return plans.map(plan => this.mapToSubscriptionPlanDto(plan));
   }
 
-  async findOnePlan(id: string): Promise<SubscriptionPlanDto> {
-    const plan = await this.subscriptionPlanRepository.findOne({
-      where: { id }
-    });
+  // --- Subscription Endpoints ---
 
-    if (!plan) {
-      throw new NotFoundException(`Subscription plan with ID ${id} not found`);
-    }
+  async listSubscriptions(query: ListSubscriptionsQueryDto): Promise<{ items: SubscriptionDto[], totalCount: number, page: number, totalPages: number }> {
+    const { page = 1, limit = 10, search, status, planId, customerId } = query;
+    const where: FindOptionsWhere<Subscription> = {};
 
-    return plan;
-  }
-
-  async createPlan(createDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlanDto> {
-    // Check if plan with same name exists
-    const existingPlan = await this.subscriptionPlanRepository.findOne({
-      where: { name: createDto.name }
-    });
-
-    if (existingPlan) {
-      throw new ConflictException('Subscription plan with this name already exists');
-    }
-
-    const newPlan = this.subscriptionPlanRepository.create(createDto);
-    return this.subscriptionPlanRepository.save(newPlan);
-  }
-
-  async updatePlan(id: string, updateDto: UpdateSubscriptionPlanDto): Promise<SubscriptionPlanDto> {
-    const plan = await this.findOnePlan(id);
-
-    // Check if updating name and if it would conflict
-    if (updateDto.name && updateDto.name !== plan.name) {
-      const existingPlan = await this.subscriptionPlanRepository.findOne({
-        where: { name: updateDto.name }
-      });
-
-      if (existingPlan) {
-        throw new ConflictException('Subscription plan with this name already exists');
-      }
-    }
-
-    // Update only provided fields
-    Object.assign(plan, updateDto);
-    return this.subscriptionPlanRepository.save(plan);
-  }
-
-  async removePlan(id: string): Promise<void> {
-    const plan = await this.subscriptionPlanRepository.findOne({ where: { id } }); 
-    if (!plan) {
-      throw new NotFoundException(`Subscription plan with ID ${id} not found`);
-    }
-    
-    // Check if plan has active subscriptions
-    const activeSubscriptions = await this.customerSubscriptionRepository.count({
-      where: {
-        planId: id,
-        status: SubscriptionStatus.ACTIVE
-      }
-    });
-
-    if (activeSubscriptions > 0) {
-      throw new BadRequestException('Cannot delete plan with active subscriptions');
-    }
-
-    await this.subscriptionPlanRepository.remove(plan); 
-  }
-
-  // Customer Subscriptions
-  async findAllSubscriptions(queryParams: SubscriptionQueryParamsDto): Promise<{
-    subscriptions: CustomerSubscriptionDto[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
-    const { customerId, status, planId, page = 1, limit = 10 } = queryParams;
-    const where: FindOptionsWhere<CustomerSubscription> = {};
-
-    if (customerId) where.customerId = customerId;
     if (status) where.status = status as SubscriptionStatus;
     if (planId) where.planId = planId;
+    if (customerId) where.customerId = customerId;
+    
+    // Search implementation (simplified)
+    if (search) {
+      // Simplified search logic
+    }
 
-    const [subscriptions, total] = await this.customerSubscriptionRepository.findAndCount({
+    const [items, totalCount] = await this.subscriptionRepository.findAndCount({
       where,
       relations: ['plan'],
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
     return {
-      subscriptions,
-      total,
+      items: items.map(sub => this.mapToSubscriptionDto(sub)),
+      totalCount,
       page,
-      limit,
-      pages: Math.ceil(total / limit)
+      totalPages: Math.ceil(totalCount / limit),
     };
   }
 
-  async findOneSubscription(id: string): Promise<CustomerSubscriptionDto> {
-    const subscription = await this.customerSubscriptionRepository.findOne({
-      where: { id },
-      relations: ['plan']
+  async getSubscriptionById(subscriptionId: string): Promise<SubscriptionDto> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+      relations: ['plan'],
     });
-
+    
     if (!subscription) {
-      throw new NotFoundException(`Subscription with ID ${id} not found`);
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
     }
-
-    return subscription;
+    
+    return this.mapToSubscriptionDto(subscription);
   }
 
-  async createSubscription(createDto: CreateCustomerSubscriptionDto): Promise<CustomerSubscriptionDto> {
-    // Verify plan exists
-    await this.findOnePlan(createDto.planId);
+  async createSubscription(dto: CreateSubscriptionDto): Promise<SubscriptionDto> {
+    const { customerId, planId } = dto;
+    
+    const customer = await this.userRepository.findOne({ where: { id: customerId }});
+    if (!customer) throw new NotFoundException(`Customer with ID ${customerId} not found`);
 
-    // Check if customer already has an active subscription
-    const existingSubscription = await this.customerSubscriptionRepository.findOne({
-      where: {
-        customerId: createDto.customerId,
-        status: SubscriptionStatus.ACTIVE
-      }
+    const plan = await this.subscriptionPlanRepository.findOne({ where: { id: planId }});
+    if (!plan) throw new NotFoundException(`Plan with ID ${planId} not found`);
+
+    const existingSubscription = await this.subscriptionRepository.findOne({
+        where: { customerId, planId, status: SubscriptionStatus.ACTIVE }
     });
-
+    
     if (existingSubscription) {
-      throw new ConflictException('Customer already has an active subscription');
+        throw new ConflictException('Customer already has an active subscription to this plan.');
     }
 
-    const newSubscription = this.customerSubscriptionRepository.create(createDto);
-    return this.customerSubscriptionRepository.save(newSubscription);
+    const newSubscription = this.subscriptionRepository.create({
+        ...dto,
+        status: SubscriptionStatus.ACTIVE,
+        startDate: new Date(),
+        // Calculate end date based on billing cycle
+    });
+    
+    const savedSubscription = await this.subscriptionRepository.save(newSubscription);
+    return this.getSubscriptionById(savedSubscription.id);
   }
 
-  async updateSubscription(id: string, updateDto: UpdateCustomerSubscriptionDto): Promise<CustomerSubscriptionDto> {
-    const subscription = await this.findOneSubscription(id);
-    
-    // If updating plan, verify it exists
-    if (updateDto.planId) {
-      await this.findOnePlan(updateDto.planId);
+  async updateSubscription(subscriptionId: string, dto: UpdateSubscriptionDto): Promise<SubscriptionDto> {
+    const subscription = await this.subscriptionRepository.findOneBy({ id: subscriptionId });
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
     }
 
-    // Update only provided fields
-    Object.assign(subscription, updateDto);
-    return this.customerSubscriptionRepository.save(subscription);
+    if (dto.planId) {
+        const plan = await this.subscriptionPlanRepository.findOne({ where: { id: dto.planId }});
+        if (!plan) throw new NotFoundException(`Plan with ID ${dto.planId} not found`);
+    }
+
+    Object.assign(subscription, dto);
+    const updatedSubscription = await this.subscriptionRepository.save(subscription);
+    return this.getSubscriptionById(updatedSubscription.id);
   }
 
-  async cancelSubscription(id: string, cancelDto: CancelSubscriptionDto): Promise<CustomerSubscriptionDto> {
-    const subscription = await this.findOneSubscription(id);
+  async cancelSubscription(subscriptionId: string, dto: CancelSubscriptionDto): Promise<SubscriptionDto> {
+    const subscription = await this.subscriptionRepository.findOneBy({ id: subscriptionId });
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
+    }
     
-    if (subscription.status !== SubscriptionStatus.ACTIVE && subscription.status !== SubscriptionStatus.TRIALING) {
-      throw new BadRequestException('Only active or trialing subscriptions can be canceled');
+    if (subscription.status === SubscriptionStatus.CANCELED) {
+        throw new ConflictException('Subscription is already canceled.');
     }
 
     subscription.status = SubscriptionStatus.CANCELED;
+    subscription.cancellationReason = dto.reason;
     subscription.canceledAt = new Date();
-    subscription.cancellationReason = cancelDto.reason;
-
-    return this.customerSubscriptionRepository.save(subscription);
+    
+    const updatedSubscription = await this.subscriptionRepository.save(subscription);
+    return this.mapToSubscriptionDto(updatedSubscription);
   }
 
-  // Invoices
-  async findAllInvoices(queryParams: InvoiceQueryParamsDto): Promise<{
-    invoices: InvoiceDto[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
-    const { customerId, status, startDate, endDate, page = 1, limit = 10 } = queryParams;
+  // --- Invoice Endpoints ---
+
+  async listInvoices(query: ListInvoicesQueryDto): Promise<{ items: InvoiceDto[], totalCount: number, page: number, totalPages: number }> {
+    const { page = 1, limit = 10, search, status, customerId, startDate, endDate } = query;
     const where: FindOptionsWhere<Invoice> = {};
 
+    if (status) where.status = status as EntityInvoiceStatus;
     if (customerId) where.customerId = customerId;
-    if (status) where.status = status as InvoiceStatus; 
-      // Date range filtering
+    
     if (startDate && endDate) {
-      where.createdAt = Between(new Date(startDate), new Date(endDate));
-    } else if (startDate) {
-      where.createdAt = MoreThanOrEqual(new Date(startDate));
-    } else if (endDate) {
-      where.createdAt = LessThanOrEqual(new Date(endDate));
+      where.issueDate = Between(new Date(startDate), new Date(endDate));
+    }
+    
+    // Search implementation
+    if (search) {
+      // For search we'd typically use more complex queries or a dedicated search solution
+      // Simplified example:
+      where.invoiceNumber = Like(`%${search}%`);
     }
 
-    const [invoices, total] = await this.invoiceRepository.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' }
+    const [items, totalCount] = await this.invoiceRepository.findAndCount({
+        where,
+        relations: ['items'],
+        skip: (page - 1) * limit,
+        take: limit,
+        order: { issueDate: 'DESC' },
     });
 
     return {
-      invoices,
-      total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit)
+        items: items.map(invoice => this.mapToInvoiceDto(invoice)),
+        totalCount,
+        page,
+        totalPages: Math.ceil(totalCount / limit),
     };
   }
 
-  async findOneInvoice(id: string): Promise<InvoiceDto> {
+  async getInvoiceById(invoiceId: string): Promise<InvoiceDto> {
     const invoice = await this.invoiceRepository.findOne({
-      where: { id }
+        where: { id: invoiceId },
+        relations: ['items'],
     });
-
+    
     if (!invoice) {
-      throw new NotFoundException(`Invoice with ID ${id} not found`);
+      throw new NotFoundException(`Invoice with ID ${invoiceId} not found`);
     }
-
-    return invoice;
+    
+    return this.mapToInvoiceDto(invoice);
   }
 
-  async createInvoice(createDto: CreateInvoiceDto): Promise<InvoiceDto> {
-    const newInvoice = this.invoiceRepository.create(createDto);
-    return this.invoiceRepository.save(newInvoice);
+  async createInvoice(dto: CreateInvoiceDto): Promise<InvoiceDto> {
+    const customer = await this.userRepository.findOne({ where: { id: dto.customerId }});
+    if (!customer) throw new NotFoundException(`Customer with ID ${dto.customerId} not found`);
+
+    const newInvoice = this.invoiceRepository.create({
+        ...dto,
+        status: EntityInvoiceStatus.PENDING,
+        // Generate invoice number logic
+    });
+    
+    const savedInvoice = await this.invoiceRepository.save(newInvoice);
+    
+    await this.eventsService.publishInvoiceCreated({
+      invoiceId: savedInvoice.id,
+      customerId: savedInvoice.customerId,
+      amount: savedInvoice.totalAmount,
+      currency: savedInvoice.currency || 'USD',
+      dueDate: savedInvoice.dueDate?.toISOString() || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+    });
+    
+    return this.getInvoiceById(savedInvoice.id);
   }
 
-  async updateInvoice(id: string, updateDto: UpdateInvoiceDto): Promise<InvoiceDto> {
-    const invoice = await this.findOneInvoice(id);
-
-    // Update only provided fields
-    Object.assign(invoice, updateDto);
-    return this.invoiceRepository.save(invoice);
-  }
-
-  async removeInvoice(id: string): Promise<void> {
-    const invoiceEntity = await this.invoiceRepository.findOne({ where: { id } });
-    if (!invoiceEntity) {
-      throw new NotFoundException(`Invoice with ID ${id} not found`);
+  async updateInvoice(invoiceId: string, dto: UpdateInvoiceDto): Promise<InvoiceDto> {
+    const invoice = await this.invoiceRepository.findOneBy({ id: invoiceId });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${invoiceId} not found`);
     }
-    await this.invoiceRepository.remove(invoiceEntity);
+    
+    if (invoice.status === EntityInvoiceStatus.PAID || invoice.status === EntityInvoiceStatus.CANCELED) {
+        throw new ConflictException(`Cannot update a ${invoice.status} invoice.`);
+    }
+    
+    const previousStatus = invoice.status;
+    Object.assign(invoice, dto);
+    const updatedInvoice = await this.invoiceRepository.save(invoice);
+    
+    // Check if status has changed
+    if (previousStatus !== updatedInvoice.status) {
+      // Map from entity status to shared Kafka enum status
+      const prevKafkaStatus = this.mapToKafkaInvoiceStatus(previousStatus);
+      const newKafkaStatus = this.mapToKafkaInvoiceStatus(updatedInvoice.status);
+      
+      await this.eventsService.publishInvoiceStatusChanged({
+        invoiceId: updatedInvoice.id,
+        previousStatus: prevKafkaStatus,
+        newStatus: newKafkaStatus,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    return this.mapToInvoiceDto(updatedInvoice);
   }
 
-  // Transactions
-  async findAllTransactions(queryParams: TransactionQueryParamsDto): Promise<{
-    transactions: TransactionDto[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
-    const { customerId, type, status, startDate, endDate, page = 1, limit = 10 } = queryParams;
+  async deleteInvoice(invoiceId: string): Promise<void> {
+    const invoice = await this.invoiceRepository.findOneBy({ id: invoiceId });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${invoiceId} not found`);
+    }
+    
+    if (invoice.status === EntityInvoiceStatus.PAID) {
+        throw new ConflictException('Cannot delete a paid invoice.');
+    }
+    
+    await this.invoiceRepository.remove(invoice);
+  }
+
+  // --- Payment Endpoints ---
+  async listPayments(query: ListPaymentsQueryDto): Promise<{ items: PaymentDto[], totalCount: number, page: number, totalPages: number }> {
+    const { page = 1, limit = 10, search, status, customerId } = query;
     const where: FindOptionsWhere<Transaction> = {};
 
-    if (customerId) where.customerId = customerId;
-    if (type) where.type = type as any; 
-    if (status) where.status = status as TransactionStatus; 
-    
-    // Date range filtering
-    if (startDate && endDate) {
-      where.createdAt = Between(new Date(startDate), new Date(endDate));
-    } else if (startDate) {
-      where.createdAt = Between(new Date(startDate), new Date());
-    }
-
-    const [transactions, total] = await this.transactionRepository.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' }
-    });
-
-    return {
-      transactions,
-      total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit)
-    };
-  }
-
-  async findOneTransaction(id: string): Promise<TransactionDto> {
-    const transaction = await this.transactionRepository.findOne({
-      where: { id }
-    });
-
-    if (!transaction) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
-    }
-
-    return transaction;
-  }
-
-  async createTransaction(createDto: CreateTransactionDto): Promise<TransactionDto> {
-    const newTransaction = this.transactionRepository.create(createDto);
-    return this.transactionRepository.save(newTransaction);
-  }
-
-  async updateTransaction(id: string, updateDto: UpdateTransactionDto): Promise<TransactionDto> {
-    const transaction = await this.findOneTransaction(id);
-
-    // Update only provided fields
-    Object.assign(transaction, updateDto);
-    return this.transactionRepository.save(transaction);
-  }
-
-  // Dashboard and Statistics
-  async getRevenueStatistics(startDate?: string, endDate?: string): Promise<RevenueStatisticsDto> {
-    const end = endDate ? new Date(endDate) : new Date();
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(end.getDate() - 30));
-    
-    // Query for revenue data between dates
-    const transactions = await this.transactionRepository.find({
-      where: {
-        status: TransactionStatus.SUCCEEDED, // Corrected: Use SUCCEEDED from the enum
-        createdAt: Between(start, end)
+    if (status) {
+      // Conversion sécurisée entre les statuts de paiement et de transaction
+      if (status === PaymentStatus.VERIFIED) {
+        where.status = TransactionStatus.VERIFIED;
+      } else if (status === PaymentStatus.REJECTED) {
+        where.status = TransactionStatus.REJECTED;
+      } else {
+        where.status = TransactionStatus.PENDING;
       }
-    });
-
-    // Calculate statistics
-    const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
+    }
     
-    // Group by month for monthly revenue
-    const monthlyRevenue: { [key: string]: number } = {}; 
-    transactions.forEach(t => {
-      const month = t.createdAt.toISOString().substring(0, 7); // YYYY-MM
-      monthlyRevenue[month] = (monthlyRevenue[month] || 0) + t.amount;
-    });
+    if (customerId) {
+      where.customerId = customerId;
+    }
+    
+    // Search implementation
+    if (search) {
+      where.reference = Like(`%${search}%`);
+    }
 
-    // Convert to array for charting
-    const revenueByMonth: { month: string; amount: number }[] = Object.entries(monthlyRevenue).map(([month, amount]) => ({ 
-      month,
-      amount: amount as number
-    }));
-
-    return {
-      totalRevenue,
-      revenueByMonth, // This now matches the DTO
-      transactionCount: transactions.length,
-      averageTransactionValue: transactions.length ? totalRevenue / transactions.length : 0
-    };
-  }
-
-  async getSubscriptionStatistics(): Promise<SubscriptionStatisticsDto> {
-    // Active subscriptions count
-    const activeSubscriptionsCount = await this.customerSubscriptionRepository.count({
-      where: { status: SubscriptionStatus.ACTIVE }
-    });
-
-    // Subscriptions by plan
-    const rawSubscriptionsByPlan = await this.customerSubscriptionRepository
-      .createQueryBuilder('subscription')
-      .leftJoinAndSelect('subscription.plan', 'plan') 
-      .select('plan.name', 'planName') 
-      .addSelect('COUNT(subscription.id)', 'count')
-      .where('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
-      .groupBy('plan.name') 
-      .getRawMany();
-
-    const subscriptionsByPlanMap: { [key: string]: number } = {};
-    rawSubscriptionsByPlan.forEach(item => {
-      subscriptionsByPlanMap[item.planName] = parseInt(item.count, 10);
-    });
-
-    const activeSubscriptions = await this.customerSubscriptionRepository.find({
-      where: { status: SubscriptionStatus.ACTIVE },
-      relations: ['plan']
-    });
-
-    const mrr = activeSubscriptions.reduce((sum, sub) => {
-      return sum + (sub.plan?.basePriceUSD || 0);
-    }, 0);
-
-    return {
-      activeSubscriptions: activeSubscriptionsCount,
-      subscriptionsByPlan: subscriptionsByPlanMap, // This now matches the DTO
-      mrr,
-      averageSubscriptionValue: activeSubscriptionsCount ? mrr / activeSubscriptionsCount : 0
-    };
-  }
-
-  async getFinanceDashboard(startDate?: string, endDate?: string): Promise<FinanceDashboardDto> {
-    const end = endDate ? new Date(endDate) : new Date();
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(end.getDate() - 30));
-
-    const [revenueStats, subscriptionStats, recentTransactions, pendingInvoices] = await Promise.all([
-      this.getRevenueStatistics(start.toISOString().split('T')[0], end.toISOString().split('T')[0]),
-      this.getSubscriptionStatistics(),
-      this.transactionRepository.find({
-        where: { createdAt: MoreThanOrEqual(new Date(new Date().setDate(new Date().getDate() - 30))) }, 
+    const [items, totalCount] = await this.transactionRepository.findAndCount({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
         order: { createdAt: 'DESC' },
-        take: 10
-      }),
-      this.invoiceRepository.find({
-        where: { status: InvoiceStatus.OPEN }, // Corrected: Use OPEN from the enum
-        order: { dueDate: 'ASC' },
-        take: 10
-      })
-    ]);
+    });
 
     return {
-      revenueStatistics: revenueStats,
-      subscriptionStatistics: subscriptionStats,
-      recentTransactions, 
-      pendingInvoices, 
+        items: items.map(transaction => this.mapToPaymentDto(transaction)),
+        totalCount,
+        page,
+        totalPages: Math.ceil(totalCount / limit),
     };
+  }
+
+  async getPaymentById(paymentId: string): Promise<PaymentDto> {
+    const transaction = await this.transactionRepository.findOne({
+        where: { id: paymentId },
+    });
+    
+    if (!transaction) {
+      throw new NotFoundException(`Payment with ID ${paymentId} not found`);
+    }
+    
+    return this.mapToPaymentDto(transaction);
+  }
+  async recordManualPayment(dto: RecordManualPaymentDto, adminUser: User): Promise<PaymentDto> {
+    const customer = await this.userRepository.findOne({ where: { id: dto.customerId }});
+    if (!customer) throw new NotFoundException(`Customer with ID ${dto.customerId} not found`);
+
+    const newTransaction = this.transactionRepository.create({
+        customerId: dto.customerId,
+        amount: dto.amount,
+        currency: dto.currency,
+        reference: dto.transactionReference,
+        status: TransactionStatus.PENDING,
+        description: dto.description,
+        // Add invoice reference if available in your DTO
+        // invoiceId: dto.invoiceId
+    });
+    
+    const savedTransaction = await this.transactionRepository.save(newTransaction);
+    
+    // Only publish payment event if related to an invoice
+    // You should add invoiceId to your DTO if needed
+    // if (dto.invoiceId) {
+    //   await this.eventsService.publishPaymentReceived({
+    //     paymentId: savedTransaction.id,
+    //     invoiceId: dto.invoiceId,
+    //     customerId: dto.customerId,
+    //     amount: dto.amount,
+    //     currency: dto.currency,
+    //     paymentDate: new Date().toISOString(),
+    //     timestamp: new Date().toISOString(),
+    //   });
+    // }
+    
+    return this.getPaymentById(savedTransaction.id);
+  }
+
+  async verifyPayment(dto: VerifyPaymentDto, adminUser: User): Promise<PaymentDto> {
+    const { paymentId, status, adminNotes } = dto;
+    const transaction = await this.transactionRepository.findOneBy({ id: paymentId });
+    
+    if (!transaction) {
+      throw new NotFoundException(`Payment with ID ${paymentId} not found`);
+    }
+    
+    if (transaction.status !== TransactionStatus.PENDING) {
+        throw new ConflictException('Payment is not in a pending state.');
+    }
+
+    // Conversion du statut PaymentStatus vers TransactionStatus
+    let newStatus: TransactionStatus;
+    if (status === PaymentStatus.VERIFIED) {
+      newStatus = TransactionStatus.VERIFIED;
+    } else if (status === PaymentStatus.REJECTED) {
+      newStatus = TransactionStatus.REJECTED;
+    } else {
+      newStatus = TransactionStatus.PENDING;
+    }
+
+    transaction.status = newStatus;
+    // Note: Les champs comme verifiedById, verifiedAt doivent être ajoutés à l'entité Transaction
+    // pour une implémentation complète
+    
+    const updatedTransaction = await this.transactionRepository.save(transaction);
+
+    // If the transaction is verified and related to an invoice (you'll need to add this field to your entity)
+    // if (newStatus === TransactionStatus.VERIFIED && transaction.invoiceId) {
+    //   const invoice = await this.invoiceRepository.findOneBy({ id: transaction.invoiceId });
+    //   if (invoice) {
+    //     const previousStatus = invoice.status;
+    //     invoice.status = EntityInvoiceStatus.PAID;
+    //     invoice.paidDate = new Date();
+    //     await this.invoiceRepository.save(invoice);
+    //     
+    //     // Map from entity status to shared Kafka enum status
+    //     const prevKafkaStatus = this.mapToKafkaInvoiceStatus(previousStatus);
+    //     const newKafkaStatus = this.mapToKafkaInvoiceStatus(EntityInvoiceStatus.PAID);
+    //     
+    //     // Publish invoice status changed event
+    //     await this.eventsService.publishInvoiceStatusChanged({
+    //       invoiceId: invoice.id,
+    //       previousStatus: prevKafkaStatus,
+    //       newStatus: newKafkaStatus,
+    //       timestamp: new Date().toISOString(),
+    //     });
+    //   }
+    // }
+    
+    return this.mapToPaymentDto(updatedTransaction);
+  }  // Helper method to map entity InvoiceStatus to shared Kafka InvoiceStatus
+  private mapToKafkaInvoiceStatus(status: EntityInvoiceStatus): KafkaInvoiceStatus {
+    switch(status) {      case EntityInvoiceStatus.PAID:
+        return KafkaInvoiceStatus.PAID;
+      case EntityInvoiceStatus.DRAFT:
+        return KafkaInvoiceStatus.DRAFT;
+      case EntityInvoiceStatus.SENT:
+        return KafkaInvoiceStatus.SENT;
+      case EntityInvoiceStatus.OVERDUE:
+        return KafkaInvoiceStatus.OVERDUE;
+      case EntityInvoiceStatus.CANCELED:
+        return KafkaInvoiceStatus.CANCELLED;
+      case EntityInvoiceStatus.PENDING:
+        return KafkaInvoiceStatus.DRAFT; // Map PENDING to DRAFT in Kafka (ou autre valeur appropriée)
+      default:
+        return KafkaInvoiceStatus.DRAFT;
+    }
+  }
+
+  // --- Financial Summary Endpoint ---
+
+  async getFinancialSummary(query: GetFinancialSummaryQueryDto): Promise<FinancialSummaryDto> {
+    const { period, customerId } = query;
+    
+    // Logique simplifiée pour la démo
+    // Dans une implémentation réelle, cela impliquerait des requêtes plus complexes
+    
+    return {
+        totalRevenue: 0,
+        pendingInvoices: 0,
+        pendingAmount: 0,
+        overdueAmount: 0,
+        paidInvoices: 0,
+        revenueByMonth: {},
+        topCustomers: [],
+    };
+  }
+
+  // --- Mappers ---
+
+  private mapToSubscriptionPlanDto(plan: SubscriptionPlan): SubscriptionPlanDto {
+    // Conversion du metadata en type SubscriptionPlanMetadataDto pour garantir la conformité
+    const metadata: SubscriptionPlanMetadataDto = {
+      maxUsers: plan.metadata?.maxUsers || 0,
+      storageLimit: plan.metadata?.storageLimit || '0GB'
+    };
+    
+    return {
+      id: plan.id,
+      name: plan.name,
+      description: plan.description,
+      price: plan.price,
+      currency: plan.currency,
+      billingCycle: plan.billingCycle,
+      features: plan.features || [],
+      isActive: plan.isActive,
+      trialPeriodDays: plan.trialPeriodDays || 0,
+      metadata: metadata,
+    };
+  }
+
+  private mapToSubscriptionDto(sub: Subscription): SubscriptionDto {
+    return {
+      id: sub.id,
+      customerId: sub.customerId,
+      customerName: '', // À remplir avec les données du client si nécessaire
+      planId: sub.planId,
+      planName: sub.plan?.name || '',
+      status: sub.status,
+      startDate: sub.startDate?.toISOString() || new Date().toISOString(),
+      endDate: sub.endDate?.toISOString(),
+      currentPeriodStart: sub.currentPeriodStart?.toISOString() || new Date().toISOString(),
+      currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || new Date().toISOString(),
+      nextBillingDate: sub.nextBillingDate?.toISOString(),
+      amount: sub.amount || 0,
+      currency: sub.currency || 'USD',
+      billingCycle: sub.billingCycle,
+      autoRenew: sub.autoRenew || false,
+      paymentMethodId: sub.paymentMethodId,
+      createdAt: sub.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: sub.updatedAt?.toISOString() || new Date().toISOString(),
+      trialEndsAt: sub.trialEndsAt?.toISOString(),
+      canceledAt: sub.canceledAt?.toISOString(),
+      cancellationReason: sub.cancellationReason,
+      metadata: sub.metadata || {},
+    };
+  }
+
+  private mapToInvoiceDto(invoice: Invoice): InvoiceDto {
+    // Calcul du sous-total à partir des éléments de la facture
+    const subtotal = invoice.items?.reduce((sum, item) => sum + (item.subtotal || 0), 0) || 0;
+    
+    return {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      customerId: invoice.customerId,
+      customerName: '', // À remplir avec les données du client si nécessaire
+      amount: invoice.totalAmount,
+      currency: invoice.currency,
+      status: invoice.status,
+      issueDate: invoice.issueDate?.toISOString() || new Date().toISOString(),
+      dueDate: invoice.dueDate?.toISOString() || new Date().toISOString(),
+      paidDate: invoice.paidDate?.toISOString(),
+      items: invoice.items?.map(item => ({
+          id: item.id,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+          taxRate: item.taxRate,
+          taxAmount: item.taxAmount,
+      })) || [],
+      subtotal: subtotal,
+      taxAmount: invoice.taxAmount || 0,
+      discountAmount: invoice.discountAmount || 0,
+      totalAmount: invoice.totalAmount,
+      notes: invoice.notes,
+    };
+  }
+  private mapToPaymentDto(transaction: Transaction): PaymentDto {
+    // Conversion du statut de Transaction en PaymentStatus
+    let paymentStatus: PaymentStatus;
+    if (transaction.status === TransactionStatus.VERIFIED) {
+      paymentStatus = PaymentStatus.VERIFIED;
+    } else if (transaction.status === TransactionStatus.REJECTED) {
+      paymentStatus = PaymentStatus.REJECTED;
+    } else {
+      paymentStatus = PaymentStatus.PENDING;
+    }
+    
+    return {
+        id: transaction.id,
+        invoiceId: '', // À remplir si la transaction est liée à une facture
+        customerId: transaction.customerId,
+        customerName: '', // À remplir avec les données du client si nécessaire
+        amount: transaction.amount,
+        currency: transaction.currency || 'USD',
+        method: undefined, // Transaction entity needs a method property
+        proofType: '', // Transaction entity needs a proofType property
+        proofUrl: '', // Transaction entity needs a proofUrl property
+        status: paymentStatus,
+        transactionReference: transaction.reference || '',
+        paidAt: transaction.createdAt?.toISOString() || new Date().toISOString(),
+        createdAt: transaction.createdAt?.toISOString() || new Date().toISOString(),
+        description: transaction.description || '',
+        verifiedBy: '', // À remplir avec les données de l'utilisateur qui a vérifié si nécessaire
+        verifiedAt: '', // Transaction entity needs a verifiedAt property
+        metadata: {
+          approvalNotes: '',
+        },
+    };
+  }
+
+  async sendInvoiceReminder(invoiceId: string): Promise<{ message: string }> {
+    const invoice = await this.invoiceRepository.findOneBy({ id: invoiceId });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${invoiceId} not found`);
+    }
+      if (invoice.status !== EntityInvoiceStatus.PENDING && invoice.status !== EntityInvoiceStatus.OVERDUE) {
+      throw new ConflictException(`Invoice is not in a pending or overdue state.`);
+    }
+    
+    // Logique d'envoi de rappel (email, notification, etc.)
+    // Dans une implémentation réelle, cette méthode pourrait appeler un service de messagerie
+    console.log(`Sending reminder for invoice ${invoice.invoiceNumber} to customer ${invoice.customerId}`);
+    
+    return { message: 'Reminder sent successfully.' };
   }
 }

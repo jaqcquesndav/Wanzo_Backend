@@ -12,6 +12,19 @@ export enum ChatPriority {
   HIGH = 'high',
 }
 
+export enum ChatMessageSender {
+  USER = 'user',
+  SUPPORT = 'support',
+}
+
+export enum MessageStatus {
+  SENDING = 'sending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  READ = 'read',
+  FAILED = 'failed',
+}
+
 @Entity('chat_sessions')
 export class ChatSession {
   @PrimaryGeneratedColumn('uuid')
@@ -59,11 +72,6 @@ export class ChatSession {
   updatedAt: Date;
 }
 
-export enum ChatMessageSender {
-  USER = 'user',
-  SUPPORT = 'support',
-}
-
 @Entity('chat_messages')
 export class ChatMessage {
   @PrimaryGeneratedColumn('uuid')
@@ -78,6 +86,9 @@ export class ChatMessage {
   @Column({ default: false })
   read: boolean;
 
+  @Column({ type: 'enum', enum: MessageStatus, default: MessageStatus.SENT })
+  status: MessageStatus;
+
   @CreateDateColumn()
   timestamp: Date;
 
@@ -90,7 +101,6 @@ export class ChatMessage {
 
   @OneToMany(() => ChatAttachment, (attachment) => attachment.message, { cascade: true, nullable: true })
   attachments?: ChatAttachment[];
-
 }
 
 @Entity('chat_attachments')
@@ -110,6 +120,14 @@ export class ChatAttachment {
   @Column('bigint')
   size: number; // in bytes
 
+  @Column({ type: 'json', nullable: true })
+  metadata?: {
+    width?: number;
+    height?: number;
+    duration?: number;
+    [key: string]: any;
+  };
+
   @Column()
   messageId: string;
 
@@ -119,4 +137,30 @@ export class ChatAttachment {
 
   @CreateDateColumn()
   createdAt: Date;
+}
+
+@Entity('chat_typing_events')
+export class ChatTypingEvent {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  sessionId: string;
+
+  @Column()
+  userId: string;
+
+  @Column()
+  isTyping: boolean;
+
+  @CreateDateColumn()
+  timestamp: Date;
+
+  @ManyToOne(() => ChatSession, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'sessionId' })
+  session: ChatSession;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 }

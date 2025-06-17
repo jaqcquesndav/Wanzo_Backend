@@ -28,11 +28,6 @@ scrape_configs:
       - targets: ['host.docker.internal:9466']
     metrics_path: '/metrics'
 
-  - job_name: 'auth-service'
-    static_configs:
-      - targets: ['host.docker.internal:9467']
-    metrics_path: '/metrics'
-
   - job_name: 'portfolio-institution-service'
     static_configs:
       - targets: ['host.docker.internal:9468']

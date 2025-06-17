@@ -1,89 +1,77 @@
 # API Documentation: Customer Management
 
-This document outlines the API endpoints, request/response structures, and functionalities related to customer management. This includes CRUD operations for customers, Know Your Customer (KYC) processes, data validation, document handling, and differentiation between corporate and individual customer types.
+This document outlines the API endpoints, request/response structures, and functionalities related to customer management. This includes CRUD operations for customers, Know Your Customer (KYC) processes, data validation, document handling, and differentiation between various customer types.
 
 ## 1. Customer Endpoints
 
 ### 1.1. List Customers
-*   **Endpoint:** `GET /api/customers`
-*   **Description:** Retrieves a list of all customers, with optional pagination and filtering.
-*   **Request:**
-    *   Query Parameters:
-        *   `page` (optional, integer): Page number for pagination.
-        *   `limit` (optional, integer): Number of items per page.
-        *   `sortBy` (optional, string): Field to sort by (e.g., `createdAt`, `name`).
-        *   `sortOrder` (optional, string): `asc` or `desc`.
-        *   `type` (optional, string): Filter by customer type (`individual`, `corporate`).
-        *   `status` (optional, string): Filter by KYC status (e.g., `pending`, `verified`, `rejected`).
-        *   `search` (optional, string): Search term for customer name, email, etc.
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/customers`
+*   **Description:** Retrieves a list of all customers, with pagination and filtering options.
+*   **Query Parameters:**
+    *   `page` (optional, integer): Page number for pagination.
+    *   `limit` (optional, integer): Number of items per page.
+    *   `sortBy` (optional, string): Field to sort by (e.g., `createdAt`, `name`).
+    *   `sortOrder` (optional, string): `asc` or `desc`.
+    *   `type` (optional, string): Filter by customer type (`pme`, `financial`).
+    *   `status` (optional, string): Filter by status (`active`, `pending`, `suspended`, `inactive`, `needs_validation`, `validation_in_progress`).
+    *   `search` (optional, string): Search term for customer name, email, etc.
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "data": [
+          "customers": [
             {
               "id": "cust_123",
-              "type": "individual", // or "corporate"
-              "firstName": "John",
-              "lastName": "Doe",
-              "email": "john.doe@example.com",
-              "phoneNumber": "+1234567890",
-              "companyName": null, // if individual
-              "registrationNumber": null, // if individual
-              "status": "verified", // kyc status
+              "name": "Acme Corp",
+              "type": "pme",
+              "email": "contact@acmecorp.com",
+              "phone": "+243123456789",
+              "address": "123 Main St, Kinshasa",
+              "city": "Kinshasa",
+              "country": "Democratic Republic of Congo",
+              "status": "active",
+              "billingContactName": "John Doe",
+              "billingContactEmail": "billing@acmecorp.com",
+              "tokenAllocation": 1000,
+              "accountType": "premium",
               "createdAt": "2023-01-15T10:00:00Z",
               "updatedAt": "2023-01-16T12:00:00Z"
-              // ... other relevant customer fields
             }
           ],
-          "pagination": {
-            "currentPage": 1,
-            "totalPages": 5,
-            "totalItems": 50,
-            "itemsPerPage": 10
-          }
+          "totalCount": 50,
+          "page": 1,
+          "totalPages": 5
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+        ```json
+        {
+          "error": "Invalid query parameter: 'status' must be one of [active, pending, suspended, inactive, needs_validation, validation_in_progress]."
         }
         ```
     *   `401 Unauthorized`: If the user is not authenticated.
     *   `403 Forbidden`: If the user does not have permission.
-
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid query parameters (e.g., invalid format for `page` or `limit`).
-    ```json
-    {
-      "error": "Invalid query parameter: \'status\' must be one of [pending, verified, rejected]."
-    }
-    ```
-*   **500 Internal Server Error:** Unexpected server error.
+    *   `500 Internal Server Error`: Unexpected server error.
 
 ### 1.2. Create Customer
-*   **Endpoint:** `POST /api/customers`
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/customers`
 *   **Description:** Creates a new customer.
 *   **Request Body:**
     ```json
     {
-      "type": "individual", // "individual" or "corporate"
-      "firstName": "Jane", // required if type is "individual"
-      "lastName": "Doe",   // required if type is "individual"
-      "email": "jane.doe@example.com", // required
-      "phoneNumber": "+0987654321", // optional
-      "address": {
-        "street": "123 Main St",
-        "city": "Anytown",
-        "state": "CA",
-        "postalCode": "90210",
-        "country": "USA"
-      },
-      // Fields for "corporate" type
-      "companyName": "Acme Corp", // required if type is "corporate"
-      "registrationNumber": "REG12345", // required if type is "corporate"
-      "contactPerson": {
-          "name": "Contact Name",
-          "email": "contact@acmecorp.com",
-          "phone": "+1122334455"
-      }
-      // ... other relevant fields
+      "name": "Acme Corp",
+      "type": "pme",
+      "email": "contact@acmecorp.com",
+      "phone": "+243123456789",
+      "address": "123 Main St, Kinshasa",
+      "city": "Kinshasa",
+      "country": "Democratic Republic of Congo",
+      "billingContactName": "John Doe",
+      "billingContactEmail": "billing@acmecorp.com",
+      "accountType": "premium"
     }
     ```
 *   **Response:**
@@ -91,16 +79,23 @@ This document outlines the API endpoints, request/response structures, and funct
         ```json
         {
           "id": "cust_124",
-          "type": "individual",
-          "firstName": "Jane",
-          "lastName": "Doe",
-          "email": "jane.doe@example.com",
-          // ... other fields as created
-          "status": "pending_verification",
+          "name": "Acme Corp",
+          "type": "pme",
+          "email": "contact@acmecorp.com",
+          "phone": "+243123456789",
+          "address": "123 Main St, Kinshasa",
+          "city": "Kinshasa",
+          "country": "Democratic Republic of Congo",
+          "status": "pending",
+          "billingContactName": "John Doe",
+          "billingContactEmail": "billing@acmecorp.com",
+          "tokenAllocation": 0,
+          "accountType": "premium",
           "createdAt": "2023-01-17T10:00:00Z"
         }
         ```
-    *   `400 Bad Request`: If validation fails (e.g., missing required fields, invalid email format).
+*   **Error Responses:**
+    *   `400 Bad Request`: If validation fails.
         ```json
         {
           "error": "Validation failed",
@@ -110,419 +105,556 @@ This document outlines the API endpoints, request/response structures, and funct
           }
         }
         ```
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-
-**Error Responses (General):**
-
-*   **409 Conflict:** If a customer with the same email already exists.
-    ```json
-    {
-      "error": "Customer with this email already exists."
-    }
-    ```
-*   **422 Unprocessable Entity:** For detailed validation errors if not covered by 400.
-*   **500 Internal Server Error:** Unexpected server error.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `409 Conflict`: If a customer with the same email already exists.
+    *   `500 Internal Server Error`: Unexpected server error.
 
 ### 1.3. Get Customer Details
-*   **Endpoint:** `GET /api/customers/{customerId}`
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/customers/{customerId}`
 *   **Description:** Retrieves details for a specific customer.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "id": "cust_123",
-          "type": "individual",
-          "firstName": "John",
-          "lastName": "Doe",
-          "email": "john.doe@example.com",
-          "phoneNumber": "+1234567890",
-          "address": {
-            "street": "123 Main St",
-            "city": "Anytown",
-            "state": "CA",
-            "postalCode": "90210",
-            "country": "USA"
-          },
-          "kycDetails": {
-            "status": "verified",
-            "verifiedAt": "2023-01-16T11:00:00Z",
+          "customer": {
+            "id": "cust_123",
+            "name": "Acme Corp",
+            "type": "pme",
+            "email": "contact@acmecorp.com",
+            "phone": "+243123456789",
+            "address": "123 Main St, Kinshasa",
+            "city": "Kinshasa",
+            "country": "Democratic Republic of Congo",
+            "status": "active",
+            "billingContactName": "John Doe",
+            "billingContactEmail": "billing@acmecorp.com",
+            "tokenAllocation": 1000,
+            "accountType": "premium",
+            "ownerId": "user_456",
+            "ownerEmail": "owner@acmecorp.com",
+            "validatedAt": "2023-01-16T11:00:00Z",
+            "validatedBy": "admin_789",
             "documents": [
-              { "documentId": "doc_id1", "type": "passport", "status": "approved" }
-            ]
+              {
+                "id": "doc_001",
+                "type": "rccm",
+                "fileName": "rccm_certificate.pdf",
+                "fileUrl": "https://example.com/docs/rccm_certificate.pdf",
+                "uploadedAt": "2023-01-15T14:00:00Z",
+                "uploadedBy": "user_456",
+                "status": "approved",
+                "reviewedAt": "2023-01-16T10:00:00Z",
+                "reviewedBy": "admin_789"
+              }
+            ],
+            "validationHistory": [
+              {
+                "date": "2023-01-15T15:00:00Z",
+                "action": "info_submitted",
+                "by": "user_456"
+              },
+              {
+                "date": "2023-01-16T11:00:00Z",
+                "action": "validated",
+                "by": "admin_789",
+                "notes": "All documents verified successfully."
+              }
+            ],
+            "createdAt": "2023-01-15T10:00:00Z",
+            "updatedAt": "2023-01-16T12:00:00Z"
           },
-          "createdAt": "2023-01-15T10:00:00Z",
-          "updatedAt": "2023-01-16T12:00:00Z"
-          // ... other relevant customer fields
+          "statistics": {
+            "tokensUsed": 250,
+            "lastActivity": "2023-01-17T09:30:00Z",
+            "activeSubscriptions": 1,
+            "totalSpent": 500
+          },
+          "activities": [
+            {
+              "id": "act_001",
+              "customerId": "cust_123",
+              "type": "subscription",
+              "action": "activated",
+              "description": "Premium subscription activated",
+              "performedBy": "user_456",
+              "performedByName": "John Doe",
+              "timestamp": "2023-01-16T13:00:00Z",
+              "details": {
+                "planId": "plan_premium",
+                "amount": 500
+              }
+            }
+          ]
         }
         ```
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
     *   `404 Not Found`: If the customer with the given ID does not exist.
-
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
+    *   `500 Internal Server Error`: Unexpected server error.
 
 ### 1.4. Update Customer
-*   **Endpoint:** `PUT /api/customers/{customerId}`
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}`
 *   **Description:** Updates details for a specific customer.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
-    *   Request Body: Contains fields to be updated (similar structure to create, but all fields are optional).
-        ```json
-        {
-          "firstName": "Johnathan", // only fields to update
-          "phoneNumber": "+1234567891"
-          // ... other fields
-        }
-        ```
+*   **Request Body:**
+    ```json
+    {
+      "name": "Acme Corporation",
+      "phone": "+243987654321",
+      "billingContactName": "Jane Smith"
+    }
+    ```
 *   **Response:**
     *   `200 OK`:
         ```json
         {
           "id": "cust_123",
-          "firstName": "Johnathan",
-          "phoneNumber": "+1234567891",
-          // ... other updated fields
+          "name": "Acme Corporation",
+          "type": "pme",
+          "email": "contact@acmecorp.com",
+          "phone": "+243987654321",
+          "address": "123 Main St, Kinshasa",
+          "city": "Kinshasa",
+          "country": "Democratic Republic of Congo",
+          "status": "active",
+          "billingContactName": "Jane Smith",
+          "billingContactEmail": "billing@acmecorp.com",
+          "tokenAllocation": 1000,
+          "accountType": "premium",
           "updatedAt": "2023-01-18T14:00:00Z"
         }
         ```
+*   **Error Responses:**
     *   `400 Bad Request`: If validation fails.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `409 Conflict`: If trying to update email to one that already exists for another customer.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **409 Conflict:** If trying to update email to one that already exists for another customer.
-*   **422 Unprocessable Entity:** For detailed validation errors if not covered by 400.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 1.5. Delete Customer
-*   **Endpoint:** `DELETE /api/customers/{customerId}`
-*   **Description:** Deletes a specific customer (soft delete recommended).
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
-*   **Response:**
-    *   `204 No Content`: If deletion is successful.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-## 2. KYC (Know Your Customer) Endpoints
-
-### 2.1. Submit KYC Documents
-*   **Endpoint:** `POST /api/customers/{customerId}/kyc/documents`
-*   **Description:** Submits KYC documents for a customer.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
-    *   Request Body (multipart/form-data):
-        *   `documentType` (string, required): e.g., `passport`, `driver_license`, `utility_bill`, `company_registration_cert`.
-        *   `file` (file, required): The document file.
-        *   `issueDate` (optional, date string): `YYYY-MM-DD`
-        *   `expiryDate` (optional, date string): `YYYY-MM-DD`
-*   **Response:**
-    *   `201 Created`:
-        ```json
-        {
-          "documentId": "doc_xyz789",
-          "customerId": "cust_123",
-          "documentType": "passport",
-          "fileName": "passport_jane_doe.pdf",
-          "status": "pending_review", // initial status
-          "uploadedAt": "2023-01-19T09:00:00Z"
-        }
-        ```
-    *   `400 Bad Request`: Invalid input, file type not supported, or file too large.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`: Customer not found.
-
-**Error Responses (General):**
-
-*   **422 Unprocessable Entity:** If the document type is invalid or other specific validation rules fail.
-    ```json
-    {
-      "error": "Invalid document type provided."
-    }
-    ```
-*   **500 Internal Server Error:** Unexpected server error (e.g., file storage issue).
-
-### 2.2. Get KYC Status
-*   **Endpoint:** `GET /api/customers/{customerId}/kyc`
-*   **Description:** Retrieves the KYC status and associated documents for a customer.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
+### 1.5. Validate Customer
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}/validate`
+*   **Description:** Changes customer status to active after validation.
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "customerId": "cust_123",
-          "status": "pending_review", // Overall KYC status: pending_review, needs_resubmission, verified, rejected
-          "documents": [
-            {
-              "documentId": "doc_xyz789",
-              "documentType": "passport",
-              "status": "pending_review", // Document-specific status
-              "rejectionReason": null, // if rejected
-              "uploadedAt": "2023-01-19T09:00:00Z",
-              "reviewedAt": null
-            },
-            {
-              "documentId": "doc_abc123",
-              "documentType": "utility_bill",
-              "status": "approved",
-              "rejectionReason": null,
-              "uploadedAt": "2023-01-19T09:05:00Z",
-              "reviewedAt": "2023-01-20T11:00:00Z"
-            }
-          ],
-          "lastCheckedAt": "2023-01-20T11:00:00Z" // Timestamp of the last review action
+          "id": "cust_123",
+          "status": "active",
+          "validatedAt": "2023-01-19T10:00:00Z",
+          "validatedBy": "admin_789"
+          // Other customer fields...
         }
         ```
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
+*   **Error Responses:**
+    *   `400 Bad Request`: If the customer is not in a validatable state.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.3. Update KYC Status (Admin Action)
-*   **Endpoint:** `PUT /api/customers/{customerId}/kyc/status`
-*   **Description:** Allows an admin to update the overall KYC status of a customer or the status of individual documents.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
-    *   Request Body:
-        ```json
-        {
-          "overallStatus": "verified", // "verified", "rejected", "needs_resubmission"
-          "rejectionReason": "Provided ID was blurry.", // if overallStatus is "rejected" or "needs_resubmission"
-          "documentsToUpdate": [ // Optional: to update specific document statuses
-            {
-              "documentId": "doc_xyz789",
-              "status": "rejected", // "approved", "rejected", "needs_resubmission"
-              "rejectionReason": "Document expired."
-            }
-          ]
-        }
-        ```
-*   **Response:**
-    *   `200 OK`: Updated KYC status object (similar to GET /kyc).
-    *   `400 Bad Request`: Invalid status or parameters.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`: User does not have permission to perform KYC actions.
-    *   `404 Not Found`: Customer or document not found.
-
-**Error Responses (General):**
-
-*   **422 Unprocessable Entity:** If the provided status transition is not allowed or data is inconsistent.
+### 1.6. Suspend Customer
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}/suspend`
+*   **Description:** Suspends a customer.
+*   **Request Body:**
     ```json
     {
-      "error": "Invalid KYC status transition."
+      "reason": "Payment overdue for 60 days"
     }
     ```
-*   **500 Internal Server Error:** Unexpected server error.
-
-## 3. Customer Document Management (General Documents, not just KYC)
-
-### 3.1. Upload Document for Customer
-*   **Endpoint:** `POST /api/customers/{customerId}/documents`
-*   **Description:** Uploads a general document associated with a customer (e.g., contracts, agreements).
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
-    *   Request Body (multipart/form-data):
-        *   `documentTitle` (string, required): Title or description of the document.
-        *   `documentType` (string, optional): e.g., `contract`, `nda`, `invoice_proof`.
-        *   `file` (file, required): The document file.
-*   **Response:**
-    *   `201 Created`:
-        ```json
-        {
-          "documentId": "gen_doc_001",
-          "customerId": "cust_123",
-          "documentTitle": "Service Agreement Q1 2023",
-          "documentType": "contract",
-          "fileName": "service_agreement_q1.pdf",
-          "fileSize": 102400, // in bytes
-          "mimeType": "application/pdf",
-          "uploadedAt": "2023-01-21T15:00:00Z"
-        }
-        ```
-    *   `400 Bad Request`.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **413 Payload Too Large:** If the uploaded file exceeds the size limit.
-*   **422 Unprocessable Entity:** Invalid document type or metadata.
-*   **500 Internal Server Error:** Unexpected server error (e.g., file storage issue).
-
-### 3.2. List Customer Documents
-*   **Endpoint:** `GET /api/customers/{customerId}/documents`
-*   **Description:** Retrieves a list of general documents for a customer.
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required).
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "data": [
-            {
-              "documentId": "gen_doc_001",
-              "documentTitle": "Service Agreement Q1 2023",
-              "documentType": "contract",
-              "fileName": "service_agreement_q1.pdf",
-              "uploadedAt": "2023-01-21T15:00:00Z"
-            }
-            // ... other documents
-          ]
+          "id": "cust_123",
+          "status": "suspended",
+          "suspendedAt": "2023-01-20T14:00:00Z",
+          "suspendedBy": "admin_789",
+          "suspensionReason": "Payment overdue for 60 days"
+          // Other customer fields...
         }
         ```
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
+*   **Error Responses:**
+    *   `400 Bad Request`: If the request is invalid.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3.3. Get Customer Document
-*   **Endpoint:** `GET /api/customers/{customerId}/documents/{documentId}`
-*   **Description:** Retrieves a specific document (metadata or download link).
-*   **Request:**
-    *   Path Parameters: `customerId`, `documentId` (string, required).
+### 1.7. Reactivate Customer
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}/reactivate`
+*   **Description:** Reactivates a suspended customer.
 *   **Response:**
-    *   `200 OK` (metadata):
+    *   `200 OK`:
         ```json
         {
-          "documentId": "gen_doc_001",
-          "customerId": "cust_123",
-          "documentTitle": "Service Agreement Q1 2023",
-          "documentType": "contract",
-          "fileName": "service_agreement_q1.pdf",
-          "fileSize": 102400,
-          "mimeType": "application/pdf",
-          "uploadedAt": "2023-01-21T15:00:00Z",
-          "downloadUrl": "/api/customers/cust_123/documents/gen_doc_001/download" // Example
+          "id": "cust_123",
+          "status": "active",
+          "reactivatedAt": "2023-01-21T09:00:00Z",
+          "reactivatedBy": "admin_789"
+          // Other customer fields...
         }
         ```
-    *   Or `200 OK` with file stream for direct download if `/download` path is used.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
+*   **Error Responses:**
+    *   `400 Bad Request`: If the customer is not in a suspended state.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error (e.g., file not accessible).
-
-### 3.4. Delete Customer Document
-*   **Endpoint:** `DELETE /api/customers/{customerId}/documents/{documentId}`
-*   **Description:** Deletes a specific general document.
-*   **Request:**
-    *   Path Parameters: `customerId`, `documentId` (string, required).
+### 1.8. Delete Customer
+*   **HTTP Method:** `DELETE`
+*   **URL:** `/api/customers/{customerId}`
+*   **Description:** Deletes a customer.
 *   **Response:**
-    *   `204 No Content`.
-    *   `401 Unauthorized`.
-    *   `403 Forbidden`.
-    *   `404 Not Found`.
+    *   `204 No Content`: Success, no response body.
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `409 Conflict`: If the customer has active subscriptions or other dependencies.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+## 2. Customer Documents
 
-*   **500 Internal Server Error:** Unexpected server error.
+### 2.1. Upload Customer Document
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/customers/{customerId}/documents`
+*   **Description:** Uploads a document for a customer.
+*   **Request Body:** Multipart form data with:
+    * `file`: The document file
+    * `type`: Document type (rccm, id_nat, nif, cnss, inpp, patente, agrement, contract)
+*   **Response:**
+    *   `201 Created`:
+        ```json
+        {
+          "id": "doc_002",
+          "type": "nif",
+          "fileName": "tax_certificate.pdf",
+          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
+          "uploadedAt": "2023-01-21T11:00:00Z",
+          "uploadedBy": "user_456",
+          "status": "pending"
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: If the file is missing or invalid.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-## 4. Data Validation and Types
+### 2.2. Get Customer Documents
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/customers/{customerId}/documents`
+*   **Description:** Retrieves all documents for a customer.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        [
+          {
+            "id": "doc_001",
+            "type": "rccm",
+            "fileName": "rccm_certificate.pdf",
+            "fileUrl": "https://example.com/docs/rccm_certificate.pdf",
+            "uploadedAt": "2023-01-15T14:00:00Z",
+            "uploadedBy": "user_456",
+            "status": "approved",
+            "reviewedAt": "2023-01-16T10:00:00Z",
+            "reviewedBy": "admin_789"
+          },
+          {
+            "id": "doc_002",
+            "type": "nif",
+            "fileName": "tax_certificate.pdf",
+            "fileUrl": "https://example.com/docs/tax_certificate.pdf",
+            "uploadedAt": "2023-01-21T11:00:00Z",
+            "uploadedBy": "user_456",
+            "status": "pending"
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-*   **Customer Types:**
-    *   `individual`: Represents an individual person. Requires fields like `firstName`, `lastName`.
-    *   `corporate`: Represents a business entity. Requires fields like `companyName`, `registrationNumber`.
-*   **Validation:**
-    *   Standard validation rules apply (e.g., email format, required fields based on type).
-    *   Phone numbers should ideally be validated for format (e.g., E.164).
-    *   Address components should be validated where possible.
-    *   Specific validation logic for KYC documents (e.g., expiry dates, document types).
+### 2.3. Approve Customer Document
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}/documents/{documentId}/approve`
+*   **Description:** Approves a customer document.
+*   **Request Body:**
+    ```json
+    {
+      "comments": "Document verified and approved." // Optional
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "doc_002",
+          "type": "nif",
+          "fileName": "tax_certificate.pdf",
+          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
+          "uploadedAt": "2023-01-21T11:00:00Z",
+          "uploadedBy": "user_456",
+          "status": "approved",
+          "reviewedAt": "2023-01-21T14:00:00Z",
+          "reviewedBy": "admin_789",
+          "reviewComments": "Document verified and approved."
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: If the request is invalid.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer or document does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-## 5. Key Data Structures
+### 2.4. Reject Customer Document
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/customers/{customerId}/documents/{documentId}/reject`
+*   **Description:** Rejects a customer document.
+*   **Request Body:**
+    ```json
+    {
+      "reason": "Document is illegible or incomplete."
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "doc_002",
+          "type": "nif",
+          "fileName": "tax_certificate.pdf",
+          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
+          "uploadedAt": "2023-01-21T11:00:00Z",
+          "uploadedBy": "user_456",
+          "status": "rejected",
+          "reviewedAt": "2023-01-21T14:00:00Z",
+          "reviewedBy": "admin_789",
+          "reviewComments": "Document is illegible or incomplete."
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: If the request is invalid.
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer or document does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-### Customer Object (Core)
-```json
-{
-  "id": "string", // Unique identifier
-  "type": "string", // "individual" or "corporate"
-  "email": "string", // (unique)
-  "phoneNumber": "string" (optional),
-  "address": { // (optional)
-    "street": "string",
-    "city": "string",
-    "state": "string",
-    "postalCode": "string",
-    "country": "string"
-  },
-  "status": "string", // e.g., "active", "inactive", "pending_verification"
-  "kycStatus": "string", // e.g., "not_started", "pending", "verified", "rejected", "needs_resubmission"
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
+## 3. Customer Activities
 
-  // Individual-specific
-  "firstName": "string" (optional),
-  "lastName": "string" (optional),
-  "dateOfBirth": "date" (optional),
+### 3.1. Get Customer Activities
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/customers/{customerId}/activities`
+*   **Description:** Retrieves a customer's activity history.
+*   **Query Parameters:**
+    *   `page` (optional, integer): Page number for pagination.
+    *   `limit` (optional, integer): Number of items per page.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        [
+          {
+            "id": "act_001",
+            "customerId": "cust_123",
+            "type": "subscription",
+            "action": "activated",
+            "description": "Premium subscription activated",
+            "performedBy": "user_456",
+            "performedByName": "John Doe",
+            "timestamp": "2023-01-16T13:00:00Z",
+            "details": {
+              "planId": "plan_premium",
+              "amount": 500
+            }
+          },
+          {
+            "id": "act_002",
+            "customerId": "cust_123",
+            "type": "document",
+            "action": "uploaded",
+            "description": "Tax certificate uploaded",
+            "performedBy": "user_456",
+            "performedByName": "John Doe",
+            "timestamp": "2023-01-21T11:00:00Z",
+            "details": {
+              "documentId": "doc_002",
+              "documentType": "nif"
+            }
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `404 Not Found`: If the customer with the given ID does not exist.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-  // Corporate-specific
-  "companyName": "string" (optional),
-  "registrationNumber": "string" (optional),
-  "taxId": "string" (optional),
-  "industry": "string" (optional),
-  "website": "string" (optional),
-  "contactPerson": { // (optional)
-      "name": "string",
-      "email": "string",
-      "phone": "string"
-  }
+## 4. Customer Statistics
+
+### 4.1. Get Customer Statistics
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/customers/statistics`
+*   **Description:** Retrieves aggregated statistics about customers.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "total": 150,
+          "active": 120,
+          "inactive": 10,
+          "pending": 15,
+          "suspended": 5,
+          "byType": {
+            "pme": 120,
+            "financial": 30
+          },
+          "byAccountType": {
+            "freemium": 50,
+            "standard": 40,
+            "premium": 40,
+            "enterprise": 20
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+## 5. Type Definitions
+
+### 5.1. Customer
+```typescript
+interface Customer {
+  id?: string;
+  name: string;
+  type: CustomerType; // 'pme' | 'financial'
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  status: CustomerStatus; // 'active' | 'pending' | 'suspended' | 'inactive' | 'needs_validation' | 'validation_in_progress'
+  createdAt?: string;
+  updatedAt?: string;
+  billingContactName: string;
+  billingContactEmail: string;
+  tokenAllocation: number;
+  accountType: AccountType; // 'freemium' | 'standard' | 'premium' | 'enterprise'
+  ownerId?: string;
+  ownerEmail?: string;
+  validatedAt?: string;
+  validatedBy?: string;
+  documents?: CustomerDocument[];
+  suspendedAt?: string;
+  suspendedBy?: string;
+  suspensionReason?: string;
+  reactivatedAt?: string;
+  reactivatedBy?: string;
+  validationHistory?: Array<{
+    date: string;
+    action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
+    by: string;
+    notes?: string;
+  }>;
 }
 ```
 
-### KYC Document Object
-```json
-{
-  "documentId": "string",
-  "customerId": "string",
-  "documentType": "string", // e.g., "passport", "driver_license", "utility_bill", "company_registration_cert"
-  "fileName": "string",
-  "fileUrl": "string", // URL to access/download the document
-  "status": "string", // "pending_review", "approved", "rejected", "needs_resubmission"
-  "rejectionReason": "string" (optional),
-  "issueDate": "date" (optional),
-  "expiryDate": "date" (optional),
-  "uploadedAt": "timestamp",
-  "reviewedAt": "timestamp" (optional),
-  "reviewedBy": "string" // userId of admin who reviewed (optional)
+### 5.2. CustomerDocument
+```typescript
+interface CustomerDocument {
+  id?: string;
+  type: DocumentType; // 'rccm' | 'id_nat' | 'nif' | 'cnss' | 'inpp' | 'patente' | 'agrement' | 'contract'
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  status: DocumentStatus; // 'pending' | 'approved' | 'rejected'
+  reviewNote?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewComments?: string;
 }
 ```
 
-### General Document Object
-```json
-{
-  "documentId": "string",
-  "customerId": "string",
-  "documentTitle": "string",
-  "documentType": "string" (optional), // User-defined type
-  "fileName": "string",
-  "fileUrl": "string",
-  "fileSize": "integer", // bytes
-  "mimeType": "string",
-  "uploadedAt": "timestamp",
-  "uploadedBy": "string" // userId of uploader
+### 5.3. CustomerActivity
+```typescript
+interface CustomerActivity {
+  id: string;
+  customerId: string;
+  type: string;
+  action?: string;
+  description?: string;
+  performedBy?: string;
+  performedByName?: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
 }
 ```
 
-This documentation provides a comprehensive guide for backend development related to Customer Management. Ensure consistency in naming conventions and error handling across all endpoints.
+### 5.4. Extended Types for Specific Customer Types
+
+#### PME Specific Data
+```typescript
+interface PmeSpecificData {
+  industry: string;
+  size: 'micro' | 'small' | 'medium';
+  employeesCount: number;
+  yearFounded?: number;
+  registrationNumber?: string;
+  taxId?: string;
+  businessLicense?: string;
+}
+```
+
+#### Financial Institution Specific Data
+```typescript
+interface FinancialInstitutionSpecificData {
+  institutionType: 'bank' | 'microfinance' | 'insurance' | 'investment' | 'other';
+  regulatoryBody?: string;
+  regulatoryLicenseNumber?: string;
+  branchesCount?: number;
+  clientsCount?: number;
+  assetsUnderManagement?: number;
+}
+```
+
+### 5.5. Validation Process
+```typescript
+interface ValidationProcess {
+  id: string;
+  customerId: string;
+  status: CustomerStatus;
+  steps: ValidationStep[];
+  currentStepIndex: number;
+  startedAt: string;
+  lastUpdatedAt: string;
+  completedAt?: string;
+  validatedBy?: string;
+  notes?: string[];
+}
+
+interface ValidationStep {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'rejected';
+  order?: number;
+  requiredDocuments?: DocumentType[];
+  completedAt?: string;
+  completedBy?: string;
+  notes?: string;
+}
+```

@@ -1,6 +1,6 @@
-# API Documentation: User Settings
+# API Documentation: Settings Management
 
-This document outlines the API endpoints for managing user-specific settings within the AdminKS system.
+This document outlines the API endpoints for managing system and user settings within the Wanzo Admin platform.
 
 ## Base URL
 
@@ -8,64 +8,374 @@ All API endpoints are relative to the base URL: `/api`
 
 ## Authentication
 
-All endpoints require Bearer Token authentication for the user whose settings are being modified or retrieved.
+All endpoints require Bearer Token authentication. Different settings may require different permission levels.
 
-## 1. User Profile Management
+## Settings Data Models
 
-These endpoints manage the authenticated user's profile information.
+### General Settings
 
-### 1.1. Get User Profile
+```typescript
+interface GeneralSettings {
+  companyName: string;
+  language: string;
+  timezone: string;
+  dateFormat: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+```
 
-*   **Endpoint:** `GET /users/me/profile`
-*   **Description:** Retrieves the profile information for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+### Security Settings
+
+```typescript
+interface SecuritySettings {
+  passwordPolicy: {
+    minLength: number;
+    requireUppercase: boolean;
+    requireLowercase: boolean;
+    requireNumbers: boolean;
+    requireSpecialChars: boolean;
+    expiryDays: number;
+  };
+  twoFactorEnabled: boolean;
+  twoFactorMethods: ('email' | 'sms' | 'authenticator')[];
+  sessionTimeout: number;
+}
+```
+
+### Notification Settings
+
+```typescript
+interface NotificationSettings {
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  inApp: boolean;
+  notifyOn: {
+    newCustomer: boolean;
+    newInvoice: boolean;
+    paymentReceived: boolean;
+    lowTokens: boolean;
+    securityAlerts: boolean;
+  };
+}
+```
+
+### Notification Preference
+
+```typescript
+interface NotificationPreference {
+  id: string; // e.g., 'emailMarketing', 'pushActivity'
+  label: string; // User-friendly label for the preference
+  description: string; // Description of what the notification is for
+  channel: 'email' | 'push' | 'sms'; // Channel of notification
+  type: string; // Category like 'marketing', 'security', 'features', 'activity', 'chat', 'alerts'
+  isEnabled: boolean;
+}
+```
+
+### Billing Settings
+
+```typescript
+interface BillingSettings {
+  defaultCurrency: string;
+  taxRate: number;
+  paymentMethods: string[];
+  invoiceDueDays: number;
+  invoiceNotes: string;
+  autoGenerateInvoices: boolean;
+}
+```
+
+### Appearance Settings
+
+```typescript
+interface AppearanceSettings {
+  theme: 'light' | 'dark' | 'system';
+  density: 'compact' | 'comfortable' | 'spacious';
+  fontFamily: string;
+  fontSize: string;
+  customCss?: string;
+}
+```
+
+### Active Session
+
+```typescript
+interface ActiveSession {
+  id: string;
+  device: string;
+  location: string;
+  ipAddress: string;
+  lastActive: string; // ISO date string
+  isCurrent: boolean;
+  browser?: string;
+  os?: string;
+}
+```
+
+### Login Attempt
+
+```typescript
+interface LoginAttempt {
+  id: string;
+  date: string; // ISO date string
+  ipAddress: string;
+  device: string;
+  location: string;
+  status: 'successful' | 'failed';
+  userAgent?: string;
+}
+```
+
+## System Settings Endpoints
+
+### 1. Get All Settings
+
+*   **Endpoint:** `GET /settings`
+*   **Description:** Retrieves all system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "id": "user_xyz",
+      "general": {
+        "companyName": "Wanzo Admin",
+        "language": "fr",
+        "timezone": "Africa/Kinshasa",
+        "dateFormat": "DD/MM/YYYY",
+        "logoUrl": "https://example.com/logo.png",
+        "primaryColor": "#3B82F6",
+        "secondaryColor": "#10B981"
+      },
+      "security": {
+        "passwordPolicy": {
+          "minLength": 10,
+          "requireUppercase": true,
+          "requireLowercase": true,
+          "requireNumbers": true,
+          "requireSpecialChars": true,
+          "expiryDays": 90
+        },
+        "twoFactorEnabled": true,
+        "twoFactorMethods": ["email", "authenticator"],
+        "sessionTimeout": 30
+      },
+      "notifications": {
+        "email": true,
+        "sms": false,
+        "push": true,
+        "inApp": true,
+        "notifyOn": {
+          "newCustomer": true,
+          "newInvoice": true,
+          "paymentReceived": true,
+          "lowTokens": true,
+          "securityAlerts": true
+        }
+      },
+      "billing": {
+        "defaultCurrency": "USD",
+        "taxRate": 16,
+        "paymentMethods": ["credit_card", "bank_transfer", "mobile_money"],
+        "invoiceDueDays": 15,
+        "invoiceNotes": "Paiement attendu dans les 15 jours.",
+        "autoGenerateInvoices": true
+      },
+      "appearance": {
+        "theme": "system",
+        "density": "comfortable",
+        "fontFamily": "Inter",
+        "fontSize": "medium",
+        "customCss": null
+      }
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 2. Get General Settings
+
+*   **Endpoint:** `GET /settings/general`
+*   **Description:** Retrieves general system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "companyName": "Wanzo Admin",
+      "language": "fr",
+      "timezone": "Africa/Kinshasa",
+      "dateFormat": "DD/MM/YYYY",
+      "logoUrl": "https://example.com/logo.png",
+      "primaryColor": "#3B82F6",
+      "secondaryColor": "#10B981"
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 3. Get Security Settings
+
+*   **Endpoint:** `GET /settings/security`
+*   **Description:** Retrieves security-related system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "passwordPolicy": {
+        "minLength": 10,
+        "requireUppercase": true,
+        "requireLowercase": true,
+        "requireNumbers": true,
+        "requireSpecialChars": true,
+        "expiryDays": 90
+      },
+      "twoFactorEnabled": true,
+      "twoFactorMethods": ["email", "authenticator"],
+      "sessionTimeout": 30
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 4. Get Notification Settings
+
+*   **Endpoint:** `GET /settings/notifications`
+*   **Description:** Retrieves notification-related system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "email": true,
+      "sms": false,
+      "push": true,
+      "inApp": true,
+      "notifyOn": {
+        "newCustomer": true,
+        "newInvoice": true,
+        "paymentReceived": true,
+        "lowTokens": true,
+        "securityAlerts": true
+      }
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 5. Get Billing Settings
+
+*   **Endpoint:** `GET /settings/billing`
+*   **Description:** Retrieves billing-related system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "defaultCurrency": "USD",
+      "taxRate": 16,
+      "paymentMethods": ["credit_card", "bank_transfer", "mobile_money"],
+      "invoiceDueDays": 15,
+      "invoiceNotes": "Paiement attendu dans les 15 jours.",
+      "autoGenerateInvoices": true
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 6. Get Appearance Settings
+
+*   **Endpoint:** `GET /settings/appearance`
+*   **Description:** Retrieves appearance-related system settings.
+*   **Permissions Required:** `admin:settings:read` or higher.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "theme": "system",
+      "density": "comfortable",
+      "fontFamily": "Inter",
+      "fontSize": "medium",
+      "customCss": null
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 7. Update Settings
+
+*   **Endpoint:** `PUT /settings/{section}`
+*   **Description:** Updates settings for a specific section.
+*   **Parameters:**
+    - `section` (path, required): The settings section to update ('general', 'security', 'notifications', 'billing', 'appearance').
+*   **Permissions Required:** `admin:settings:write` or higher.
+*   **Request Body (application/json):**
+    ```json
+    {
+      // Updated settings for the specified section
+      // Format varies by section
+    }
+    ```
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      // Updated settings for the specified section
+      // Format varies by section
+    }
+    ```
+*   **Error Responses:**
+    - `400 Bad Request`: Invalid request parameters
+    - See also [Standard Error Responses](#standard-error-responses).
+
+## User-Specific Settings Endpoints
+
+### 1. Get User Profile Settings
+
+*   **Endpoint:** `GET /admin/profile`
+*   **Description:** Retrieves the authenticated admin's profile settings.
+*   **Permissions Required:** Authenticated user.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "id": "admin_123",
       "name": "Jean Dupont",
       "email": "jean.dupont@example.com",
       "phoneNumber": "+243999888777",
-      "position": "Administrateur principal",
-      "avatarUrl": "https://example.com/avatars/user_xyz.jpg",
-      "role": "super_admin", // Or other roles
+      "position": "Senior Administrator",
+      "avatarUrl": "https://example.com/avatars/admin_123.jpg",
+      "role": "super_admin",
+      "language": "fr",
+      "timezone": "Africa/Kinshasa",
       "createdAt": "2023-01-10T10:00:00Z",
       "updatedAt": "2024-05-20T14:30:00Z"
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-### 1.2. Update User Profile
+### 2. Update User Profile Settings
 
-*   **Endpoint:** `PUT /users/me/profile`
-*   **Description:** Updates the profile information for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `PUT /admin/profile`
+*   **Description:** Updates the authenticated admin's profile settings.
+*   **Permissions Required:** Authenticated user.
 *   **Request Body (application/json):**
     ```json
     {
       "name": "Jean K. Dupont",
       "phoneNumber": "+243888777666",
-      "position": "Senior Administrator"
+      "position": "Senior Administrator",
+      "language": "en",
+      "timezone": "Europe/Paris"
     }
     ```
     *Only include fields to be updated.*
 *   **Successful Response (200 OK):**
-    *   The updated user profile object (see Get User Profile response).
+    *   The updated admin profile object (see Get User Profile Settings response).
 *   **Error Responses:**
     *   `400 Bad Request`: If input data is invalid.
     *   See [Standard Error Responses](#standard-error-responses).
 
-### 1.3. Upload User Avatar
+### 3. Upload Profile Avatar
 
-*   **Endpoint:** `POST /users/me/avatar`
-*   **Description:** Uploads or changes the avatar for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `POST /admin/profile/avatar`
+*   **Description:** Uploads or changes the avatar for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
 *   **Request Body (multipart/form-data):**
     *   `avatar` (file, required): The image file for the avatar (e.g., JPG, PNG).
 *   **Successful Response (200 OK):**
     ```json
     {
-      "avatarUrl": "https://example.com/avatars/user_xyz_new.jpg",
+      "avatarUrl": "https://example.com/avatars/admin_123_new.jpg",
       "message": "Avatar updated successfully."
     }
     ```
@@ -73,21 +383,52 @@ These endpoints manage the authenticated user's profile information.
     *   `400 Bad Request`: If no file is provided, or file type/size is invalid.
     *   See [Standard Error Responses](#standard-error-responses).
 
-## 2. Security Settings
+## Security Settings Endpoints
 
-These endpoints manage security-related settings for the authenticated user.
+### 1. Get Security Settings
 
-### 2.1. Change Password
+*   **Endpoint:** `GET /admin/security/settings`
+*   **Description:** Retrieves the security settings for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "twoFactorEnabled": true
+      // Other security settings may be included
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-*   **Endpoint:** `POST /users/me/security/change-password`
-*   **Description:** Allows the authenticated user to change their password.
-*   **Permissions Required:** Authenticated user access.
+### 2. Update Two-Factor Authentication
+
+*   **Endpoint:** `PUT /admin/security/settings/2fa`
+*   **Description:** Enables or disables two-factor authentication for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
+*   **Request Body (application/json):**
+    ```json
+    {
+      "enabled": true
+    }
+    ```
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "twoFactorEnabled": true
+      // Other security settings may be included
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 3. Change Password
+
+*   **Endpoint:** `PUT /admin/security/password`
+*   **Description:** Changes the password for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
 *   **Request Body (application/json):**
     ```json
     {
       "currentPassword": "old_secure_password",
-      "newPassword": "new_very_secure_password",
-      "confirmNewPassword": "new_very_secure_password"
+      "newPassword": "new_very_secure_password"
     }
     ```
 *   **Successful Response (200 OK):**
@@ -97,419 +438,349 @@ These endpoints manage security-related settings for the authenticated user.
     }
     ```
 *   **Error Responses:**
-    *   `400 Bad Request`: If current password is incorrect, or new passwords don't match/meet complexity requirements.
+    *   `400 Bad Request`: If current password is incorrect, or new password doesn't meet complexity requirements.
     *   See [Standard Error Responses](#standard-error-responses).
 
-### 2.2. Get Two-Factor Authentication (2FA) Status
+### 4. Get Active Sessions
 
-*   **Endpoint:** `GET /users/me/security/2fa`
-*   **Description:** Retrieves the current 2FA status for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `GET /admin/security/sessions`
+*   **Description:** Retrieves a list of active sessions for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "isEnabled": true,
-      "methods": ["authenticator_app", "sms"], // Available or configured methods
-      "defaultMethod": "authenticator_app"
-    }
-    ```
-*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
-
-### 2.3. Setup/Enable Two-Factor Authentication (2FA)
-
-*   **Endpoint:** `POST /users/me/security/2fa/enable`
-*   **Description:** Initiates the setup process for 2FA or enables it with a chosen method.
-*   **Permissions Required:** Authenticated user access.
-*   **Request Body (application/json):**
-    ```json
-    // For authenticator app setup (initial request)
-    {
-      "method": "authenticator_app"
-    }
-    // For verifying authenticator app
-    {
-      "method": "authenticator_app",
-      "token": "123456", // OTP from authenticator app
-      "secret": "SHARED_SECRET_FROM_SERVER" // The secret provided in the setup initiation step
-    }
-    // For SMS setup
-    {
-      "method": "sms",
-      "phoneNumber": "+243999888777" // Optional if already on profile
-    }
-    // For verifying SMS OTP
-    {
-      "method": "sms",
-      "token": "123456" // OTP sent to phone
-    }
-    ```
-*   **Successful Response (200 OK / 201 Created):**
-    *   If initiating authenticator app setup:
-        ```json
+      "sessions": [
         {
-          "setupKey": "BASE32_ENCODED_SECRET_KEY",
-          "qrCodeImageUrl": "data:image/png;base64,...", // QR code for authenticator app
-          "message": "Scan QR code with your authenticator app and verify."
-        }
-        ```
-    *   If 2FA successfully enabled (after verification):
-        ```json
+          "id": "sess_123",
+          "device": "Windows Desktop",
+          "location": "Kinshasa, DRC",
+          "ipAddress": "41.243.11.22",
+          "lastActive": "2024-06-05T14:30:00Z",
+          "isCurrent": true,
+          "browser": "Chrome",
+          "os": "Windows 11"
+        },
         {
-          "isEnabled": true,
-          "recoveryCodes": ["code1", "code2", ...],
-          "message": "Two-factor authentication enabled successfully. Save your recovery codes."
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: Invalid method, token, or phone number.
-    *   See [Standard Error Responses](#standard-error-responses).
-
-### 2.4. Disable Two-Factor Authentication (2FA)
-
-*   **Endpoint:** `POST /users/me/security/2fa/disable`
-*   **Description:** Disables 2FA for the authenticated user. Requires current 2FA verification or password.
-*   **Permissions Required:** Authenticated user access.
-*   **Request Body (application/json):**
-    ```json
-    {
-      "password": "current_user_password" // Or a 2FA token if preferred by implementation
-    }
-    ```
-*   **Successful Response (200 OK):**
-    ```json
-    {
-      "isEnabled": false,
-      "message": "Two-factor authentication disabled successfully."
-    }
-    ```
-*   **Error Responses:**
-    *   `400 Bad Request`: Invalid password or 2FA token.
-    *   See [Standard Error Responses](#standard-error-responses).
-
-### 2.5. Get Active Sessions
-
-*   **Endpoint:** `GET /users/me/security/sessions`
-*   **Description:** Retrieves a list of active sessions for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
-*   **Successful Response (200 OK):**
-    ```json
-    {
-      "currentSession": {
-        "id": "session_current_abc",
-        "ipAddress": "192.168.1.10",
-        "userAgent": "Chrome on Windows",
-        "location": "Kinshasa, RDC",
-        "lastAccessedAt": "2025-06-01T10:00:00Z"
-      },
-      "otherSessions": [
-        {
-          "id": "session_xyz789",
-          "ipAddress": "10.0.0.5",
-          "userAgent": "Firefox on MacOS",
-          "location": "Lubumbashi, RDC",
-          "lastAccessedAt": "2025-05-30T14:20:00Z"
+          "id": "sess_456",
+          "device": "iPhone",
+          "location": "Paris, France",
+          "ipAddress": "203.0.113.42",
+          "lastActive": "2024-06-04T10:15:00Z",
+          "isCurrent": false,
+          "browser": "Safari",
+          "os": "iOS 17"
         }
       ]
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-### 2.6. Terminate a Session
+### 5. Terminate Session
 
-*   **Endpoint:** `DELETE /users/me/security/sessions/{sessionId}`
-*   **Description:** Terminates a specific active session for the authenticated user (cannot terminate the current session this way).
-*   **Permissions Required:** Authenticated user access.
-*   **Path Parameters:**
-    *   `sessionId` (string, required): The ID of the session to terminate.
-*   **Successful Response (204 No Content):**
-*   **Error Responses:**
-    *   `400 Bad Request`: If trying to terminate the current session.
-    *   `404 Not Found`: If session ID is invalid.
-    *   See [Standard Error Responses](#standard-error-responses).
-
-### 2.7. Terminate All Other Sessions
-
-*   **Endpoint:** `POST /users/me/security/sessions/terminate-all-others`
-*   **Description:** Terminates all active sessions for the authenticated user, except the current one.
-*   **Permissions Required:** Authenticated user access.
-*   **Request Body (application/json):** (Optional, may require password for confirmation)
-    ```json
-    {
-      "password": "current_user_password"
-    }
-    ```
+*   **Endpoint:** `DELETE /admin/security/sessions/{sessionId}`
+*   **Description:** Terminates a specific session.
+*   **Parameters:**
+    - `sessionId` (path, required): The ID of the session to terminate.
+*   **Permissions Required:** Authenticated user.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "message": "All other active sessions have been terminated."
+      "message": "Session terminated successfully."
     }
     ```
 *   **Error Responses:**
-    *   `400 Bad Request`: If password (if required) is incorrect.
+    *   `400 Bad Request`: If the session ID is invalid.
+    *   `404 Not Found`: If the session doesn't exist.
     *   See [Standard Error Responses](#standard-error-responses).
 
-### 2.8. Get Login History
+### 6. Terminate All Other Sessions
 
-*   **Endpoint:** `GET /users/me/security/login-history`
-*   **Description:** Retrieves the login history for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
-*   **Query Parameters:**
-    *   `page` (number, optional, default: 1)
-    *   `limit` (number, optional, default: 10)
+*   **Endpoint:** `DELETE /admin/security/sessions/all-other`
+*   **Description:** Terminates all sessions except the current one.
+*   **Permissions Required:** Authenticated user.
+*   **Successful Response (200 OK):**
+    ```json
+    {
+      "message": "All other sessions terminated successfully."
+    }
+    ```
+*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
+
+### 7. Get Login History
+
+*   **Endpoint:** `GET /admin/security/login-history`
+*   **Description:** Retrieves the login history for the authenticated admin.
+*   **Parameters:**
+    - `limit` (query, optional): Maximum number of records to return. Default: 10.
+*   **Permissions Required:** Authenticated user.
 *   **Successful Response (200 OK):**
     ```json
     {
       "history": [
         {
-          "timestamp": "2025-06-01T10:00:00Z",
-          "ipAddress": "192.168.1.10",
-          "userAgent": "Chrome on Windows",
-          "location": "Kinshasa, RDC",
-          "status": "successful"
+          "id": "login_123",
+          "date": "2024-06-05T14:30:00Z",
+          "ipAddress": "41.243.11.22",
+          "device": "Windows Desktop",
+          "location": "Kinshasa, DRC",
+          "status": "successful",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
         },
         {
-          "timestamp": "2025-05-30T08:15:00Z",
-          "ipAddress": "203.0.113.45",
-          "userAgent": "Unknown Browser",
+          "id": "login_122",
+          "date": "2024-06-04T08:15:00Z",
+          "ipAddress": "203.0.113.42",
+          "device": "iPhone",
           "location": "Paris, France",
           "status": "failed",
-          "reason": "Incorrect password"
+          "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         }
-      ],
-      "pagination": {
-        "currentPage": 1,
-        "totalPages": 5,
-        "totalEntries": 48
-      }
+      ]
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-## 3. Notification Preferences
+## Notification Preferences Endpoints
 
-Manage user preferences for receiving notifications.
+### 1. Get Notification Preferences
 
-### 3.1. Get Notification Preferences
-
-*   **Endpoint:** `GET /users/me/settings/notifications`
-*   **Description:** Retrieves the current notification preferences for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `GET /admin/settings/notifications`
+*   **Description:** Retrieves notification preferences for the authenticated admin.
+*   **Permissions Required:** Authenticated user.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "emailNotifications": {
-        "systemAlerts": true,
-        "newFeatures": true,
-        "activitySummaries": false
-      },
-      "pushNotifications": {
-        "directMessages": true,
-        "mentions": true,
-        "taskUpdates": false
-      },
-      "smsNotifications": {
-        "securityAlerts": true,
-        "urgentUpdates": false
-      }
+      "preferences": [
+        {
+          "id": "emailMarketing",
+          "label": "Marketing Emails",
+          "description": "Receive updates on new products and promotions.",
+          "channel": "email",
+          "type": "marketing",
+          "isEnabled": true
+        },
+        {
+          "id": "emailSecurity",
+          "label": "Security Alerts",
+          "description": "Receive alerts for important security events.",
+          "channel": "email",
+          "type": "security",
+          "isEnabled": true
+        },
+        {
+          "id": "pushActivity",
+          "label": "Account Activity Push",
+          "description": "Get push notifications for important account activities.",
+          "channel": "push",
+          "type": "activity",
+          "isEnabled": true
+        }
+      ]
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-### 3.2. Update Notification Preferences
+### 2. Update Notification Preference
 
-*   **Endpoint:** `PUT /users/me/settings/notifications`
-*   **Description:** Updates the notification preferences for the authenticated user.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `PUT /admin/settings/notifications/{preferenceId}`
+*   **Description:** Updates a specific notification preference.
+*   **Parameters:**
+    - `preferenceId` (path, required): The ID of the notification preference to update.
+*   **Permissions Required:** Authenticated user.
 *   **Request Body (application/json):**
-    *   Provide the full structure or partial updates as per API design.
     ```json
     {
-      "emailNotifications": {
-        "activitySummaries": true
-      },
-      "pushNotifications": {
-        "taskUpdates": true
-      }
+      "isEnabled": false
     }
     ```
 *   **Successful Response (200 OK):**
-    *   The updated notification preferences object.
+    ```json
+    {
+      "id": "emailMarketing",
+      "label": "Marketing Emails",
+      "description": "Receive updates on new products and promotions.",
+      "channel": "email",
+      "type": "marketing",
+      "isEnabled": false
+    }
+    ```
 *   **Error Responses:**
-    *   `400 Bad Request`: Invalid preference keys or values.
+    *   `400 Bad Request`: If the preference ID is invalid.
+    *   `404 Not Found`: If the preference doesn't exist.
     *   See [Standard Error Responses](#standard-error-responses).
 
-## 4. Display & Personalization Preferences
+### 3. Update All Notification Preferences
 
-Manage user preferences for application appearance and layout.
-
-### 4.1. Get Display Preferences
-
-*   **Endpoint:** `GET /users/me/settings/display`
-*   **Description:** Retrieves the user's display preferences (theme, layout).
-*   **Permissions Required:** Authenticated user access.
-*   **Successful Response (200 OK):**
-    ```json
-    {
-      "theme": "dark", // "light", "dark", "system"
-      "layout": "sidebar" // "sidebar", "topnav"
-    }
-    ```
-*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
-
-### 4.2. Update Display Preferences
-
-*   **Endpoint:** `PUT /users/me/settings/display`
-*   **Description:** Updates the user's display preferences.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `PUT /admin/settings/notifications`
+*   **Description:** Updates all notification preferences at once.
+*   **Permissions Required:** Authenticated user.
 *   **Request Body (application/json):**
     ```json
     {
-      "theme": "light", // Optional
-      "layout": "topnav"  // Optional
+      "preferences": [
+        {
+          "id": "emailMarketing",
+          "isEnabled": false
+        },
+        {
+          "id": "emailSecurity",
+          "isEnabled": true
+        },
+        {
+          "id": "pushActivity",
+          "isEnabled": false
+        }
+      ]
     }
     ```
 *   **Successful Response (200 OK):**
-    *   The updated display preferences object.
+    ```json
+    {
+      "preferences": [
+        {
+          "id": "emailMarketing",
+          "label": "Marketing Emails",
+          "description": "Receive updates on new products and promotions.",
+          "channel": "email",
+          "type": "marketing",
+          "isEnabled": false
+        },
+        {
+          "id": "emailSecurity",
+          "label": "Security Alerts",
+          "description": "Receive alerts for important security events.",
+          "channel": "email",
+          "type": "security",
+          "isEnabled": true
+        },
+        {
+          "id": "pushActivity",
+          "label": "Account Activity Push",
+          "description": "Get push notifications for important account activities.",
+          "channel": "push",
+          "type": "activity",
+          "isEnabled": false
+        }
+      ]
+    }
+    ```
 *   **Error Responses:**
-    *   `400 Bad Request`: Invalid theme or layout value.
+    *   `400 Bad Request`: If any preference ID is invalid.
     *   See [Standard Error Responses](#standard-error-responses).
 
-## 5. Language & Localization Preferences
+## Application Settings Endpoints
 
-Manage user preferences for language and regional formats.
+### 1. Get Application Settings
 
-### 5.1. Get Language & Format Preferences
-
-*   **Endpoint:** `GET /users/me/settings/localization`
-*   **Description:** Retrieves the user's language and date format preferences.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `GET /settings/app`
+*   **Description:** Retrieves application settings that can be configured.
+*   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "language": "fr", // e.g., "en", "fr", "es"
-      "dateFormat": "DD/MM/YYYY" // e.g., "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"
+      "data": [
+        {
+          "id": "max_file_size",
+          "name": "Maximum File Size",
+          "value": "10",
+          "description": "Maximum file size in MB for uploads",
+          "category": "uploads"
+        },
+        {
+          "id": "auto_logout",
+          "name": "Auto Logout Time",
+          "value": "30",
+          "description": "Minutes of inactivity before automatic logout",
+          "category": "security"
+        },
+        {
+          "id": "api_rate_limit",
+          "name": "API Rate Limit",
+          "value": "100",
+          "description": "Maximum API calls per minute",
+          "category": "api"
+        }
+      ]
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
 
-### 5.2. Update Language & Format Preferences
+### 2. Update Application Setting
 
-*   **Endpoint:** `PUT /users/me/settings/localization`
-*   **Description:** Updates the user's language and date format preferences.
-*   **Permissions Required:** Authenticated user access.
+*   **Endpoint:** `PUT /settings/{settingId}`
+*   **Description:** Updates a specific application setting.
+*   **Parameters:**
+    - `settingId` (path, required): The ID of the setting to update.
+*   **Permissions Required:** `admin:settings:write` or higher.
 *   **Request Body (application/json):**
     ```json
     {
-      "language": "en", // Optional
-      "dateFormat": "MM/DD/YYYY" // Optional
+      "value": "15"
     }
     ```
-*   **Successful Response (200 OK):**
-    *   The updated localization preferences object.
-*   **Error Responses:**
-    *   `400 Bad Request`: Invalid language code or date format.
-    *   See [Standard Error Responses](#standard-error-responses).
-
-## 6. Currency Settings
-
-Manage user preferences for currency display and manual exchange rates.
-
-### 6.1. Get Currency Settings
-
-*   **Endpoint:** `GET /users/me/settings/currency`
-*   **Description:** Retrieves the user's currency display preference and manually set exchange rates.
-*   **Permissions Required:** Authenticated user access.
 *   **Successful Response (200 OK):**
     ```json
     {
-      "displayCurrency": "USD", // User's preferred currency for display
-      "baseCurrency": "EUR", // System's base currency for reference
-      "manualExchangeRates": {
-        "USD_CDF": 2800.50, // 1 USD = 2800.50 CDF
-        "USD_FCFA": 600.75   // 1 USD = 600.75 FCFA
-      }
+      "id": "max_file_size",
+      "name": "Maximum File Size",
+      "value": "15",
+      "description": "Maximum file size in MB for uploads",
+      "category": "uploads"
     }
     ```
-*   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
-
-### 6.2. Update Currency Settings
-
-*   **Endpoint:** `PUT /users/me/settings/currency`
-*   **Description:** Updates the user's currency display preference and/or manual exchange rates.
-*   **Permissions Required:** Authenticated user access.
-*   **Request Body (application/json):**
-    ```json
-    {
-      "displayCurrency": "CDF", // Optional
-      "manualExchangeRates": { // Optional, provide rates relative to the system's base currency
-        "EUR_CDF": 3000.00
-      }
-    }
-    ```
-*   **Successful Response (200 OK):**
-    *   The updated currency settings object.
 *   **Error Responses:**
-    *   `400 Bad Request`: Invalid currency code or rate format.
+    *   `400 Bad Request`: If the setting ID is invalid or the value is out of range.
+    *   `404 Not Found`: If the setting doesn't exist.
     *   See [Standard Error Responses](#standard-error-responses).
 
 ## Standard Error Responses
 
-### 400 Bad Request
-
-*   **Description:** The server could not understand the request due to invalid syntax or missing parameters.
-*   **Response Body:**
+*   **401 Unauthorized:**
     ```json
     {
-      "error": "Bad Request",
-      "message": "Invalid input data: [Details about the error]",
-      "statusCode": 400
+      "error": "unauthorized",
+      "message": "Authentication token is missing or invalid"
     }
     ```
 
-### 401 Unauthorized
-
-*   **Description:** The request requires user authentication, but the authentication credentials were missing or invalid.
-*   **Response Body:**
+*   **403 Forbidden:**
     ```json
     {
-      "error": "Unauthorized",
-      "message": "Authentication token is missing or invalid.",
-      "statusCode": 401
+      "error": "forbidden",
+      "message": "You do not have permission to access this resource"
     }
     ```
 
-### 403 Forbidden
-
-*   **Description:** The authenticated user does not have the necessary permissions to perform the requested action.
-*   **Response Body:**
+*   **404 Not Found:**
     ```json
     {
-      "error": "Forbidden",
-      "message": "You do not have permission to access this resource.",
-      "statusCode": 403
+      "error": "not_found",
+      "message": "The requested resource was not found"
     }
     ```
 
-### 404 Not Found
-
-*   **Description:** The requested resource could not be found.
-*   **Response Body:**
+*   **429 Too Many Requests:**
     ```json
     {
-      "error": "Not Found",
-      "message": "The requested resource was not found.",
-      "statusCode": 404
+      "error": "rate_limit_exceeded",
+      "message": "Rate limit exceeded. Try again in X seconds",
+      "retryAfter": 30
     }
     ```
 
-### 500 Internal Server Error
-
-*   **Description:** An unexpected error occurred on the server.
-*   **Response Body:**
+*   **500 Internal Server Error:**
     ```json
     {
-      "error": "Internal Server Error",
-      "message": "An unexpected error occurred. Please try again later.",
-      "statusCode": 500
+      "error": "server_error",
+      "message": "An unexpected error occurred",
+      "requestId": "req_abc123"
     }
     ```
+
+## Additional Notes
+
+1. System-wide settings are accessed through `/settings` endpoints and require admin privileges.
+2. User-specific settings are accessed through `/admin` endpoints and are specific to the authenticated user.
+3. Notification preferences control how and when the user receives notifications.
+4. Security settings include password management, two-factor authentication, and session management.
+5. Application settings affect global behavior of the platform and typically require higher privileges to modify.

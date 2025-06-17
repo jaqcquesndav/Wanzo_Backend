@@ -1,181 +1,307 @@
 import { KafkaOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { EntityType as SubEntityType, SubscriptionPlanType as SubPlanType, SubscriptionStatusType as SubStatusType } from './subscription-types';
 
-export const getKafkaConfig = (configService: ConfigService): KafkaOptions => {
-  return {
-    transport: Transport.KAFKA,
-    options: {
-      client: {
-        clientId: configService.get<string>('KAFKA_CLIENT_ID'),
-        brokers: [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
-        ssl: configService.get<boolean>('KAFKA_SSL', false),
-      },
-      consumer: {
-        groupId: configService.get<string>('KAFKA_GROUP_ID', 'wanzo-backend'),
-        allowAutoTopicCreation: true,
-      },
-    },
-  };
-};
+// #region Core Enums and Interfaces
+
+export enum EventUserType {
+    SME_OWNER = 'SME_OWNER',
+    SME_USER = 'SME_USER',
+    INSTITUTION_ADMIN = 'INSTITUTION_ADMIN',
+    INSTITUTION_USER = 'INSTITUTION_USER',
+    INTERNAL_ADMIN = 'INTERNAL_ADMIN',
+    INTERNAL_STAFF = 'INTERNAL_STAFF',
+}
+
+export enum SharedUserStatus {
+    ACTIVE = 'active',
+    PENDING = 'pending',
+    INACTIVE = 'inactive',
+    SUSPENDED = 'suspended',
+}
+
+export enum InvoiceStatus {
+    DRAFT = 'draft',
+    SENT = 'sent',
+    PAID = 'paid',
+    OVERDUE = 'overdue',
+    CANCELLED = 'cancelled',
+}
+
+// #endregion
+
+// #region Event Topics
 
 export enum UserEventTopics {
-  USER_CREATED = 'user.created',
-  USER_UPDATED = 'user.updated',
-  USER_STATUS_CHANGED = 'user.status.changed',
-  USER_ROLE_CHANGED = 'user.role.changed',
-  USER_DELETED = 'user.deleted',
-  SUBSCRIPTION_CHANGED = 'subscription.changed',
-  SUBSCRIPTION_EXPIRED = 'subscription.expired',
-  TOKEN_PURCHASE = 'token.purchase',
-  TOKEN_USAGE = 'token.usage',
-  TOKEN_ALERT = 'token.alert',
-  DATA_SHARING_CONSENT_CHANGED = 'data.sharing.consent.changed',
+    USER_CREATED = 'user.created',
+    USER_UPDATED = 'user.updated',
+    USER_DELETED = 'user.deleted',
+    USER_STATUS_CHANGED = 'user.status.changed',
+    USER_ROLE_CHANGED = 'user.role.changed',
+    USER_PASSWORD_RESET = 'user.password.reset',
 }
 
-// Define event topics for Institution lifecycle events
+export enum CustomerEventTopics {
+    CUSTOMER_CREATED = 'customer.created',
+    CUSTOMER_UPDATED = 'customer.updated',
+    CUSTOMER_DELETED = 'customer.deleted',
+    CUSTOMER_STATUS_CHANGED = 'customer.status.changed',
+    CUSTOMER_VALIDATED = 'customer.validated',
+    CUSTOMER_SUSPENDED = 'customer.suspended',
+    CUSTOMER_REACTIVATED = 'customer.reactivated',
+}
+
+export enum FinanceEventTopics {
+    INVOICE_CREATED = 'finance.invoice.created',
+    INVOICE_STATUS_CHANGED = 'finance.invoice.status.changed',
+    PAYMENT_RECEIVED = 'finance.payment.received',
+}
+
+export enum TokenEventTopics {
+    TOKEN_PURCHASE = 'token.purchase',
+    TOKEN_USAGE = 'token.usage',
+    TOKEN_ALLOCATED = 'token.allocated',
+    TOKEN_ALERT = 'token.alert',
+}
+
+export enum DocumentEventTopics {
+    DOCUMENT_UPLOADED = 'document.uploaded',
+    DOCUMENT_DELETED = 'document.deleted',
+    DOCUMENT_ANALYSIS_COMPLETED = 'document.analysis.completed',
+}
+
 export enum InstitutionEventTopics {
-  INSTITUTION_CREATED = 'institution.created',
-  INSTITUTION_PROFILE_UPDATED = 'institution.profile.updated',
-  INSTITUTION_STATUS_CHANGED = 'institution.status.changed',
+    INSTITUTION_CREATED = 'institution.created',
+    INSTITUTION_PROFILE_UPDATED = 'institution.profile.updated',
+    INSTITUTION_STATUS_CHANGED = 'institution.status.changed',
 }
 
-// Define more specific user types for events
-export enum EventUserType {
-  SME_OWNER = 'SME_OWNER',
-  SME_USER = 'SME_USER',
-  INSTITUTION_ADMIN = 'INSTITUTION_ADMIN',
-  INSTITUTION_USER = 'INSTITUTION_USER',
-  INTERNAL_ADMIN = 'INTERNAL_ADMIN',
-  INTERNAL_STAFF = 'INTERNAL_STAFF',
-  // Add other specific types as needed
-}
+// #endregion
 
-// It is recommended to define a shared enum for UserStatus values (e.g., 'active', 'pending', 'suspended')
-// and use it consistently across services and events. For example:
-// export enum SharedUserStatus { ACTIVE = 'active', PENDING = 'pending', SUSPENDED = 'suspended', INACTIVE = 'inactive' }
+// #region Event Payloads
 
-export interface UserCreatedEventData {
-  userId: string;
-  email: string;
-  timestamp: Date;
-  isOwner?: boolean; // Flag to indicate if this user is creating/owning a new organization
-  organizationDetails?: {
-    id?: string; // Optional: If admin/auth pre-generates an ID for the organization
+export interface UserCreatedEvent {
+    userId: string;
+    email: string;
     name: string;
-    initialPlan?: string; // e.g., 'pme_basic', 'pme_premium'
-    country?: string;
-    industry?: string;
-    // Add any other details collected at registration relevant for accounting
-  };
-  // Potentially userType (e.g., 'sme_owner', 'sme_user', 'institution_admin') if not implicit by isOwner
-  userType?: EventUserType; // Updated from string
-  firstName?: string; // Added
-  lastName?: string; // Added
-  phoneNumber?: string; // Added
+    role: string;
+    userType: EventUserType;
+    customerAccountId?: string;
+    customerName?: string;
+    timestamp: string;
 }
 
-export interface UserDeletedEvent { // Added this interface
-  userId: string;
-  timestamp: Date;
-  deletedBy: string; // User ID of the admin/system that performed the deletion
-  reason?: string;
+export interface UserUpdatedEvent {
+    userId: string;
+    updatedFields: Record<string, any>;
+    timestamp: string;
+}
+
+export interface UserDeletedEvent {
+    userId: string;
+    deletedBy: string; // User ID of admin
+    timestamp: string;
 }
 
 export interface UserStatusChangedEvent {
-  userId: string;
-  previousStatus: string; // Consider using a shared UserStatus enum
-  newStatus: string;     // Consider using a shared UserStatus enum
-  userType: EventUserType; // Updated from string
-  timestamp: Date;
-  changedBy: string;
-  reason?: string;
+    userId: string;
+    previousStatus: SharedUserStatus;
+    newStatus: SharedUserStatus;
+    userType: EventUserType;
+    changedBy: string; // User ID of admin
+    timestamp: string;
 }
 
 export interface UserRoleChangedEvent {
-  userId: string;
-  previousRole: string;
-  newRole: string;
-  userType: EventUserType; // Updated from string
-  timestamp: Date;
-  changedBy: string;
+    userId: string;
+    previousRole: string;
+    newRole: string;
+    userType: EventUserType;
+    changedBy: string; // User ID of admin
+    timestamp: string;
 }
 
-export interface SubscriptionChangedEvent {
-  userId: string;
-  entityId: string; // Company or institution ID
-  entityType: SubEntityType; // Use aliased import
-  previousPlan?: SubPlanType; // Use aliased import
-  newPlan: SubPlanType;     // Use aliased import
-  status: SubStatusType; // Use the aliased import
-  expiresAt?: Date;
-  timestamp: Date;
-  changedBy: string;
-  reason?: string;
+export interface UserPasswordResetEvent {
+    userId: string;
+    email: string;
+    timestamp: string;
 }
 
-export interface TokenTransactionEvent {
-  userId: string;
-  entityId: string;
-  entityType: SubEntityType; // Corrected: Was EntityType, now SubEntityType
-  amount: number;
-  operation: 'purchase' | 'use' | 'refund' | 'expire' | 'alert' | 'subscription_changed' | 'subscription_expired';
-  currentBalance: number;
-  timestamp: Date;
-  metadata?: Record<string, any>;
+export interface InvoiceCreatedEvent {
+    invoiceId: string;
+    customerId: string;
+    amount: number;
+    currency: string;
+    dueDate: string;
+    timestamp: string;
 }
 
-// Added new interface for data sharing consent changes
-export interface DataSharingConsentChangedEventData {
-  smeOrganizationId: string; // ID of the SME's organization
-  consentingUserId: string; // ID of the user in the SME who configured the consent
-  shareWithAll: boolean; // True if sharing with all, false for granular
-  targetInstitutionTypes: string[] | null; // Array of institution types if shareWithAll is false, otherwise null
-  timestamp: Date;
-  changedBy: string; // User ID who made the change (likely same as consentingUserId)
+export interface InvoiceStatusChangedEvent {
+    invoiceId: string;
+    newStatus: InvoiceStatus;
+    previousStatus: InvoiceStatus;
+    timestamp: string;
 }
 
-// Event data for Institution Created
-export interface InstitutionCreatedEventData {
-  institutionId: string;
-  name: string;
-  kiotaId: string;
-  type?: string; // e.g., 'Bank', 'Microfinance', 'Incubator'
-  createdByUserId: string;
-  timestamp: Date;
-  metadata?: Record<string, any>; // e.g., initial country, industry
+export interface PaymentReceivedEvent {
+    paymentId: string;
+    invoiceId: string;
+    customerId: string;
+    amount: number;
+    currency: string;
+    paymentDate: string;
+    timestamp: string;
 }
 
-// Event data for Institution Profile Updated
-export interface InstitutionProfileUpdatedEventData {
-  institutionId: string;
-  updatedByUserId: string;
-  updatedFields: string[]; // e.g., ['name', 'type', 'address.street']
-  timestamp: Date;
-  // Consider adding a snapshot of key updated data if small and frequently needed by consumers
+export interface CustomerCreatedEvent {
+    customerId: string;
+    name: string;
+    email?: string;
+    createdBy: string; // User ID
+    timestamp: string;
 }
 
-// Event data for Institution Status Changed
-export interface InstitutionStatusChangedEventData {
-  institutionId: string;
-  changedBy: string; // User ID of who made the change
-  previousStatus: InstitutionStatusType; // Consider using InstitutionStatusType here as well if appropriate
-  newStatus: InstitutionStatusType; // Consider using InstitutionStatusType here as well
-  reason?: string;
-  timestamp: Date;
+export interface CustomerUpdatedEvent {
+    customerId: string;
+    updatedFields: Record<string, any>;
+    updatedBy: string; // User ID
+    timestamp: string;
 }
 
-// New Enum for Institution Status
-export enum InstitutionStatusType {
-  PENDING_VERIFICATION = 'pending_verification', // Initial state, needs review
-  ACTIVE = 'active',                           // Fully operational
-  INACTIVE = 'inactive',                         // Temporarily not operational, self-imposed or minor issue
-  SUSPENDED = 'suspended',                       // Restricted by system admin due to issues
-  UNDER_REVIEW = 'under_review',                 // Specific review process ongoing (e.g., compliance)
-  CLOSED = 'closed',                           // Permanently closed
+export interface CustomerDeletedEvent {
+    customerId: string;
+    deletedBy: string; // User ID
+    timestamp: string;
 }
 
-// Export the types for use in other modules
-export { SubStatusType as SubscriptionStatusType };
-export { SubEntityType as EntityType };
-export { SubPlanType as SubscriptionPlanType };
+export interface CustomerStatusChangedEvent {
+    customerId: string;
+    previousStatus: string;
+    newStatus: string;
+    changedBy: string;
+    reason?: string;
+    timestamp: string;
+}
+
+export interface CustomerValidatedEvent {
+    customerId: string;
+    validatedBy: string;
+    timestamp: string;
+}
+
+export interface CustomerSuspendedEvent {
+    customerId: string;
+    suspendedBy: string;
+    reason: string;
+    timestamp: string;
+}
+
+export interface CustomerReactivatedEvent {
+    customerId: string;
+    reactivatedBy: string;
+    timestamp: string;
+}
+
+export interface DocumentUploadedEvent {
+    documentId: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType: string;
+    fileSize: number;
+    userId: string; // The user who uploaded the document
+    companyId: string;
+    timestamp: string;
+}
+
+export interface DocumentDeletedEvent {
+    documentId: string;
+    deletedBy: string; // User ID of who deleted it
+    timestamp: string;
+}
+
+export interface DocumentAnalysisCompletedEvent {
+    documentId: string;
+    status: 'success' | 'failure';
+    analysisResult?: Record<string, any>;
+    errorMessage?: string;
+    timestamp: string;
+}
+
+export interface TokenPurchaseEvent {
+    purchaseId: string;
+    customerId: string;
+    packageId: string;
+    tokensPurchased: number;
+    amountPaid: number;
+    currency: string;
+    timestamp: string;
+}
+
+export interface TokenAllocatedEvent {
+    allocationId: string;
+    customerId: string;
+    tokensAllocated: number;
+    allocatedBy: string; // Admin/System
+    reason: string;
+    timestamp: string;
+}
+
+export interface TokenUsageEvent {
+    usageId: string;
+    customerId: string;
+    userId: string;
+    tokensUsed: number;
+    service: string; // e.g., 'document_analysis', 'report_generation'
+    timestamp: string;
+}
+
+export interface TokenAlertEvent {
+    customerId: string;
+    remainingTokens: number;
+    alertThreshold: number;
+    timestamp: string;
+}
+
+export interface InstitutionCreatedEvent {
+    institutionId: string;
+    name: string;
+    createdBy: string; // User ID
+    timestamp: string;
+}
+
+export interface InstitutionProfileUpdatedEvent {
+    institutionId: string;
+    updatedFields: Record<string, any>;
+    updatedBy: string; // User ID
+    timestamp: string;
+}
+
+export interface InstitutionStatusChangedEvent {
+    institutionId: string;
+    newStatus: string; // e.g., 'active', 'inactive', 'suspended'
+    previousStatus: string;
+    changedBy: string; // User ID
+    timestamp: string;
+}
+
+// #endregion
+
+// #region Kafka Configuration
+
+export const getKafkaConfig = (configService: ConfigService): KafkaOptions => {
+    return {
+        transport: Transport.KAFKA,
+        options: {
+            client: {
+                clientId: configService.get<string>('KAFKA_CLIENT_ID'),
+                brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+                ssl: configService.get<boolean>('KAFKA_SSL', false),
+            },
+            consumer: {
+                groupId: configService.get<string>('KAFKA_GROUP_ID', 'wanzo-backend'),
+                allowAutoTopicCreation: true,
+            },
+        },
+    };
+};
+
+// #endregion

@@ -1,188 +1,205 @@
-import { IsString, IsOptional, IsEmail, IsEnum, IsBoolean, IsISO8601, IsObject, ValidateNested, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsEnum, IsInt, IsPositive, Min, Max, IsDateString, IsObject, ValidateNested, IsUUID, IsArray, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CustomerType, CustomerStatus, DocumentType, DocumentStatus } from '../entities';
+import { CustomerType, CustomerStatus, AccountType } from '../entities/customer.entity';
+import { DocumentType, DocumentStatus } from '../entities/document.entity';
+import { ValidationStepStatus } from '../entities/validation.entity';
 
-export class AddressDto {
+// Base Customer DTO for responses
+export class CustomerDto {
+  id: string;
+  name: string;
+  type: CustomerType;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  status: CustomerStatus;
+  billingContactName: string;
+  billingContactEmail: string;
+  tokenAllocation: number;
+  accountType: AccountType;
+  ownerId?: string;
+  ownerEmail?: string;
+  validatedAt?: Date;
+  validatedBy?: string;
+  suspendedAt?: Date;
+  suspendedBy?: string;
+  suspensionReason?: string;
+  reactivatedAt?: Date;
+  reactivatedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class PmeSpecificDataDto {
+    @IsString()
+    @IsOptional()
+    industry?: string;
+
+    @IsIn(['micro', 'small', 'medium'])
+    @IsOptional()
+    size?: 'micro' | 'small' | 'medium';
+
+    @IsInt()
+    @IsPositive()
+    @IsOptional()
+    employeesCount?: number;
+
+    @IsInt()
+    @IsOptional()
+    yearFounded?: number;
+
+    @IsString()
+    @IsOptional()
+    registrationNumber?: string;
+
+    @IsString()
+    @IsOptional()
+    taxId?: string;
+
+    @IsString()
+    @IsOptional()
+    businessLicense?: string;
+}
+
+export class FinancialInstitutionDataDto {
+    @IsIn(['bank', 'microfinance', 'insurance', 'investment', 'other'])
+    @IsOptional()
+    institutionType?: 'bank' | 'microfinance' | 'insurance' | 'investment' | 'other';
+
+    @IsString()
+    @IsOptional()
+    regulatoryBody?: string;
+
+    @IsString()
+    @IsOptional()
+    regulatoryLicenseNumber?: string;
+
+    @IsInt()
+    @IsPositive()
+    @IsOptional()
+    branchesCount?: number;
+
+    @IsInt()
+    @IsPositive()
+    @IsOptional()
+    clientsCount?: number;
+
+    @IsInt()
+    @IsPositive()
+    @IsOptional()
+    assetsUnderManagement?: number;
+}
+
+// DTO for customer creation
+export class CreateCustomerDto {
   @IsString()
-  street: string;
+  name: string;
+
+  @IsEnum(CustomerType)
+  type: CustomerType;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  phone: string;
+
+  @IsString()
+  address: string;
 
   @IsString()
   city: string;
 
   @IsString()
-  state: string;
-
-  @IsString()
-  postalCode: string;
-
-  @IsString()
   country: string;
-}
-
-export class CustomerDto {
-  id: string;
-  type: CustomerType;
-  firstName?: string;
-  lastName?: string;
-  email: string;
-  phoneNumber?: string;
-  companyName?: string;
-  registrationNumber?: string;
-  status: CustomerStatus;
-  address?: {
-    street: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  };
-  dateOfBirth?: Date;
-  nationality?: string;
-  taxId?: string;
-  isOnboarded: boolean;
-  emailVerified: boolean;
-  phoneVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export class CustomerListResponseDto {
-  data: CustomerDto[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
-}
-
-export class CustomerDetailsResponseDto {
-  data: CustomerDto & {
-    documents?: CustomerDocumentDto[];
-  };
-}
-
-export class CreateCustomerDto {
-  @IsEnum(CustomerType)
-  type: CustomerType;
 
   @IsString()
-  @IsOptional()
-  firstName?: string;
-
-  @IsString()
-  @IsOptional()
-  lastName?: string;
+  billingContactName: string;
 
   @IsEmail()
-  email: string;
+  billingContactEmail: string;
 
-  @IsString()
+  @IsEnum(AccountType)
+  accountType: AccountType;
+
   @IsOptional()
-  phoneNumber?: string;
-
-  @IsString()
-  @IsOptional()
-  companyName?: string;
-
-  @IsString()
-  @IsOptional()
-  registrationNumber?: string;
-
-  @IsObject()
   @ValidateNested()
-  @IsOptional()
-  @Type(() => AddressDto)
-  address?: AddressDto;
+  @Type(() => PmeSpecificDataDto)
+  pmeSpecificData?: PmeSpecificDataDto;
 
-  @IsISO8601()
   @IsOptional()
-  dateOfBirth?: string;
-
-  @IsString()
-  @IsOptional()
-  nationality?: string;
-
-  @IsString()
-  @IsOptional()
-  taxId?: string;
+  @ValidateNested()
+  @Type(() => FinancialInstitutionDataDto)
+  financialInstitutionData?: FinancialInstitutionDataDto;
 }
 
+// DTO for customer updates
 export class UpdateCustomerDto {
-  @IsEnum(CustomerType)
+  @IsString()
   @IsOptional()
-  type?: CustomerType;
+  name?: string;
 
   @IsString()
   @IsOptional()
-  firstName?: string;
+  phone?: string;
 
   @IsString()
   @IsOptional()
-  lastName?: string;
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  country?: string;
+
+  @IsString()
+  @IsOptional()
+  billingContactName?: string;
 
   @IsEmail()
   @IsOptional()
-  email?: string;
+  billingContactEmail?: string;
 
-  @IsString()
+  @IsEnum(AccountType)
   @IsOptional()
-  phoneNumber?: string;
+  accountType?: AccountType;
 
-  @IsString()
   @IsOptional()
-  companyName?: string;
-
-  @IsString()
-  @IsOptional()
-  registrationNumber?: string;
-
-  @IsEnum(CustomerStatus)
-  @IsOptional()
-  status?: CustomerStatus;
-
-  @IsObject()
   @ValidateNested()
-  @IsOptional()
-  @Type(() => AddressDto)
-  address?: AddressDto;
+  @Type(() => PmeSpecificDataDto)
+  pmeSpecificData?: PmeSpecificDataDto;
 
-  @IsISO8601()
   @IsOptional()
-  dateOfBirth?: string;
-
-  @IsString()
-  @IsOptional()
-  nationality?: string;
-
-  @IsString()
-  @IsOptional()
-  taxId?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  isOnboarded?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  emailVerified?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  phoneVerified?: boolean;
+  @ValidateNested()
+  @Type(() => FinancialInstitutionDataDto)
+  financialInstitutionData?: FinancialInstitutionDataDto;
 }
 
+// DTO for querying customers
 export class CustomerQueryParamsDto {
+  @IsInt()
+  @Min(1)
   @IsOptional()
+  @Type(() => Number)
   page?: number;
 
+  @IsInt()
+  @Min(1)
+  @Max(100)
   @IsOptional()
+  @Type(() => Number)
   limit?: number;
 
+  @IsString()
   @IsOptional()
   sortBy?: string;
 
-  @IsEnum(['asc', 'desc'])
+  @IsIn(['asc', 'desc'])
   @IsOptional()
   sortOrder?: 'asc' | 'desc';
 
@@ -199,44 +216,142 @@ export class CustomerQueryParamsDto {
   search?: string;
 }
 
+// DTO for customer list response
+export class CustomerListResponseDto {
+  customers: CustomerDto[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+
+// DTO for customer details response (includes documents, activities, etc.)
+export class CustomerDetailsResponseDto {
+  customer: CustomerDto & {
+    documents?: CustomerDocumentDto[];
+    validationHistory?: Array<{
+      date: Date;
+      action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
+      by: string;
+      notes?: string;
+    }>;
+  };
+  statistics?: {
+    tokensUsed: number;
+    lastActivity: Date;
+    activeSubscriptions: number;
+    totalSpent: number;
+  };
+  activities?: CustomerActivityDto[];
+}
+
+// DTO for suspending a customer
+export class SuspendCustomerDto {
+  @IsString()
+  reason: string;
+}
+
+// Document DTOs
 export class CustomerDocumentDto {
   id: string;
-  customerId: string;
   type: DocumentType;
-  name: string;
+  fileName: string;
   fileUrl: string;
+  uploadedAt: Date;
+  uploadedBy: string;
   status: DocumentStatus;
-  verifiedAt?: Date;
-  rejectionReason?: string;
-  expiryDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewComments?: string;
 }
 
 export class UploadDocumentDto {
   @IsEnum(DocumentType)
   type: DocumentType;
-
-  @IsISO8601()
-  @IsOptional()
-  expiryDate?: string;
 }
 
-export class VerifyDocumentDto {
-  @IsEnum(DocumentStatus)
-  status: DocumentStatus;
-
+export class ApproveDocumentDto {
   @IsString()
   @IsOptional()
-  rejectionReason?: string;
+  comments?: string;
 }
 
-export class CustomerEmailVerificationDto {
-  @IsUUID()
-  token: string;
-}
-
-export class CustomerPhoneVerificationDto {
+export class RejectDocumentDto {
   @IsString()
-  code: string;
+  reason: string;
+}
+
+// Activity DTOs
+export class CustomerActivityDto {
+    @IsUUID()
+    id: string;
+
+    @IsUUID()
+    customerId: string;
+
+    @IsString()
+    type: string;
+
+    @IsString()
+    action: string;
+
+    @IsString()
+    description: string;
+
+    @IsUUID()
+    performedBy: string;
+
+    @IsString()
+    performedByName: string;
+
+    @IsDateString()
+    timestamp: string;
+
+    @IsObject()
+    @IsOptional()
+    details?: Record<string, any>;
+}
+
+// Validation DTOs
+export class ValidationStepDto {
+  id: string;
+  name: string;
+  description: string;
+  status: ValidationStepStatus;
+  order?: number;
+  requiredDocuments?: DocumentType[];
+  completedAt?: Date;
+  completedBy?: string;
+  notes?: string;
+}
+
+export class ValidationProcessDto {
+  id: string;
+  customerId: string;
+  status: CustomerStatus;
+  steps: ValidationStepDto[];
+  currentStepIndex: number;
+  startedAt: Date;
+  lastUpdatedAt: Date;
+  completedAt?: Date;
+  validatedBy?: string;
+  notes?: string[];
+}
+
+// Statistics DTO
+export class CustomerStatisticsDto {
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+  suspended: number;
+  byType: {
+    pme: number;
+    financial: number;
+  };
+  byAccountType: {
+    freemium: number;
+    standard: number;
+    premium: number;
+    enterprise: number;
+  };
 }

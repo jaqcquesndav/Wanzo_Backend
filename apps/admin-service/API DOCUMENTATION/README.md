@@ -18,6 +18,7 @@ The documentation aims to be rigorous and maintain consistency in naming, servin
 - [Document Management (documents.md)](documents.md)
 - [Token Management (tokens.md)](tokens.md)
 - [User Settings (settings.md)](settings.md)
+- [Adha Context (adha-context.md)](adha-context.md)
 
 ## General API Conventions
 

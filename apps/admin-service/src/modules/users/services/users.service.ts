@@ -1,23 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not, MoreThanOrEqual } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserSession, UserActivity, RolePermission } from '../entities/user-related.entity';
 import { 
   CreateUserDto, 
-  UpdateUserDto, 
-  UserQueryParamsDto, 
-  UserSessionsQueryDto, 
-  UserActivityQueryDto,
-  ChangePasswordDto,
-  ResetPasswordDto,
-  ResetPasswordRequestDto,
-  RolePermissionsUpdateDto
-} from '../dtos/user.dto';
+  UpdateUserDto,
+  UpdateUserRoleDto,
+  UserFilterDto,
+  UserDto,
+  ToggleStatusDto,
+  ResetPasswordDto
+} from '../dtos';
 import { UserRole, UserStatus, UserType } from '../entities/enums';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { UserEventsHandler } from './user-events.handler';
+import { EventsService } from '../../events/events.service';
+import { EventUserType, SharedUserStatus } from '@wanzo/shared/events/kafka-config';
 
 @Injectable()
 export class UsersService {
@@ -32,11 +31,58 @@ export class UsersService {
     private readonly activityRepository: Repository<UserActivity>,
     @InjectRepository(RolePermission)
     private readonly rolePermissionRepository: Repository<RolePermission>,
-    private readonly userEventsHandler: UserEventsHandler,
+    private readonly eventsService: EventsService,
   ) {}
 
+  private async findByEmail(email: string): Promise<User> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
+
+  // Convert User entity to UserDto
+  private mapUserToDto(user: User): UserDto {
+    const userDto = new UserDto();
+    userDto.id = user.id;
+    userDto.name = user.name;
+    userDto.email = user.email;
+    userDto.role = user.role;
+    userDto.userType = user.userType;
+    userDto.customerAccountId = user.customerAccountId;
+    userDto.customerName = user.customerName;
+    userDto.customerType = user.customerType;
+    userDto.status = user.status;
+    userDto.avatar = user.avatar;
+    userDto.createdAt = user.createdAt.toISOString();
+    
+    if (user.updatedAt) {
+      userDto.updatedAt = user.updatedAt.toISOString();
+    }
+    
+    if (user.lastLogin) {
+      userDto.lastLogin = user.lastLogin.toISOString();
+    }
+    
+    userDto.permissions = user.permissions;
+    userDto.departement = user.departement;
+    userDto.phoneNumber = user.phoneNumber;
+    userDto.position = user.position;
+    
+    return userDto;
+  }
+
+  async findOne(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID "${id}" not found`);
+    }
+    return user;
+  }
+
   // User CRUD Operations
-  async findAll(queryParams: UserQueryParamsDto) {
+  async findAll(filterDto: UserFilterDto): Promise<{ users: UserDto[], totalCount: number, page: number, totalPages: number }> {
     const { 
       search, 
       role, 
@@ -45,7 +91,7 @@ export class UsersService {
       status, 
       page = 1, 
       limit = 10 
-    } = queryParams;
+    } = filterDto;
 
     const query = this.userRepository.createQueryBuilder('user');
 
@@ -73,111 +119,189 @@ export class UsersService {
     }
 
     // Calculate pagination
-    const total = await query.getCount();
-    const totalPages = Math.ceil(total / limit);
+    const totalCount = await query.getCount();
+    const totalPages = Math.ceil(totalCount / limit);
     
     // Apply pagination
     query.skip((page - 1) * limit).take(limit);
     
     // Get results
     const users = await query.getMany();
-
-    return {
-      users,
-      totalCount: total,
-      page,
-      totalPages
-    };
+    return { users: users.map(user => this.mapUserToDto(user)), totalCount, page, totalPages };
   }
 
-  async findById(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-    return user;
-  }
-
-  async findByEmail(email: string) {
-    return this.userRepository.findOne({ where: { email } });
-  }
-
-  async create(createUserDto: CreateUserDto) {
-    // Check if email is already used
+  async create(createUserDto: CreateUserDto): Promise<UserDto> {
     const existingUser = await this.findByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
-    // Validate external user has customerAccountId
-    if (createUserDto.userType === UserType.EXTERNAL && !createUserDto.customerAccountId) {
-      throw new BadRequestException('Customer Account ID is required for external users');
-    }
-
-    // Hash password
     const hashedPassword = await this.hashPassword(createUserDto.password);
 
-    // Get default permissions for the role
-    let permissions: string[] = [];
-    if (createUserDto.role) {
-      const rolePermissions = await this.rolePermissionRepository.findOne({
-        where: { role: createUserDto.role },
-      });
-      if (rolePermissions) {
-        permissions = rolePermissions.permissions;
-      }
-    }
-
-    // Create new user
     const newUser = this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
-      permissions,
-      status: createUserDto.status || UserStatus.PENDING,
+      status: UserStatus.PENDING,
     });
 
-    return this.userRepository.save(newUser);
+    const savedUser = await this.userRepository.save(newUser);
+
+    await this.eventsService.publishUserCreated({
+      userId: savedUser.id,
+      email: savedUser.email,
+      name: savedUser.name,
+      role: savedUser.role,
+      userType: savedUser.userType as unknown as EventUserType,
+      customerAccountId: savedUser.customerAccountId,
+      customerName: savedUser.customerName,
+      timestamp: new Date().toISOString(),
+    });
+
+    return this.mapUserToDto(savedUser);
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = await this.findById(id);
-
-    // If updating email, check if it's not already used
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingUser = await this.findByEmail(updateUserDto.email);
-      if (existingUser) {
-        throw new ConflictException('Email already exists');
-      }
-    }
-
-    // If role is changing, update permissions
-    if (updateUserDto.role && updateUserDto.role !== user.role) {
-      const rolePermissions = await this.rolePermissionRepository.findOne({
-        where: { role: updateUserDto.role },
-      });
-      if (rolePermissions) {
-        updateUserDto.permissions = rolePermissions.permissions;
-      }
-    }
-
-    // Update user
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
+    const user = await this.findOne(id);
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+
+    await this.eventsService.publishUserUpdated({
+      userId: updatedUser.id,
+      updatedFields: updateUserDto,
+      timestamp: new Date().toISOString(),
+    });
+
+    return this.mapUserToDto(updatedUser);
   }
 
-  async remove(id: string) {
-    const user = await this.findById(id);
-    return this.userRepository.remove(user);
+  async updateRole(id: string, updateRoleDto: UpdateUserRoleDto): Promise<UserDto> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    const previousRole = user.role;
+
+    // Check if role is valid
+    const rolePermissions = await this.rolePermissionRepository.findOne({
+      where: { role: updateRoleDto.role },
+    });
+
+    if (!rolePermissions) {
+      throw new BadRequestException(`Role ${updateRoleDto.role} is not valid`);
+    }
+
+    // Update role and permissions
+    user.role = updateRoleDto.role;
+    user.permissions = [{
+      applicationId: 'default',
+      permissions: rolePermissions.permissions
+    }];
+
+    const savedUser = await this.userRepository.save(user);
+    
+    await this.eventsService.publishUserRoleChanged({
+      userId: savedUser.id,
+      previousRole: previousRole,
+      newRole: savedUser.role,
+      userType: savedUser.userType as unknown as EventUserType,
+      changedBy: 'admin', // Placeholder, replace with actual admin user ID
+      timestamp: new Date().toISOString(),
+    });
+
+    // Log activity
+    this.logger.log(`User role updated: ${savedUser.id} (${savedUser.email}) to ${updateRoleDto.role}`);
+    
+    return this.mapUserToDto(savedUser);
+  }
+
+  async remove(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    await this.userRepository.remove(user);
+    await this.eventsService.publishUserDeleted({
+      userId: user.id,
+      deletedBy: 'admin', // Placeholder, replace with actual admin user ID
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  async resetPassword(userId: string): Promise<{ message: string }> {
+    const user = await this.findOne(userId);
+    // In a real application, you would generate a token and send a reset email.
+    // For now, we'll just log the action as a placeholder.
+    this.logger.log(`Password reset initiated for user: ${user.id} (${user.email})`);
+    await this.eventsService.publishUserPasswordReset({
+      userId: user.id,
+      email: user.email,
+      timestamp: new Date().toISOString(),
+    });
+    return { message: 'Password reset initiated successfully.' };
+  }
+
+  async toggleUserStatus(userId: string, toggleStatusDto: ToggleStatusDto): Promise<UserDto> {
+    const user = await this.findOne(userId);
+    const previousStatus = user.status;
+    user.status = toggleStatusDto.active ? UserStatus.ACTIVE : UserStatus.INACTIVE;
+    const updatedUser = await this.userRepository.save(user);
+
+    await this.eventsService.publishUserStatusChanged({
+      userId: updatedUser.id,
+      previousStatus: previousStatus as unknown as SharedUserStatus,
+      newStatus: updatedUser.status as unknown as SharedUserStatus,
+      userType: updatedUser.userType as unknown as EventUserType,
+      changedBy: 'admin', // Placeholder, replace with actual admin user ID
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`User status for ${user.email} toggled to ${user.status}`);
+    return this.mapUserToDto(updatedUser);
+  }
+
+  async getUserActivities(id: string): Promise<UserActivity[]> {
+    await this.findOne(id); // a user must exist
+    return this.activityRepository.find({ 
+      where: { userId: id },
+      order: { timestamp: 'DESC' },
+      take: 50 // limit results
+    });
+  }
+
+  async getUserSessions(id: string): Promise<UserSession[]> {
+    await this.findOne(id); // a user must exist
+    return this.sessionRepository.find({ 
+      where: { userId: id },
+      order: { lastActive: 'DESC' },
+      take: 50 // limit results
+    });
+  }
+
+  async getDashboardStats(): Promise<any> {
+    const totalUsers = await this.userRepository.count();
+    const activeUsers = await this.userRepository.count({ where: { status: UserStatus.ACTIVE } });
+    const usersByRole: Partial<{ [key in UserRole]: number }> = {};
+
+    for (const role of Object.values(UserRole)) {
+      usersByRole[role] = await this.userRepository.count({ where: { role } });
+    }
+
+    return { totalUsers, activeUsers, usersByRole };
   }
 
   // User Profile Operations
-  async getProfile(userId: string) {
-    return this.findById(userId);
+  async getProfile(userId: string): Promise<UserDto> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User profile not found`);
+    }
+    return this.mapUserToDto(user);
   }
 
-  async updateProfile(userId: string, updateData: UpdateUserDto) {
+  async updateProfile(userId: string, updateData: UpdateUserDto): Promise<UserDto> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User profile not found`);
+    }
+
     // Restrict what fields can be updated through profile update
-    // For example, users shouldn't be able to change their own role
     const allowedUpdates = {
       name: updateData.name,
       phoneNumber: updateData.phoneNumber,
@@ -185,227 +309,31 @@ export class UsersService {
       avatar: updateData.avatar,
     };
 
-    return this.update(userId, allowedUpdates);
+    // Update user properties
+    const updatedUser = Object.assign(user, allowedUpdates);
+    const savedUser = await this.userRepository.save(updatedUser);
+    
+    return this.mapUserToDto(savedUser);
   }
 
-  // Password Management
-  async changePassword(changePasswordDto: ChangePasswordDto) {
-    const { userId, currentPassword, newPassword, confirmPassword } = changePasswordDto;
-
-    // Confirm passwords match
-    if (newPassword !== confirmPassword) {
-      throw new BadRequestException('New passwords do not match');
-    }    // Get user with password
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'password'],
-    });
-
-    if (!user || !user.password) {
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isPasswordValid) {
-      throw new BadRequestException('Current password is incorrect');
+    const isPasswordMatching = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordMatching) {
+      throw new BadRequestException('Invalid current password');
     }
 
-    // Update password
     user.password = await this.hashPassword(newPassword);
     await this.userRepository.save(user);
-
-    return { success: true, message: 'Password changed successfully' };
-  }
-
-  async requestPasswordReset(resetRequestDto: ResetPasswordRequestDto) {
-    const { email } = resetRequestDto;
-    const user = await this.findByEmail(email);
-
-    if (!user) {
-      // For security reasons, don't reveal if the email exists
-      return { success: true, message: 'If your email exists in our system, you will receive a password reset link' };
-    }
-
-    // Generate reset token
-    const resetToken = uuidv4();
-    const tokenExpiry = new Date();
-    tokenExpiry.setHours(tokenExpiry.getHours() + 24); // Token valid for 24 hours
-
-    // Save token to user
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = tokenExpiry;
-    await this.userRepository.save(user);
-
-    // In a real application, send email with reset link
-    // For now, just return success
-    return { success: true, message: 'If your email exists in our system, you will receive a password reset link' };
-  }
-
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { token, newPassword, confirmPassword } = resetPasswordDto;
-
-    // Confirm passwords match
-    if (newPassword !== confirmPassword) {
-      throw new BadRequestException('New passwords do not match');
-    }
-
-    // Find user with this reset token
-    const user = await this.userRepository.findOne({
-      where: { 
-        resetPasswordToken: token,
-        resetPasswordExpires: Not(new Date()),
-      },
-    });
-
-    if (!user) {
-      throw new BadRequestException('Invalid or expired token');
-    }
-
-    // Update password
-    user.password = await this.hashPassword(newPassword);
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-    await this.userRepository.save(user);
-
-    return { success: true, message: 'Password has been reset successfully' };
-  }
-
-  async adminResetPassword(userId: string) {
-    const user = await this.findById(userId);
-    
-    // Generate reset token
-    const resetToken = uuidv4();
-    const tokenExpiry = new Date();
-    tokenExpiry.setHours(tokenExpiry.getHours() + 24); // Token valid for 24 hours
-
-    // Save token to user
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = tokenExpiry;
-    await this.userRepository.save(user);
-
-    // In a real application, send email with reset link
-    // For now, just return success
-    return { success: true, message: 'Password reset initiated for user' };
-  }
-  // User Status Management
-  async toggleUserStatus(userId: string, active: boolean, changedBy: string, reason?: string) {
-    const user = await this.findById(userId);
-    
-    const previousStatus = user.status;
-    const newStatus = active ? UserStatus.ACTIVE : UserStatus.INACTIVE;
-    
-    user.status = newStatus;
-    const updatedUser = await this.userRepository.save(user);
-    
-    // Call the event handler to publish the status change event
-    if (this.userEventsHandler) {
-      await this.userEventsHandler.handleUserStatusChange(
-        userId,
-        previousStatus,
-        newStatus,
-        user.userType,
-        changedBy,
-        reason
-      );
-    }
-    
-    return updatedUser;
-  }
-
-  // Session Management
-  async getUserSessions(queryParams: UserSessionsQueryDto) {
-    const { userId, isActive, page = 1, limit = 10 } = queryParams;
-
-    const query = this.sessionRepository.createQueryBuilder('session')
-      .where('session.userId = :userId', { userId });
-
-    if (isActive !== undefined) {
-      query.andWhere('session.isActive = :isActive', { isActive });
-    }
-
-    const total = await query.getCount();
-    const totalPages = Math.ceil(total / limit);
-
-    query.skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('session.lastActive', 'DESC');
-
-    const sessions = await query.getMany();
-
-    return {
-      sessions,
-      total,
-      page,
-      totalPages,
-    };
-  }
-
-  async terminateSession(sessionId: string) {
-    const session = await this.sessionRepository.findOne({
-      where: { id: sessionId },
-    });
-
-    if (!session) {
-      throw new NotFoundException('Session not found');
-    }
-
-    session.isActive = false;
-    await this.sessionRepository.save(session);
-
-    return { success: true };
-  }
-
-  // Activity Logging
-  async getUserActivities(queryParams: UserActivityQueryDto) {
-    const { userId, action, startDate, endDate, page = 1, limit = 20 } = queryParams;
-
-    const query = this.activityRepository.createQueryBuilder('activity')
-      .where('activity.userId = :userId', { userId });
-
-    if (action) {
-      query.andWhere('activity.action = :action', { action });
-    }
-
-    if (startDate) {
-      query.andWhere('activity.timestamp >= :startDate', { startDate });
-    }
-
-    if (endDate) {
-      query.andWhere('activity.timestamp <= :endDate', { endDate });
-    }
-
-    const total = await query.getCount();
-    const totalPages = Math.ceil(total / limit);
-
-    query.skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('activity.timestamp', 'DESC');
-
-    const activities = await query.getMany();
-
-    return {
-      activities,
-      total,
-      page,
-      totalPages,
-    };
-  }
-
-  async logActivity(userId: string, action: string, ipAddress: string, userAgent: string, metadata?: Record<string, any>) {
-    const activity = this.activityRepository.create({
-      userId,
-      action,
-      ipAddress,
-      userAgent,
-      metadata,
-    });
-
-    return this.activityRepository.save(activity);
+    this.logger.log(`Password changed for user ${user.email}`);
   }
 
   // Role & Permissions Management
-  async getRolePermissions(role: string) {
+  async getRolePermissions(role: UserRole): Promise<any> {
     const rolePermissions = await this.rolePermissionRepository.findOne({
       where: { role },
     });
@@ -417,40 +345,12 @@ export class UsersService {
     return rolePermissions;
   }
 
-  async updateRolePermissions(role: string, updateDto: RolePermissionsUpdateDto) {
-    let rolePermissions = await this.rolePermissionRepository.findOne({
-      where: { role },
-    });
-
-    if (!rolePermissions) {
-      // Create new role permissions
-      rolePermissions = this.rolePermissionRepository.create({
-        role,
-        permissions: updateDto.permissions,
-      });
-    } else {
-      // Update existing role permissions
-      rolePermissions.permissions = updateDto.permissions;
-      rolePermissions.updatedAt = new Date();
-    }
-
-    await this.rolePermissionRepository.save(rolePermissions);
-
-    // Update permissions for all users with this role
-    await this.userRepository.update(
-      { role: role as UserRole },
-      { permissions: updateDto.permissions }
-    );
-
-    return rolePermissions;
-  }
-
-  async getAllRolesWithPermissions() {
+  async getAllRolesWithPermissions(): Promise<any[]> {
     return this.rolePermissionRepository.find();
   }
 
   // User Statistics
-  async getUserStatistics() {
+  async getUserStatistics(): Promise<any> {
     const totalUsers = await this.userRepository.count();
     
     const activeUsers = await this.userRepository.count({
@@ -462,10 +362,10 @@ export class UsersService {
     });
 
     // Get user counts by role
-    const usersByRole: Record<string, number> = {};
+    const usersByRole: Partial<{ [key in UserRole]: number }> = {};
     for (const role of Object.values(UserRole)) {
       usersByRole[role] = await this.userRepository.count({
-        where: { role: role as UserRole },
+        where: { role: role },
       });
     }
 
@@ -489,8 +389,4 @@ export class UsersService {
   }
 
   // Helper Methods
-  private async hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
-    return bcrypt.hash(password, salt);
-  }
 }

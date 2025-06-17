@@ -1,162 +1,121 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseInterceptors,
-  UploadedFile,
-  ParseUUIDPipe,
-  HttpStatus,
-  HttpCode,
-  UseGuards
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { TokensService } from '../services/tokens.service';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { TokensService } from '../services';
-import {
-  TokenBalanceDto,
-  TokenPackageDto,
-  TokenPackagesResponseDto,
-  CreateTokenPackageDto,
-  UpdateTokenPackageDto,
-  TokenPackageQueryDto,
-  TokenTransactionDto,
-  TransactionResponseDto,
-  TokenTransactionQueryDto,
-  TokenTransactionsResponseDto,
-  PurchaseTokensDto,
-  TokenConsumptionLogDto,
-  CreateTokenConsumptionLogDto,
-  TokenConsumptionQueryDto,
-  TokenConsumptionLogsResponseDto,
-  TokenAnalyticsDto,
-  TokenAnalyticsQueryDto,
-  UpdateTokenTransactionDto
-} from '../dtos';
-import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard'; // Added
-import { RolesGuard } from '../../auth/guards/roles.guard'; // Added 
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'; // Added
+import { 
+    TokenBalanceDto, 
+    TokenPackagesResponseDto, 
+    PurchaseTokensDto, 
+    PurchaseTokensResponseDto, 
+    TokenUsageResponseDto, 
+    GetTokenUsageQueryDto, 
+    TokenHistoryResponseDto, 
+    GetTokenHistoryQueryDto, 
+    TokenStatisticsDto, 
+    GetTokenStatsQueryDto, 
+    AllocateTokensDto, 
+    AllocateTokensResponseDto 
+} from '../dtos/token.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { User } from '../../users/entities/user.entity';
 
-@ApiTags('Tokens') // Added
-@ApiBearerAuth() // Added
-@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
+@ApiTags('Tokens')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('tokens')
 export class TokensController {
-  constructor(private readonly tokensService: TokensService) {}
+    constructor(private readonly tokensService: TokensService) {}
 
-  // Token Balance Endpoints
-  @Get('balance')
-  async getTokenBalance(
-    @Query('userId') userId: string,
-    @Query('customerAccountId') customerAccountId?: string
-  ): Promise<TokenBalanceDto> {
-    return this.tokensService.getTokenBalance(userId, customerAccountId);
-  }
-
-  // Token Package Endpoints
-  @Get('packages')
-  async getTokenPackages(
-    @Query() queryDto: TokenPackageQueryDto
-  ): Promise<TokenPackagesResponseDto> {
-    return this.tokensService.getTokenPackages(queryDto);
-  }
-
-  @Get('packages/:id')
-  async getTokenPackageById(
-    @Param('id', ParseUUIDPipe) id: string
-  ): Promise<TokenPackageDto> {
-    return this.tokensService.getTokenPackageById(id);
-  }
-
-  @Post('packages')
-  async createTokenPackage(
-    @Body() createDto: CreateTokenPackageDto
-  ): Promise<TokenPackageDto> {
-    return this.tokensService.createTokenPackage(createDto);
-  }
-
-  @Put('packages/:id')
-  async updateTokenPackage(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateTokenPackageDto
-  ): Promise<TokenPackageDto> {
-    return this.tokensService.updateTokenPackage(id, updateDto);
-  }
-
-  @Delete('packages/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTokenPackage(
-    @Param('id', ParseUUIDPipe) id: string
-  ): Promise<void> {
-    await this.tokensService.deleteTokenPackage(id);
-  }
-
-  // Token Transaction Endpoints
-  @Get('transactions')
-  async getTokenTransactions(
-    @Query() queryDto: TokenTransactionQueryDto
-  ): Promise<TokenTransactionsResponseDto> {
-    return this.tokensService.getTokenTransactions(queryDto);
-  }
-
-  @Get('transactions/:id')
-  async getTokenTransactionById(
-    @Param('id', ParseUUIDPipe) id: string
-  ): Promise<TokenTransactionDto> {
-    return this.tokensService.getTokenTransactionById(id);
-  }
-
-  @Put('transactions/:id')
-  async updateTokenTransaction(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateTokenTransactionDto
-  ): Promise<TransactionResponseDto> {
-    return this.tokensService.updateTokenTransaction(id, updateDto);
-  }
-
-  // Token Purchase Endpoint
-  @Post('purchase')
-  @UseInterceptors(FileInterceptor('proofDocument'))
-  async purchaseTokens(
-    @Body() purchaseDto: PurchaseTokensDto,
-    @UploadedFile() file?: Express.Multer.File
-  ): Promise<TransactionResponseDto> {
-    // In a real implementation, file would be uploaded to a storage service
-    // and the URL would be set in purchaseDto.proofDocumentUrl
-    
-    // For demonstration, simulate file upload
-    if (file) {
-      // Mock file upload result
-      purchaseDto.proofDocumentUrl = `https://example.com/uploads/${file.originalname}`;
-      purchaseDto.proofDocumentPublicId = `payment-proofs/${Date.now()}`;
+    @Get('balance')
+    @ApiOperation({ summary: 'Get token balance', description: 'Retrieves the current token balance for the authenticated user or company.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: TokenBalanceDto })
+    @Roles('tokens:read')
+    getTokenBalance(@CurrentUser() user: User): Promise<TokenBalanceDto> {
+        return this.tokensService.getTokenBalance(user.customerAccountId);
     }
-    
-    return this.tokensService.purchaseTokens(purchaseDto);
-  }
 
-  // Token Consumption Endpoints
-  @Post('consumption')
-  async logTokenConsumption(
-    @Body() createDto: CreateTokenConsumptionLogDto
-  ): Promise<TokenConsumptionLogDto> {
-    return this.tokensService.logTokenConsumption(createDto);
-  }
+    @Get('packages')
+    @ApiOperation({ summary: 'Get available token packages', description: 'Retrieves a list of available token packages for purchase.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: TokenPackagesResponseDto })
+    @Roles('tokens:read')
+    getAvailableTokenPackages(): Promise<TokenPackagesResponseDto> {
+        return this.tokensService.getAvailableTokenPackages();
+    }
 
-  @Get('consumption')
-  async getTokenConsumptionLogs(
-    @Query() queryDto: TokenConsumptionQueryDto
-  ): Promise<TokenConsumptionLogsResponseDto> {
-    return this.tokensService.getTokenConsumptionLogs(queryDto);
-  }
+    @Post('purchase')
+    @UseInterceptors(FileInterceptor('proofDocument'))
+    @ApiConsumes('multipart/form-data')
+    @ApiOperation({ summary: 'Purchase tokens', description: 'Initiates a token purchase.' })
+    @ApiResponse({ status: 201, description: 'Token purchase successful', type: PurchaseTokensResponseDto })
+    @Roles('tokens:purchase')
+    purchaseTokens(
+        @CurrentUser() user: User,
+        @Body() purchaseTokensDto: PurchaseTokensDto,
+        @UploadedFile() proofDocument: Express.Multer.File
+    ): Promise<PurchaseTokensResponseDto> {
+        return this.tokensService.purchaseTokens(user.customerAccountId, purchaseTokensDto, proofDocument);
+    }
 
-  // Token Analytics Endpoint
-  @Get('analytics')
-  async getTokenAnalytics(
-    @Query() queryDto: TokenAnalyticsQueryDto
-  ): Promise<TokenAnalyticsDto> {
-    return this.tokensService.getTokenAnalytics(queryDto);
-  }
+    @Get('usage')
+    @ApiOperation({ summary: 'Get token usage history', description: 'Retrieves the token usage history for the authenticated user or company.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: TokenUsageResponseDto })
+    @Roles('tokens:read')
+    getTokenUsageHistory(@CurrentUser() user: User, @Query() query: GetTokenUsageQueryDto): Promise<TokenUsageResponseDto> {
+        return this.tokensService.getTokenUsageHistory(user.customerAccountId, query);
+    }
+
+    @Get('history')
+    @ApiOperation({ summary: 'Get token transaction history', description: 'Retrieves the token transaction history for the authenticated user or company.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: TokenHistoryResponseDto })
+    @Roles('tokens:read')
+    getTokenTransactionHistory(@CurrentUser() user: User, @Query() query: GetTokenHistoryQueryDto): Promise<TokenHistoryResponseDto> {
+        return this.tokensService.getTokenTransactionHistory(user.customerAccountId, query);
+    }
+
+    @Get('usage/stats')
+    @ApiOperation({ summary: 'Get token usage statistics by period', description: 'Retrieves token usage statistics for different time periods.' })
+    @ApiResponse({ status: 200, description: 'Successful response' })
+    @Roles('tokens:read')
+    getTokenUsageStats(@CurrentUser() user: User, @Query() query: GetTokenStatsQueryDto): Promise<any> {
+        return this.tokensService.getTokenUsageStats(user.customerAccountId, query.period);
+    }
+
+    @Get('usage/features')
+    @ApiOperation({ summary: 'Get token usage statistics by feature', description: 'Retrieves token usage statistics grouped by feature.' })
+    @ApiResponse({ status: 200, description: 'Successful response' })
+    @Roles('tokens:read')
+    getTokenUsageByFeature(@CurrentUser() user: User): Promise<any> {
+        return this.tokensService.getTokenUsageByFeature(user.customerAccountId);
+    }
+
+    @Get('usage/apps')
+    @ApiOperation({ summary: 'Get token usage statistics by app', description: 'Retrieves token usage statistics grouped by application.' })
+    @ApiResponse({ status: 200, description: 'Successful response' })
+    @Roles('tokens:read')
+    getTokenUsageByApp(@CurrentUser() user: User): Promise<any> {
+        return this.tokensService.getTokenUsageByApp(user.customerAccountId);
+    }
+
+    // Admin Endpoints
+    @Get('/admin/tokens/statistics')
+    @ApiOperation({ summary: 'Get all token statistics (Admin Only)', description: 'Retrieves comprehensive token statistics for admin dashboard.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: TokenStatisticsDto })
+    @Roles('admin:tokens:read')
+    getAllTokenStatistics(@Query() query: GetTokenStatsQueryDto): Promise<TokenStatisticsDto> {
+        return this.tokensService.getAllTokenStatistics(query.period);
+    }
+
+    @Post('/admin/tokens/allocate')
+    @ApiOperation({ summary: 'Allocate tokens to customer (Admin Only)', description: 'Allocates tokens to a specific customer.' })
+    @ApiResponse({ status: 200, description: 'Tokens allocated successfully', type: AllocateTokensResponseDto })
+    @Roles('admin:tokens:write')
+    allocateTokens(
+        @CurrentUser() user: User,
+        @Body() allocateTokensDto: AllocateTokensDto
+    ): Promise<AllocateTokensResponseDto> {
+        return this.tokensService.allocateTokens(user.id, allocateTokensDto);
+    }
 }

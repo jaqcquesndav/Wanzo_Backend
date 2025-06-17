@@ -1,52 +1,101 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Location } from './location.entity';
+
+export enum LegalForm {
+  SARL = 'SARL',
+  SA = 'SA',
+  SURL = 'SURL',
+  SNC = 'SNC',
+  SCS = 'SCS',
+  COOP = 'COOP',
+  EI = 'EI'
+}
+
+export enum LocationType {
+  HEADQUARTERS = 'headquarters',
+  SITE = 'site',
+  STORE = 'store'
+}
 
 @Entity('company')
 export class Company {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn()
   id: string;
 
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  registrationNumber: string;
+  @Column({ name: 'rccm_number' })
+  rccmNumber: string;
+
+  @Column({ name: 'national_id' })
+  nationalId: string;
+
+  @Column({ name: 'tax_number' })
+  taxNumber: string;
+
+  @Column({ name: 'cnss_number', nullable: true })
+  cnssNumber?: string;
 
   @Column({ nullable: true })
-  taxId: string;
+  logo?: string;
 
-  @Column('simple-json', { nullable: true })
+  @Column({
+    type: 'enum',
+    enum: LegalForm,
+    nullable: true,
+    name: 'legal_form'
+  })
+  legalForm?: LegalForm;
+
+  @Column({ nullable: true, name: 'business_sector' })
+  businessSector?: string;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column('jsonb')
   address: {
     street: string;
     city: string;
-    state: string;
-    postalCode: string;
-    country: string;
+    province: string;
+    commune: string;
+    quartier: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
   };
 
-  @Column({ nullable: true })
+  @OneToMany(() => Location, location => location.company, {
+    cascade: true,
+    eager: true
+  })
+  locations: Location[];
+
+  @Column('jsonb')
+  documents: {
+    rccmFile?: string;
+    nationalIdFile?: string;
+    taxNumberFile?: string;
+    cnssFile?: string;
+  };
+
+  @Column({ name: 'contact_email' })
   contactEmail: string;
 
-  @Column({ nullable: true })
-  phoneNumber: string;
+  @Column('simple-array', { name: 'contact_phone' })
+  contactPhone: string[];
 
-  @Column({ nullable: true })
-  website: string;
+  @Column({ name: 'representative_name' })
+  representativeName: string;
 
-  @Column({ nullable: true })
-  logoUrl: string;
+  @Column({ name: 'representative_role' })
+  representativeRole: string;
 
-  @Column({ nullable: true })
-  industry: string;
-
-  @Column({ type: 'date', nullable: true })
-  foundedDate: Date;
-
-  @Column('text', { nullable: true })
-  description: string;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

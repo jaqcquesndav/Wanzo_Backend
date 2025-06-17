@@ -1,427 +1,496 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  IsEnum,
-  IsBoolean,
-  IsUUID,
-  IsUrl,
-  IsArray,
-  Min,
-  Max,
-  IsDateString,
-  ValidateNested,
-  IsIn
-} from 'class-validator';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsNumber, IsIn, IsArray, ValidateNested, IsISO8601, IsObject, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TokenTransactionType, TokenTransactionStatus } from '../entities';
+import { CustomerType, TokenTransactionType, AppType } from '../entities/token.entity';
 
-// Token Balance DTOs
-export class TokenBalanceDto {
-  available: number;
-  allocated: number;
-  used: number;
-  lastUpdated: Date;
+// Sub-DTOs
+class DiscountTierDto {
+    @ApiProperty()
+    @IsNumber()
+    minAmount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    percentage: number;
 }
 
-// Token Package DTOs
+class DiscountPercentagesDto {
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => DiscountTierDto)
+    tier1: DiscountTierDto;
+
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => DiscountTierDto)
+    tier2: DiscountTierDto;
+
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => DiscountTierDto)
+    tier3: DiscountTierDto;
+}
+
+class CustomerTypeSpecificMetadataDto {
+    @ApiProperty({ enum: CustomerType })
+    @IsEnum(CustomerType)
+    type: CustomerType;
+
+    @ApiProperty()
+    @IsNumber()
+    minimumPurchase: number;
+}
+
+// Main DTOs
 export class TokenPackageDto {
-  id: string;
-  name: string;
-  description: string;
-  tokens: number;
-  price: number;
-  currency: string;
-  features: string[];
-  isPopular: boolean;
-  isActive: boolean;
-  bonusPercentage?: number;
-  createdAt: Date;
-  updatedAt: Date;
+    @ApiProperty()
+    @IsString()
+    id: string;
+
+    @ApiProperty()
+    @IsString()
+    name: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @ApiProperty()
+    @IsNumber()
+    tokenAmount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    priceUSD: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    priceLocal?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    localCurrency?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsBoolean()
+    isPopular?: boolean;
+
+    @ApiProperty()
+    @IsNumber()
+    validityDays: number;
+
+    @ApiProperty({ enum: CustomerType, isArray: true })
+    @IsEnum(CustomerType, { each: true })
+    targetCustomerTypes: CustomerType[];
+
+    @ApiProperty({ type: [CustomerTypeSpecificMetadataDto], required: false })
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CustomerTypeSpecificMetadataDto)
+    customerTypeSpecific?: CustomerTypeSpecificMetadataDto[];
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    minimumPurchase?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => DiscountPercentagesDto)
+    discountPercentages?: DiscountPercentagesDto;
 }
 
-export class TokenPackagesResponseDto {
-  packages: TokenPackageDto[];
+export class TokenBalanceDto {
+    @ApiProperty()
+    @IsNumber()
+    available: number;
+
+    @ApiProperty()
+    @IsNumber()
+    allocated: number;
+
+    @ApiProperty()
+    @IsNumber()
+    used: number;
+
+    @ApiProperty()
+    @IsISO8601()
+    lastUpdated: string;
 }
 
-export class CreateTokenPackageDto {
-  @IsString()
-  name: string;
-
-  @IsString()
-  description: string;
-
-  @IsNumber()
-  @Min(1)
-  tokens: number;
-
-  @IsNumber()
-  @Min(0)
-  price: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string = 'USD';
-
-  @IsArray()
-  @IsString({ each: true })
-  features: string[];
-
-  @IsOptional()
-  @IsBoolean()
-  isPopular?: boolean = false;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean = true;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  bonusPercentage?: number;
-}
-
-export class UpdateTokenPackageDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  tokens?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  price?: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  features?: string[];
-
-  @IsOptional()
-  @IsBoolean()
-  isPopular?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  bonusPercentage?: number;
-}
-
-export class TokenPackageQueryDto {
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
-}
-
-// Token Transaction DTOs
 export class TokenTransactionDto {
-  id: string;
-  userId: string;
-  customerAccountId?: string;
-  type: TokenTransactionType;
-  tokenAmount: number;
-  amount: number;
-  currency: string;
-  packageId?: string;
-  paymentMethod?: string;
-  status: TokenTransactionStatus;
-  transactionReference?: string;
-  proofDocumentUrl?: string;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+    @ApiProperty()
+    @IsString()
+    id: string;
+
+    @ApiProperty()
+    @IsString()
+    customerId: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    customerName?: string; // As per response example
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    subscriptionId?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    packageId?: string;
+
+    @ApiProperty({ enum: TokenTransactionType })
+    @IsEnum(TokenTransactionType)
+    type: TokenTransactionType;
+
+    @ApiProperty()
+    @IsNumber()
+    amount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    balance: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @ApiProperty()
+    @IsISO8601()
+    timestamp: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsISO8601()
+    expiryDate?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsObject()
+    metadata?: Record<string, any>;
 }
 
-export class TransactionResponseDto {
-  transaction: TokenTransactionDto;
-  newBalance?: TokenBalanceDto;
+export class TokenUsageDto {
+    @ApiProperty()
+    @IsString()
+    id: string;
+
+    @ApiProperty()
+    @IsString()
+    customerId: string;
+
+    @ApiProperty()
+    @IsString()
+    userId: string;
+
+    @ApiProperty({ enum: AppType })
+    @IsEnum(AppType)
+    appType: AppType;
+
+    @ApiProperty()
+    @IsNumber()
+    tokensUsed: number;
+
+    @ApiProperty()
+    @IsISO8601()
+    date: string;
+
+    @ApiProperty()
+    @IsString()
+    feature: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    prompt?: string;
+
+    @ApiProperty()
+    @IsNumber()
+    responseTokens: number;
+
+    @ApiProperty()
+    @IsNumber()
+    requestTokens: number;
+
+    @ApiProperty()
+    @IsNumber()
+    cost: number;
 }
 
-export class CreateTokenTransactionDto {
-  @IsUUID()
-  userId: string;
+class TokenUsageByPeriodDto {
+    @ApiProperty()
+    @IsString()
+    period: string;
 
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
-
-  @IsEnum(TokenTransactionType)
-  type: TokenTransactionType;
-
-  @IsNumber()
-  @Min(1)
-  tokenAmount: number;
-
-  @IsNumber()
-  @Min(0)
-  amount: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string = 'USD';
-
-  @IsOptional()
-  @IsUUID()
-  packageId?: string;
-
-  @IsOptional()
-  @IsString()
-  paymentMethod?: string;
-
-  @IsOptional()
-  @IsEnum(TokenTransactionStatus)
-  status?: TokenTransactionStatus = TokenTransactionStatus.COMPLETED;
-
-  @IsOptional()
-  @IsString()
-  transactionReference?: string;
-
-  @IsOptional()
-  @IsUrl()
-  proofDocumentUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
+    @ApiProperty()
+    @IsNumber()
+    tokensUsed: number;
 }
 
-export class UpdateTokenTransactionDto {
-  @IsOptional()
-  @IsEnum(TokenTransactionStatus)
-  status?: TokenTransactionStatus;
+class TokenUsageByCustomerTypeDto {
+    @ApiProperty()
+    @IsNumber()
+    pme: number;
 
-  @IsOptional()
-  @IsString()
-  transactionReference?: string;
-
-  @IsOptional()
-  @IsUrl()
-  proofDocumentUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
+    @ApiProperty()
+    @IsNumber()
+    financial: number;
 }
 
-export class TokenTransactionQueryDto {
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
+class TopTokenConsumerDto {
+    @ApiProperty()
+    @IsString()
+    customerId: string;
 
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
+    @ApiProperty()
+    @IsString()
+    customerName: string;
 
-  @IsOptional()
-  @IsEnum(TokenTransactionType)
-  type?: TokenTransactionType;
-
-  @IsOptional()
-  @IsEnum(TokenTransactionStatus)
-  status?: TokenTransactionStatus;
-
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
+    @ApiProperty()
+    @IsNumber()
+    tokensConsumed: number;
 }
 
-export class TokenTransactionsResponseDto {
-  transactions: TokenTransactionDto[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+class TokenUsageTrendDto {
+    @ApiProperty()
+    @IsString()
+    date: string;
+
+    @ApiProperty()
+    @IsNumber()
+    used: number;
+
+    @ApiProperty()
+    @IsNumber()
+    cost: number;
+
+    @ApiProperty()
+    @IsNumber()
+    revenue: number;
 }
 
-// Token Purchase DTOs
+export class TokenStatisticsDto {
+    @ApiProperty()
+    @IsNumber()
+    totalTokensAllocated: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalTokensUsed: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalTokensPurchased: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    totalTokenCost?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    tokenUsageGrowth?: number;
+
+    @ApiProperty({ type: [TokenUsageByPeriodDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TokenUsageByPeriodDto)
+    tokenUsageByPeriod: TokenUsageByPeriodDto[];
+
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => TokenUsageByCustomerTypeDto)
+    tokenUsageByCustomerType: TokenUsageByCustomerTypeDto;
+
+    @ApiProperty()
+    @IsNumber()
+    averageTokensPerCustomer: number;
+
+    @ApiProperty({ type: [TopTokenConsumerDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TopTokenConsumerDto)
+    top10TokenConsumers: TopTokenConsumerDto[];
+
+    @ApiProperty({ type: [TokenUsageTrendDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TokenUsageTrendDto)
+    tokenUsageTrend: TokenUsageTrendDto[];
+}
+
+// Request DTOs
 export class PurchaseTokensDto {
-  @IsUUID()
-  packageId: string;
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    packageId: string;
 
-  @IsString()
-  @IsIn(['credit_card', 'bank_transfer', 'paypal', 'crypto', 'mobile_money'])
-  paymentMethod: string;
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    paymentMethod: string;
 
-  @IsOptional()
-  @IsString()
-  transactionReference?: string;
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    transactionReference?: string;
 
-  @IsOptional()
-  @IsUrl()
-  proofDocumentUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  proofDocumentPublicId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
-
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
+    // proofDocument would be handled by a file upload interceptor
 }
 
-// Token Consumption DTOs
-export class TokenConsumptionLogDto {
-  id: string;
-  userId: string;
-  customerAccountId?: string;
-  tokensConsumed: number;
-  featureUsed: string;
-  resourceId?: string;
-  resourceType?: string;
-  sessionId?: string;
-  timestamp: Date;
+export class AllocateTokensDto {
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    customerId: string;
+
+    @ApiProperty()
+    @IsNumber()
+    @IsNotEmpty()
+    amount: number;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    reason: string;
 }
 
-export class CreateTokenConsumptionLogDto {
-  @IsUUID()
-  userId: string;
+// Query DTOs
+export class GetTokenUsageQueryDto {
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
 
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
 
-  @IsNumber()
-  @Min(1)
-  tokensConsumed: number;
+    @ApiProperty({ required: false, enum: AppType })
+    @IsOptional()
+    @IsEnum(AppType)
+    appType?: AppType;
 
-  @IsString()
-  featureUsed: string;
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    feature?: string;
 
-  @IsOptional()
-  @IsString()
-  resourceId?: string;
+    @ApiProperty({ required: false, default: 1 })
+    @IsOptional()
+    @IsNumber()
+    page?: number;
 
-  @IsOptional()
-  @IsString()
-  resourceType?: string;
-
-  @IsOptional()
-  @IsString()
-  sessionId?: string;
+    @ApiProperty({ required: false, default: 20 })
+    @IsOptional()
+    @IsNumber()
+    limit?: number;
 }
 
-export class TokenConsumptionQueryDto {
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
+export class GetTokenHistoryQueryDto {
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsISO8601()
+    startDate?: string;
 
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsISO8601()
+    endDate?: string;
 
-  @IsOptional()
-  @IsString()
-  featureUsed?: string;
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString() // Assuming status is a string like 'completed', 'pending' etc.
+    status?: string;
 
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
+    @ApiProperty({ required: false, default: 1 })
+    @IsOptional()
+    @IsNumber()
+    page?: number;
 
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
+    @ApiProperty({ required: false, default: 20 })
+    @IsOptional()
+    @IsNumber()
+    limit?: number;
 }
 
-export class TokenConsumptionLogsResponseDto {
-  logs: TokenConsumptionLogDto[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+export class GetTokenStatsQueryDto {
+    @ApiProperty({ required: false, enum: ['daily', 'weekly', 'monthly', 'yearly'], default: 'monthly' })
+    @IsOptional()
+    @IsIn(['daily', 'weekly', 'monthly', 'yearly'])
+    period?: string;
 }
 
-// Token Analytics DTOs
-export class TokenUsageByFeatureDto {
-  featureUsed: string;
-  tokensConsumed: number;
-  percentage: number;
+// Response DTOs
+export class TokenPackagesResponseDto {
+    @ApiProperty({ type: [TokenPackageDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TokenPackageDto)
+    packages: TokenPackageDto[];
 }
 
-export class TokenUsageByDayDto {
-  date: string;
-  tokensConsumed: number;
+export class PurchaseTokensResponseDto {
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => TokenTransactionDto)
+    transaction: TokenTransactionDto;
+
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => TokenBalanceDto)
+    newBalance: TokenBalanceDto;
 }
 
-export class TokenAnalyticsDto {
-  totalTokensPurchased: number;
-  totalTokensConsumed: number;
-  consumptionRate: number;
-  usageByFeature: TokenUsageByFeatureDto[];
-  usageByDay: TokenUsageByDayDto[];
+export class TokenUsageResponseDto {
+    @ApiProperty({ type: [TokenUsageDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TokenUsageDto)
+    usages: TokenUsageDto[];
+
+    @ApiProperty()
+    @IsNumber()
+    totalCount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalTokensUsed: number;
 }
 
-export class TokenAnalyticsQueryDto {
-  @IsUUID()
-  userId: string;
+export class TokenHistoryResponseDto {
+    @ApiProperty({ type: [TokenTransactionDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => TokenTransactionDto)
+    transactions: TokenTransactionDto[];
 
-  @IsOptional()
-  @IsString()
-  customerAccountId?: string;
+    @ApiProperty()
+    @IsNumber()
+    totalCount: number;
+}
 
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
+export class AllocateTokensResponseDto {
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => TokenTransactionDto)
+    transaction: TokenTransactionDto;
 
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
+    @ApiProperty()
+    @ValidateNested()
+    @Type(() => TokenBalanceDto)
+    newBalance: TokenBalanceDto;
 }

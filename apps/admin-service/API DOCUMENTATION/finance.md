@@ -5,710 +5,1134 @@ This document outlines the API endpoints, request/response structures, and funct
 ## 1. Subscription Plan Endpoints
 
 ### 1.1. List Subscription Plans
-*   **Endpoint:** `GET /api/subscription-plans`
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/subscriptions/plans`
 *   **Description:** Retrieves a list of all available subscription plans.
-*   **Request:**
-    *   Query Parameters:
-        *   `customerType` (optional, string): Filter plans by target customer type (e.g., `pme`, `financial`, `individual`).
-        *   `status` (optional, string): Filter by plan status (e.g., `active`, `archived`).
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        [
+          {
+            "id": "plan_pro_monthly",
+            "name": "Professional Plan - Monthly",
+            "description": "Full-featured plan for professionals, billed monthly.",
+            "price": 49.99,
+            "currency": "USD",
+            "billingCycle": "monthly",
+            "features": ["Feature A", "Feature B", "1000 API Calls"],
+            "isActive": true,
+            "trialPeriodDays": 14,
+            "metadata": {
+              "maxUsers": 5,
+              "storageLimit": "50GB"
+            }
+          },
+          {
+            "id": "plan_pro_annually",
+            "name": "Professional Plan - Annual",
+            "description": "Full-featured plan for professionals, billed annually.",
+            "price": 499.99,
+            "currency": "USD",
+            "billingCycle": "annually",
+            "features": ["Feature A", "Feature B", "1000 API Calls"],
+            "isActive": true,
+            "trialPeriodDays": 14,
+            "metadata": {
+              "maxUsers": 5,
+              "storageLimit": "50GB"
+            }
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission to list subscription plans.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+## 2. Subscription Endpoints
+
+### 2.1. List Subscriptions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/subscriptions`
+*   **Description:** Retrieves a list of all subscriptions with pagination and filtering options.
+*   **Query Parameters:**
+    *   `search` (optional, string): Search by customer name, plan name, etc.
+    *   `status` (optional, string): Filter by subscription status (`active`, `pending_activation`, `canceled`, `expired`, `paused`, `trial`, `payment_failed`).
+    *   `planId` (optional, string): Filter by plan ID.
+    *   `customerId` (optional, string): Filter by customer ID.
+    *   `billingCycle` (optional, string): Filter by billing cycle (`monthly`, `annually`, `quarterly`, `biennially`, `one_time`).
+    *   `startDateBefore`, `startDateAfter`, `endDateBefore`, `endDateAfter` (optional, string): Date filters in ISO format.
+    *   `page` (optional, integer): Page number for pagination.
+    *   `limit` (optional, integer): Number of items per page.
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "data": [
+          "items": [
             {
-              "id": "plan_pro_monthly",
-              "name": "Professional Plan - Monthly",
-              "description": "Full-featured plan for professionals, billed monthly.",
-              "basePriceUSD": 49.99,
-              "billingCycles": ["monthly", "yearly"],
-              "features": ["Feature A", "Feature B", "1000 API Calls"],
-              "tokenAllocation": 5000,
-              "maxUsers": 5,
-              "targetCustomerTypes": ["pme", "individual"],
+              "id": "sub_123",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "planId": "plan_pro_monthly",
+              "planName": "Professional Plan - Monthly",
               "status": "active",
-              "createdAt": "2023-01-01T10:00:00Z",
-              "updatedAt": "2023-01-01T10:00:00Z"
+              "startDate": "2023-01-01T00:00:00Z",
+              "endDate": "2023-12-31T23:59:59Z",
+              "currentPeriodStart": "2023-06-01T00:00:00Z",
+              "currentPeriodEnd": "2023-06-30T23:59:59Z",
+              "nextBillingDate": "2023-07-01T00:00:00Z",
+              "amount": 49.99,
+              "currency": "USD",
+              "billingCycle": "monthly",
+              "autoRenew": true,
+              "createdAt": "2023-01-01T00:00:00Z",
+              "updatedAt": "2023-06-01T00:00:00Z"
             }
-          ]
+          ],
+          "totalCount": 50,
+          "page": 1,
+          "totalPages": 5
         }
         ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid query parameters.
-    ```json
-    {
-      "error": "Invalid status provided. Allowed values: active, archived."
-    }
-    ```
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to list subscription plans.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 1.2. Get Subscription Plan Details
-*   **Endpoint:** `GET /api/subscription-plans/{planId}`
-*   **Description:** Retrieves details for a specific subscription plan.
-*   **Request:**
-    *   Path Parameter: `planId` (string, required).
+### 2.2. Get Subscription by ID
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/subscriptions/{subscriptionId}`
+*   **Description:** Retrieves details for a specific subscription.
 *   **Response:**
-    *   `200 OK`: (Similar structure to an item in the list response)
-    *   `404 Not Found`: If the plan with the given ID does not exist.
+    *   `200 OK`:
+        ```json
+        {
+          "id": "sub_123",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "planId": "plan_pro_monthly",
+          "planName": "Professional Plan - Monthly",
+          "status": "active",
+          "startDate": "2023-01-01T00:00:00Z",
+          "endDate": "2023-12-31T23:59:59Z",
+          "currentPeriodStart": "2023-06-01T00:00:00Z",
+          "currentPeriodEnd": "2023-06-30T23:59:59Z",
+          "nextBillingDate": "2023-07-01T00:00:00Z",
+          "amount": 49.99,
+          "currency": "USD",
+          "billingCycle": "monthly",
+          "autoRenew": true,
+          "paymentMethodId": "pm_456",
+          "createdAt": "2023-01-01T00:00:00Z",
+          "updatedAt": "2023-06-01T00:00:00Z",
+          "trialEndsAt": null,
+          "canceledAt": null,
+          "cancellationReason": null,
+          "metadata": {
+            "previousPlanId": "plan_basic_monthly"
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Subscription not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to view this plan.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 1.3. Create Subscription Plan (Admin)
-*   **Endpoint:** `POST /api/subscription-plans`
-*   **Description:** Creates a new subscription plan.
+### 2.3. Create Subscription
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/subscriptions`
+*   **Description:** Creates a new subscription for a customer.
 *   **Request Body:**
     ```json
     {
-      "name": "Enterprise Plan",
-      "description": "Comprehensive plan for large businesses.",
-      "basePriceUSD": 199.99,
-      "billingCycles": ["monthly", "yearly"],
-      "features": ["All Professional Features", "Dedicated Support", "Unlimited API Calls"],
-      "tokenAllocation": 50000,
-      "maxUsers": 0, // 0 for unlimited
-      "targetCustomerTypes": ["corporate", "financial"],
-      "discountPercentage": {
-        "yearly": 15 // 15% discount for annual billing
+      "customerId": "cust_abc",
+      "planId": "plan_pro_monthly",
+      "startDate": "2023-07-01T00:00:00Z",
+      "autoRenew": true,
+      "paymentMethodId": "pm_456",
+      "trialPeriodDays": 14,
+      "couponCode": "WELCOME20",
+      "metadata": {
+        "referredBy": "partner_123"
       }
     }
     ```
 *   **Response:**
-    *   `201 Created`: The created subscription plan object.
-    *   `400 Bad Request`: Validation errors.
-    *   `401 Unauthorized` / `403 Forbidden`.
-
-**Error Responses (General):**
-
-*   **409 Conflict:** If a plan with the same name already exists.
-    ```json
-    {
-      "error": "Subscription plan with this name already exists."
-    }
-    ```
-*   **422 Unprocessable Entity:** For more detailed validation errors if not covered by 400 (e.g., invalid feature list, inconsistent pricing data).
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 1.4. Update Subscription Plan (Admin)
-*   **Endpoint:** `PUT /api/subscription-plans/{planId}`
-*   **Description:** Updates an existing subscription plan.
-*   **Request Body:** Fields to update (similar to create).
-*   **Response:**
-    *   `200 OK`: The updated subscription plan object.
-    *   `400 Bad Request` / `401 Unauthorized` / `403 Forbidden` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **409 Conflict:** If renaming to a name that already exists for another plan.
-*   **422 Unprocessable Entity:** For detailed validation errors.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 1.5. Delete Subscription Plan (Admin)
-*   **Endpoint:** `DELETE /api/subscription-plans/{planId}`
-*   **Description:** Deletes a subscription plan (consider soft delete or archiving if active subscriptions exist).
-*   **Response:**
-    *   `204 No Content`.
-    *   `400 Bad Request` (e.g., if plan has active subscriptions and hard delete is not allowed).
-    *   `401 Unauthorized` / `403 Forbidden` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-## 2. Customer Subscription Endpoints
-
-### 2.1. List Customer Subscriptions
-*   **Endpoint:** `GET /api/customers/{customerId}/subscriptions` or `GET /api/subscriptions` (admin view)
-*   **Description:** Retrieves subscriptions for a specific customer or all subscriptions (admin).
-*   **Request:**
-    *   Path Parameter: `customerId` (string, required for customer-specific view).
-    *   Query Parameters (for admin view):
-        *   `planId` (optional, string)
-        *   `status` (optional, string: `active`, `pending_payment`, `expired`, `cancelled`, `payment_failed`)
-        *   `page`, `limit`, `sortBy`, `sortOrder`
-*   **Response:**
-    *   `200 OK`:
+    *   `201 Created`:
         ```json
         {
-          "data": [
-            {
-              "id": "sub_abc123",
-              "customerId": "cust_xyz789",
-              "planId": "plan_pro_monthly",
-              "planName": "Professional Plan - Monthly",
-              "status": "active",
-              "startDate": "2023-03-01T00:00:00Z",
-              "endDate": "2023-04-01T00:00:00Z", // Current billing period end
-              "nextBillingDate": "2023-04-01T00:00:00Z",
-              "billingCycle": "monthly", // "monthly", "yearly", etc.
-              "price": 49.99,
-              "currency": "USD",
-              "autoRenew": true,
-              "createdAt": "2023-03-01T10:00:00Z"
-            }
-          ],
-          "pagination": { /* ... */ }
+          "id": "sub_789",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "planId": "plan_pro_monthly",
+          "planName": "Professional Plan - Monthly",
+          "status": "active",
+          "startDate": "2023-07-01T00:00:00Z",
+          "currentPeriodStart": "2023-07-01T00:00:00Z",
+          "currentPeriodEnd": "2023-07-31T23:59:59Z",
+          "nextBillingDate": "2023-08-01T00:00:00Z",
+          "amount": 49.99,
+          "currency": "USD",
+          "billingCycle": "monthly",
+          "autoRenew": true,
+          "paymentMethodId": "pm_456",
+          "createdAt": "2023-06-15T12:30:00Z",
+          "updatedAt": "2023-06-15T12:30:00Z",
+          "trialEndsAt": "2023-07-15T00:00:00Z",
+          "metadata": {
+            "referredBy": "partner_123"
+          }
         }
         ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Customer or plan not found.
+    *   `409 Conflict`: Customer already has an active subscription to this plan.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid query parameters.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission to list these subscriptions.
-*   **404 Not Found:** If `customerId` is provided and the customer does not exist.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.2. Create Customer Subscription
-*   **Endpoint:** `POST /api/customers/{customerId}/subscriptions`
-*   **Description:** Subscribes a customer to a plan.
+### 2.4. Update Subscription
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/finance/subscriptions/{subscriptionId}`
+*   **Description:** Updates an existing subscription.
 *   **Request Body:**
     ```json
     {
-      "planId": "plan_pro_yearly",
-      "billingCycle": "yearly", // Must be one of the plan's supported billingCycles
-      "paymentMethodId": "pm_card_123abc", // Optional, if immediate payment is required
-      "couponCode": "SUMMER20" // Optional
+      "planId": "plan_pro_annually",
+      "autoRenew": false,
+      "paymentMethodId": "pm_789",
+      "metadata": {
+        "notes": "Customer upgraded to annual plan"
+      }
     }
     ```
-*   **Response:**
-    *   `201 Created`: The new customer subscription object. May include initial payment transaction details.
-    *   `400 Bad Request`: Invalid plan, payment issues.
-    *   `401 Unauthorized` / `403 Forbidden` / `404 Not Found` (customer or plan).
-
-**Error Responses (General):**
-
-*   **402 Payment Required:** If immediate payment is attempted and fails.
-    ```json
-    {
-      "error": "Payment failed: Card declined.",
-      "gatewayResponse": { /* ...gateway specific error details... */ }
-    }
-    ```
-*   **422 Unprocessable Entity:** Invalid combination of plan and billing cycle, or customer not eligible for the plan.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.3. Get Customer Subscription Details
-*   **Endpoint:** `GET /api/customers/{customerId}/subscriptions/{subscriptionId}` or `GET /api/subscriptions/{subscriptionId}` (admin)
-*   **Description:** Retrieves details for a specific customer subscription.
-*   **Response:**
-    *   `200 OK`: (Similar structure to an item in the list response, potentially with more details like payment history link).
-    *   `401 Unauthorized` / `403 Forbidden` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.4. Update Customer Subscription (e.g., Change Plan, Auto-Renew)
-*   **Endpoint:** `PUT /api/customers/{customerId}/subscriptions/{subscriptionId}` or `PUT /api/subscriptions/{subscriptionId}` (admin)
-*   **Description:** Updates a subscription (e.g., upgrade/downgrade plan, toggle auto-renewal).
-*   **Request Body:**
-    ```json
-    {
-      "newPlanId": "plan_enterprise_monthly", // Optional: for plan change
-      "billingCycle": "monthly", // Required if newPlanId is provided
-      "autoRenew": false, // Optional: to change auto-renewal status
-      "prorate": true // Optional: if plan change, whether to prorate charges
-    }
-    ```
-*   **Response:**
-    *   `200 OK`: The updated customer subscription object. May include proration details or new payment transaction if applicable.
-    *   `400 Bad Request`.
-    *   `401 Unauthorized` / `403 Forbidden` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **402 Payment Required:** If plan upgrade requires immediate payment and it fails.
-*   **422 Unprocessable Entity:** Invalid plan change (e.g., downgrading with proration issues not handled, changing to an invalid plan type for the customer).
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.5. Cancel Customer Subscription
-*   **Endpoint:** `POST /api/customers/{customerId}/subscriptions/{subscriptionId}/cancel` or `POST /api/subscriptions/{subscriptionId}/cancel` (admin)
-*   **Description:** Cancels a subscription, usually at the end of the current billing period.
-*   **Request Body:**
-    ```json
-    {
-      "reason": "Customer request", // Optional
-      "cancelImmediately": false // Optional, defaults to false (cancel at period end)
-    }
-    ```
-*   **Response:**
-    *   `200 OK`: The updated customer subscription object with status `cancelled` and updated `endDate`.
-    *   `400 Bad Request`.
-    *   `401 Unauthorized` / `403 Forbidden` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **409 Conflict:** If the subscription is already cancelled or in a state that doesn't allow cancellation.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 2.6. Reactivate Customer Subscription
-*   **Endpoint:** `POST /api/customers/{customerId}/subscriptions/{subscriptionId}/reactivate` or `POST /api/subscriptions/{subscriptionId}/reactivate` (admin)
-*   **Description:** Reactivates a previously cancelled (but not yet ended) or expired subscription.
-*   **Response:**
-    *   `200 OK`: The updated customer subscription object with status `active`.
-    *   `400 Bad Request`: If subscription cannot be reactivated.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Subscription or customer not found.
-*   **409 Conflict:** If the subscription is not in a state that allows reactivation (e.g., already active, or permanently terminated).
-    ```json
-    {
-      "error": "Subscription cannot be reactivated in its current state."
-    }
-    ```
-*   **500 Internal Server Error:** Unexpected server error.
-
-## 3. Payment & Transaction Endpoints
-
-### 3.1. List Payments/Transactions
-*   **Endpoint:** `GET /api/finance/payments` or `GET /api/finance/transactions`
-*   **Description:** Retrieves a list of payments or financial transactions.
-*   **Request:**
-    *   Query Parameters:
-        *   `customerId` (optional, string)
-        *   `subscriptionId` (optional, string)
-        *   `invoiceId` (optional, string)
-        *   `status` (optional, string: `pending`, `completed`, `failed`, `refunded`, `verified`, `rejected`)
-        *   `method` (optional, string: `card`, `bank_transfer`, `paypal`, `manual`)
-        *   `dateFrom`, `dateTo` (optional, date strings)
-        *   `page`, `limit`, `sortBy`, `sortOrder`
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "data": [
+          "id": "sub_123",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "planId": "plan_pro_annually",
+          "planName": "Professional Plan - Annual",
+          "status": "active",
+          "startDate": "2023-01-01T00:00:00Z",
+          "currentPeriodStart": "2023-06-01T00:00:00Z",
+          "currentPeriodEnd": "2024-05-31T23:59:59Z",
+          "nextBillingDate": null,
+          "amount": 499.99,
+          "currency": "USD",
+          "billingCycle": "annually",
+          "autoRenew": false,
+          "paymentMethodId": "pm_789",
+          "createdAt": "2023-01-01T00:00:00Z",
+          "updatedAt": "2023-06-15T14:45:00Z",
+          "metadata": {
+            "notes": "Customer upgraded to annual plan"
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Subscription not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 2.5. Cancel Subscription
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/subscriptions/{subscriptionId}/cancel`
+*   **Description:** Cancels an active subscription.
+*   **Request Body:**
+    ```json
+    {
+      "reason": "Customer is switching to a different service."
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "sub_123",
+          "status": "canceled",
+          "canceledAt": "2023-06-15T15:00:00Z",
+          "cancellationReason": "Customer is switching to a different service.",
+          "endDate": "2023-06-30T23:59:59Z"
+          // Other subscription fields...
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Subscription not found.
+    *   `409 Conflict`: Subscription is already canceled.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+## 3. Invoice Endpoints
+
+### 3.1. List Invoices
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/invoices`
+*   **Description:** Retrieves a list of invoices with pagination and filtering options.
+*   **Query Parameters:**
+    *   `search` (optional, string): Search by invoice number, customer name, etc.
+    *   `status` (optional, string): Filter by invoice status (`paid`, `pending`, `overdue`, `canceled`).
+    *   `customerId` (optional, string): Filter by customer ID.
+    *   `startDate`, `endDate` (optional, string): Date filters in ISO format.
+    *   `page` (optional, integer): Page number for pagination.
+    *   `limit` (optional, integer): Number of items per page.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "items": [
             {
-              "id": "txn_123",
-              "type": "payment", // "payment", "refund", "adjustment"
-              "customerId": "cust_xyz789",
-              "subscriptionId": "sub_abc123",
-              "invoiceId": "inv_def456",
+              "id": "inv_123",
+              "invoiceNumber": "INV-2023-001",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
               "amount": 49.99,
               "currency": "USD",
-              "status": "completed",
-              "method": "card",
-              "gatewayReference": "ch_1KGnZv2eZvKYlo2CiHqXGqX0",
-              "transactionDate": "2023-03-01T10:05:00Z",
-              "description": "Payment for Professional Plan - March",
-              "createdAt": "2023-03-01T10:05:00Z"
+              "status": "paid",
+              "issueDate": "2023-06-01T00:00:00Z",
+              "dueDate": "2023-06-15T00:00:00Z",
+              "paidDate": "2023-06-10T14:30:00Z",
+              "items": [
+                {
+                  "id": "item_1",
+                  "description": "Professional Plan - Monthly Subscription",
+                  "quantity": 1,
+                  "unitPrice": 49.99,
+                  "subtotal": 49.99
+                }
+              ],
+              "subtotal": 49.99,
+              "taxAmount": 0,
+              "discountAmount": 0,
+              "totalAmount": 49.99
             }
           ],
-          "pagination": { /* ... */ }
+          "totalCount": 50,
+          "page": 1,
+          "totalPages": 5
         }
         ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid query parameters.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3.2. Get Payment/Transaction Details
-*   **Endpoint:** `GET /api/finance/payments/{transactionId}` or `GET /api/finance/transactions/{transactionId}`
-*   **Response:**
-    *   `200 OK`: (Similar structure to an item in the list response).
-    *   `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3.3. Process Payment (e.g., for Invoice or Subscription Renewal)
-*   **Endpoint:** `POST /api/finance/payments`
-*   **Description:** Initiates a payment process. This could be for an invoice, a new subscription, or a renewal.
-*   **Request Body:**
-    ```json
-    {
-      "customerId": "cust_xyz789",
-      "amount": 49.99,
-      "currency": "USD",
-      "paymentMethodId": "pm_card_123abc", // ID of a stored payment method or new card details
-      "description": "Manual payment for INV-001",
-      "invoiceId": "inv_def456", // Optional
-      "subscriptionId": "sub_abc123" // Optional, for renewal
-    }
-    ```
-*   **Response:**
-    *   `201 Created`: The created payment transaction object, status might be `pending` or `completed` depending on gateway.
-    *   `400 Bad Request`: Payment failed, invalid details.
-    *   `402 Payment Required`: If payment fails due to card decline etc. (more specific error from gateway).
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer, invoice, or subscription not found.
-*   **422 Unprocessable Entity:** Invalid payment method ID or other data inconsistencies.
-*   **500 Internal Server Error:** Unexpected server error (e.g., payment gateway communication failure).
-
-### 3.4. Record Manual Payment (Admin)
-*   **Endpoint:** `POST /api/finance/payments/manual`
-*   **Description:** Allows an admin to record an offline payment (e.g., bank transfer, check).
-*   **Request Body:**
-    ```json
-    {
-      "customerId": "cust_abc001",
-      "amount": 100.00,
-      "currency": "USD",
-      "method": "bank_transfer",
-      "transactionReference": "BT_REF_00123",
-      "paidAt": "2023-07-15T10:00:00Z",
-      "invoiceId": "inv_xyz789", // Optional
-      "description": "Received via wire transfer.",
-      "proofType": "bank_transfer_receipt",
-      "proofUrl": "https://example.com/proofs/bt001.pdf" // Optional
-    }
-    ```
-*   **Response:**
-    *   `201 Created`: The created payment transaction with status `pending` (awaiting verification) or `completed`.
-    *   `400 Bad Request`.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer or invoice not found.
-*   **422 Unprocessable Entity:** Invalid data (e.g., amount, currency, date format).
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3.5. Verify/Update Manual Payment (Admin)
-*   **Endpoint:** `PUT /api/finance/payments/manual/{transactionId}/status`
-*   **Description:** Allows an admin to verify or update the status of a manual payment.
-*   **Request Body:**
-    ```json
-    {
-      "status": "verified", // "verified", "rejected"
-      "notes": "Bank statement confirmed.", // Optional
-      "verifiedBy": "admin_user_id" // Automatically logged or passed
-    }
-    ```
-*   **Response:**
-    *   `200 OK`: The updated payment transaction.
-    *   `400 Bad Request` / `404 Not Found`.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **422 Unprocessable Entity:** Invalid status transition or missing required fields for verification.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 3.6. Issue Refund
-*   **Endpoint:** `POST /api/finance/payments/{transactionId}/refund`
-*   **Description:** Issues a full or partial refund for a completed payment.
-*   **Request Body:**
-    ```json
-    {
-      "amount": 20.00, // Optional, for partial refund. If absent, full refund.
-      "reason": "Customer dissatisfaction", // Optional
-      "notes": "Refund processed by admin X." // Optional
-    }
-    ```
-*   **Response:**
-    *   `201 Created`: A new refund transaction object, and the original payment transaction might be updated.
-    *   `400 Bad Request`: Cannot refund, invalid amount.
-    *   `402 Payment Required`: If refund fails at gateway.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Original transaction not found.
-*   **422 Unprocessable Entity:** Refund amount exceeds original payment, or transaction not in a refundable state.
-    ```json
-    {
-      "error": "Refund amount cannot exceed the original transaction amount."
-    }
-    ```
-*   **500 Internal Server Error:** Unexpected server error (e.g., payment gateway communication failure).
-
-## 4. Invoice Endpoints
-
-### 4.1. List Invoices
-*   **Endpoint:** `GET /api/finance/invoices`
-*   **Description:** Retrieves a list of invoices.
-*   **Request:**
-    *   Query Parameters: `customerId`, `subscriptionId`, `status` (`draft`, `sent`, `paid`, `overdue`, `void`, `uncollectible`), `dateFrom`, `dateTo`, `page`, `limit`, etc.
+### 3.2. Get Invoice by ID
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **Description:** Retrieves details for a specific invoice.
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "data": [
+          "id": "inv_123",
+          "invoiceNumber": "INV-2023-001",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "amount": 49.99,
+          "currency": "USD",
+          "status": "paid",
+          "issueDate": "2023-06-01T00:00:00Z",
+          "dueDate": "2023-06-15T00:00:00Z",
+          "paidDate": "2023-06-10T14:30:00Z",
+          "items": [
             {
-              "id": "inv_def456",
-              "invoiceNumber": "INV-2023-0078",
-              "customerId": "cust_xyz789",
-              "subscriptionId": "sub_abc123",
-              "status": "paid",
-              "issueDate": "2023-03-01",
-              "dueDate": "2023-03-15",
-              "paidDate": "2023-03-05",
-              "amountDue": 49.99,
-              "amountPaid": 49.99,
-              "currency": "USD",
-              "createdAt": "2023-03-01T09:00:00Z"
-            }
-          ],
-          "pagination": { /* ... */ }
-        }
-        ```
-
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid query parameters.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4.2. Get Invoice Details
-*   **Endpoint:** `GET /api/finance/invoices/{invoiceId}`
-*   **Response:**
-    *   `200 OK`: Detailed invoice object including line items.
-        ```json
-        {
-          "id": "inv_def456",
-          "invoiceNumber": "INV-2023-0078",
-          // ... other fields from list
-          "lineItems": [
-            {
-              "id": "li_1",
-              "description": "Professional Plan - Monthly (March 2023)",
+              "id": "item_1",
+              "description": "Professional Plan - Monthly Subscription",
               "quantity": 1,
               "unitPrice": 49.99,
-              "amount": 49.99
+              "subtotal": 49.99,
+              "taxRate": 0,
+              "taxAmount": 0
             }
           ],
           "subtotal": 49.99,
-          "taxAmount": 0.00,
+          "taxAmount": 0,
+          "discountAmount": 0,
           "totalAmount": 49.99,
-          "notes": "Thank you for your business!",
-          "downloadUrl": "/api/finance/invoices/inv_def456/pdf"
+          "notes": "Thank you for your business!"
         }
         ```
-    *   `404 Not Found`.
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Invoice not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4.3. Create Invoice (Manual or for Off-Cycle Charges)
-*   **Endpoint:** `POST /api/finance/invoices`
+### 3.3. Create Invoice
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/invoices`
 *   **Description:** Creates a new invoice.
 *   **Request Body:**
     ```json
     {
-      "customerId": "cust_xyz789",
-      "currency": "USD",
-      "dueDate": "2023-08-15",
-      "lineItems": [
-        { "description": "Consulting Services", "quantity": 5, "unitPrice": 100.00 },
-        { "description": "Setup Fee", "quantity": 1, "unitPrice": 50.00 }
+      "customerId": "cust_abc",
+      "items": [
+        {
+          "description": "Professional Plan - Monthly Subscription",
+          "quantity": 1,
+          "unitPrice": 49.99,
+          "subtotal": 49.99
+        },
+        {
+          "description": "Additional User Seats (5)",
+          "quantity": 5,
+          "unitPrice": 10,
+          "subtotal": 50
+        }
       ],
-      "notes": "Payment due upon receipt.",
-      "status": "draft" // Optional, defaults to draft or sent based on system settings
+      "dueDate": "2023-07-15T00:00:00Z",
+      "notes": "Monthly subscription invoice",
+      "currency": "USD"
     }
     ```
 *   **Response:**
-    *   `201 Created`: The newly created invoice object.
-    *   `400 Bad Request`.
+    *   `201 Created`:
+        ```json
+        {
+          "id": "inv_456",
+          "invoiceNumber": "INV-2023-002",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "amount": 99.99,
+          "currency": "USD",
+          "status": "pending",
+          "issueDate": "2023-06-15T16:00:00Z",
+          "dueDate": "2023-07-15T00:00:00Z",
+          "items": [
+            {
+              "id": "item_2",
+              "description": "Professional Plan - Monthly Subscription",
+              "quantity": 1,
+              "unitPrice": 49.99,
+              "subtotal": 49.99
+            },
+            {
+              "id": "item_3",
+              "description": "Additional User Seats (5)",
+              "quantity": 5,
+              "unitPrice": 10,
+              "subtotal": 50
+            }
+          ],
+          "subtotal": 99.99,
+          "taxAmount": 0,
+          "discountAmount": 0,
+          "totalAmount": 99.99,
+          "notes": "Monthly subscription invoice"
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Customer not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer not found.
-*   **422 Unprocessable Entity:** Invalid line items or other data inconsistencies.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4.4. Update Invoice (e.g., Add Line Item to Draft, Change Status)
-*   **Endpoint:** `PUT /api/finance/invoices/{invoiceId}`
-*   **Description:** Updates an invoice (typically only drafts or specific fields on other statuses).
-*   **Response:**
-    *   `200 OK`: The updated invoice object.
-
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid data for update.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Invoice not found.
-*   **409 Conflict:** If trying to update an invoice that is not in a modifiable state (e.g., already paid or voided).
-*   **422 Unprocessable Entity:** Invalid line items or status transition.
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4.5. Send Invoice
-*   **Endpoint:** `POST /api/finance/invoices/{invoiceId}/send`
-*   **Description:** Marks an invoice as sent and typically emails it to the customer.
-*   **Response:**
-    *   `200 OK`: Invoice object with status `sent`.
-
-**Error Responses (General):**
-
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Invoice not found.
-*   **409 Conflict:** Invoice not in a state that can be sent (e.g., already sent, paid, voided).
-*   **500 Internal Server Error:** Unexpected server error (e.g., email sending failure).
-
-### 4.6. Mark Invoice as Paid (Manual)
-*   **Endpoint:** `POST /api/finance/invoices/{invoiceId}/pay`
-*   **Description:** Manually marks an invoice as paid.
+### 3.4. Update Invoice
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **Description:** Updates an existing invoice.
 *   **Request Body:**
     ```json
     {
-      "paymentDate": "2023-07-20",
-      "paymentMethod": "bank_transfer",
-      "transactionReference": "MANUAL_PAY_REF_001"
+      "dueDate": "2023-07-30T00:00:00Z",
+      "notes": "Extended payment terms as agreed with customer"
     }
     ```
 *   **Response:**
-    *   `200 OK`: Invoice object with status `paid`.
+    *   `200 OK`:
+        ```json
+        {
+          "id": "inv_456",
+          "invoiceNumber": "INV-2023-002",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "amount": 99.99,
+          "currency": "USD",
+          "status": "pending",
+          "issueDate": "2023-06-15T16:00:00Z",
+          "dueDate": "2023-07-30T00:00:00Z",
+          // Other fields remain the same
+          "notes": "Extended payment terms as agreed with customer"
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Invoice not found.
+    *   `409 Conflict`: Cannot update a paid or canceled invoice.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid request body data.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Invoice not found.
-*   **409 Conflict:** Invoice not in a state that can be marked as paid (e.g., already paid, voided).
-*   **500 Internal Server Error:** Unexpected server error.
-
-### 4.7. Void Invoice
-*   **Endpoint:** `POST /api/finance/invoices/{invoiceId}/void`
-*   **Description:** Voids an invoice.
+### 3.5. Delete Invoice
+*   **HTTP Method:** `DELETE`
+*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **Description:** Deletes an invoice.
 *   **Response:**
-    *   `200 OK`: Invoice object with status `void`.
+    *   `204 No Content`: Invoice successfully deleted.
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Invoice not found.
+    *   `409 Conflict`: Cannot delete a paid invoice.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+### 3.6. Send Invoice Reminder
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/invoices/{invoiceId}/send-reminder`
+*   **Description:** Sends a reminder email for an unpaid invoice.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "message": "Reminder sent successfully."
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Invoice not found.
+    *   `409 Conflict`: Invoice is not in a pending or overdue state.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Invoice not found.
-*   **409 Conflict:** Invoice not in a state that can be voided (e.g., already paid and refund required, or already voided).
-*   **500 Internal Server Error:** Unexpected server error.
+## 4. Payment Endpoints
 
-## 5. Token Management Endpoints (If applicable)
+### 4.1. List Payments
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/payments`
+*   **Description:** Retrieves a list of payments with pagination and filtering options.
+*   **Query Parameters:**
+    *   Similar to transaction filters: search, status, payment method, date range, etc.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "items": [
+            {
+              "id": "pay_123",
+              "invoiceId": "inv_123",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "amount": 49.99,
+              "currency": "USD",
+              "method": "bank_transfer",
+              "proofType": "bank_transfer",
+              "proofUrl": "https://storage.wanzo.com/payment-proofs/proof_123.pdf",
+              "status": "verified",
+              "transactionReference": "BT123456789",
+              "paidAt": "2023-06-10T14:30:00Z",
+              "createdAt": "2023-06-10T14:25:00Z",
+              "description": "Payment for invoice INV-2023-001",
+              "verifiedBy": "admin_user_456",
+              "verifiedAt": "2023-06-11T09:15:00Z",
+              "metadata": {
+                "approvalNotes": "Bank transfer confirmed."
+              }
+            }
+          ],
+          "totalCount": 25,
+          "page": 1,
+          "totalPages": 3
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-### 5.1. List Token Packages
-*   **Endpoint:** `GET /api/tokens/packages`
-*   **Response:** `200 OK` with list of purchasable token packages.
+### 4.2. Get Payment by ID
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/payments/{paymentId}`
+*   **Description:** Retrieves details for a specific payment.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "pay_123",
+          "invoiceId": "inv_123",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "amount": 49.99,
+          "currency": "USD",
+          "method": "bank_transfer",
+          "proofType": "bank_transfer",
+          "proofUrl": "https://storage.wanzo.com/payment-proofs/proof_123.pdf",
+          "status": "verified",
+          "transactionReference": "BT123456789",
+          "paidAt": "2023-06-10T14:30:00Z",
+          "createdAt": "2023-06-10T14:25:00Z",
+          "description": "Payment for invoice INV-2023-001",
+          "verifiedBy": "admin_user_456",
+          "verifiedAt": "2023-06-11T09:15:00Z",
+          "metadata": {
+            "approvalNotes": "Bank transfer confirmed."
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Payment not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+### 4.3. Record Manual Payment
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/payments/manual`
+*   **Description:** Records a manual payment.
+*   **Request Body:**
+    ```json
+    {
+      "customerId": "cust_abc",
+      "amount": 99.99,
+      "currency": "USD",
+      "method": "bank_transfer",
+      "transactionReference": "BT987654321",
+      "paidAt": "2023-06-16T10:00:00Z",
+      "description": "Payment for invoice INV-2023-002",
+      "proofType": "bank_transfer",
+      "proofUrl": "https://storage.wanzo.com/payment-proofs/proof_456.pdf"
+    }
+    ```
+*   **Response:**
+    *   `201 Created`:
+        ```json
+        {
+          "id": "pay_456",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "amount": 99.99,
+          "currency": "USD",
+          "method": "bank_transfer",
+          "proofType": "bank_transfer",
+          "proofUrl": "https://storage.wanzo.com/payment-proofs/proof_456.pdf",
+          "status": "pending",
+          "transactionReference": "BT987654321",
+          "paidAt": "2023-06-16T10:00:00Z",
+          "createdAt": "2023-06-16T13:45:00Z",
+          "description": "Payment for invoice INV-2023-002"
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Customer not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-*   **500 Internal Server Error:** Unexpected server error.
+### 4.4. Verify Payment
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/payments/verify`
+*   **Description:** Verifies or rejects a pending payment.
+*   **Request Body:**
+    ```json
+    {
+      "paymentId": "pay_456",
+      "status": "verified",
+      "adminNotes": "Payment confirmed by bank statement check."
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "pay_456",
+          "status": "verified",
+          "verifiedBy": "admin_user_456",
+          "verifiedAt": "2023-06-16T14:30:00Z",
+          "metadata": {
+            "approvalNotes": "Payment confirmed by bank statement check."
+          }
+          // Other payment fields...
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Payment not found.
+    *   `409 Conflict`: Payment is not in a pending state.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-### 5.2. Purchase Tokens
-*   **Endpoint:** `POST /api/tokens/purchase`
-*   **Request Body:** `{ "packageId": "pkg_10k_tokens", "customerId": "cust_xyz789", "paymentMethodId": "pm_card_123" }`
-*   **Response:** `201 Created` with token transaction details.
+## 5. Transaction Endpoints
 
-**Error Responses (General):**
+### 5.1. List Transactions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/transactions`
+*   **Description:** Retrieves a list of financial transactions with pagination and filtering options.
+*   **Query Parameters:**
+    *   `search` (optional, string): Search by reference, description, etc.
+    *   `type` (optional, string): Filter by transaction type (`payment`, `invoice`, `refund`, `credit`, `debit`).
+    *   `status` (optional, string): Filter by status (`completed`, `pending`, `failed`, `canceled`, `verified`, `rejected`).
+    *   `paymentMethod` (optional, string): Filter by payment method.
+    *   `startDate`, `endDate` (optional, string): Date filters in ISO format.
+    *   `customerId` (optional, string): Filter by customer ID.
+    *   `page` (optional, integer): Page number for pagination.
+    *   `limit` (optional, integer): Number of items per page.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "items": [
+            {
+              "id": "txn_123",
+              "reference": "PAY-123456",
+              "amount": 49.99,
+              "currency": "USD",
+              "type": "payment",
+              "status": "completed",
+              "createdAt": "2023-06-10T14:30:00Z",
+              "updatedAt": "2023-06-10T14:35:00Z",
+              "description": "Payment for invoice INV-2023-001",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "paymentMethod": "bank_transfer"
+            }
+          ],
+          "totalCount": 75,
+          "page": 1,
+          "totalPages": 8
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-*   **400 Bad Request:** Invalid package ID or payment method.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **402 Payment Required:** Payment failed.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer or package not found.
-*   **500 Internal Server Error:** Unexpected server error.
+### 5.2. Get Transaction by ID
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/transactions/{transactionId}`
+*   **Description:** Retrieves details for a specific transaction.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "id": "txn_123",
+          "reference": "PAY-123456",
+          "amount": 49.99,
+          "currency": "USD",
+          "type": "payment",
+          "status": "completed",
+          "createdAt": "2023-06-10T14:30:00Z",
+          "updatedAt": "2023-06-10T14:35:00Z",
+          "description": "Payment for invoice INV-2023-001",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "paymentMethod": "bank_transfer",
+          "metadata": {
+            "invoiceId": "inv_123",
+            "paymentId": "pay_123"
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Transaction not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-### 5.3. Get Customer Token Balance
-*   **Endpoint:** `GET /api/customers/{customerId}/tokens/balance`
-*   **Response:** `200 OK` with current token balance.
+### 5.3. Create Transaction
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/transactions`
+*   **Description:** Creates a new transaction record.
+*   **Request Body:**
+    ```json
+    {
+      "customerId": "cust_abc",
+      "amount": 25.00,
+      "currency": "USD",
+      "type": "credit",
+      "description": "Account credit for service issue",
+      "paymentMethod": "manual",
+      "metadata": {
+        "approvedBy": "admin_user_456",
+        "reason": "Compensation for downtime"
+      }
+    }
+    ```
+*   **Response:**
+    *   `201 Created`:
+        ```json
+        {
+          "id": "txn_789",
+          "reference": "CREDIT-123456",
+          "amount": 25.00,
+          "currency": "USD",
+          "type": "credit",
+          "status": "completed",
+          "createdAt": "2023-06-16T15:00:00Z",
+          "updatedAt": "2023-06-16T15:00:00Z",
+          "description": "Account credit for service issue",
+          "customerId": "cust_abc",
+          "customerName": "Acme Corp",
+          "paymentMethod": "manual",
+          "metadata": {
+            "approvedBy": "admin_user_456",
+            "reason": "Compensation for downtime"
+          }
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Customer not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+## 6. Token Endpoints
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer not found.
-*   **500 Internal Server Error:** Unexpected server error.
+### 6.1. Get Token Packages
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/tokens/packages`
+*   **Description:** Retrieves a list of available token packages.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        [
+          {
+            "id": "tok_pkg_123",
+            "name": "Starter Pack",
+            "description": "500 API tokens",
+            "price": 9.99,
+            "currency": "USD",
+            "tokensIncluded": 500,
+            "tokenType": "api_call",
+            "isActive": true
+          },
+          {
+            "id": "tok_pkg_456",
+            "name": "Pro Pack",
+            "description": "5000 API tokens",
+            "price": 79.99,
+            "currency": "USD",
+            "tokensIncluded": 5000,
+            "tokenType": "api_call",
+            "isActive": true
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-### 5.4. List Token Transactions
-*   **Endpoint:** `GET /api/customers/{customerId}/tokens/transactions`
-*   **Response:** `200 OK` with paginated list of token transactions (purchases, usage).
+### 6.2. Get Token Transactions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/tokens/transactions`
+*   **Description:** Retrieves a list of token transactions with pagination and filtering options.
+*   **Query Parameters:**
+    *   `search` (optional, string): Search by customer name, description, etc.
+    *   `customerId` (optional, string): Filter by customer ID.
+    *   `type` (optional, string): Filter by transaction type (`purchase`, `usage`, `refund`, `adjustment`, `expiry`, `bonus`).
+    *   `tokenType` (optional, string): Filter by token type (`wanzo_credit`, `api_call`, `storage_gb`, `processing_unit`, `generic`).
+    *   `startDate`, `endDate` (optional, string): Date filters in ISO format.
+    *   `page`, `limit`, `sortBy`, `sortDirection` (optional): Pagination and sorting options.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "items": [
+            {
+              "id": "tok_txn_123",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "type": "purchase",
+              "tokenType": "api_call",
+              "amount": 5000,
+              "balanceAfterTransaction": 5000,
+              "transactionDate": "2023-06-01T10:00:00Z",
+              "description": "Purchase of Pro Pack",
+              "relatedPurchaseId": "tok_pkg_456",
+              "relatedInvoiceId": "inv_123"
+            },
+            {
+              "id": "tok_txn_124",
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "type": "usage",
+              "tokenType": "api_call",
+              "amount": -100,
+              "balanceAfterTransaction": 4900,
+              "transactionDate": "2023-06-02T14:30:00Z",
+              "description": "API usage"
+            }
+          ],
+          "totalCount": 15,
+          "page": 1,
+          "totalPages": 2
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+### 6.3. Get Customer Token Balance
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/tokens/balance/{customerId}`
+*   **Description:** Retrieves token balance for a customer.
+*   **Query Parameters:**
+    *   `tokenType` (optional, string): Filter by specific token type.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        // For specific token type:
+        {
+          "customerId": "cust_abc",
+          "tokenType": "api_call",
+          "balance": 4900,
+          "lastUpdatedAt": "2023-06-02T14:30:00Z"
+        }
+        
+        // For all token types (without tokenType parameter):
+        [
+          {
+            "customerId": "cust_abc",
+            "tokenType": "api_call",
+            "balance": 4900,
+            "lastUpdatedAt": "2023-06-02T14:30:00Z"
+          },
+          {
+            "customerId": "cust_abc",
+            "tokenType": "storage_gb",
+            "balance": 10,
+            "lastUpdatedAt": "2023-06-01T10:00:00Z"
+          }
+        ]
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Customer not found.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-*   **400 Bad Request:** Invalid query parameters.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer not found.
-*   **500 Internal Server Error:** Unexpected server error.
+## 7. Financial Summary Endpoint
 
-### 5.5. Add/Adjust Tokens (Admin)
-*   **Endpoint:** `POST /api/admin/customers/{customerId}/tokens/adjust`
-*   **Request Body:** `{ "amount": 1000, "reason": "Manual adjustment by admin", "type": "credit" }` (`credit` or `debit`)
-*   **Response:** `200 OK` with new token balance and transaction log.
+### 7.1. Get Financial Summary
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/summary`
+*   **Description:** Retrieves financial summary statistics.
+*   **Query Parameters:**
+    *   `period` (optional, string): Time period for the summary (`daily`, `weekly`, `monthly`, `yearly`).
+    *   `customerId` (optional, string): Filter summary for a specific customer.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "totalRevenue": 25000,
+          "pendingInvoices": 15,
+          "pendingAmount": 2500,
+          "overdueAmount": 1000,
+          "paidInvoices": 85,
+          "revenueByMonth": {
+            "2023-01": 1500,
+            "2023-02": 1800,
+            "2023-03": 2100,
+            "2023-04": 2300,
+            "2023-05": 2800,
+            "2023-06": 1500
+          },
+          "topCustomers": [
+            {
+              "customerId": "cust_abc",
+              "customerName": "Acme Corp",
+              "totalSpent": 5000
+            },
+            {
+              "customerId": "cust_def",
+              "customerName": "Beta Inc",
+              "totalSpent": 3500
+            }
+          ]
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
 
-**Error Responses (General):**
+## 8. Data Models
 
-*   **400 Bad Request:** Invalid request body (e.g., non-numeric amount, invalid type).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **404 Not Found:** Customer not found.
-*   **422 Unprocessable Entity:** Adjustment would result in a negative balance if not allowed.
-*   **500 Internal Server Error:** Unexpected server error.
+### 8.1. Transaction
+```typescript
+interface Transaction {
+  id: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  type: 'payment' | 'invoice' | 'refund' | 'credit' | 'debit';
+  status: 'completed' | 'pending' | 'failed' | 'canceled' | 'verified' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+  customerId?: string;
+  customerName?: string;
+  paymentMethod?: 'bank_transfer' | 'card' | 'mobile_money' | 'crypto' | 'cash' | 'check' | 'other';
+  metadata?: Record<string, unknown>;
+}
+```
 
-## 6. Financial Reporting & Settings
+### 8.2. Invoice
+```typescript
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'pending' | 'overdue' | 'canceled';
+  issueDate: string;
+  dueDate: string;
+  paidDate?: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  notes?: string;
+}
 
-### 6.1. Get Revenue Statistics
-*   **Endpoint:** `GET /api/admin/statistics/revenue`
-*   **Request:** Query parameters: `period` (`daily`, `weekly`, `monthly`, `yearly`), `startDate`, `endDate`.
-*   **Response:** `200 OK` with revenue data (e.g., total revenue, revenue by plan, MRR, ARR).
+interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  taxRate?: number;
+  taxAmount?: number;
+}
+```
 
-**Error Responses (General):**
+### 8.3. Payment
+```typescript
+interface Payment {
+  id: string;
+  invoiceId?: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  currency: string;
+  method: 'bank_transfer' | 'card' | 'mobile_money' | 'crypto' | 'cash' | 'check' | 'other';
+  proofType?: 'bank_transfer' | 'check' | 'other';
+  proofUrl?: string;
+  status: 'pending' | 'verified' | 'rejected' | 'completed' | 'failed' | 'canceled';
+  transactionReference: string;
+  paidAt: string;
+  createdAt?: string;
+  description?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  metadata?: Record<string, unknown>;
+}
+```
 
-*   **400 Bad Request:** Invalid query parameters (e.g., invalid period).
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
+### 8.4. Subscription
+```typescript
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  billingCycle: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
+  features: string[];
+  isActive: boolean;
+  trialPeriodDays?: number;
+  metadata?: Record<string, unknown>;
+}
 
-### 6.2. Get Billing Settings (Admin)
-*   **Endpoint:** `GET /api/settings/billing`
-*   **Response:** `200 OK` with current billing settings (default currency, tax rates, invoice notes, payment gateways configured).
+interface Subscription {
+  id: string;
+  customerId: string;
+  customerName: string;
+  planId: string;
+  planName: string;
+  status: 'active' | 'pending_activation' | 'canceled' | 'expired' | 'paused' | 'trial' | 'payment_failed';
+  startDate: string;
+  endDate?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  nextBillingDate?: string;
+  amount: number;
+  currency: string;
+  billingCycle: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
+  autoRenew: boolean;
+  paymentMethodId?: string;
+  createdAt: string;
+  updatedAt: string;
+  trialEndsAt?: string;
+  canceledAt?: string;
+  cancellationReason?: string;
+  metadata?: Record<string, unknown>;
+}
+```
 
-**Error Responses (General):**
+### 8.5. Token
+```typescript
+interface TokenPackage {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  tokensIncluded: number;
+  tokenType: 'wanzo_credit' | 'api_call' | 'storage_gb' | 'processing_unit' | 'generic';
+  isActive: boolean;
+  metadata?: Record<string, unknown>;
+}
 
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **500 Internal Server Error:** Unexpected server error.
+interface TokenBalance {
+  customerId: string;
+  tokenType: 'wanzo_credit' | 'api_call' | 'storage_gb' | 'processing_unit' | 'generic';
+  balance: number;
+  lastUpdatedAt: string;
+}
 
-### 6.3. Update Billing Settings (Admin)
-*   **Endpoint:** `PUT /api/settings/billing`
-*   **Request Body:** Billing settings object.
-*   **Response:** `200 OK` with updated settings.
+interface TokenTransaction {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  type: 'purchase' | 'usage' | 'refund' | 'adjustment' | 'expiry' | 'bonus';
+  tokenType: 'wanzo_credit' | 'api_call' | 'storage_gb' | 'processing_unit' | 'generic';
+  amount: number;
+  balanceAfterTransaction?: number;
+  transactionDate: string;
+  description?: string;
+  relatedPurchaseId?: string;
+  relatedInvoiceId?: string;
+  issuedBy?: string;
+  metadata?: Record<string, unknown>;
+}
+```
 
-**Error Responses (General):**
-
-*   **400 Bad Request:** Invalid settings data.
-*   **401 Unauthorized:** Authentication token is missing or invalid.
-*   **403 Forbidden:** Authenticated user does not have permission.
-*   **422 Unprocessable Entity:** Inconsistent or invalid settings values.
-*   **500 Internal Server Error:** Unexpected server error.
-
-## 7. Key Data Structures
-
-*   **SubscriptionPlan:** As defined in 1.1.
-*   **CustomerSubscription:** As defined in 2.1.
-*   **PaymentTransaction:** As defined in 3.1.
-*   **Invoice:** As defined in 4.1 and 4.2 (with line items).
-*   **TokenPackage:** `{ "id", "name", "description", "tokenAmount", "priceUSD", "currency" }`
-*   **TokenTransaction:** `{ "id", "customerId", "type" ("purchase", "usage", "adjustment"), "amount" (positive for purchase/credit, negative for usage/debit), "balanceAfter", "relatedPackageId", "relatedUsageRecordId", "transactionDate", "notes" }`
-*   **BillingSettings:** `{ "defaultCurrency", "enabledPaymentGateways" (e.g., ["stripe", "paypal"]), "taxSettings" ({ type, rate, region }), "invoiceTemplateConfig", "dunningRules" }`
-
-This documentation covers the core aspects of finance, billing, and subscription management. Robust error handling, clear status transitions, and comprehensive logging are crucial for these systems.
+### 8.6. FinancialSummary
+```typescript
+interface FinancialSummary {
+  totalRevenue: number;
+  pendingInvoices: number;
+  pendingAmount: number;
+  overdueAmount: number;
+  paidInvoices: number;
+  revenueByMonth: Record<string, number>;
+  topCustomers: Array<{
+    customerId: string;
+    customerName: string;
+    totalSpent: number;
+  }>;
+}
+```

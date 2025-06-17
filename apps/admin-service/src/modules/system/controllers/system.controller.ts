@@ -1,166 +1,127 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  ParseUUIDPipe,
-  HttpStatus,
-  HttpCode,
-  UseGuards
-} from '@nestjs/common';
-import { SystemService } from '../services';
-import {
-  AuditLogQueryDto,
-  CreateAuditLogDto,
-  AuditLogsResponseDto,
-  NotificationTemplateDto,
-  CreateNotificationTemplateDto,
-  UpdateNotificationTemplateDto,
-  NotificationTemplatesQueryDto,
-  NotificationTemplatesResponseDto,
-  SystemNotificationDto,
-  CreateSystemNotificationDto,
-  UpdateSystemNotificationDto,
-  SystemNotificationsQueryDto,
-  SystemNotificationsResponseDto,
-  UserNotificationDto,
-  CreateUserNotificationDto,
-  UpdateUserNotificationDto,
-  UserNotificationsQueryDto,
-  UserNotificationsResponseDto,
-  SendNotificationDto,
-  NotificationSendResponseDto
-} from '../dtos';
-import { JwtBlacklistGuard } from '../../auth/guards/jwt-blacklist.guard'; // Added
-import { RolesGuard } from '../../auth/guards/roles.guard'; // Added
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'; // Added
+import { Controller, Get, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { SystemService } from '../services/system.service';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { 
+    SystemHealthDto, 
+    SystemLogsResponseDto, 
+    SystemAlertsResponseDto, 
+    SystemAlertDto, 
+    ApiPerformanceResponseDto, 
+    DatabaseMetricsResponseDto, 
+    AiModelsResponseDto, 
+    AiModelConfigDto, 
+    ResolveSystemAlertDto, 
+    UpdateAiModelConfigDto, 
+    SetMaintenanceModeDto, 
+    GetSystemLogsQueryDto, 
+    GetSystemAlertsQueryDto, 
+    GetApiPerformanceQueryDto, 
+    MaintenanceStatusResponseDto,
+    SetMaintenanceModeResponseDto,
+    SystemStatusResponseDto
+} from '../dtos/system.dto';
+import { AuthGuard } from '@nestjs/passport';
+// import { RolesGuard } from 'src/common/guards/roles.guard';
+// import { Roles } from 'src/common/decorators/roles.decorator';
 
-@ApiTags('System') // Added
-@ApiBearerAuth() // Added
-@UseGuards(JwtBlacklistGuard, RolesGuard) // Added
-@Controller('system')
+@ApiTags('System')
+@ApiBearerAuth()
+// @UseGuards(AuthGuard('jwt'), RolesGuard)
+@Controller('admin/system')
 export class SystemController {
-  constructor(private readonly systemService: SystemService) {}
+    constructor(private readonly systemService: SystemService) {}
 
-  // Audit Log Endpoints
-  @Post('audit-logs')
-  async createAuditLog(@Body() createDto: CreateAuditLogDto) {
-    return this.systemService.createAuditLog(createDto);
-  }
+    @Get('health')
+    @ApiOperation({ summary: 'Get system health', description: 'Retrieves the current health status of the system and its components.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: SystemHealthDto })
+    // @Roles('admin:system:read')
+    getSystemHealth(): Promise<SystemHealthDto> {
+        return this.systemService.getSystemHealth();
+    }
 
-  @Get('audit-logs')
-  async getAuditLogs(@Query() queryDto: AuditLogQueryDto): Promise<AuditLogsResponseDto> {
-    return this.systemService.getAuditLogs(queryDto);
-  }
+    @Get('logs')
+    @ApiOperation({ summary: 'Get system logs', description: 'Retrieves system logs with optional filtering and pagination.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: SystemLogsResponseDto })
+    // @Roles('admin:system:read')
+    getSystemLogs(@Query() query: GetSystemLogsQueryDto): Promise<SystemLogsResponseDto> {
+        return this.systemService.getSystemLogs(query);
+    }
 
-  @Get('audit-logs/:id')
-  async getAuditLogById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.systemService.getAuditLogById(id);
-  }
+    @Get('alerts')
+    @ApiOperation({ summary: 'Get system alerts', description: 'Retrieves active and/or resolved system alerts.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: SystemAlertsResponseDto })
+    // @Roles('admin:system:read')
+    getSystemAlerts(@Query() query: GetSystemAlertsQueryDto): Promise<SystemAlertsResponseDto> {
+        return this.systemService.getSystemAlerts(query);
+    }
 
-  // Notification Templates Endpoints
-  @Post('notification-templates')
-  async createNotificationTemplate(@Body() createDto: CreateNotificationTemplateDto): Promise<NotificationTemplateDto> {
-    return this.systemService.createNotificationTemplate(createDto);
-  }
+    @Put('alerts/:alertId/resolve')
+    @ApiOperation({ summary: 'Resolve a system alert', description: 'Marks a system alert as resolved.' })
+    @ApiParam({ name: 'alertId', description: 'The ID of the alert to resolve.' })
+    @ApiResponse({ status: 200, description: 'Alert resolved successfully', type: SystemAlertDto })
+    // @Roles('admin:system:write')
+    resolveSystemAlert(
+        @Param('alertId') alertId: string, 
+        @Body() body: ResolveSystemAlertDto
+    ): Promise<SystemAlertDto> {
+        return this.systemService.resolveSystemAlert(alertId, body.resolutionNotes);
+    }
 
-  @Get('notification-templates')
-  async getNotificationTemplates(@Query() queryDto: NotificationTemplatesQueryDto): Promise<NotificationTemplatesResponseDto> {
-    return this.systemService.getNotificationTemplates(queryDto);
-  }
+    @Get('api/performance')
+    @ApiOperation({ summary: 'Get API performance metrics', description: 'Retrieves performance metrics for API endpoints.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: ApiPerformanceResponseDto })
+    // @Roles('admin:system:read')
+    getApiPerformanceMetrics(@Query() query: GetApiPerformanceQueryDto): Promise<ApiPerformanceResponseDto> {
+        return this.systemService.getApiPerformanceMetrics(query);
+    }
 
-  @Get('notification-templates/:id')
-  async getNotificationTemplateById(@Param('id', ParseUUIDPipe) id: string): Promise<NotificationTemplateDto> {
-    return this.systemService.getNotificationTemplateById(id);
-  }
+    @Get('databases')
+    @ApiOperation({ summary: 'Get database metrics', description: 'Retrieves performance metrics for system databases.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: DatabaseMetricsResponseDto })
+    // @Roles('admin:system:read')
+    getDatabaseMetrics(): Promise<DatabaseMetricsResponseDto> {
+        return this.systemService.getDatabaseMetrics();
+    }
 
-  @Put('notification-templates/:id')
-  async updateNotificationTemplate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateNotificationTemplateDto
-  ): Promise<NotificationTemplateDto> {
-    return this.systemService.updateNotificationTemplate(id, updateDto);
-  }
+    @Get('ai/models')
+    @ApiOperation({ summary: 'Get AI model configurations', description: 'Retrieves the configuration for AI models used in the system.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: AiModelsResponseDto })
+    // @Roles('admin:system:read')
+    getAiModelConfigs(): Promise<AiModelsResponseDto> {
+        return this.systemService.getAiModelConfigs();
+    }
 
-  @Delete('notification-templates/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteNotificationTemplate(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.systemService.deleteNotificationTemplate(id);
-  }
+    @Put('ai/models/:modelId')
+    @ApiOperation({ summary: 'Update AI model configuration', description: 'Updates the configuration for a specific AI model.' })
+    @ApiParam({ name: 'modelId', description: 'The ID of the AI model to update.' })
+    @ApiResponse({ status: 200, description: 'AI model updated successfully', type: AiModelConfigDto })
+    // @Roles('admin:system:write')
+    updateAiModelConfig(
+        @Param('modelId') modelId: string, 
+        @Body() body: UpdateAiModelConfigDto
+    ): Promise<AiModelConfigDto> {
+        return this.systemService.updateAiModelConfig(modelId, body);
+    }
 
-  // System Notifications Endpoints
-  @Post('notifications')
-  async createSystemNotification(@Body() createDto: CreateSystemNotificationDto): Promise<SystemNotificationDto> {
-    return this.systemService.createSystemNotification(createDto);
-  }
+    @Get('/system/status')
+    @ApiOperation({ summary: 'Get system status', description: 'Retrieves a simplified status of the system for health checks and monitoring.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: SystemStatusResponseDto })
+    getSystemStatus(): Promise<SystemStatusResponseDto> {
+        return this.systemService.getSystemStatus();
+    }
 
-  @Get('notifications')
-  async getSystemNotifications(@Query() queryDto: SystemNotificationsQueryDto): Promise<SystemNotificationsResponseDto> {
-    return this.systemService.getSystemNotifications(queryDto);
-  }
+    @Get('/system/maintenance')
+    @ApiOperation({ summary: 'Get public maintenance status', description: 'Checks if the system is in maintenance mode.' })
+    @ApiResponse({ status: 200, description: 'Successful response', type: MaintenanceStatusResponseDto })
+    getMaintenanceStatus(): Promise<MaintenanceStatusResponseDto> {
+        return this.systemService.getMaintenanceStatus();
+    }
 
-  @Get('notifications/:id')
-  async getSystemNotificationById(@Param('id', ParseUUIDPipe) id: string): Promise<SystemNotificationDto> {
-    return this.systemService.getSystemNotificationById(id);
-  }
-
-  @Put('notifications/:id')
-  async updateSystemNotification(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateSystemNotificationDto
-  ): Promise<SystemNotificationDto> {
-    return this.systemService.updateSystemNotification(id, updateDto);
-  }
-
-  @Delete('notifications/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteSystemNotification(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.systemService.deleteSystemNotification(id);
-  }
-
-  // User Notifications Endpoints
-  @Post('user-notifications')
-  async createUserNotification(@Body() createDto: CreateUserNotificationDto): Promise<UserNotificationDto> {
-    return this.systemService.createUserNotification(createDto);
-  }
-
-  @Get('user-notifications')
-  async getUserNotifications(@Query() queryDto: UserNotificationsQueryDto): Promise<UserNotificationsResponseDto> {
-    return this.systemService.getUserNotifications(queryDto);
-  }
-
-  @Get('user-notifications/:id')
-  async getUserNotificationById(@Param('id', ParseUUIDPipe) id: string): Promise<UserNotificationDto> {
-    return this.systemService.getUserNotificationById(id);
-  }
-
-  @Put('user-notifications/:id')
-  async updateUserNotification(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateUserNotificationDto
-  ): Promise<UserNotificationDto> {
-    return this.systemService.updateUserNotification(id, updateDto);
-  }
-
-  @Put('user-notifications/mark-all-read/:userId')
-  async markAllUserNotificationsAsRead(@Param('userId', ParseUUIDPipe) userId: string): Promise<{ count: number }> {
-    const count = await this.systemService.markAllUserNotificationsAsRead(userId);
-    return { count };
-  }
-
-  @Delete('user-notifications/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteUserNotification(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.systemService.deleteUserNotification(id);
-  }
-
-  // Notification Sending Endpoint
-  @Post('send-notification')
-  async sendNotification(@Body() sendDto: SendNotificationDto): Promise<NotificationSendResponseDto> {
-    return this.systemService.sendNotification(sendDto);
-  }
+    @Put('maintenance')
+    @ApiOperation({ summary: 'Set maintenance mode', description: 'Enables or disables maintenance mode for the system.' })
+    @ApiResponse({ status: 200, description: 'Maintenance mode updated successfully', type: SetMaintenanceModeResponseDto })
+    // @Roles('admin:system:write')
+    setMaintenanceMode(@Body() body: SetMaintenanceModeDto): Promise<SetMaintenanceModeResponseDto> {
+        return this.systemService.setMaintenanceMode(body);
+    }
 }

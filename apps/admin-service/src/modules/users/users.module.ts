@@ -3,8 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UserSession, UserActivity, RolePermission } from './entities/user-related.entity';
 import { UsersService } from './services';
-import { UserEventsHandler } from './services/user-events.handler';
-import { AdminUsersController, UsersController, RolesController } from './controllers';
+import { AdminUsersController } from './controllers/admin.users.controller';
+import { UsersController } from './controllers/users.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { EventsModule } from '../events/events.module';
 import { AuthModule } from '../auth/auth.module'; // Import AuthModule to get access to JwtBlacklistGuard
@@ -22,8 +22,8 @@ import { HttpModule } from '@nestjs/axios';
       maxRedirects: 5,
     }),
   ],
-  controllers: [AdminUsersController, UsersController, RolesController],
-  providers: [UsersService, UserEventsHandler], // Add UserEventsHandler as a provider
+  controllers: [AdminUsersController, UsersController],
+  providers: [UsersService], // Remove UserEventsHandler
   exports: [UsersService],
 })
 export class UsersModule {}

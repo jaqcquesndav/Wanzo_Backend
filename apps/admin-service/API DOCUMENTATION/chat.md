@@ -174,13 +174,19 @@ This document outlines the API endpoints for the Chat module.
           "sender": "user" | "support",
           "timestamp": "Date",
           "read": "boolean",
+          "status": "sending" | "sent" | "delivered" | "read" | "failed",
           "attachments": [
             {
               "id": "string",
               "url": "string",
               "type": "string", // e.g., 'image/jpeg', 'application/pdf'
               "name": "string",
-              "size": "number" // in bytes
+              "size": "number", // in bytes
+              "metadata": {
+                "width": "number", // for images
+                "height": "number", // for images
+                "duration": "number" // for audio/video
+              }
             }
           ] (optional)
         }
@@ -200,44 +206,66 @@ This document outlines the API endpoints for the Chat module.
 
 *   **HTTP Method:** `POST`
 *   **URL:** `/api/chat/sessions/{sessionId}/messages`
-*   **Request Structure (JSON or FormData):**
-    *   If sending only text:
-        ```json
-        {
-          "content": "string"
-        }
-        ```
-    *   If sending with attachments (use `multipart/form-data`):
-        *   `content`: "string"
-        *   `attachments[]`: File objects
+*   **Request Structure:** 
+    * For text-only messages (JSON):
+    ```json
+    {
+      "content": "string"
+    }
+    ```
+    * For messages with attachments (Multipart Form):
+    ```
+    content: "string"
+    attachments[0]: File
+    attachments[1]: File
+    ...
+    ```
 *   **Response Structure (JSON):**
     ```json
     {
       "id": "string",
       "content": "string",
-      "sender": "user" | "support", // depends on who sent it
+      "sender": "user" | "support",
       "timestamp": "Date",
       "read": false,
-      "attachments": [ // if any were uploaded
+      "status": "sent",
+      "attachments": [
         {
           "id": "string",
-          "url": "string", // URL to access the attachment
+          "url": "string",
           "type": "string",
           "name": "string",
-          "size": "number"
+          "size": "number",
+          "metadata": {
+            "width": "number",
+            "height": "number",
+            "duration": "number"
+          }
         }
       ] (optional)
     }
     ```
 *   **Error Responses:**
-    *   `400 Bad Request`: If content is missing/invalid, or attachment is invalid/too large.
+    *   `400 Bad Request`: If the request body is invalid or attachments exceed size limits.
     *   `401 Unauthorized`: If the user is not authenticated.
     *   `403 Forbidden`: If the user does not have permission to send messages in this session.
     *   `404 Not Found`: If the chat session with `sessionId` does not exist.
-    *   `409 Conflict`: If the session is closed and no more messages can be sent.
+    *   `409 Conflict`: If the session is closed and not accepting new messages.
     *   `500 Internal Server Error`: For unexpected server issues.
 
-### 3. Mark Messages as Read
+### 3. Download Attachment
+
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/chat/attachments/{attachmentId}`
+*   **Request Structure:** (None)
+*   **Response:** The file content with appropriate Content-Type header
+*   **Error Responses:**
+    *   `401 Unauthorized`: If the user is not authenticated.
+    *   `403 Forbidden`: If the user does not have permission to download this attachment.
+    *   `404 Not Found`: If the attachment with `attachmentId` does not exist.
+    *   `500 Internal Server Error`: For unexpected server issues.
+
+### 4. Mark Messages as Read
 
 *   **HTTP Method:** `PUT`
 *   **URL:** `/api/chat/sessions/{sessionId}/read`
@@ -247,99 +275,31 @@ This document outlines the API endpoints for the Chat module.
       "messageIds": ["string"]
     }
     ```
-*   **Response Structure:** (Status 204 No Content or similar success status)
+*   **Response Structure:** No content (204)
 *   **Error Responses:**
-    *   `400 Bad Request`: If `messageIds` are missing or invalid.
+    *   `400 Bad Request`: If the request body is invalid.
     *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission to mark messages as read in this session.
-    *   `404 Not Found`: If the chat session or specified messages do not exist.
+    *   `403 Forbidden`: If the user does not have permission to mark messages in this session.
+    *   `404 Not Found`: If the chat session with `sessionId` does not exist.
     *   `500 Internal Server Error`: For unexpected server issues.
 
-## Attachments
+### 5. Send Typing Event
 
-### 1. Download Attachment
-
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/attachments/{attachmentId}`
-*   **Request Structure:** (None)
-*   **Response Structure:** `Blob` (The file content)
-*   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission to download this attachment.
-    *   `404 Not Found`: If the attachment with `attachmentId` does not exist.
-    *   `500 Internal Server Error`: For unexpected server issues.
-
-## Real-time Events (via WebSockets)
-
-The following events are typically handled via a WebSocket connection established for a chat session. The exact mechanism for establishing the WebSocket connection (e.g., an upgrade request on an HTTP endpoint or a dedicated WebSocket URL) needs to be defined by the backend.
-
-### 1. Subscribe to Chat Updates
-
-*   **Action:** Client subscribes to a specific chat session (e.g., `/ws/chat/{sessionId}`).
-*   **Events Received by Client:**
-    *   **New Message:**
-        ```json
-        {
-          "type": "NEW_MESSAGE",
-          "payload": {
-            "id": "string",
-            "content": "string",
-            "sender": "user" | "support",
-            "timestamp": "Date",
-            "read": "boolean",
-            "attachments": [ /* ... ChatAttachment structure ... */ ] (optional),
-            "sessionId": "string"
-          }
-        }
-        ```
-    *   **Typing Event:**
-        ```json
-        {
-          "type": "TYPING_EVENT",
-          "payload": {
-            "sessionId": "string",
-            "userId": "string", // User who is typing
-            "isTyping": "boolean",
-            "timestamp": "Date"
-          }
-        }
-        ```
-    *   **Session Update (e.g., agent assigned, session closed):**
-        ```json
-        {
-          "type": "SESSION_UPDATE",
-          "payload": { /* ... ChatSession structure ... */ }
-        }
-        ```
-
-### 2. Send Typing Event (Client to Server)
-
-*   **Action:** Client sends a typing indicator to the server.
-*   **Endpoint (Conceptual, could be part of WebSocket messages or a separate HTTP POST):** `/api/chat/sessions/{sessionId}/typing`
-*   **Request Structure (JSON if HTTP):**
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/chat/sessions/{sessionId}/typing`
+*   **Request Structure (JSON):**
     ```json
     {
       "isTyping": "boolean"
-      // userId might be inferred from auth context
     }
     ```
-*   **Response (if HTTP):** (Status 204 No Content or similar success status)
-*   **Error Responses (if HTTP for typing event):**
-    *   `400 Bad Request`: If the payload is invalid.
+*   **Response Structure:** No content (204)
+*   **Error Responses:**
+    *   `400 Bad Request`: If the request body is invalid.
     *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user cannot send typing events for this session.
-    *   `404 Not Found`: If the chat session does not exist.
-    *   `409 Conflict`: If the session is closed.
+    *   `403 Forbidden`: If the user does not have permission to send typing events in this session.
+    *   `404 Not Found`: If the chat session with `sessionId` does not exist.
     *   `500 Internal Server Error`: For unexpected server issues.
-*   **WebSocket Message (Client to Server):**
-    ```json
-    {
-      "action": "TYPING",
-      "payload": {
-        "isTyping": "boolean"
-      }
-    }
-    ```
 
 ## Chat Statistics
 
@@ -353,7 +313,7 @@ The following events are typically handled via a WebSocket connection establishe
     {
       "totalSessions": "number",
       "activeSessions": "number",
-      "averageResponseTime": "number", // in seconds or milliseconds
+      "averageResponseTime": "number", // in minutes
       "messagesExchanged": "number"
     }
     ```
@@ -361,3 +321,112 @@ The following events are typically handled via a WebSocket connection establishe
     *   `401 Unauthorized`: If the user is not authenticated.
     *   `403 Forbidden`: If the user does not have permission to view chat statistics.
     *   `500 Internal Server Error`: For unexpected server issues.
+
+## Real-time Chat Updates
+
+The chat system uses WebSockets to provide real-time updates for:
+
+1. New messages
+2. Typing indicators
+3. Session status changes
+
+Clients should establish a WebSocket connection to receive these updates.
+
+### WebSocket Connection
+
+*   **URL:** `wss://api.example.com/ws/chat/{sessionId}`
+*   **Authorization:** Bearer token in the connection request
+
+### WebSocket Events
+
+*   **New Message Event:**
+    ```json
+    {
+      "type": "message",
+      "data": {
+        // Message object as described in Get Messages
+      }
+    }
+    ```
+
+*   **Typing Event:**
+    ```json
+    {
+      "type": "typing",
+      "data": {
+        "userId": "string",
+        "isTyping": "boolean",
+        "timestamp": "Date"
+      }
+    }
+    ```
+
+*   **Session Update Event:**
+    ```json
+    {
+      "type": "session_update",
+      "data": {
+        // Session object as described in Get Session
+      }
+    }
+    ```
+
+## Type Definitions
+
+### ChatMessage
+
+```typescript
+interface ChatMessage {
+  id: string;
+  content: string;
+  sender: 'user' | 'support';
+  timestamp: Date;
+  read: boolean;
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  attachments?: ChatAttachment[];
+}
+```
+
+### ChatAttachment
+
+```typescript
+interface ChatAttachment {
+  id: string;
+  url: string;
+  type: string;
+  name: string;
+  size: number;
+  metadata?: {
+    width?: number;
+    height?: number;
+    duration?: number;
+    [key: string]: unknown;
+  };
+}
+```
+
+### ChatSession
+
+```typescript
+interface ChatSession {
+  id: string;
+  userId: string;
+  agentId?: string;
+  status: 'active' | 'closed';
+  startedAt: Date;
+  endedAt?: Date;
+  subject?: string;
+  priority: 'low' | 'medium' | 'high';
+  tags?: string[];
+}
+```
+
+### ChatTypingEvent
+
+```typescript
+interface ChatTypingEvent {
+  userId: string;
+  isTyping: boolean;
+  timestamp: Date;
+}
+```

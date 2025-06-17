@@ -16,13 +16,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 5,
-        jwksUri: `${configService.get('AUTH_SERVICE_URL')}/.well-known/jwks.json`,
+        jwksUri: `${configService.get('AUTH0_DOMAIN')}/.well-known/jwks.json`,
       }),
-      issuer: configService.get('AUTH_SERVICE_URL'),
-      audience: 'admin-service',
+      issuer: `${configService.get('AUTH0_DOMAIN')}/`,
+      audience: configService.get('AUTH0_AUDIENCE'),
     });
     
-    this.logger.debug(`JWT Strategy initialized with issuer: ${configService.get('AUTH_SERVICE_URL')}`);
+    this.logger.debug(`JWT Strategy initialized with issuer: ${configService.get('AUTH0_DOMAIN')}`);
   }
 
   async validate(payload: any): Promise<Record<string, any>> {

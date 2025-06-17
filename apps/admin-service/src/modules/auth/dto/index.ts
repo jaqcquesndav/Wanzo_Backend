@@ -1,9 +1,5 @@
-export * from './login.dto';
-export * from './register.dto';
-export * from './refresh-token.dto';
-export * from './forgot-password.dto';
-export * from './reset-password.dto';
-export * from './change-password.dto';
-export * from './two-factor.dto';
-export * from './ks-auth.dto';
+
 export * from './user.dto';
+export * from './validate-token.dto';
+export * from './user-profile.dto';
+export * from './update-profile.dto';

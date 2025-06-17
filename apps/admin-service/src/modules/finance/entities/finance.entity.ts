@@ -1,30 +1,86 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
-  UpdateDateColumn,
-  OneToMany,
-  ManyToOne,
-  JoinColumn
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 
-export enum PlanStatus {
+// 8. Data Models from finance.md
+
+// Enums from documentation
+export enum SubscriptionStatus {
   ACTIVE = 'active',
-  ARCHIVED = 'archived'
+  PENDING_ACTIVATION = 'pending_activation',
+  CANCELED = 'canceled',
+  EXPIRED = 'expired',
+  PAUSED = 'paused',
+  TRIAL = 'trial',
+  PAYMENT_FAILED = 'payment_failed',
+}
+
+export enum InvoiceStatus {
+  DRAFT = 'draft',
+  SENT = 'sent',
+  PENDING = 'pending',
+  PAID = 'paid',
+  OVERDUE = 'overdue',
+  CANCELED = 'cancelled',
 }
 
 export enum BillingCycle {
   MONTHLY = 'monthly',
+  ANNUALLY = 'annually',
   QUARTERLY = 'quarterly',
-  YEARLY = 'yearly'
+  BIENNIALLY = 'biennially',
+  ONE_TIME = 'one_time',
 }
 
-export enum CustomerType {
-  PME = 'pme',
-  FINANCIAL = 'financial',
-  INDIVIDUAL = 'individual'
+export enum PaymentMethod {
+  BANK_TRANSFER = 'bank_transfer',
+  CARD = 'card',
+  MOBILE_MONEY = 'mobile_money',
+  CRYPTO = 'crypto',
+  CASH = 'cash',
+  CHECK = 'check',
+  OTHER = 'other',
 }
+
+export enum PaymentStatus {
+  VERIFIED = 'verified',
+  PENDING = 'pending',
+  REJECTED = 'rejected',
+}
+
+export enum TransactionType {
+  PAYMENT = 'payment',
+  INVOICE = 'invoice',
+  REFUND = 'refund',
+  CREDIT = 'credit',
+  DEBIT = 'debit',
+}
+
+export enum TransactionStatus {
+  COMPLETED = 'completed',
+  PENDING = 'pending',
+  FAILED = 'failed',
+  CANCELED = 'canceled',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
+}
+
+export enum TokenType {
+  WANZO_CREDIT = 'wanzo_credit',
+  API_CALL = 'api_call',
+  STORAGE_GB = 'storage_gb',
+  PROCESSING_UNIT = 'processing_unit',
+  GENERIC = 'generic',
+}
+
+export enum TokenTransactionType {
+  PURCHASE = 'purchase',
+  USAGE = 'usage',
+  REFUND = 'refund',
+  ADJUSTMENT = 'adjustment',
+  EXPIRY = 'expiry',
+  BONUS = 'bonus',
+}
+
+// Entities based on documentation
 
 @Entity('subscription_plans')
 export class SubscriptionPlan {
@@ -34,59 +90,44 @@ export class SubscriptionPlan {
   @Column()
   name: string;
 
-  @Column('text', { nullable: true })
+  @Column('text')
   description: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  basePriceUSD: number;
+  price: number;
 
-  @Column('simple-array')
-  billingCycles: BillingCycle[];
+  @Column()
+  currency: string;
+
+  @Column({ type: 'enum', enum: BillingCycle })
+  billingCycle: BillingCycle;
 
   @Column('simple-array')
   features: string[];
 
-  @Column({ default: 0 })
-  tokenAllocation: number;
+  @Column({ default: true })
+  isActive: boolean;
 
   @Column({ nullable: true })
-  maxUsers: number;
+  trialPeriodDays: number;
 
-  @Column('simple-array')
-  targetCustomerTypes: CustomerType[];
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
 
-  @Column({
-    type: 'enum',
-    enum: PlanStatus,
-    default: PlanStatus.ACTIVE
-  })
-  status: PlanStatus;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @OneToMany(() => CustomerSubscription, subscription => subscription.plan)
-  subscriptions: CustomerSubscription[];
+  @OneToMany(() => Subscription, subscription => subscription.plan)
+  subscriptions: Subscription[];
 }
 
-export enum SubscriptionStatus {
-  ACTIVE = 'active',
-  TRIALING = 'trialing',
-  PAST_DUE = 'past_due',
-  CANCELED = 'canceled',
-  EXPIRED = 'expired'
-}
-
-@Entity('customer_subscriptions')
-export class CustomerSubscription {
+@Entity('subscriptions')
+export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
   customerId: string;
+
+  @Column()
+  customerName: string;
 
   @Column()
   planId: string;
@@ -95,21 +136,8 @@ export class CustomerSubscription {
   @JoinColumn({ name: 'planId' })
   plan: SubscriptionPlan;
 
-  @Column({
-    type: 'enum',
-    enum: SubscriptionStatus,
-    default: SubscriptionStatus.ACTIVE
-  })
+  @Column({ type: 'enum', enum: SubscriptionStatus })
   status: SubscriptionStatus;
-
-  @Column({
-    type: 'enum',
-    enum: BillingCycle
-  })
-  billingCycle: BillingCycle;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  priceUSD: number;
 
   @Column({ type: 'timestamp' })
   startDate: Date;
@@ -117,17 +145,41 @@ export class CustomerSubscription {
   @Column({ type: 'timestamp', nullable: true })
   endDate: Date;
 
+  @Column({ type: 'timestamp' })
+  currentPeriodStart: Date;
+
+  @Column({ type: 'timestamp' })
+  currentPeriodEnd: Date;
+
   @Column({ type: 'timestamp', nullable: true })
-  trialEndDate: Date;
+  nextBillingDate: Date;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
+
+  @Column()
+  currency: string;
+
+  @Column({ type: 'enum', enum: BillingCycle })
+  billingCycle: BillingCycle;
 
   @Column({ default: true })
   autoRenew: boolean;
 
   @Column({ nullable: true })
+  paymentMethodId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  trialEndsAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
   canceledAt: Date;
 
-  @Column({ nullable: true })
+  @Column('text', { nullable: true })
   cancellationReason: string;
+
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -139,68 +191,62 @@ export class CustomerSubscription {
   invoices: Invoice[];
 }
 
-export enum InvoiceStatus {
-  DRAFT = 'draft',
-  OPEN = 'open',
-  PAID = 'paid',
-  UNCOLLECTIBLE = 'uncollectible',
-  VOID = 'void'
-}
-
 @Entity('invoices')
 export class Invoice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  subscriptionId: string;
-
-  @ManyToOne(() => CustomerSubscription, subscription => subscription.invoices)
-  @JoinColumn({ name: 'subscriptionId' })
-  subscription: CustomerSubscription;
+  invoiceNumber: string;
 
   @Column()
   customerId: string;
 
   @Column()
-  invoiceNumber: string;
+  customerName: string;
+  
+  @Column({ nullable: true })
+  subscriptionId: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amountDue: number;
+  @ManyToOne(() => Subscription, subscription => subscription.invoices)
+  @JoinColumn({ name: 'subscriptionId' })
+  subscription: Subscription;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  amountPaid: number;
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
+
+  @Column()
+  currency: string;
+
+  @Column({ type: 'enum', enum: InvoiceStatus })
+  status: InvoiceStatus;
+
+  @Column({ type: 'timestamp' })
+  issueDate: Date;
 
   @Column({ type: 'timestamp' })
   dueDate: Date;
 
-  @Column({
-    type: 'enum',
-    enum: InvoiceStatus,
-    default: InvoiceStatus.DRAFT
-  })
-  status: InvoiceStatus;
+  @Column({ type: 'timestamp', nullable: true })
+  paidDate: Date;
 
-  @Column({ nullable: true })
-  pdfUrl: string;
-
-  @Column({ nullable: true })
-  paymentId: string;
-
-  @Column({ nullable: true })
-  paymentMethod: string;
-
-  @Column({ nullable: true })
-  paymentDate: Date;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @OneToMany(() => InvoiceItem, item => item.invoice)
+  @OneToMany(() => InvoiceItem, item => item.invoice, { cascade: true })
   items: InvoiceItem[];
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  subtotal: number;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  taxAmount: number;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  discountAmount: number;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  totalAmount: number;
+
+  @Column('text', { nullable: true })
+  notes: string;
 }
 
 @Entity('invoice_items')
@@ -208,46 +254,84 @@ export class InvoiceItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  invoiceId: string;
-
   @ManyToOne(() => Invoice, invoice => invoice.items)
   @JoinColumn({ name: 'invoiceId' })
   invoice: Invoice;
 
   @Column()
+  invoiceId: string;
+
+  @Column('text')
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amount: number;
-
-  @Column({ default: 1 })
+  @Column('int')
   quantity: number;
 
-  @Column({ nullable: true })
-  periodStart: Date;
+  @Column('decimal', { precision: 10, scale: 2 })
+  unitPrice: number;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  subtotal: number;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  taxRate: number;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  taxAmount: number;
+}
+
+@Entity('payments')
+export class Payment {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ nullable: true })
-  periodEnd: Date;
+  invoiceId: string;
+
+  @Column()
+  customerId: string;
+
+  @Column()
+  customerName: string;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
+
+  @Column()
+  currency: string;
+
+  @Column({ type: 'enum', enum: PaymentMethod })
+  method: PaymentMethod;
+
+  @Column({ nullable: true })
+  proofType: string;
+
+  @Column({ nullable: true })
+  proofUrl: string;
+
+  @Column({ type: 'enum', enum: PaymentStatus })
+  status: PaymentStatus;
+
+  @Column({ nullable: true })
+  transactionReference: string;
+
+  @Column({ type: 'timestamp' })
+  paidAt: Date;
+
+  @Column('text', { nullable: true })
+  description: string;
+
+  @Column({ nullable: true })
+  verifiedBy: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  verifiedAt: Date;
+
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
-
-export enum TransactionType {
-  PAYMENT = 'payment',
-  REFUND = 'refund',
-  CREDIT = 'credit',
-  ADJUSTMENT = 'adjustment'
-}
-
-export enum TransactionStatus {
-  PENDING = 'pending',
-  SUCCEEDED = 'succeeded',
-  FAILED = 'failed'
 }
 
 @Entity('transactions')
@@ -256,50 +340,119 @@ export class Transaction {
   id: string;
 
   @Column()
+  reference: string;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
+
+  @Column()
+  currency: string;
+
+  @Column({ type: 'enum', enum: TransactionType })
+  type: TransactionType;
+
+  @Column({ type: 'enum', enum: TransactionStatus })
+  status: TransactionStatus;
+
+  @Column('text')
+  description: string;
+
+  @Column({ nullable: true })
   customerId: string;
 
   @Column({ nullable: true })
-  invoiceId: string;
+  customerName: string;
 
-  @Column({
-    type: 'enum',
-    enum: TransactionType
-  })
-  type: TransactionType;
+  @Column({ type: 'enum', enum: PaymentMethod, nullable: true })
+  paymentMethod: PaymentMethod;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amount: number;
-
-  @Column({ nullable: true })
-  currency: string;
-
-  @Column({
-    type: 'enum',
-    enum: TransactionStatus
-  })
-  status: TransactionStatus;
-
-  @Column({ nullable: true })
-  paymentMethod: string;
-
-  @Column({ nullable: true })
-  paymentIntentId: string;
-
-  @Column({ nullable: true })
-  paymentMethodDetails: string;
-
-  @Column({ nullable: true })
-  failureCode: string;
-
-  @Column({ nullable: true })
-  failureMessage: string;
-
-  @Column({ nullable: true })
-  refundReason: string;
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+}
+
+@Entity('token_packages')
+export class TokenPackage {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column('text')
+  description: string;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  price: number;
+
+  @Column()
+  currency: string;
+
+  @Column('int')
+  tokensIncluded: number;
+
+  @Column({ type: 'enum', enum: TokenType })
+  tokenType: TokenType;
+
+  @Column({ default: true })
+  isActive: boolean;
+}
+
+@Entity('token_transactions')
+export class TokenTransaction {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  customerId: string;
+
+  @Column()
+  customerName: string;
+
+  @Column({ type: 'enum', enum: TokenTransactionType })
+  type: TokenTransactionType;
+
+  @Column({ type: 'enum', enum: TokenType })
+  tokenType: TokenType;
+
+  @Column('int')
+  amount: number;
+
+  @Column('int')
+  balanceAfterTransaction: number;
+
+  @Column({ type: 'timestamp' })
+  transactionDate: Date;
+
+  @Column('text')
+  description: string;
+
+  @Column({ nullable: true })
+  relatedPurchaseId: string;
+
+  @Column({ nullable: true })
+  relatedInvoiceId: string;
+}
+
+@Entity('token_balances')
+export class TokenBalance {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  customerId: string;
+
+  @Column({ type: 'enum', enum: TokenType })
+  tokenType: TokenType;
+
+  @Column('int')
+  balance: number;
+
+  @UpdateDateColumn()
+  lastUpdatedAt: Date;
 }
