@@ -347,6 +347,9 @@ export class CustomersService {
     customer.status = CustomerStatus.ACTIVE;
     customer.reactivatedAt = new Date();
     customer.reactivatedBy = 'current-admin-id'; // In real implementation, get from the authenticated user
+    customer.suspensionReason = null;
+    customer.suspendedAt = null;
+    customer.suspendedBy = null;
 
     const reactivatedCustomer = await this.customersRepository.save(customer);
 

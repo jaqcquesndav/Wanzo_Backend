@@ -8,7 +8,9 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
-  setupFiles: ['dotenv/config'],  moduleNameMapper: {
+  setupFiles: ['dotenv/config'],
+  moduleNameMapper: {
+    '^@wanzo/shared/(.*)$': '<rootDir>/../../../packages/shared/$1',
     '^@/(.*)$': '<rootDir>/$1',
   },
   // Utilisez un environnement node standard pour les tests

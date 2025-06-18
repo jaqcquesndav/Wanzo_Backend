@@ -119,9 +119,6 @@ export class User {
   @Column({ nullable: true, select: false })
   twoFactorSecret?: string;
 
-  @Column({ default: false })
-  isTwoFactorEnabled: boolean;
-
   // Fields for password reset
   @Column({ nullable: true, select: false })
   resetPasswordToken?: string;
