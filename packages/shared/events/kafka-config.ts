@@ -1,5 +1,7 @@
 import { KafkaOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionEventTopics } from './subscription-events';
+import type { SubscriptionChangedEvent } from './subscription-events';
 
 // #region Core Enums and Interfaces
 
@@ -305,3 +307,7 @@ export const getKafkaConfig = (configService: ConfigService): KafkaOptions => {
 };
 
 // #endregion
+
+// Re-export subscription events
+export { SubscriptionEventTopics } from './subscription-events';
+export type { SubscriptionChangedEvent } from './subscription-events';

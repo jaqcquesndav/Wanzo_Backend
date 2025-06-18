@@ -2,7 +2,7 @@ import './tracing'; // Tracing setup runs on import
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // import { LoggingInterceptor } from './common/interceptors/logging.interceptor'; // Commented out
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
@@ -12,8 +12,17 @@ import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import helmet from 'helmet';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { initDatabase } from './database-init';
 
 async function bootstrap() {
+  // Initialize database with required enum types first
+  try {
+    await initDatabase();
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    // Continue anyway, the DatabaseCheckService will provide more detailed information
+  }
+
   // Configure Winston logger
   const logger = WinstonModule.createLogger({
     transports: [

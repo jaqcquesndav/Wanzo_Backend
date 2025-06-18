@@ -15,10 +15,10 @@ export class Location {
     lat: number;
     lng: number;
   };
-
   @Column({
     type: 'enum',
     enum: LocationType,
+    enumName: 'location_type_enum'
   })
   type: LocationType;
 

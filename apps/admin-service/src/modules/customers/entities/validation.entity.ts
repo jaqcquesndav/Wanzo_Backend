@@ -20,10 +20,10 @@ export class ValidationProcess {
   @ManyToOne(() => Customer, customer => customer.validationProcesses)
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
-
   @Column({
     type: 'enum',
-    enum: CustomerStatus
+    enum: CustomerStatus,
+    enumName: 'customer_status_enum'
   })
   status: CustomerStatus;
 

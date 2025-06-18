@@ -8,7 +8,23 @@ import {
 } from '../dto';
 
 @Injectable()
-export class AuthService {  async validateToken(token: string): Promise<ValidateTokenResponseDto> {
+export class AuthService {  
+  async validateUser(email: string, password: string): Promise<any> {
+    // TODO: Implement proper user validation with Auth0 or database
+    // This is a placeholder implementation for development
+    if (email === 'admin@example.com' && password === 'password') {
+      return {
+        id: 'mock-user-id',
+        name: 'Admin User',
+        email: email,
+        role: UserRole.COMPANY_ADMIN,
+        userType: UserType.INTERNAL
+      };
+    }
+    return null;
+  }
+
+  async validateToken(token: string): Promise<ValidateTokenResponseDto> {
     // TODO: Implement proper JWT verification using Auth0 JWKS
     
     try {

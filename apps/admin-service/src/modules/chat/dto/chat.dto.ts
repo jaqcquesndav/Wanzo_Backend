@@ -71,8 +71,7 @@ export class ChatAttachmentMetadataDto {
   @IsOptional()
   @IsNumber()
   duration?: number;
-
-  @IsOptional()
+  // Index signature should not have decorators
   [key: string]: any;
 }
 

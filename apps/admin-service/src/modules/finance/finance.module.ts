@@ -6,16 +6,19 @@ import { FinanceController } from './controllers';
 import { FinanceService } from './services';
 import { AuthModule } from '../auth/auth.module';
 import { EventsModule } from '../events/events.module';
+import { UsersModule } from '../users/users.module';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature(Object.values(entities).filter(entity => typeof entity === 'function')),
+    TypeOrmModule.forFeature([...Object.values(entities).filter(entity => typeof entity === 'function'), User]),
     AuthModule,
     HttpModule.register({
       timeout: 5000,
       maxRedirects: 5,
     }),
     EventsModule,
+    UsersModule,
   ],
   controllers: [FinanceController],
   providers: [FinanceService],

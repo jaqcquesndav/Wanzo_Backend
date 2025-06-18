@@ -3,8 +3,11 @@ import {
   PrimaryGeneratedColumn, 
   Column, 
   CreateDateColumn, 
-  UpdateDateColumn
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
+import { DocumentFolder } from './document-folder.entity';
 
 export enum DocumentStatus {
   PENDING = 'pending',
@@ -62,4 +65,11 @@ export class Document {
 
   @Column({ nullable: true, type: 'timestamp' })
   verifiedAt?: Date;
+
+  @Column({ nullable: true })
+  folderId: string;
+
+  @ManyToOne(() => DocumentFolder, folder => folder.documents, { nullable: true })
+  @JoinColumn({ name: 'folderId' })
+  folder: DocumentFolder;
 }

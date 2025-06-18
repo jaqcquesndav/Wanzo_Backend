@@ -29,6 +29,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
+import { DatabaseCheckService } from './database-check.service';
 // Removed import for ValidationPipe as it's handled in main.ts
 
 @Module({
@@ -44,10 +45,10 @@ import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
         host: configService.get('DB_HOST', 'localhost'),
         port: configService.get('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
-        password: configService.get('DB_PASSWORD', 'password'),
-        database: configService.get('DB_DATABASE', 'admin-service'), // Changed default to 'admin-service'
+        password: configService.get('DB_PASSWORD', 'password'),        database: configService.get('DB_DATABASE', 'admin-service'), // Changed default to 'admin-service'
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: false, // Disable auto-synchronization to avoid issues with enums
+        migrationsRun: false, // Don't run migrations automatically
       }),
       inject: [ConfigService],
     }),
@@ -63,8 +64,7 @@ import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
     SystemModule,    TokensModule,
     DashboardModule,
     KafkaModule, // Added KafkaModule
-  ],
-  controllers: [HealthController],
+  ],  controllers: [HealthController],
   providers: [
     {
       provide: APP_FILTER,
@@ -78,6 +78,7 @@ import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
       provide: APP_INTERCEPTOR,
       useClass: TimeoutInterceptor,
     },
+    DatabaseCheckService,
   ],
 })
 export class AppModule implements NestModule {

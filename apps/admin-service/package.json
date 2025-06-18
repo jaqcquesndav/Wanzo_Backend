@@ -1,13 +1,13 @@
 {
   "name": "@kiota-suit/admin-service",
   "version": "1.0.0",
-  "private": true,
-  "scripts": {
+  "private": true,  "scripts": {
     "build": "nest build",
     "start": "node dist/apps/admin-service/src/main.js",
     "dev": "nest build && node dist/apps/admin-service/src/main.js",
     "start:dev": "nest start --watch",
     "debug": "nest start --debug --watch",
+    "db:init": "ts-node src/database-init.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
