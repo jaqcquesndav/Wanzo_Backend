@@ -16,17 +16,8 @@ export class RouteResolverService {
     throw new Error('Method not implemented.');
   }
   private readonly logger = new Logger(RouteResolverService.name);
-  private readonly routes: ServiceRoute[];
-  constructor(private configService: ConfigService) {
+  private readonly routes: ServiceRoute[];  constructor(private configService: ConfigService) {
     this.routes = [
-      {
-        service: 'auth',
-        baseUrl: this.configService.get('AUTH_SERVICE_URL', 'http://localhost:3000'),
-        prefix: 'auth',
-        healthCheck: '/health',
-        scopes: ['openid', 'profile'],
-        roles: ['*'],
-      },
       {
         service: 'admin',
         baseUrl: this.configService.get('ADMIN_SERVICE_URL', 'http://localhost:3001'),

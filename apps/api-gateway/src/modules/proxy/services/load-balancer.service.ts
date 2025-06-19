@@ -57,10 +57,8 @@ export class LoadBalancerService {
       instance.lastCheck = Date.now();
     }
   }
-
   private initializeInstances(): void {
     const services = [
-      'auth',
       'admin',
       'analytics',
       'accounting',

@@ -1,10 +1,23 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { 
-  UserEventTopics,
-  TokenTransactionEvent
+  TokenEventTopics,
+  TokenPurchaseEvent,
+  TokenUsageEvent
 } from './kafka-config'; // Corrected path
 import { EntityType } from './subscription-types'; // Corrected path
+
+// Interface locale pour les événements de transaction de tokens
+interface TokenTransactionEvent {
+  userId: string;
+  entityId: string;
+  entityType: EntityType;
+  amount: number;
+  operation: 'purchase' | 'use';
+  currentBalance: number;
+  timestamp: Date;
+  metadata?: Record<string, any>;
+}
 
 @Injectable()
 export class TokenService {
@@ -31,10 +44,8 @@ export class TokenService {
       currentBalance,
       timestamp: new Date(),
       metadata
-    };
-
-    this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_PURCHASE, event);
+    };    this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_PURCHASE, event);
   }
 
   async publishTokenUsage(
@@ -54,9 +65,7 @@ export class TokenService {
       currentBalance,
       timestamp: new Date(),
       metadata
-    };
-
-    this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_USAGE, event);
+    };    this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_USAGE, event);
   }
 }
