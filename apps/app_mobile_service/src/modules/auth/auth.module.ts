@@ -6,14 +6,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
 import { HttpModule } from '@nestjs/axios';
 import { CompanyModule } from '../company/company.module';
 import { SharedModule } from '../shared/shared.module';
 import { EventsModule } from '../events/events.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User, TokenBlacklist } from './entities';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User, TokenBlacklist]),
     SharedModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -31,8 +35,9 @@ import { EventsModule } from '../events/events.module';
       maxRedirects: 5,
     }),
     forwardRef(() => EventsModule),
-  ],  providers: [AuthService, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Added JwtBlacklistGuard
+  ],  
+  providers: [AuthService, JwtStrategy, LocalStrategy, JwtAuthGuard, JwtBlacklistGuard],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtBlacklistGuard], // Updated exports
+  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtAuthGuard, JwtBlacklistGuard],
 })
 export class AuthModule {}
