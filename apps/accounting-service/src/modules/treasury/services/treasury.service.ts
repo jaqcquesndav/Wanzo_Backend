@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindOptionsWhere, Like } from 'typeorm';
 import { TreasuryTransaction, TransactionType, TransactionStatus } from '../entities/treasury-transaction.entity';
 import { TreasuryAccount } from '../entities/treasury-account.entity';
-import { CreateTreasuryAccountDto, UpdateTreasuryAccountDto, CreateTransactionDto, UpdateTransactionStatusDto, TransactionFilterDto } from '../dtos/treasury.dto';
+import { CreateTreasuryAccountDto, UpdateTreasuryAccountDto, CreateTransactionDto, UpdateTransactionStatusDto, TransactionFilterDto, ReconcileAccountDto } from '../dtos/treasury.dto';
 import { JournalService } from '../../journals/services/journal.service';
 import { JournalType } from '../../journals/entities/journal.entity';
 
@@ -248,5 +248,95 @@ export class TreasuryService {
     }, userId);
 
     return journalEntry;
+  }
+  async getTreasuryBalance(type: string = 'all'): Promise<{
+    opening: number;
+    current: number;
+    projected: number;
+    currency: string;
+  }> {
+    // Build the query based on account type
+    const queryBuilder = this.accountRepository.createQueryBuilder('account');
+    
+    if (type !== 'all') {
+      queryBuilder.where('account.type = :type', { type });
+    }
+    
+    // Get all active accounts
+    queryBuilder.andWhere('account.active = :active', { active: true });
+    
+    const accounts = await queryBuilder.getMany();
+    
+    // Calculate totals
+    const current = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
+    
+    // For projected balance, include pending transactions
+    const pendingTransactions = await this.transactionRepository.find({
+      where: { status: TransactionStatus.PENDING },
+    });
+    
+    const pendingCredits = pendingTransactions
+      .filter(t => t.type === TransactionType.RECEIPT)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+    const pendingDebits = pendingTransactions
+      .filter(t => t.type === TransactionType.PAYMENT)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    
+    const projected = current + pendingCredits - pendingDebits;
+    
+    // For opening balance, we'd typically use data from the beginning of a period
+    // This is a simplified implementation
+    const opening = current - (pendingCredits - pendingDebits);
+    
+    // Determine primary currency (most common among accounts)
+    const currencyMap: Record<string, number> = {};
+    accounts.forEach(account => {
+      const currency = account.currency || 'CDF'; // Default to CDF if not specified
+      currencyMap[currency] = (currencyMap[currency] || 0) + 1;
+    });
+    
+    let primaryCurrency = 'CDF';
+    let maxCount = 0;
+    
+    for (const [currency, count] of Object.entries(currencyMap)) {
+      if (count > maxCount) {
+        maxCount = count;
+        primaryCurrency = currency;
+      }
+    }
+    
+    return {
+      opening,
+      current,
+      projected,
+      currency: primaryCurrency,
+    };
+  }
+
+  async reconcileAccount(
+    accountId: string,
+    reconcileDto: ReconcileAccountDto,
+    userId: string,
+  ): Promise<{ reconciliationId: string; status: string; message: string }> {
+    // Verify the account exists
+    const account = await this.findAccountById(accountId);
+    
+    // Generate a unique reconciliation ID
+    const reconciliationId = `recon_${Math.random().toString(36).substring(2, 10)}`;
+    
+    // Update the account's lastReconciliation date
+    account.lastReconciliation = reconcileDto.endDate;
+    await this.accountRepository.save(account);
+    
+    // In a real implementation, you'd initiate a more complex reconciliation process
+    // This could involve comparing bank statement data with internal records
+    // For this simplified version, we'll just return a success message
+    
+    return {
+      reconciliationId,
+      status: 'in_progress',
+      message: `Reconciliation started for account ${accountId}.`,
+    };
   }
 }

@@ -9,6 +9,13 @@ export enum ReportType {
   TRIAL_BALANCE = 'trial-balance',
   GENERAL_LEDGER = 'general-ledger',
   JOURNAL_BOOK = 'journal-book',
+  // Types supplémentaires selon la documentation API
+  EQUITY_CHANGES = 'equity-changes',
+  NOTES = 'notes',
+  RECONCILIATION = 'reconciliation',
+  ANALYTICAL = 'analytical',
+  SOCIAL = 'social',
+  STATISTICS = 'statistics',
 }
 
 export enum ReportFormat {

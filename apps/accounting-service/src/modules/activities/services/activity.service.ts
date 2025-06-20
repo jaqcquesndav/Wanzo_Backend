@@ -19,20 +19,24 @@ export class ActivityService {
   async findAll(
     filters: ActivityFilterDto,
     page = 1,
-    perPage = 10,
+    pageSize = 20,
   ) {
     const where: FindOptionsWhere<Activity> = {};
+
+    if (filters.entityType) {
+      where.entityType = filters.entityType;
+    }
+
+    if (filters.entityId) {
+      where.entityId = filters.entityId;
+    }
 
     if (filters.userId) {
       where.userId = filters.userId;
     }
 
-    if (filters.companyId) {
-      where.companyId = filters.companyId;
-    }
-
-    if (filters.action) {
-      where.action = filters.action;
+    if (filters.actionType) {
+      where.actionType = filters.actionType;
     }
 
     if (filters.startDate && filters.endDate) {
@@ -42,59 +46,57 @@ export class ActivityService {
     const [activities, total] = await this.activityRepository.findAndCount({
       where,
       order: { timestamp: 'DESC' },
-      skip: (page - 1) * perPage,
-      take: perPage,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
 
+    // Format for response
+    const formattedActivities = activities.map(activity => ({
+      id: activity.id,
+      timestamp: activity.timestamp.toISOString(),
+      actionType: activity.actionType,
+      entityType: activity.entityType,
+      entityId: activity.entityId,
+      description: activity.description,
+      user: {
+        id: activity.userId,
+        // Note: In a real implementation, you would fetch user details
+        // from a user service or repository
+        name: 'User Name',
+        email: 'user@example.com',
+        role: 'user'
+      },
+      details: activity.details,
+      ipAddress: activity.ipAddress,
+      userAgent: activity.userAgent
+    }));
+
     return {
-      activities,
-      page,
-      perPage,
+      data: formattedActivities,
       total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 
-  async findUserActivities(userId: string, page = 1, perPage = 10) {
-    return this.findAll({ userId }, page, perPage);
-  }
-
-  async findCompanyActivities(companyId: string, page = 1, perPage = 10) {
-    return this.findAll({ companyId }, page, perPage);
-  }
-
-  async logUserActivity(
+  async logActivity(
     userId: string,
-    action: string,
+    actionType: string,
+    entityType: string,
+    entityId: string,
     description: string,
-    metadata?: Record<string, any>,
+    details?: Record<string, any>,
     ipAddress?: string,
     userAgent?: string,
   ) {
     return await this.create({
       userId,
-      action,
+      actionType,
+      entityType,
+      entityId,
       description,
-      metadata,
-      ipAddress,
-      userAgent,
-    });
-  }
-
-  async logCompanyActivity(
-    companyId: string,
-    userId: string,
-    action: string,
-    description: string,
-    metadata?: Record<string, any>,
-    ipAddress?: string,
-    userAgent?: string,
-  ) {
-    return await this.create({
-      companyId,
-      userId,
-      action,
-      description,
-      metadata,
+      details,
       ipAddress,
       userAgent,
     });

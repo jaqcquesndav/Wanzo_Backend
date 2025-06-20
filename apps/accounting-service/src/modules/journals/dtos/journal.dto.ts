@@ -104,6 +104,11 @@ export class JournalFilterDto {
   @IsEnum(JournalType)
   type?: JournalType;
 
+  @ApiPropertyOptional({ description: 'Filter by journal type (alias for type)', enum: JournalType })
+  @IsOptional()
+  @IsEnum(JournalType)
+  journalType?: JournalType;
+
   @ApiPropertyOptional({ description: 'Filter by journal status', enum: JournalStatus })
   @IsOptional()
   @IsEnum(JournalStatus)
@@ -130,4 +135,9 @@ export class JournalFilterDto {
   @IsOptional()
   @IsUUID()
   companyId?: string;
+  
+  @ApiPropertyOptional({ description: 'Filter by source (manual, agent)', enum: ['manual', 'agent'] })
+  @IsOptional()
+  @IsString()
+  source?: string;
 }

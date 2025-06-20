@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { AccountService } from '../services/account.service';
 import { CreateAccountDto, UpdateAccountDto, AccountFilterDto } from '../dtos/account.dto';
@@ -23,29 +23,27 @@ export class AccountController {
     const account = await this.accountService.create(createAccountDto, req.user.id);
     return {
       success: true,
-      account,
+      data: account,
     };
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all accounts' })
   @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'per_page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiQuery({ name: 'type', required: false, enum: ['asset', 'liability', 'equity', 'revenue', 'expense'] })
-  @ApiQuery({ name: 'parent_id', required: false })
-  @ApiQuery({ name: 'is_analytic', required: false, type: Boolean })
+  @ApiQuery({ name: 'isAnalytic', required: false, type: Boolean })
   @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'active', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'Accounts retrieved successfully' })
   async findAll(
     @Query('page') page = 1,
-    @Query('per_page') perPage = 20,
+    @Query('pageSize') pageSize = 20,
     @Query() filters: AccountFilterDto,
   ) {
-    const result = await this.accountService.findAll(filters, +page, +perPage);
+    const result = await this.accountService.findAll(filters, +page, +pageSize);
     return {
       success: true,
-      ...result,
+      data: result,
     };
   }
 
@@ -58,7 +56,7 @@ export class AccountController {
     const account = await this.accountService.findById(id);
     return {
       success: true,
-      account,
+      data: account,
     };
   }
 
@@ -71,7 +69,7 @@ export class AccountController {
     const account = await this.accountService.findByCode(code);
     return {
       success: true,
-      account,
+      data: account,
     };
   }
 
@@ -88,7 +86,7 @@ export class AccountController {
     const account = await this.accountService.update(id, updateAccountDto);
     return {
       success: true,
-      account,
+      data: account,
     };
   }
 
@@ -96,11 +94,12 @@ export class AccountController {
   @Roles('admin')
   @ApiOperation({ summary: 'Delete account' })
   @ApiParam({ name: 'id', description: 'Account ID' })
-  @ApiResponse({ status: 200, description: 'Account deleted successfully' })
+  @ApiResponse({ status: 204, description: 'Account deleted successfully' })
   @ApiResponse({ status: 404, description: 'Account not found' })
   @ApiResponse({ status: 409, description: 'Cannot delete account with child accounts' })
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
-    return await this.accountService.delete(id);
+    await this.accountService.delete(id);
   }
 
   @Get('hierarchy/:rootId?')
@@ -111,7 +110,7 @@ export class AccountController {
     const hierarchy = await this.accountService.getAccountHierarchy(rootId);
     return {
       success: true,
-      hierarchy,
+      data: hierarchy,
     };
   }
 }

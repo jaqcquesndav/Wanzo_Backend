@@ -1,9 +1,17 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export enum AccountType {
-  BANK = 'BANK',
-  CASH = 'CASH',
-  OTHER = 'OTHER',
+  BANK = 'bank',
+  MICROFINANCE = 'microfinance',
+  COOPERATIVE = 'cooperative',
+  VSLA = 'vsla',
+  CASH = 'cash',
+}
+
+export enum AccountStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  CLOSED = 'closed',
 }
 
 @Entity('treasury_accounts')
@@ -23,11 +31,30 @@ export class TreasuryAccount {
   })
   type!: AccountType;
 
+  @Column({ nullable: true })
+  provider?: string;
+
+  @Column({ nullable: true })
+  bankName?: string;
+
   @Column()
   accountNumber!: string;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   balance!: number;
+
+  @Column({ nullable: true })
+  currency?: string;
+
+  @Column({ 
+    type: 'enum', 
+    enum: AccountStatus, 
+    default: AccountStatus.ACTIVE
+  })
+  status!: AccountStatus;
+
+  @Column({ type: 'date', nullable: true })
+  lastReconciliation?: Date;
 
   @Column({ default: true })
   active!: boolean;

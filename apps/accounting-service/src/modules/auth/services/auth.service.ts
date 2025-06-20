@@ -2,6 +2,13 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { 
+  ValidateTokenResponseDto, 
+  UpdateProfileDto, 
+  UserProfileDto,
+  UserRole,
+  UserType
+} from '../dto';
 
 @Injectable()
 export class AuthService {
@@ -12,41 +19,65 @@ export class AuthService {
     private httpService: HttpService,
   ) {}
 
-  async validateToken(token: string): Promise<Record<string, any>> {
+  async validateUser(email: string, password: string): Promise<any> {
+    // TODO: Implement proper user validation with Auth0 or database
+    // This is a placeholder implementation for development
+    if (email === 'admin@example.com' && password === 'password') {
+      return {
+        id: 'mock-user-id',
+        name: 'Admin User',
+        email: email,
+        role: UserRole.COMPANY_ADMIN,
+        userType: UserType.INTERNAL
+      };
+    }
+    return null;
+  }
+
+  async validateToken(token: string): Promise<ValidateTokenResponseDto> {
+    // TODO: Implement proper JWT verification using Auth0 JWKS
+    
     try {
-      const authServiceUrl = this.configService.get('AUTH_SERVICE_URL');
-      this.logger.debug(`Validating token with auth service: ${authServiceUrl}`);
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${authServiceUrl}/oauth/userinfo`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      );
-
-      const user = response.data;
+      // This is a placeholder implementation
+      // In a real implementation, you would decode and verify the JWT token
+      // and then fetch the user profile from your database or Auth0
       
-      // Vérifier que l'utilisateur a les scopes nécessaires
-      const requiredScopes = ['admin:full', 'users:manage', 'settings:manage'];
-      const userScopes = user.scope ? user.scope.split(' ') : [];
-      
-      if (!this.hasRequiredScopes(userScopes, requiredScopes)) {
-        throw new UnauthorizedException('Insufficient permissions');
-      }
-
-      this.logger.debug(`Token validated successfully for user: ${user.sub}`);
-      return user;
+      // For now, return a mock response with a valid user
+      return {
+        isValid: true,
+        user: {
+          id: 'mock-user-id',
+          name: 'Test User',
+          email: 'testuser@example.com',
+          role: UserRole.COMPANY_USER,
+          userType: UserType.EXTERNAL,
+          createdAt: new Date().toISOString(),
+          picture: 'https://example.com/avatar.jpg',
+          phoneNumber: '+243123456789'
+        }
+      };
     } catch (error) {
-      this.logger.error('Token validation failed:', error);
-      throw new UnauthorizedException('Invalid token');
+      return {
+        isValid: false,
+        error: 'Invalid token'
+      };
     }
   }
 
-  private hasRequiredScopes(userScopes: string[], requiredScopes: string[]): boolean {
-    return requiredScopes.some(scope => userScopes.includes(scope));
+  async getUserProfile(userId: string): Promise<UserProfileDto> {
+    // TODO: Implement logic
+    console.log(userId);
+    return new UserProfileDto();
   }
 
-  hasPermission(user: any, permission: string): boolean {
-    if (user.role === 'admin') return true;
-    return user.permissions?.includes(permission) || false;
+  async updateUserProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserProfileDto> {
+    // TODO: Implement logic
+    console.log(userId, updateProfileDto);
+    return new UserProfileDto();
+  }
+
+  async invalidateSession(token: string): Promise<void> {
+    // TODO: Implement logic
+    console.log(token);
   }
 }

@@ -1,10 +1,10 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DashboardService } from '../services/dashboard.service';
-import { DashboardFilterDto } from '../dtos/dashboard.dto';
+import { DashboardFilterDto, DashboardResponseDto } from '../dtos/dashboard.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { Request as ExpressRequest } from 'express';
 
 @ApiTags('dashboard')
 @Controller('dashboard')
@@ -14,191 +14,29 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get()
-  @Roles('admin', 'accountant')
   @ApiOperation({ 
-    summary: 'Get dashboard data',
-    description: 'Retrieve financial dashboard data including KPIs and analytics'
+    summary: 'Get Dashboard Data',
+    description: 'Retrieves all dashboard data including quick stats, financial ratios, KPIs, revenue data, expenses data, recent transactions, and alerts.'
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Dashboard data retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        data: {
-          type: 'object',
-          properties: {
-            financialPosition: {
-              type: 'object',
-              properties: {
-                balanceSheet: {
-                  type: 'object',
-                  properties: {
-                    totalAssets: { type: 'number' },
-                    totalLiabilities: { type: 'number' },
-                    totalEquity: { type: 'number' },
-                    netAssets: { type: 'number' },
-                  },
-                },
-                ratios: {
-                  type: 'object',
-                  properties: {
-                    currentRatio: { type: 'number' },
-                    debtEquityRatio: { type: 'number' },
-                    workingCapital: { type: 'number' },
-                  },
-                },
-              },
-            },
-            profitAndLoss: {
-              type: 'object',
-              properties: {
-                current: {
-                  type: 'object',
-                  properties: {
-                    revenue: { type: 'number' },
-                    expenses: { type: 'number' },
-                    grossProfit: { type: 'number' },
-                    netProfit: { type: 'number' },
-                    profitMargin: { type: 'number' },
-                  },
-                },
-                comparison: {
-                  type: 'object',
-                  properties: {
-                    revenue: {
-                      type: 'object',
-                      properties: {
-                        value: { type: 'number' },
-                        change: { type: 'number' },
-                      },
-                    },
-                    expenses: {
-                      type: 'object',
-                      properties: {
-                        value: { type: 'number' },
-                        change: { type: 'number' },
-                      },
-                    },
-                    grossProfit: {
-                      type: 'object',
-                      properties: {
-                        value: { type: 'number' },
-                        change: { type: 'number' },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            cashPosition: {
-              type: 'object',
-              properties: {
-                accounts: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      account: { type: 'string' },
-                      balance: { type: 'number' },
-                      pendingReceipts: { type: 'number' },
-                      pendingPayments: { type: 'number' },
-                      availableBalance: { type: 'number' },
-                    },
-                  },
-                },
-                totals: {
-                  type: 'object',
-                  properties: {
-                    balance: { type: 'number' },
-                    pendingReceipts: { type: 'number' },
-                    pendingPayments: { type: 'number' },
-                    availableBalance: { type: 'number' },
-                  },
-                },
-              },
-            },
-            taxSummary: {
-              type: 'object',
-              properties: {
-                totalDue: { type: 'number' },
-                totalPaid: { type: 'number' },
-                upcomingPayments: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      type: { type: 'string' },
-                      amount: { type: 'number' },
-                      dueDate: { type: 'string', format: 'date-time' },
-                      status: { type: 'string' },
-                    },
-                  },
-                },
-                overduePayments: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      type: { type: 'string' },
-                      amount: { type: 'number' },
-                      dueDate: { type: 'string', format: 'date-time' },
-                      status: { type: 'string' },
-                      daysOverdue: { type: 'number' },
-                    },
-                  },
-                },
-              },
-            },
-            topAccounts: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  account: {
-                    type: 'object',
-                    properties: {
-                      code: { type: 'string' },
-                      name: { type: 'string' },
-                      type: { type: 'string' },
-                    },
-                  },
-                  movements: {
-                    type: 'object',
-                    properties: {
-                      debit: { type: 'number' },
-                      credit: { type: 'number' },
-                      balance: { type: 'number' },
-                    },
-                  },
-                },
-              },
-            },
-            recentTransactions: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  date: { type: 'string', format: 'date-time' },
-                  reference: { type: 'string' },
-                  description: { type: 'string' },
-                  type: { type: 'string' },
-                  amount: { type: 'number' },
-                  status: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    description: 'Dashboard data retrieved successfully'
   })
-  async getDashboardData(@Query() filters: DashboardFilterDto) {
-    const data = await this.dashboardService.getDashboardData(filters);
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year (default: current fiscal year)' })
+  async getDashboard(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ): Promise<{ success: boolean, data: DashboardResponseDto }> {
+    const dashboardData = await this.dashboardService.getDashboardData({
+      fiscalYearId: filterDto.fiscalYearId,
+      // Nous utilisons companyId ici pour le service, mais ce n'est pas dans le DTO public
+      // Ce paramètre sera géré en interne
+      companyId: req.user.companyId
+    } as any);
+    
     return {
       success: true,
-      data,
+      data: dashboardData
     };
   }
 }

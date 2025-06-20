@@ -2,9 +2,11 @@ import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ReportService } from '../services/report.service';
 import { GenerateReportDto, ExportReportDto } from '../dtos/report.dto';
+import { ApiGenerateReportDto, ApiExportReportDto } from '../dtos/api-report.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { ReportAdapter } from '../adapters/report.adapter';
 
 @ApiTags('reports')
 @Controller('reports')
@@ -21,12 +23,15 @@ export class ReportController {
   })
   @ApiResponse({ status: 201, description: 'Report generated successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  async generateReport(@Body() generateReportDto: GenerateReportDto) {
-    const report = await this.reportService.generateReport(generateReportDto);
-    return {
-      success: true,
-      report,
-    };
+  async generateReport(@Body() apiGenerateReportDto: ApiGenerateReportDto) {
+    // Convertir le DTO API en DTO interne
+    const internalDto = ReportAdapter.apiGenerateDtoToInternalDto(apiGenerateReportDto);
+    
+    // Générer le rapport avec le service existant
+    const report = await this.reportService.generateReport(internalDto);
+    
+    // Adapter la réponse au format attendu par l'API
+    return ReportAdapter.adaptResponseToApiFormat(report, internalDto.reportType);
   }
 
   @Post('export')
@@ -37,11 +42,14 @@ export class ReportController {
   })
   @ApiResponse({ status: 201, description: 'Report exported successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  async exportReport(@Body() exportReportDto: ExportReportDto) {
-    const downloadUrl = await this.reportService.exportReport(exportReportDto);
-    return {
-      success: true,
-      downloadUrl,
-    };
+  async exportReport(@Body() apiExportReportDto: ApiExportReportDto) {
+    // Convertir le DTO API en DTO interne
+    const internalDto = ReportAdapter.apiExportDtoToInternalDto(apiExportReportDto);
+    
+    // Exporter le rapport avec le service existant
+    const downloadUrl = await this.reportService.exportReport(internalDto);
+    
+    // Créer une réponse au format API
+    return ReportAdapter.createApiExportResponse(downloadUrl);
   }
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Organization } from '../entities/organization.entity';
 import { UpdateOrganizationDto } from '../dtos/update-organization.dto';
+import { OrganizationProfileDto } from '../dtos/organization-profile.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -10,6 +11,27 @@ export class OrganizationService {
     @InjectRepository(Organization)
     private organizationRepository: Repository<Organization>,
   ) {}
+
+  async getOrganizationProfile(id: string): Promise<OrganizationProfileDto> {
+    const organization = await this.findById(id);
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${id} not found`);
+    }
+
+    const { name, address, vatNumber, registrationNumber, industry, website, createdAt, updatedAt } = organization;
+
+    return {
+      id,
+      name,
+      address,
+      vatNumber,
+      registrationNumber,
+      industry,
+      website,
+      createdAt,
+      updatedAt,
+    };
+  }
 
   async findById(id: string): Promise<Organization | null> {
     return await this.organizationRepository.findOneBy({ id });
@@ -19,7 +41,7 @@ export class OrganizationService {
     return this.findById(companyId);
   }
 
-  async update(id: string, updateDto: Partial<Organization>): Promise<Organization> {
+  async update(id: string, updateDto: UpdateOrganizationDto): Promise<Organization> {
     const organization = await this.findById(id);
     if (!organization) {
       throw new NotFoundException(`Organization with ID ${id} not found`);

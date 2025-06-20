@@ -4,16 +4,19 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from './services/auth.service';
+import { UserService } from './services/user.service';
 import { AuthMiddleware } from './middleware/auth.middleware';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TokenBlacklist } from './entities';
+import { User, TokenBlacklist } from './entities';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
+import { UserController } from './controllers/user.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TokenBlacklist]),
+    TypeOrmModule.forFeature([User, TokenBlacklist]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     HttpModule.register({
       timeout: 5000,
@@ -29,8 +32,8 @@ import { AuthController } from './auth.controller';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [JwtStrategy, AuthService, JwtAuthGuard],
-  exports: [AuthService, JwtAuthGuard, JwtModule],
+  controllers: [AuthController, UserController],
+  providers: [JwtStrategy, AuthService, UserService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, UserService, JwtAuthGuard, RolesGuard, JwtModule],
 })
 export class AuthModule {}

@@ -1,12 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Like } from 'typeorm'; // Added FindOptionsWhere and Like
-import { TaxDeclaration, DeclarationType, DeclarationStatus } from '../entities/tax-declaration.entity';
-import { CreateTaxDeclarationDto, UpdateTaxDeclarationDto, UpdateTaxDeclarationStatusDto, TaxFilterDto } from '../dtos/tax.dto'; // Changed TaxDeclarationFilterDto to TaxFilterDto
+import { Repository, FindOptionsWhere, Like } from 'typeorm';
+import { TaxDeclaration, DeclarationType, DeclarationStatus, DeclarationPeriodicity } from '../entities/tax-declaration.entity';
+import { CreateTaxDeclarationDto, UpdateTaxDeclarationDto, UpdateTaxDeclarationStatusDto, TaxFilterDto } from '../dtos/tax.dto';
 import { JournalService } from '../../journals/services/journal.service';
 import { JournalType } from '../../journals/entities/journal.entity';
-import { CreateJournalDto } from '../../journals/dtos/journal.dto'; // Added CreateJournalDto
-import { DeclarationPeriodicity } from '../entities/tax-declaration.entity'; // Added import
+import { CreateJournalDto } from '../../journals/dtos/journal.dto';
 
 @Injectable()
 export class TaxService {
@@ -16,27 +15,39 @@ export class TaxService {
     private journalService: JournalService,
   ) {}
 
-  async create(createTaxDeclarationDto: CreateTaxDeclarationDto, userId: string): Promise<TaxDeclaration> { // Removed companyId from parameters
+  async create(createTaxDeclarationDto: CreateTaxDeclarationDto, userId: string): Promise<TaxDeclaration> {
     const kiotaId = `KIOTA-TAX-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
     
-    const amount = (createTaxDeclarationDto.taxableBase * createTaxDeclarationDto.taxRate) / 100;
+    // Calculate amount from taxableBase and taxRate if provided
+    const amount = createTaxDeclarationDto.taxableBase && createTaxDeclarationDto.taxRate 
+      ? (createTaxDeclarationDto.taxableBase * createTaxDeclarationDto.taxRate) / 100
+      : createTaxDeclarationDto.amount || 0;    // Set default dueDate based on type and period if not provided
+    let dueDate = createTaxDeclarationDto.dueDate;
+    if (!dueDate && createTaxDeclarationDto.period) {
+      dueDate = this.calculateDueDate(
+        createTaxDeclarationDto.type, 
+        createTaxDeclarationDto.period, 
+        createTaxDeclarationDto.periodicity || DeclarationPeriodicity.MONTHLY
+      );
+    }
 
     const declaration = this.taxDeclarationRepository.create({
       ...createTaxDeclarationDto,
-      kiotaId, // Added kiotaId
-      amount, // Calculated amount
+      kiotaId,
+      amount,
+      dueDate,
       createdBy: userId,
-      // companyId is now part of createTaxDeclarationDto
       status: DeclarationStatus.DRAFT,
     });
+    
     return await this.taxDeclarationRepository.save(declaration);
   }
 
   async findAll(
-    filters: TaxFilterDto, // Changed TaxDeclarationFilterDto to TaxFilterDto
-  ): Promise<{ declarations: TaxDeclaration[], total: number, page?: number, perPage?: number }> { // Added pagination and total count
+    filters: TaxFilterDto,
+  ): Promise<{ declarations: TaxDeclaration[], total: number }> {
     const page = filters.page || 1;
-    const perPage = filters.perPage || 20;
+    const perPage = filters.pageSize || 20;
     const skip = (page - 1) * perPage;
 
     const where: FindOptionsWhere<TaxDeclaration> = {};
@@ -53,21 +64,21 @@ export class TaxService {
     if (filters.fiscalYearId) {
       where.fiscalYearId = filters.fiscalYearId;
     }
+    if (filters.period) {
+      where.period = filters.period;
+    }
     if (filters.search) {
-      // Assuming search applies to reference or description if they exist on TaxDeclaration
-      // For now, let's assume it applies to 'reference' if it's added to the entity
-      // where.reference = Like(`%${filters.search}%`); 
-      // Or if description is added:
-      // where.description = Like(`%${filters.search}%`);
+      where.reference = Like(`%${filters.search}%`);
     }
 
     const [declarations, total] = await this.taxDeclarationRepository.findAndCount({ 
       where,
       skip,
       take: perPage,
-      order: { createdAt: 'DESC' } // Example ordering
+      order: { createdAt: 'DESC' }
     });
-    return { declarations, total, page, perPage };
+    
+    return { declarations, total };
   }
 
   async findById(id: string): Promise<TaxDeclaration> {
@@ -76,7 +87,7 @@ export class TaxService {
     });
 
     if (!declaration) {
-      throw new NotFoundException(`Tax declaration with ID ${id} not found`);
+      throw new NotFoundException(`Declaration not found`);
     }
 
     return declaration;
@@ -89,20 +100,27 @@ export class TaxService {
   ): Promise<TaxDeclaration> {
     const declaration = await this.findById(id);
 
-    // Basic state machine for status transitions (can be expanded)
+    // Verify valid status transitions
+    this.validateStatusTransition(declaration.status, updateStatusDto.status);
+
+    // Update the status
     declaration.status = updateStatusDto.status;
 
     if (updateStatusDto.status === DeclarationStatus.SUBMITTED) {
       declaration.submittedAt = new Date();
       declaration.submittedBy = userId;
+      
+      // Generate a reference if not already present
+      if (!declaration.reference) {
+        declaration.reference = this.generateReference(declaration);
+      }
     } else if (updateStatusDto.status === DeclarationStatus.PAID) {
       declaration.paidAt = updateStatusDto.paidAt || new Date(); 
       declaration.paidBy = updateStatusDto.paidBy || userId;
       declaration.paymentReference = updateStatusDto.paymentReference;
       
-      // Potentially create a journal entry for payment
-      // Example: only for TVA, and if amount is present
-      if (declaration.type === DeclarationType.TVA && declaration.amount) { 
+      // Create a journal entry for payment
+      if (declaration.amount > 0) { 
         await this.createTaxPaymentJournalEntry(declaration, userId);
       }
     } else if (updateStatusDto.status === DeclarationStatus.REJECTED) {
@@ -115,26 +133,103 @@ export class TaxService {
   async update(id: string, updateTaxDeclarationDto: UpdateTaxDeclarationDto, userId: string): Promise<TaxDeclaration> {
     const declaration = await this.findById(id);
 
-    // Recalculate amount if taxableBase or taxRate changes
-    if (updateTaxDeclarationDto.taxableBase !== undefined && updateTaxDeclarationDto.taxRate !== undefined) {
-      updateTaxDeclarationDto.amount = (updateTaxDeclarationDto.taxableBase * updateTaxDeclarationDto.taxRate) / 100;
-    } else if (updateTaxDeclarationDto.taxableBase !== undefined && declaration.taxRate !== undefined) {
-      updateTaxDeclarationDto.amount = (updateTaxDeclarationDto.taxableBase * declaration.taxRate) / 100;
-    } else if (updateTaxDeclarationDto.taxRate !== undefined && declaration.taxableBase !== undefined) { // taxableBase should exist on entity
-      // Assuming taxableBase exists on declaration entity, if not, this needs adjustment
-      // updateTaxDeclarationDto.amount = (declaration.taxableBase * updateTaxDeclarationDto.taxRate) / 100; 
+    // Check if the declaration is already submitted - cannot modify submitted declarations
+    if (declaration.status === DeclarationStatus.SUBMITTED || declaration.status === DeclarationStatus.PAID) {
+      throw new ConflictException('Cannot modify a submitted or paid declaration');
     }
 
+    // Recalculate amount if taxableBase or taxRate changes
+    if (
+      (updateTaxDeclarationDto.taxableBase !== undefined || updateTaxDeclarationDto.taxRate !== undefined) &&
+      updateTaxDeclarationDto.amount === undefined
+    ) {
+      const taxableBase = updateTaxDeclarationDto.taxableBase !== undefined ? 
+        updateTaxDeclarationDto.taxableBase : declaration.taxableBase || 0;
+      
+      const taxRate = updateTaxDeclarationDto.taxRate !== undefined ? 
+        updateTaxDeclarationDto.taxRate : declaration.taxRate || 0;
+      
+      updateTaxDeclarationDto.amount = (taxableBase * taxRate) / 100;
+    }
+
+    // Update dueDate if type, period or periodicity changes
+    if (
+      (updateTaxDeclarationDto.type !== undefined || 
+       updateTaxDeclarationDto.period !== undefined || 
+       updateTaxDeclarationDto.periodicity !== undefined) &&
+      updateTaxDeclarationDto.dueDate === undefined
+    ) {
+      const type = updateTaxDeclarationDto.type || declaration.type;
+      const period = updateTaxDeclarationDto.period || declaration.period;
+      const periodicity = updateTaxDeclarationDto.periodicity || declaration.periodicity;
+      
+      updateTaxDeclarationDto.dueDate = this.calculateDueDate(type, period, periodicity);
+    }
 
     Object.assign(declaration, updateTaxDeclarationDto);
-    declaration.updatedAt = new Date(); // Manually update updatedAt if not auto-updated by TypeORM save
 
     return await this.taxDeclarationRepository.save(declaration);
   }
+  private validateStatusTransition(currentStatus: DeclarationStatus, newStatus: DeclarationStatus): void {
+    // Define valid transitions
+    const validTransitions: Record<string, DeclarationStatus[]> = {
+      [DeclarationStatus.DRAFT]: [DeclarationStatus.PENDING, DeclarationStatus.SUBMITTED, DeclarationStatus.CANCELLED],
+      [DeclarationStatus.PENDING]: [DeclarationStatus.SUBMITTED, DeclarationStatus.REJECTED, DeclarationStatus.CANCELLED],
+      [DeclarationStatus.SUBMITTED]: [DeclarationStatus.PAID, DeclarationStatus.REJECTED],
+      [DeclarationStatus.PAID]: [],
+      [DeclarationStatus.REJECTED]: [DeclarationStatus.DRAFT],
+      [DeclarationStatus.CANCELLED]: [DeclarationStatus.DRAFT],
+    };
 
+    if (!validTransitions[currentStatus]?.includes(newStatus)) {
+      throw new ConflictException(`Cannot transition from ${currentStatus} to ${newStatus}`);
+    }
+  }
+
+  private generateReference(declaration: TaxDeclaration): string {
+    return `${declaration.type}-${declaration.period}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+  }
+
+  private calculateDueDate(type: DeclarationType, period: string, periodicity: DeclarationPeriodicity): Date {
+    const [year, month] = period.split('-').map(Number);
+    let dueDate = new Date(year, month - 1); // JS months are 0-indexed
+    
+    // Set default due dates based on tax type
+    switch (type) {
+      case DeclarationType.TVA:
+      case DeclarationType.IPR:
+      case DeclarationType.TPI:
+        // Due on the 15th of the following month
+        dueDate.setMonth(dueDate.getMonth() + 1);
+        dueDate.setDate(15);
+        break;
+      case DeclarationType.CNSS:
+        // Due on the 10th of the following month
+        dueDate.setMonth(dueDate.getMonth() + 1);
+        dueDate.setDate(10);
+        break;
+      case DeclarationType.TE:
+        if (periodicity === DeclarationPeriodicity.QUARTERLY) {
+          // Due on the 15th of the first month of the following quarter
+          dueDate.setMonth(Math.floor(month / 3) * 3 + 3);
+          dueDate.setDate(15);
+        }
+        break;
+      case DeclarationType.IB:
+        if (periodicity === DeclarationPeriodicity.ANNUAL) {
+          // Due on March 31st of the following year
+          dueDate.setFullYear(year + 1);
+          dueDate.setMonth(2); // March (0-indexed)
+          dueDate.setDate(31);
+        }
+        break;
+    }
+    
+    return dueDate;
+  }
 
   private async createTaxPaymentJournalEntry(declaration: TaxDeclaration, userId: string): Promise<void> {
-    // This is a simplified example. You'll need to adjust account IDs and logic.
+    // Create a journal entry for the tax payment
     const journalDto: CreateJournalDto = {
       companyId: declaration.companyId!,
       fiscalYear: declaration.fiscalYearId, 
@@ -144,7 +239,7 @@ export class TaxService {
       description: `Payment for ${declaration.type} declaration for period ${declaration.period}`,
       lines: [
         {
-          accountId: '445000', // État, TVA à payer (Example SYSCOHADA)
+          accountId: this.getTaxAccountId(declaration.type), 
           debit: declaration.amount,
           credit: 0,
           description: `${declaration.type} Paid`,
@@ -157,19 +252,35 @@ export class TaxService {
         },
       ],
     };
+    
     const journalEntry = await this.journalService.create(journalDto, userId);
     declaration.journalEntryId = journalEntry.id; 
     await this.taxDeclarationRepository.save(declaration);
   }
 
-  async getTaxSummary(fiscalYearId: string, companyId: string): Promise<{ // Added companyId, changed fiscalYear to fiscalYearId
+  private getTaxAccountId(taxType: DeclarationType): string {
+    // Get the appropriate account ID based on tax type
+    // These are example SYSCOHADA account codes
+    const accountMap = {
+      [DeclarationType.TVA]: '445600', // TVA déductible
+      [DeclarationType.IPR]: '442100', // État, impôts sur les salaires
+      [DeclarationType.IB]: '444000',  // État, impôts sur les bénéfices
+      [DeclarationType.CNSS]: '431000', // CNSS
+      [DeclarationType.TPI]: '447100',  // Autres impôts et taxes
+      [DeclarationType.TE]: '447200',   // Taxes environnementales
+    };
+    
+    return accountMap[taxType] || '447000'; // Default to other taxes
+  }
+
+  async getTaxSummary(fiscalYearId: string, companyId: string): Promise<{
     totalDue: number;
     totalPaid: number;
     upcomingPayments: TaxDeclaration[];
     overduePayments: TaxDeclaration[];
   }> {
     const declarations = await this.taxDeclarationRepository.find({
-      where: { fiscalYearId, companyId }, // Use fiscalYearId and companyId
+      where: { fiscalYearId, companyId },
     });
 
     const totalDue = declarations
@@ -203,10 +314,13 @@ export class TaxService {
     };
   }
 }
-declare module '../dtos/tax.dto' { // Module augmentation for TaxFilterDto
+
+// Type augmentation for TaxFilterDto
+declare module '../dtos/tax.dto' {
   interface TaxFilterDto {
     page?: number;
-    perPage?: number;
-    periodicity?: DeclarationPeriodicity; // Added from previous version of findAll
+    pageSize?: number;
+    period?: string;
+    companyId?: string;
   }
 }

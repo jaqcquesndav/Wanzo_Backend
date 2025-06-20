@@ -5,12 +5,15 @@ export class TokenBlacklist {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'text', unique: true })
+  @Column({ unique: true })
   token!: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'user_id' })
+  userId!: string;
+
+  @Column({ name: 'expires_at' })
   expiresAt!: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

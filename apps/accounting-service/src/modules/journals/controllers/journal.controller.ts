@@ -1,13 +1,14 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Req, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JournalService } from '../services/journal.service';
 import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto } from '../dtos/journal.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { JournalType, JournalStatus } from '../entities/journal.entity';
 
-@ApiTags('journals')
-@Controller('journals')
+@ApiTags('journal-entries')
+@Controller('journal-entries')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class JournalController {
@@ -22,31 +23,52 @@ export class JournalController {
     const journal = await this.journalService.create(createJournalDto, req.user.id);
     return {
       success: true,
-      journal,
+      data: journal,
     };
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all journal entries' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'per_page', required: false, type: Number })
-  @ApiQuery({ name: 'fiscal_year', required: false })
-  @ApiQuery({ name: 'type', required: false, enum: ['SALES', 'PURCHASES', 'BANK', 'CASH', 'GENERAL'] })
-  @ApiQuery({ name: 'status', required: false, enum: ['draft', 'pending', 'posted', 'rejected', 'cancelled'] })
-  @ApiQuery({ name: 'start_date', required: false })
-  @ApiQuery({ name: 'end_date', required: false })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'account_id', required: false })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Number of entries per page (default: 20)' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search term for description, reference, etc.' })
+  @ApiQuery({ name: 'journalType', required: false, enum: JournalType, description: 'Filter by journal type' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date for filtering (format: YYYY-MM-DD)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date for filtering (format: YYYY-MM-DD)' })
+  @ApiQuery({ name: 'status', required: false, enum: JournalStatus, description: 'Filter by status' })
+  @ApiQuery({ name: 'source', required: false, enum: ['manual', 'agent'], description: 'Filter by source' })
   @ApiResponse({ status: 200, description: 'Journal entries retrieved successfully' })
   async findAll(
     @Query('page') page = 1,
-    @Query('per_page') perPage = 20,
+    @Query('pageSize') pageSize = 20,
     @Query() filters: JournalFilterDto,
+    @Req() req: any
   ) {
-    const result = await this.journalService.findAll(filters, +page, +perPage);
+    const result = await this.journalService.findAll(
+      {
+        ...filters,
+        type: filters.journalType || filters.type,
+        fiscalYear: filters.fiscalYear,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        status: filters.status,
+        source: filters.source,
+        search: filters.search,
+        companyId: req.user.companyId
+      }, 
+      +page, 
+      +pageSize
+    );
+    
     return {
       success: true,
-      ...result,
+      data: {
+        data: result.journals,
+        total: result.total,
+        page: result.page,
+        pageSize: result.perPage,
+        totalPages: Math.ceil(result.total / result.perPage)
+      }
     };
   }
 
@@ -59,7 +81,7 @@ export class JournalController {
     const journal = await this.journalService.findById(id);
     return {
       success: true,
-      journal,
+      data: journal,
     };
   }
 
@@ -77,35 +99,42 @@ export class JournalController {
     const journal = await this.journalService.updateStatus(id, updateStatusDto, req.user.id);
     return {
       success: true,
-      journal,
+      data: journal,
     };
   }
 
   @Get('account/:accountId')
   @ApiOperation({ summary: 'Get journal entries by account' })
   @ApiParam({ name: 'accountId', description: 'Account ID' })
-  @ApiQuery({ name: 'fiscal_year', required: false })
-  @ApiQuery({ name: 'type', required: false, enum: ['SALES', 'PURCHASES', 'BANK', 'CASH', 'GENERAL'] })
-  @ApiQuery({ name: 'status', required: false, enum: ['draft', 'pending', 'posted', 'rejected', 'cancelled'] })
-  @ApiQuery({ name: 'start_date', required: false })
-  @ApiQuery({ name: 'end_date', required: false })
+  @ApiQuery({ name: 'fiscalYear', required: false, description: 'Filter by fiscal year' })
+  @ApiQuery({ name: 'journalType', required: false, enum: JournalType, description: 'Filter by journal type' })
+  @ApiQuery({ name: 'status', required: false, enum: JournalStatus, description: 'Filter by status' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date for filtering' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date for filtering' })
   @ApiResponse({ status: 200, description: 'Journal entries retrieved successfully' })
   async findByAccount(
     @Param('accountId') accountId: string,
     @Query() filters: JournalFilterDto,
+    @Req() req: any
   ) {
-    const journals = await this.journalService.findByAccount(accountId, filters);
+    const journals = await this.journalService.findByAccount(
+      accountId, 
+      { 
+        ...filters,
+        companyId: req.user.companyId 
+      }
+    );
     return {
       success: true,
-      journals,
+      data: journals,
     };
   }
 
   @Get('account/:accountId/balance')
   @ApiOperation({ summary: 'Get account balance' })
   @ApiParam({ name: 'accountId', description: 'Account ID' })
-  @ApiQuery({ name: 'fiscal_year', required: true })
-  @ApiQuery({ name: 'as_of_date', required: false })
+  @ApiQuery({ name: 'fiscal_year', required: true, description: 'Fiscal year ID' })
+  @ApiQuery({ name: 'as_of_date', required: false, description: 'Date to calculate balance up to (YYYY-MM-DD)' })
   @ApiResponse({ status: 200, description: 'Account balance retrieved successfully' })
   async getAccountBalance(
     @Param('accountId') accountId: string,
@@ -117,10 +146,17 @@ export class JournalController {
     if (!companyId) {
       throw new BadRequestException('Company ID not found in request.');
     }
-    const balance = await this.journalService.getAccountBalance(accountId, fiscalYear, companyId, asOfDate ? new Date(asOfDate) : undefined);
+    const balance = await this.journalService.getAccountBalance(
+      accountId, 
+      fiscalYear, 
+      companyId, 
+      asOfDate ? new Date(asOfDate) : undefined
+    );
     return {
       success: true,
-      balance,
+      data: {
+        balance,
+      },
     };
   }
 }

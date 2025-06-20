@@ -103,47 +103,32 @@ class SocialMediaDto {
 }
 
 export class UpdateOrganizationDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Nom de l'entreprise" })
   @IsString()
   @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  registrationNumber?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  taxId?: string;
-
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Adresse de l'entreprise" })
   @IsString()
   @IsOptional()
   address?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Numéro de TVA" })
   @IsString()
   @IsOptional()
-  city?: string;
+  taxId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Numéro d'enregistrement de l'entreprise" })
   @IsString()
   @IsOptional()
-  country?: string;
+  registrationNumber?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Secteur d'activité" })
   @IsString()
   @IsOptional()
-  phone?: string;
+  industry?: string;
 
-  @ApiPropertyOptional()
-  @IsEmail()
-  @IsOptional()
-  email?: string;
-
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "Site web de l'entreprise" })
   @IsUrl()
   @IsOptional()
   website?: string;
@@ -172,11 +157,6 @@ export class UpdateOrganizationDto {
   @IsString()
   @IsOptional()
   logo?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  industry?: string;
 
   @ApiPropertyOptional()
   @IsString()

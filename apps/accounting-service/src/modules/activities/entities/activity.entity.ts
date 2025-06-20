@@ -5,27 +5,30 @@ export class Activity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('uuid')
-  userId!: string;
-
-  @Column('uuid',{ nullable: true })
-  companyId?: string;
+  @CreateDateColumn()
+  timestamp!: Date;
 
   @Column()
-  action!: string;
+  actionType!: string; // 'create' | 'update' | 'delete' | 'view' | 'login' | 'logout' | 'export' | 'ia_generation'
+
+  @Column()
+  entityType!: string; // 'journal-entry' | 'account' | 'fiscal-year' | 'user' | 'report' | 'settings'
+
+  @Column()
+  entityId!: string;
 
   @Column()
   description!: string;
 
+  @Column('uuid')
+  userId!: string;
+
   @Column('jsonb', { nullable: true })
-  metadata!: Record<string, any>;
+  details?: Record<string, any>; // Additional details about the activity
 
   @Column({ nullable: true })
-  ipAddress!: string;
+  ipAddress?: string;
 
   @Column({ nullable: true })
-  userAgent!: string;
-
-  @CreateDateColumn()
-  timestamp!: Date;
+  userAgent?: string;
 }

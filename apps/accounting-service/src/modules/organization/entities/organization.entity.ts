@@ -20,6 +20,9 @@ export class Organization {
   taxId?: string;
 
   @Column({ nullable: true })
+  vatNumber?: string;
+
+  @Column({ nullable: true })
   address?: string;
 
   @Column({ nullable: true })

@@ -46,6 +46,32 @@ export class AccountingSettings {
   })
   journalEntryValidation!: JournalEntryValidation;
 
+  @Column({ default: 'OD' })
+  defaultJournal!: string;
+
+  @Column({ default: true })
+  autoNumbering!: boolean;
+
+  @Column({ default: 'VCH-' })
+  voucherPrefix!: string;
+
+  @Column({ default: 'YYYY' })
+  fiscalYearPattern!: string;
+
+  @Column({ default: 'OHADA' })
+  accountingFramework!: string;
+
+  @Column('jsonb', {
+    nullable: true,
+    default: [
+        { level: 1, name: 'Classe', digits: 1 },
+        { level: 2, name: 'Compte Principal', digits: 2 },
+        { level: 3, name: 'Compte Divisionnaire', digits: 3 },
+        { level: 4, name: 'Sous-compte', digits: 5 }
+    ]
+  })
+  accountingLevels!: object[];
+
   @Column({ nullable: true })
   createdBy?: string;
 

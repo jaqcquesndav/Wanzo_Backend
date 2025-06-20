@@ -1,48 +1,53 @@
-import { IsString, IsEnum, IsDate, IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-export enum PeriodType {
-  DAY = 'day',
-  WEEK = 'week',
-  MONTH = 'month',
-  QUARTER = 'quarter',
-  YEAR = 'year',
-}
-
-export enum ComparisonType {
-  PREVIOUS_PERIOD = 'previous_period',
-  PREVIOUS_YEAR = 'previous_year',
-  BUDGET = 'budget',
-}
+import { IsString, IsOptional } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class DashboardFilterDto {
-  @ApiProperty({ description: 'Fiscal year' })
+  @ApiPropertyOptional({ description: 'ID of the fiscal year (default: current fiscal year)' })
+  @IsOptional()
   @IsString()
-  fiscalYear!: string;
+  fiscalYearId?: string;
+}
 
-  @ApiProperty({ description: 'Company ID' })
-  @IsString()
-  companyId!: string;
+// Types for dashboard response
+export class QuickStatsDto {
+  totalAssets!: number;
+  revenue!: number;
+  netIncome!: number;
+  cashOnHand!: number;
+  trends!: {
+    assets: { value: number; isPositive: boolean };
+    revenue: { value: number; isPositive: boolean };
+    netIncome: { value: number; isPositive: boolean };
+    cashOnHand: { value: number; isPositive: boolean };
+  };
+}
 
-  @ApiProperty({ description: 'Period type', enum: PeriodType })
-  @IsEnum(PeriodType)
-  periodType!: PeriodType;
+export class FinancialRatiosDto {
+  grossProfitMargin!: number;
+  breakEvenPoint!: number;
+  daysSalesOutstanding!: number;
+  daysPayableOutstanding!: number;
+  workingCapital!: number;
+  currentRatio!: number;
+}
 
-  @ApiPropertyOptional({ description: 'Start date' })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  startDate?: Date;
+export class KeyPerformanceIndicatorsDto {
+  creditScore!: number;
+  financialRating!: string;
+}
 
-  @ApiPropertyOptional({ description: 'End date' })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  endDate?: Date;
+export class DateValueDto {
+  date!: string;
+  revenue?: number;
+  expenses?: number;
+}
 
-  @ApiPropertyOptional({ description: 'Comparison type', enum: ComparisonType })
-  @IsOptional()
-  @IsEnum(ComparisonType)
-  comparison?: ComparisonType;
+export class DashboardResponseDto {
+  quickStats!: QuickStatsDto;
+  financialRatios!: FinancialRatiosDto;
+  keyPerformanceIndicators!: KeyPerformanceIndicatorsDto;
+  revenueData!: DateValueDto[];
+  expensesData!: DateValueDto[];
+  recentTransactions!: any[];
+  alerts!: any[];
 }

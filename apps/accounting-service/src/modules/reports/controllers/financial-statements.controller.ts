@@ -5,6 +5,12 @@ import { AccountingFramework } from '../dtos/report.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { ReportAdapter } from '../adapters/report.adapter';
+import { 
+  BalanceSheetResponseDto, 
+  IncomeStatementResponseDto, 
+  CashFlowResponseDto 
+} from '../dtos/api-response.dto';
 
 @ApiTags('financial-statements')
 @Controller('financial-statements')
@@ -19,7 +25,7 @@ export class FinancialStatementsController {
   @ApiQuery({ name: 'fiscal_year', required: true })
   @ApiQuery({ name: 'as_of_date', required: true })
   @ApiQuery({ name: 'framework', required: false, enum: AccountingFramework })
-  @ApiResponse({ status: 200, description: 'Balance sheet generated successfully' })
+  @ApiResponse({ status: 200, description: 'Balance sheet generated successfully', type: BalanceSheetResponseDto })
   async getBalanceSheet(
     @Query('fiscal_year') fiscalYear: string,
     @Query('as_of_date') asOfDate: Date,
@@ -33,10 +39,7 @@ export class FinancialStatementsController {
       framework,
     );
 
-    return {
-      success: true,
-      balanceSheet,
-    };
+    return balanceSheet;
   }
 
   @Get('income-statement')
@@ -46,7 +49,7 @@ export class FinancialStatementsController {
   @ApiQuery({ name: 'start_date', required: true })
   @ApiQuery({ name: 'end_date', required: true })
   @ApiQuery({ name: 'framework', required: false, enum: AccountingFramework })
-  @ApiResponse({ status: 200, description: 'Income statement generated successfully' })
+  @ApiResponse({ status: 200, description: 'Income statement generated successfully', type: IncomeStatementResponseDto })
   async getIncomeStatement(
     @Query('fiscal_year') fiscalYear: string,
     @Query('start_date') startDate: Date,
@@ -62,10 +65,7 @@ export class FinancialStatementsController {
       framework,
     );
 
-    return {
-      success: true,
-      incomeStatement,
-    };
+    return incomeStatement;
   }
 
   @Get('cash-flow')
@@ -75,7 +75,7 @@ export class FinancialStatementsController {
   @ApiQuery({ name: 'start_date', required: true })
   @ApiQuery({ name: 'end_date', required: true })
   @ApiQuery({ name: 'framework', required: false, enum: AccountingFramework })
-  @ApiResponse({ status: 200, description: 'Cash flow statement generated successfully' })
+  @ApiResponse({ status: 200, description: 'Cash flow statement generated successfully', type: CashFlowResponseDto })
   async getCashFlowStatement(
     @Query('fiscal_year') fiscalYear: string,
     @Query('start_date') startDate: Date,
@@ -91,10 +91,7 @@ export class FinancialStatementsController {
       framework,
     );
 
-    return {
-      success: true,
-      cashFlowStatement,
-    };
+    return cashFlowStatement;
   }
 
   @Get('general-ledger')

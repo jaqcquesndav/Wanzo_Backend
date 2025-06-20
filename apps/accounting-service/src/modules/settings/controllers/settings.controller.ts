@@ -1,12 +1,14 @@
-import { Controller, Get, Put, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Request, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SettingsService } from '../services/settings.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { UpdateAccountingSettingsDto } from '../dtos/update-accounting-settings.dto';
-import { UpdateExchangeRatesDto, SetDefaultCurrencyDto } from '../dtos/update-currency.dto';
-import { UpdateDataSharingSettingsDto } from '../dtos/update-data-sharing-settings.dto';
-import { UpdateDataSourcesDto } from '../dtos/update-data-sources.dto';
 import { Request as ExpressRequest } from 'express';
+import { SettingsDto } from '../dtos/settings.dto';
+import { UpdateGeneralSettingsDto } from '../dtos/update-general-settings.dto';
+import { UpdateAccountingSettingsDto } from '../dtos/update-accounting-settings.dto';
+import { UpdateSecuritySettingsDto } from '../dtos/update-security-settings.dto';
+import { UpdateNotificationsSettingsDto } from '../dtos/update-notifications-settings.dto';
+import { UpdateIntegrationsSettingsDto } from '../dtos/update-integrations-settings.dto';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -14,131 +16,43 @@ import { Request as ExpressRequest } from 'express';
 @ApiBearerAuth()
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
-  // Accounting Settings
-  @Get('accounting')
-  @ApiOperation({ summary: 'Get accounting settings' })
-  async getAccountingSettings(@Request() req: ExpressRequest & { user: { companyId: string } }): Promise<any> {
-    const settings = await this.settingsService.getAccountingSettings(req.user.companyId);
-    return {
-      success: true,
-      data: settings
-    };
+
+  @Get()
+  @ApiOperation({ summary: 'Get all settings' })
+  @ApiResponse({ status: 200, description: 'All settings retrieved successfully.', type: SettingsDto })
+  async getAllSettings(@Request() req: ExpressRequest & { user: { companyId: string, id: string } }): Promise<SettingsDto> {
+    return this.settingsService.getAllSettings(req.user.companyId, req.user.id);
   }
-  @Put('accounting')
-  @ApiOperation({ summary: 'Update accounting settings' })
-  async updateAccountingSettings(
-    @Body() updateDto: UpdateAccountingSettingsDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+
+  @Put(':category')
+  @ApiOperation({ summary: 'Update settings for a specific category' })
+  @ApiResponse({ status: 200, description: 'Settings updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid category specified.' })
+  async updateSettingsCategory(
+    @Param('category') category: string,
+    @Body() updateDto: any,
+    @Request() req: ExpressRequest & { user: { companyId: string, id: string } }
   ): Promise<any> {
-    const settings = await this.settingsService.updateAccountingSettings(
-      req.user.companyId, 
-      updateDto
-    );
-    return {
-      success: true,
-      data: settings
-    };
-  }
-  // Currencies
-  @Get('currencies')
-  @ApiOperation({ summary: 'Get all currencies' })
-  async getCurrencies(@Request() req: ExpressRequest & { user: { companyId: string } }): Promise<any> {
-    const currencies = await this.settingsService.getCurrencies(req.user.companyId);
-    return {
-      success: true,
-      data: currencies
-    };
-  }
-  @Put('currencies/default')
-  @ApiOperation({ summary: 'Set default currency' })
-  async setDefaultCurrency(
-    @Body() dto: SetDefaultCurrencyDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string } }
-  ): Promise<any> {
-    const currency = await this.settingsService.setDefaultCurrency(
-      req.user.companyId, 
-      dto.currencyCode
-    );
-    return {
-      success: true,
-      data: currency
-    };
-  }
-  @Put('currencies/exchange-rates')
-  @ApiOperation({ summary: 'Update currency exchange rates' })
-  async updateExchangeRates(
-    @Body() updateDto: UpdateExchangeRatesDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string } }
-  ): Promise<any> {
-    const currencies = await this.settingsService.updateExchangeRates(
-      req.user.companyId, 
-      updateDto
-    );
-    return {
-      success: true,
-      data: currencies
-    };
-  }
-  // Data Sharing
-  @Get('data-sharing')
-  @ApiOperation({ summary: 'Get data sharing settings' })
-  async getDataSharingSettings(@Request() req: ExpressRequest & { user: { companyId: string } }): Promise<any> {
-    const settings = await this.settingsService.getDataSharingSettings(req.user.companyId);
-    return {
-      success: true,
-      data: {
-        enabled: settings.status === 'enabled',
-        providers: settings.providers
-      }
-    };
-  }
-  @Put('data-sharing')
-  @ApiOperation({ summary: 'Update data sharing settings' })
-  async updateDataSharingSettings(
-    @Body() updateDto: UpdateDataSharingSettingsDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string, userId: string } } // Added userId to req.user type
-  ): Promise<any> {
-    const settings = await this.settingsService.updateDataSharingSettings(
-      req.user.companyId, 
-      updateDto,
-      req.user.userId, // Pass userId to the service method
-    );
-    return {
-      success: true,
-      data: {
-        enabled: settings.status === 'enabled',
-        providers: settings.providers,
-        // Optionally, return the derived shareWithAll and targetInstitutionTypes if useful for the client
-      }
-    };
-  }
-  // Data Sources
-  @Get('data-sources')
-  @ApiOperation({ summary: 'Get all data sources' })
-  async getDataSources(@Request() req: ExpressRequest & { user: { companyId: string } }): Promise<any> {
-    const sources = await this.settingsService.getDataSources(req.user.companyId);
-    return {
-      success: true,
-      data: {
-        sources
-      }
-    };
-  }
-  @Put('data-sources')
-  @ApiOperation({ summary: 'Update data sources' })
-  async updateDataSources(
-    @Body() updateDto: UpdateDataSourcesDto, 
-    @Request() req: ExpressRequest & { user: { companyId: string } }
-  ): Promise<any> {
-    const sources = await this.settingsService.updateDataSources(
-      req.user.companyId, 
-      updateDto
-    );
-    return {
-      success: true,
-      data: {
-        sources
-      }
-    };
+    let result;
+    switch (category) {
+      case 'general':
+        result = await this.settingsService.updateGeneralSettings(req.user.id, updateDto as UpdateGeneralSettingsDto);
+        break;
+      case 'accounting':
+        result = await this.settingsService.updateAccountingSettings(req.user.companyId, updateDto as UpdateAccountingSettingsDto);
+        break;
+      case 'security':
+        result = await this.settingsService.updateSecuritySettings(req.user.id, updateDto as UpdateSecuritySettingsDto);
+        break;
+      case 'notifications':
+        result = await this.settingsService.updateNotificationsSettings(req.user.id, updateDto as UpdateNotificationsSettingsDto);
+        break;
+      case 'integrations':
+        result = await this.settingsService.updateIntegrationsSettings(req.user.companyId, updateDto as UpdateIntegrationsSettingsDto);
+        break;
+      default:
+        throw new HttpException('Invalid settings category', HttpStatus.BAD_REQUEST);
+    }
+    return { success: true, data: result };
   }
 }

@@ -1,8 +1,8 @@
-import { IsString, IsEnum, IsDate, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsEnum, IsDate, IsNumber, IsOptional, IsUUID, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TransactionType, TransactionStatus } from '../entities/treasury-transaction.entity';
-import { AccountType } from '../entities/treasury-account.entity';
+import { AccountType, AccountStatus } from '../entities/treasury-account.entity';
 
 export class CreateTreasuryAccountDto {
   @ApiProperty({ description: 'Account name' })
@@ -13,9 +13,27 @@ export class CreateTreasuryAccountDto {
   @IsEnum(AccountType)
   type!: AccountType;
 
+  @ApiProperty({ description: 'Provider (e.g., BICIS, SMICO)' })
+  @IsString()
+  provider!: string;
+
+  @ApiPropertyOptional({ description: 'Bank name (full name of the bank/institution)' })
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
   @ApiProperty({ description: 'Account number' })
   @IsString()
   accountNumber!: string;
+
+  @ApiProperty({ description: 'Currency code' })
+  @IsString()
+  currency!: string;
+
+  @ApiPropertyOptional({ description: 'Account status', enum: AccountStatus, default: AccountStatus.ACTIVE })
+  @IsOptional()
+  @IsEnum(AccountStatus)
+  status?: AccountStatus;
 
   @ApiPropertyOptional({ description: 'Account description' })
   @IsOptional()
@@ -38,6 +56,31 @@ export class UpdateTreasuryAccountDto {
   @IsEnum(AccountType)
   type?: AccountType;
 
+  @ApiPropertyOptional({ description: 'Provider (e.g., BICIS, SMICO)' })
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @ApiPropertyOptional({ description: 'Bank name (full name of the bank/institution)' })
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @ApiPropertyOptional({ description: 'Account number' })
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Currency code' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({ description: 'Account status', enum: AccountStatus })
+  @IsOptional()
+  @IsEnum(AccountStatus)
+  status?: AccountStatus;
+
   @ApiPropertyOptional({ description: 'Account description' })
   @IsOptional()
   @IsString()
@@ -45,7 +88,7 @@ export class UpdateTreasuryAccountDto {
 
   @ApiPropertyOptional({ description: 'Account active status' })
   @IsOptional()
-  @IsString()
+  @IsBoolean()
   active?: boolean;
 
   @ApiPropertyOptional({ description: 'Additional metadata' })
@@ -141,4 +184,15 @@ export class TransactionFilterDto {
   @IsOptional()
   @IsString()
   search?: string;
+}
+
+export class ReconcileAccountDto {
+  @ApiProperty({ description: 'Statement ID' })
+  @IsString()
+  statementId!: string;
+
+  @ApiProperty({ description: 'End date for reconciliation' })
+  @IsDate()
+  @Type(() => Date)
+  endDate!: Date;
 }
