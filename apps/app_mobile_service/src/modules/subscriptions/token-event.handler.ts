@@ -19,10 +19,10 @@ export class TokenEventHandler {
       entityId: companyId,
       entityType: EntityType.PME,
       amount,
-      operation: 'purchase',
-      currentBalance,
-      timestamp: new Date(),
-      metadata
+      transactionId: Date.now().toString(),
+      reason: 'Purchase',
+      service: metadata?.service,
+      timestamp: new Date().toISOString()
     };
 
     await this.eventsService.publishTokenPurchase(event);
@@ -40,10 +40,10 @@ export class TokenEventHandler {
       entityId: companyId,
       entityType: EntityType.PME,
       amount,
-      operation: 'use',
-      currentBalance,
-      timestamp: new Date(),
-      metadata: { feature }
+      transactionId: Date.now().toString(),
+      reason: feature,
+      service: feature,
+      timestamp: new Date().toISOString()
     };
 
     await this.eventsService.publishTokenUsage(event);

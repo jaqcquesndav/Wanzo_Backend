@@ -53,14 +53,18 @@ export class SubscriptionSchedulerService {
         }
 
         await this.eventsService.publishSubscriptionExpired({
+          subscriptionId: subscription.id,
           userId: subscription.userId,
           entityId: subscription.user.companyId, 
           entityType: EntityType.PME,
+          previousPlan: subscription.tier.type as unknown as SubscriptionPlanType,
           newPlan: subscription.tier.type as unknown as SubscriptionPlanType, // Cast via unknown
-          status: SubscriptionStatusType.EXPIRED,
-          timestamp: now,
+          previousStatus: SubscriptionStatusType.ACTIVE,
+          newStatus: SubscriptionStatusType.EXPIRED,
+          startDate: subscription.startDate.toISOString(),
+          endDate: now.toISOString(),
           changedBy: 'system',
-          reason: 'Subscription period ended'
+          timestamp: now.toISOString()
         });
       }
     } catch (error) {

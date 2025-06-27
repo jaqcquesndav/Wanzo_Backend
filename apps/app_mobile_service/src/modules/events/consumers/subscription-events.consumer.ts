@@ -1,7 +1,7 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { UserEventTopics, SubscriptionChangedEvent } from '@wanzo/shared/events/kafka-config';
+import { SubscriptionEventTopics, SubscriptionChangedEvent } from '@wanzo/shared/events/kafka-config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
@@ -20,7 +20,7 @@ export class SubscriptionEventsConsumer {
     private readonly userSubscriptionRepository: Repository<UserSubscription>,
   ) {}
 
-  @MessagePattern(UserEventTopics.SUBSCRIPTION_CHANGED)
+  @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_CREATED)
   async handleSubscriptionChanged(@Payload() event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Received subscription changed event: ${JSON.stringify(event)}`);
     
@@ -51,15 +51,15 @@ export class SubscriptionEventsConsumer {
       }
 
       // Only create a new subscription if the status is ACTIVE
-      if (event.status === 'active') {
+      if (event.newStatus === 'active') {
         // Create new subscription based on the event
         const newSubscription = this.userSubscriptionRepository.create({
           userId: event.userId,
           // tierId will need to be set based on the plan name mapping
           // This would require a lookup or mapping service
           status: SubscriptionStatus.ACTIVE,
-          startDate: event.timestamp,
-          endDate: event.expiresAt,
+          startDate: event.startDate,
+          endDate: event.endDate,
         });
 
         await this.userSubscriptionRepository.save(newSubscription);
@@ -72,7 +72,7 @@ export class SubscriptionEventsConsumer {
     }
   }
 
-  @MessagePattern(UserEventTopics.SUBSCRIPTION_EXPIRED)
+  @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_EXPIRED)
   async handleSubscriptionExpired(@Payload() event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Received subscription expired event: ${JSON.stringify(event)}`);
     

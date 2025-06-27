@@ -4,9 +4,11 @@ import {
   UserEventTopics, 
   UserStatusChangedEvent, 
   UserRoleChangedEvent,
+  UserCreatedEventData,
+  SubscriptionEventTopics,
   SubscriptionChangedEvent,
-  TokenTransactionEvent,
-  UserCreatedEventData
+  TokenEventTopics,
+  TokenTransactionEvent
 } from '@wanzo/shared/events/kafka-config';
 import { APP_MOBILE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
@@ -57,21 +59,21 @@ export class EventsService {
 
   async publishSubscriptionChanged(event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Publishing subscription changed event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_CHANGED, event);
+    this.eventsClient.emit(SubscriptionEventTopics.SUBSCRIPTION_CREATED, event);
   }
 
   async publishSubscriptionExpired(event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Publishing subscription expired event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_EXPIRED, event);
+    this.eventsClient.emit(SubscriptionEventTopics.SUBSCRIPTION_EXPIRED, event);
   }
   
   async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_PURCHASE, event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_PURCHASE, event);
   }
 
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_USAGE, event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_USAGE, event);
   }
 }

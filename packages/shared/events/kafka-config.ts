@@ -81,6 +81,7 @@ export enum InstitutionEventTopics {
 
 // #region Event Payloads
 
+// Used by event consumers
 export interface UserCreatedEvent {
     userId: string;
     email: string;
@@ -91,6 +92,9 @@ export interface UserCreatedEvent {
     customerName?: string;
     timestamp: string;
 }
+
+// Used by event producers - aliased for backward compatibility
+export interface UserCreatedEventData extends UserCreatedEvent {}
 
 export interface UserUpdatedEvent {
     userId: string;
@@ -311,3 +315,6 @@ export const getKafkaConfig = (configService: ConfigService): KafkaOptions => {
 // Re-export subscription events
 export { SubscriptionEventTopics } from './subscription-events';
 export type { SubscriptionChangedEvent } from './subscription-events';
+
+// Re-export token events
+export type { TokenTransactionEvent } from './token-events';

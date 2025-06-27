@@ -34,7 +34,7 @@ export class UserEventsConsumer {
       user.isActive = event.newStatus === 'active'; 
       
       // Add audit information
-      user.updatedAt = event.timestamp;
+      user.updatedAt = new Date(event.timestamp);
       
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated user ${event.userId} status to ${event.newStatus}`);
@@ -61,7 +61,7 @@ export class UserEventsConsumer {
       user.role = event.newRole as any; // Assuming the role enum is compatible
       
       // Add audit information
-      user.updatedAt = event.timestamp;
+      user.updatedAt = new Date(event.timestamp);
       
       await this.userRepository.save(user);
       this.logger.log(`Successfully updated user ${event.userId} role to ${event.newRole}`);
