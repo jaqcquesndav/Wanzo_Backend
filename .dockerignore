@@ -1,0 +1,30 @@
+# Dossiers node_modules
+node_modules
+**/node_modules
+
+# Note: We're not ignoring dist folders anymore because our Docker builds need them
+# **/dist
+# **/build
+
+# Dossiers de développement
+**/.git
+**/.vscode
+**/.idea
+
+# Fichiers de logs
+**/logs
+**/*.log
+
+# Fichiers d'environnement
+**/.env
+**/.env.local
+**/.env.development
+**/.env.test
+**/.env.production
+
+# Autres fichiers à ignorer
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.DS_Store
+**/Thumbs.db

@@ -1,11 +1,53 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsDate, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+export enum PeriodType {
+  MONTH = 'month',
+  QUARTER = 'quarter',
+  YEAR = 'year',
+  CUSTOM = 'custom'
+}
+
+export enum ComparisonType {
+  PREVIOUS_PERIOD = 'previous_period',
+  PREVIOUS_YEAR = 'previous_year',
+  BUDGET = 'budget',
+  NONE = 'none'
+}
 
 export class DashboardFilterDto {
   @ApiPropertyOptional({ description: 'ID of the fiscal year (default: current fiscal year)' })
   @IsOptional()
   @IsString()
   fiscalYearId?: string;
+
+  @ApiPropertyOptional({ description: 'ID of the company' })
+  @IsOptional()
+  @IsString()
+  companyId?: string;
+
+  @ApiPropertyOptional({ description: 'Start date for custom period filtering' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @ApiPropertyOptional({ description: 'End date for custom period filtering' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  endDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Type of comparison to perform', enum: ComparisonType })
+  @IsOptional()
+  @IsEnum(ComparisonType)
+  comparison?: ComparisonType;
+
+  // Alias for fiscalYearId to maintain compatibility with existing code
+  get fiscalYear(): string | undefined {
+    return this.fiscalYearId;
+  }
 }
 
 // Types for dashboard response

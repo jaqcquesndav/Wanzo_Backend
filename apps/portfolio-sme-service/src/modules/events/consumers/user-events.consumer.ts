@@ -1,6 +1,12 @@
 import { Controller, Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { UserCreatedEventData, UserEventTopics, UserStatusChangedEvent, SubscriptionChangedEvent } from '../../../../../../packages/shared/events/kafka-config'; // Corrected import path
+import { 
+    UserCreatedEvent, 
+    UserEventTopics, 
+    UserStatusChangedEvent,
+    SubscriptionEventTopics, 
+    SubscriptionChangedEvent 
+} from '../../../../../../packages/shared/events/kafka-config';
 // Import services from portfolio-sme-service that need to react to these events
 import { PortfolioService } from '../../portfolios/services/portfolio.service'; // Corrected import path
 // e.g., import { OrganizationService } from '../organization/services/organization.service'; // If you have an org concept here
@@ -20,7 +26,7 @@ export class UserEventsConsumer implements OnModuleInit {
   }
 
   @EventPattern(UserEventTopics.USER_CREATED)
-  async handleUserCreated(@Payload() event: UserCreatedEventData): Promise<void> {
+  async handleUserCreated(@Payload() event: UserCreatedEvent): Promise<void> {
     this.logger.log(`Received ${UserEventTopics.USER_CREATED} event: ${JSON.stringify(event)}`);
     // Business logic for portfolio-sme-service when a user is created
     // This service might not directly react to USER_CREATED unless it needs to create
@@ -28,19 +34,20 @@ export class UserEventsConsumer implements OnModuleInit {
     // Typically, it might be more interested when a user becomes part of an SME/organization
     // that this service manages portfolios for.
 
-    if (event.isOwner && event.organizationDetails && event.organizationDetails.id) {
-      this.logger.log(`Processing new SME owner and organization: ${event.organizationDetails.name}`);
+    // Check if organization details are available in the event
+    if (event.userType === 'SME_OWNER' && event.customerAccountId) {
+      this.logger.log(`Processing new SME owner and organization: ${event.customerName || 'Unknown'}`);
       // Potentially create a default portfolio or set up organization-related entities if applicable
-      const organizationId = event.organizationDetails.id;
+      const organizationId = event.customerAccountId;
       try {
-        await this.portfolioService.createDefaultPortfolioForOrganization(organizationId, event.userId, event.organizationDetails.name);
+        await this.portfolioService.createDefaultPortfolioForOrganization(organizationId, event.userId, event.customerName || 'New Organization');
         this.logger.log(`Default portfolio creation process initiated for organization ${organizationId} by user ${event.userId}`);
       } catch (error: any) { // Explicitly type error as any or Error
         this.logger.error(`Failed to create default portfolio for organization ${organizationId}: ${error.message}`, error.stack);
       }
     } else {
       // Handle non-owner user creation if necessary
-      this.logger.log(`User ${event.userId} created, no immediate portfolio action required (not an owner or organizationDetails missing/incomplete).`);
+      this.logger.log(`User ${event.userId} created, no immediate portfolio action required (not an SME owner or customer details missing).`);
     }
   }
 
@@ -52,9 +59,9 @@ export class UserEventsConsumer implements OnModuleInit {
     // await this.portfolioService.updateUserAccessBasedOnStatus(event.userId, event.newStatus);
   }
 
-  @EventPattern(UserEventTopics.SUBSCRIPTION_CHANGED)
+  @EventPattern(SubscriptionEventTopics.SUBSCRIPTION_PLAN_CHANGED)
   async handleSubscriptionChanged(@Payload() event: SubscriptionChangedEvent): Promise<void> {
-    this.logger.log(`Received ${UserEventTopics.SUBSCRIPTION_CHANGED} event: ${JSON.stringify(event)}`);
+    this.logger.log(`Received ${SubscriptionEventTopics.SUBSCRIPTION_PLAN_CHANGED} event: ${JSON.stringify(event)}`);
     // Business logic for portfolio-sme-service when a subscription changes
     // This could affect features available in portfolios, access levels, etc.
     // await this.portfolioService.updatePortfolioFeaturesForSubscription(event.entityId, event.newPlan, event.status);

@@ -1,0 +1,318 @@
+version: '3.8'
+
+services:
+  # Service API Gateway - Point d'entrée unique
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    container_name: kiota-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - AUTH_SERVICE_URL=http://admin-service:3001
+      - ADMIN_SERVICE_URL=http://admin-service:3001
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3002
+      - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
+      - PORTFOLIO_SME_SERVICE_URL=http://portfolio-sme-service:3004
+      - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
+      - APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - api-gateway-logs:/app/apps/api-gateway/logs
+    depends_on:
+      - admin-service
+      - accounting-service
+      - analytics-service
+      - portfolio-sme-service
+      - portfolio-institution-service
+      - app-mobile-service
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Admin Service
+  admin-service:
+    build:
+      context: .
+      dockerfile: ./apps/admin-service/Dockerfile
+    container_name: kiota-admin-service
+    ports:
+      - "3001:3001"
+      - "9464:9464" # Port Prometheus
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=admin-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=admin-service
+      - KAFKA_GROUP_ID=admin-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - admin-service-logs:/app/apps/admin-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Accounting Service
+  accounting-service:
+    build:
+      context: .
+      dockerfile: ./apps/accounting-service/Dockerfile
+    container_name: kiota-accounting-service
+    ports:
+      - "3003:3003"
+      - "9465:9464" # Port Prometheus (mapping différent)
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=accounting-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=accounting-service
+      - KAFKA_GROUP_ID=accounting-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - accounting-service-logs:/app/apps/accounting-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./apps/analytics-service/Dockerfile
+    container_name: kiota-analytics-service
+    ports:
+      - "3002:3002"
+      - "9466:9464" # Port Prometheus (mapping différent)
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=analytics-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=analytics-service
+      - KAFKA_GROUP_ID=analytics-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - analytics-service-logs:/app/apps/analytics-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Portfolio SME Service
+  portfolio-sme-service:
+    build:
+      context: .
+      dockerfile: ./apps/portfolio-sme-service/Dockerfile
+    container_name: kiota-portfolio-sme-service
+    ports:
+      - "3004:3004"
+      - "9467:9464" # Port Prometheus (mapping différent)
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=portfolio-sme-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=portfolio-sme-service
+      - KAFKA_GROUP_ID=portfolio-sme-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - portfolio-sme-service-logs:/app/apps/portfolio-sme-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Portfolio Institution Service
+  portfolio-institution-service:
+    build:
+      context: .
+      dockerfile: ./apps/portfolio-institution-service/Dockerfile
+    container_name: kiota-portfolio-institution-service
+    ports:
+      - "3005:3005"
+      - "9468:9464" # Port Prometheus (mapping différent)
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=portfolio-institution-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=portfolio-institution-service
+      - KAFKA_GROUP_ID=portfolio-institution-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - portfolio-institution-service-logs:/app/apps/portfolio-institution-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # App Mobile Service
+  app-mobile-service:
+    build:
+      context: .
+      dockerfile: ./apps/app_mobile_service/Dockerfile
+    container_name: kiota-app-mobile-service
+    ports:
+      - "3006:3006"
+      - "9469:9464" # Port Prometheus (mapping différent)
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=app_mobile_service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=app-mobile-service
+      - KAFKA_GROUP_ID=app-mobile-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - app-mobile-service-logs:/app/apps/app_mobile_service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Base de données PostgreSQL commune
+  postgres:
+    image: postgres:15-alpine
+    container_name: kiota-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root123
+      - POSTGRES_MULTIPLE_DATABASES=admin-service,accounting-service,analytics-service,portfolio-sme-service,portfolio-institution-service,app_mobile_service
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Kafka et ZooKeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: kiota-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: kiota-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Prometheus pour la surveillance
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kiota-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Grafana pour la visualisation
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kiota-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=kiota-secret
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  api-gateway-logs:
+  admin-service-logs:
+  accounting-service-logs:
+  analytics-service-logs:
+  portfolio-sme-service-logs:
+  portfolio-institution-service-logs:
+  app-mobile-service-logs:
+  prometheus-data:
+  grafana-storage:
+
+networks:
+  kiota-network:
+    driver: bridge

@@ -6,7 +6,9 @@ import {
   UserStatusChangedEvent, 
   UserRoleChangedEvent,
   SubscriptionChangedEvent,
-  TokenTransactionEvent
+  TokenPurchaseEvent,
+  SubscriptionEventTopics,
+  TokenEventTopics
 } from '../../../../../packages/shared/events/kafka-config';
 
 @Injectable()
@@ -50,11 +52,11 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
 
   async publishSubscriptionChanged(event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Publishing subscription changed event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_CHANGED, event);
+    this.eventsClient.emit(SubscriptionEventTopics.SUBSCRIPTION_PLAN_CHANGED, event);
   }
 
-  async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
+  async publishTokenPurchase(event: TokenPurchaseEvent): Promise<void> {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_PURCHASE, event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_PURCHASE, event);
   }
 }

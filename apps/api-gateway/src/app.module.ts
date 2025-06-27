@@ -10,6 +10,7 @@ import {
 // -- Tes modules locaux --
 import { ProxyModule } from './modules/proxy/proxy.module';
 import { HealthModule } from './modules/health/health.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 // -- Filtres, intercepteurs --
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -46,6 +47,7 @@ import { PrometheusService } from './modules/proxy/services/prometheus.service';
     // 3) Tes modules métier
     ProxyModule,
     HealthModule,
+    AnalyticsModule,
   ],
 
   // 4) CONTROLLERS : on déclare PrometheusController ici

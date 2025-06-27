@@ -1,11 +1,13 @@
-import { Controller, All, Req, Res } from '@nestjs/common';
+import { Controller, All, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ProxyService } from './proxy.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AxiosError, AxiosResponse } from 'axios';
+import { AnalyticsRouteGuard } from './guards/analytics-route.guard';
 
 @ApiTags('proxy')
 @Controller()
+@UseGuards(AnalyticsRouteGuard)
 export class ProxyController {
   constructor(private readonly proxyService: ProxyService) {}
 

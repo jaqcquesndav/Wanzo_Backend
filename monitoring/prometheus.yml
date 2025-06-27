@@ -5,37 +5,37 @@ global:
 scrape_configs:
   - job_name: 'admin-service'
     static_configs:
-      - targets: ['host.docker.internal:9464']
+      - targets: ['admin-service:9464']
     metrics_path: '/metrics'
 
   - job_name: 'accounting-service'
     static_configs:
-      - targets: ['host.docker.internal:9464']
+      - targets: ['accounting-service:9464']
     metrics_path: '/metrics'
 
   - job_name: 'analytics-service'
     static_configs:
-      - targets: ['host.docker.internal:9465']
+      - targets: ['analytics-service:9464']
     metrics_path: '/metrics'
 
   - job_name: 'api-gateway'
     static_configs:
-      - targets: ['host.docker.internal:9464']
+      - targets: ['api-gateway:9464']
     metrics_path: '/metrics'
 
   - job_name: 'app-mobile-service'
     static_configs:
-      - targets: ['host.docker.internal:9466']
+      - targets: ['app-mobile-service:9464']
     metrics_path: '/metrics'
 
   - job_name: 'portfolio-institution-service'
     static_configs:
-      - targets: ['host.docker.internal:9468']
+      - targets: ['portfolio-institution-service:9464']
     metrics_path: '/metrics'
 
   - job_name: 'portfolio-sme-service'
     static_configs:
-      - targets: ['host.docker.internal:9469']
+      - targets: ['portfolio-sme-service:9464']
     metrics_path: '/metrics'
 
 # Alerte sur les erreurs HTTP
