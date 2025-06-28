@@ -76,20 +76,10 @@ export class AuthService {
         const userCreatedEvent: UserCreatedEventData = {
           userId: savedAdminUser.id,
           email: savedAdminUser.email,
-          timestamp: new Date(),
-          isOwner: true, // This user is the owner of the newly created company
-          organizationDetails: {
-            id: savedCompany.id, // Use the company ID as the organization ID
-            name: savedCompany.name,
-            // country: savedCompany.country, // If available and needed by accounting
-            // industry: savedCompany.industry, // If available and needed by accounting
-          },
+          timestamp: new Date().toISOString(),
           userType: EventUserType.SME_OWNER, // Explicitly set user type
-          // Add other relevant fields from User entity if needed by consumers
-          firstName: savedAdminUser.firstName,
-          lastName: savedAdminUser.lastName, // Assuming lastName might exist or be added
-          phoneNumber: savedAdminUser.phoneNumber,
-          // companyId: savedCompany.id, // Already part of organizationDetails.id
+          name: savedAdminUser.firstName, // Utilise le prénom comme nom d'affichage
+          role: savedAdminUser.role,
         };
         await this.eventsService.publishUserCreated(userCreatedEvent);
         this.logger.log(`Published ${UserEventTopics.USER_CREATED} for user ${savedAdminUser.id} and company ${savedCompany.id}`);

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Service API Gateway - Point d'entrée unique
   api-gateway:
@@ -264,9 +262,8 @@ services:
       - kiota-network
     restart: unless-stopped
 
-  # Prometheus pour la surveillance
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.45.0
     container_name: kiota-prometheus
     ports:
       - "9090:9090"
@@ -285,7 +282,7 @@ services:
 
   # Grafana pour la visualisation
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.0.0
     container_name: kiota-grafana
     ports:
       - "3000:3000"
