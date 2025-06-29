@@ -1,10 +1,10 @@
-
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TokensController } from './controllers/tokens.controller';
 import { TokensService } from './services/tokens.service';
 import { TokenPackage, TokenBalance, TokenTransaction, TokenUsage } from './entities/token.entity';
 import { EventsModule } from '../events/events.module';
+import { TokenUsageConsumerController } from './controllers/token-usage-consumer.controller';
 // import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -13,7 +13,7 @@ import { EventsModule } from '../events/events.module';
     EventsModule,
     // AuthModule,
   ],
-  controllers: [TokensController],
+  controllers: [TokensController, TokenUsageConsumerController],
   providers: [TokensService],
   exports: [TokensService]
 })

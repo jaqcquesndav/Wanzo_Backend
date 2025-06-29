@@ -272,4 +272,24 @@ export class TokensService {
             metadata: transaction.metadata,
         };
     }
+
+    /**
+     * Enregistre la consommation de tokens à partir d'un événement Kafka (token.usage)
+     */
+    async recordTokenUsageFromEvent(event: any): Promise<void> {
+        // 1. Créer un enregistrement TokenUsage
+        const usage = this.tokenUsageRepository.create({
+            customerId: event.company_id || event.institution_id, // PME ou Institution
+            userId: event.user_id,
+            tokensUsed: event.tokens_used,
+            conversationId: event.conversation_id,
+            mode: event.mode,
+            timestamp: event.timestamp,
+            feature: event.mode,
+        });
+        await this.tokenUsageRepository.save(usage);
+        // 2. Mettre à jour le compteur PME/institution selon la logique d'abonnement
+        // (À adapter selon la structure de vos entités et abonnements)
+        // TODO: Ajouter la logique de quota/abonnement ici si besoin
+    }
 }
