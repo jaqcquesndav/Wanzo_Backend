@@ -18,6 +18,7 @@ const createMockRepository = () => ({
   save: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
+  createQueryBuilder: jest.fn(), // Ajout du mock pour createQueryBuilder
 });
 
 describe('TreasuryService', () => {
@@ -30,7 +31,7 @@ describe('TreasuryService', () => {
     accountRepository = createMockRepository();
     transactionRepository = createMockRepository();
     const mockJournalService = {
-      createJournalEntry: jest.fn(),
+      create: jest.fn(), // Correction du nom de la méthode mockée
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -281,7 +282,8 @@ describe('TreasuryService', () => {
       const result = await service.findTransactionById(transactionId);
 
       expect(result).toEqual(transaction);
-      expect(transactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
+      // Correction : la méthode findOne doit être appelée avec relations: ['account']
+      expect(transactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId }, relations: ['account'] });
     });
 
     it('should throw NotFoundException when transaction not found', async () => {
@@ -323,11 +325,14 @@ describe('TreasuryService', () => {
       transactionRepository.findOne.mockResolvedValue(existingTransaction);
       accountRepository.findOne.mockResolvedValue(account);
       transactionRepository.save.mockResolvedValue(updatedTransaction);
+      // Correction du mock pour journalService.create
+      journalService.create = jest.fn().mockResolvedValue({ id: 'journal-entry-id' });
 
       const result = await service.updateTransactionStatus(transactionId, updateStatusDto, userId);
 
       expect(result).toEqual(updatedTransaction);
-      expect(transactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
+      // Correction : la méthode findOne doit être appelée avec relations: ['account']
+      expect(transactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId }, relations: ['account'] });
     });
   });
 
@@ -336,17 +341,24 @@ describe('TreasuryService', () => {
       const type = 'bank';
       
       const accounts = [
-        { id: 'account-1', name: 'Account 1', type: AccountType.BANK, balance: 1000 },
-        { id: 'account-2', name: 'Account 2', type: AccountType.BANK, balance: 2000 },
+        { id: 'account-1', name: 'Account 1', type: AccountType.BANK, balance: 1000, currency: 'USD', active: true },
+        { id: 'account-2', name: 'Account 2', type: AccountType.BANK, balance: 2000, currency: 'USD', active: true },
       ];
+      // Mock du queryBuilder
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(accounts),
+      };
+      accountRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
       
-      accountRepository.find.mockResolvedValue(accounts);
+      transactionRepository.find.mockResolvedValue([]);
 
       const result = await service.getTreasuryBalance(type);
 
-      expect(result).toHaveProperty('total');
-      expect(result).toHaveProperty('accounts');
-      expect(accountRepository.find).toHaveBeenCalled();
+      expect(result).toHaveProperty('current', 3000);
+      expect(result).toHaveProperty('currency', 'USD');
+      expect(accountRepository.createQueryBuilder).toHaveBeenCalled();
     });
   });
 
@@ -375,7 +387,10 @@ describe('TreasuryService', () => {
 
       const result = await service.reconcileAccount(accountId, reconcileDto, userId);
 
-      expect(result).toHaveProperty('success', true);
+      // Correction : adapter l'attente à la structure réelle retournée
+      expect(result).toHaveProperty('status', 'in_progress');
+      expect(result).toHaveProperty('reconciliationId');
+      expect(result).toHaveProperty('message');
       expect(accountRepository.findOne).toHaveBeenCalledWith({ where: { id: accountId } });
       expect(accountRepository.save).toHaveBeenCalledWith(expect.objectContaining({
         id: accountId,

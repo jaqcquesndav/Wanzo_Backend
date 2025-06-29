@@ -6,12 +6,12 @@ services:
       dockerfile: ./apps/api-gateway/Dockerfile
     container_name: kiota-api-gateway
     ports:
-      - "3000:3000"
+      - "8000:3000"
     environment:
       - NODE_ENV=production
       - AUTH_SERVICE_URL=http://admin-service:3001
       - ADMIN_SERVICE_URL=http://admin-service:3001
-      - ANALYTICS_SERVICE_URL=http://analytics-service:3002
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3010
       - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
       - PORTFOLIO_SME_SERVICE_URL=http://portfolio-sme-service:3004
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
@@ -97,7 +97,7 @@ services:
       dockerfile: ./apps/analytics-service/Dockerfile
     container_name: kiota-analytics-service
     ports:
-      - "3002:3002"
+      - "3010:3002"
       - "9466:9464" # Port Prometheus (mapping différent)
     environment:
       - NODE_ENV=production
@@ -285,7 +285,7 @@ services:
     image: grafana/grafana:10.0.0
     container_name: kiota-grafana
     ports:
-      - "3000:3000"
+      - "3002:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:

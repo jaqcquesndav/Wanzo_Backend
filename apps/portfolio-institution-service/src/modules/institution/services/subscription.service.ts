@@ -65,16 +65,17 @@ export class SubscriptionService {
     
     // Publish subscription changed event
     await this.eventsService.publishSubscriptionChanged({
+      subscriptionId: institution.id, // Use institution id as subscriptionId for event
       userId,
       entityId: institutionId,
       entityType: EntityType.INSTITUTION,
       previousPlan: previousPlan as unknown as SubscriptionPlanType, // Cast to SubscriptionPlanType
       newPlan: plan as unknown as SubscriptionPlanType, // Cast to SubscriptionPlanType
-      status: SubscriptionStatusType.ACTIVE,
-      expiresAt,
-      timestamp: new Date(),
+      newStatus: SubscriptionStatusType.ACTIVE,
+      startDate: (institution.lastSubscriptionChangeAt ?? new Date()).toISOString(),
+      endDate: expiresAt.toISOString(),
       changedBy: userId,
-      reason: 'Subscription updated'
+      timestamp: new Date().toISOString(),
     });
     
     this.logger.log(`Institution ${institutionId} subscription updated to ${plan}`);

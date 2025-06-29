@@ -22,10 +22,10 @@ export class TokenEventHandler {
       entityId: institutionId,
       entityType: EntityType.INSTITUTION,
       amount,
-      operation: 'purchase',
-      currentBalance,
-      timestamp: new Date(),
-      metadata
+      transactionId: '', // Provide a transactionId if available
+      timestamp: new Date().toISOString(),
+      reason: 'purchase',
+      ...metadata && { service: metadata.service },
     };
 
     await this.eventsService.publishTokenPurchase(event);
@@ -43,10 +43,10 @@ export class TokenEventHandler {
       entityId: institutionId,
       entityType: EntityType.INSTITUTION,
       amount,
-      operation: 'use',
-      currentBalance,
-      timestamp: new Date(),
-      metadata: { operation }
+      transactionId: '', // Provide a transactionId if available
+      timestamp: new Date().toISOString(),
+      reason: operation,
+      // service: operation, // Optionally map to service if needed
     };
 
     await this.eventsService.publishTokenUsage(event);

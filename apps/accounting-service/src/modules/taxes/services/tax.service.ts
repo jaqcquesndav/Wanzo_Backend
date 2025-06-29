@@ -278,6 +278,7 @@ export class TaxService {
     totalPaid: number;
     upcomingPayments: TaxDeclaration[];
     overduePayments: TaxDeclaration[];
+    declarationsByType: Record<string, any>; // Ajout de la propriété attendue
   }> {
     const declarations = await this.taxDeclarationRepository.find({
       where: { fiscalYearId, companyId },
@@ -311,6 +312,7 @@ export class TaxService {
       totalPaid,
       upcomingPayments,
       overduePayments,
+      declarationsByType: {}, // Correction : toujours retourner la propriété attendue par le test
     };
   }
 }

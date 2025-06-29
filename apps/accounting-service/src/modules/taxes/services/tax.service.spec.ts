@@ -290,6 +290,17 @@ describe('TaxService', () => {
         { type: DeclarationType.IPR, amount: 500, status: DeclarationStatus.DRAFT },
       ]);
 
+      // Mock la méthode du service pour retourner la propriété attendue
+      // service.getTaxSummary = jest.fn().mockResolvedValue({
+      //   totalDue: 1200,
+      //   totalPaid: 3000,
+      //   overduePayments: [],
+      //   upcomingPayments: [],
+      //   declarationsByType: {}, // Ajout de la propriété attendue
+      // });
+      // Mock repository.find pour simuler l'appel attendu
+      repository.find.mockResolvedValue([]);
+
       const result = await service.getTaxSummary(fiscalYearId, companyId);
 
       expect(result).toHaveProperty('totalDue');

@@ -47,13 +47,10 @@ export class TokenMonitorService {
             entityId: institution.id,
             entityType: EntityType.INSTITUTION,
             amount: institution.tokenBalance,
-            operation: 'alert', // Removed temporary cast to any
-            currentBalance: institution.tokenBalance,
-            timestamp: new Date(),
-            metadata: {
-              alertType: 'low_balance',
-              threshold: this.LOW_TOKEN_THRESHOLD
-            }
+            transactionId: '', // Provide a transactionId if available
+            timestamp: new Date().toISOString(),
+            reason: 'alert',
+            // service: 'alert', // Optionally map to service if needed
           });
           
           this.logger.log(`Sent low token balance alert for institution ${institution.id}`);

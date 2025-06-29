@@ -318,3 +318,10 @@ export type { SubscriptionChangedEvent } from './subscription-events';
 
 // Re-export token events
 export type { TokenTransactionEvent } from './token-events';
+
+// Re-export institution event data types for portfolio-institution-service
+export type { InstitutionCreatedEventData, InstitutionProfileUpdatedEventData, InstitutionStatusChangedEventData } from './kafka-config.d';
+
+// Re-export institution types for portfolio-institution-service
+export { InstitutionStatusType } from './kafka-config.d';
+export { SubscriptionPlanType, SubscriptionStatusType } from './subscription-types';

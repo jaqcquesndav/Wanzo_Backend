@@ -169,8 +169,10 @@ export class InstitutionService {
     }
 
     let institutionToLink: Institution | null = null;
-    const providedOrgId = explicitInstitutionId || event.organizationDetails?.id;
-    const providedOrgName = event.organizationDetails?.name;
+    // Correction : UserCreatedEventData n'a pas organizationDetails, firstName, lastName, phoneNumber
+    // Utiliser uniquement les propriétés existantes : userId, email, name, role, userType, customerAccountId, customerName, timestamp
+    const providedOrgId = explicitInstitutionId; // event.organizationDetails?.id n'existe pas
+    const providedOrgName = undefined; // event.organizationDetails?.name n'existe pas
 
     if (event.userType === EventUserType.INSTITUTION_ADMIN) {
       let createdViaEvent = false;
@@ -272,9 +274,9 @@ export class InstitutionService {
 
     if (user) {
       this.logger.log(`Found existing InstitutionUser with authUserId: ${event.userId}. Updating...`);
-      user.name = `${event.firstName || ''} ${event.lastName || ''}`.trim();
+      user.name = event.name;
       user.email = event.email;
-      user.phone = event.phoneNumber || user.phone;
+      // user.phone = event.phoneNumber || user.phone; // phoneNumber n'existe pas
       // If user exists and institutionToLink is identified, ensure they are correctly linked.
       // This handles cases where user profile was created before institution was confirmed.
       if (institutionToLink && user.institutionId !== institutionToLink.id) {
@@ -296,9 +298,9 @@ export class InstitutionService {
 
       user = this.institutionUserRepository.create({
         authUserId: event.userId,
-        name: `${event.firstName || ''} ${event.lastName || ''}`.trim(),
+        name: event.name,
         email: event.email,
-        phone: event.phoneNumber || '',
+        // phone: event.phoneNumber || '', // phoneNumber n'existe pas
         institutionId: institutionToLink.id,
         kiotaId: `KIOTA-IU-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         role: role,

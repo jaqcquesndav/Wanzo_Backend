@@ -4,9 +4,9 @@ import {
   UserEventTopics, 
   UserStatusChangedEvent, 
   UserRoleChangedEvent,
-  SubscriptionChangedEvent,
   TokenTransactionEvent
 } from '../../../../../packages/shared/events/kafka-config';
+import { SubscriptionChangedEvent, SubscriptionEventTopics } from '../../../../../packages/shared/events/subscription-events';
 import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
@@ -39,24 +39,24 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
 
   async publishSubscriptionChanged(event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Publishing subscription changed event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_CHANGED, event);
+    this.eventsClient.emit(SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED, event);
   }
 
   async publishSubscriptionExpired(event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Publishing subscription expired event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.SUBSCRIPTION_EXPIRED, event);
+    this.eventsClient.emit(SubscriptionEventTopics.SUBSCRIPTION_EXPIRED, event);
   }
-    async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
+
+  async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_PURCHASE, event);
-  }  
+    this.eventsClient.emit('token.purchase', event);
+  }
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_USAGE, event);
+    this.eventsClient.emit('token.usage', event);
   }
-  
   async publishTokenAlert(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token alert event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(UserEventTopics.TOKEN_ALERT, event);
+    this.eventsClient.emit('token.alert', event);
   }
 }

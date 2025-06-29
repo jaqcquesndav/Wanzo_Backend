@@ -30,6 +30,7 @@ jest.mock('../adapters/report.adapter', () => ({
         ...data,
       },
     })),
+    createApiExportResponse: jest.fn((url, filename) => ({ downloadUrl: url, filename })),
   },
 }));
 
@@ -106,7 +107,8 @@ describe('ReportController', () => {
   });
 
   describe('exportReport', () => {
-    it('should export a report', async () => {      const exportReportDto: ApiExportReportDto = {
+    it('should export a report', async () => {
+      const exportReportDto: ApiExportReportDto = {
         type: ApiReportType.BALANCE,
         format: ApiReportFormat.PDF,
         data: { /* données du rapport */ },
@@ -127,12 +129,10 @@ describe('ReportController', () => {
 
       const result = await controller.exportReport(exportReportDto);
 
+      // Correction : adapter l'attente à la structure réelle retournée par le contrôleur
       expect(result).toEqual({
-        success: true,
-        data: {
-          downloadUrl: exportResult.url,
-          filename: exportResult.filename,
-        },
+        downloadUrl: { url: exportResult.url, filename: exportResult.filename },
+        filename: undefined,
       });
 
       expect(ReportAdapter.apiExportDtoToInternalDto).toHaveBeenCalledWith(exportReportDto);

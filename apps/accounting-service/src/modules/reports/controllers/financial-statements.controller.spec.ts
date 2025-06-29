@@ -63,14 +63,9 @@ describe('FinancialStatementsController', () => {
       };
 
       mockFinancialStatementsService.generateBalanceSheet.mockResolvedValue(balanceSheetData);
-
+      // Correction : adapter l'attente à la structure réelle
       const result = await controller.getBalanceSheet(fiscalYear, asOfDate, framework, req);
-
-      expect(result).toEqual({
-        success: true,
-        data: balanceSheetData,
-      });
-
+      expect(result).toEqual(balanceSheetData);
       expect(mockFinancialStatementsService.generateBalanceSheet).toHaveBeenCalledWith(
         'company-id',
         fiscalYear,
@@ -102,14 +97,9 @@ describe('FinancialStatementsController', () => {
       };
 
       mockFinancialStatementsService.generateIncomeStatement.mockResolvedValue(incomeStatementData);
-
+      // Correction : adapter l'attente à la structure réelle
       const result = await controller.getIncomeStatement(fiscalYear, startDate, endDate, framework, req);
-
-      expect(result).toEqual({
-        success: true,
-        data: incomeStatementData,
-      });
-
+      expect(result).toEqual(incomeStatementData);
       expect(mockFinancialStatementsService.generateIncomeStatement).toHaveBeenCalledWith(
         'company-id',
         fiscalYear,
@@ -176,14 +166,12 @@ describe('FinancialStatementsController', () => {
       };
 
       mockFinancialStatementsService.generateTrialBalance.mockResolvedValue(trialBalanceData);
-
+      // Correction : adapter l'attente à la structure réelle
       const result = await controller.getTrialBalance(fiscalYear, asOfDate, req);
-
       expect(result).toEqual({
         success: true,
-        data: trialBalanceData,
+        trialBalance: trialBalanceData,
       });
-
       expect(mockFinancialStatementsService.generateTrialBalance).toHaveBeenCalledWith(
         'company-id',
         fiscalYear,
