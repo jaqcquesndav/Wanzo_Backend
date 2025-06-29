@@ -66,16 +66,32 @@ export class RouteResolverService {
         scopes: ['portfolio:read', 'portfolio:write', 'institution:manage'],
         roles: ['admin', 'manager'],
       },
+      {
+        service: 'adha-ai',
+        baseUrl: this.configService.get('ADHA_AI_SERVICE_URL', 'http://localhost:3010'),
+        prefix: 'adha-ai',
+        healthCheck: '/health',
+        scopes: ['ai:use', 'ai:read', 'ai:write'],
+        roles: ['admin', 'user', 'analyst', 'accountant', 'manager'],
+      },
     ];
   }
 
   resolveRoute(path: string): ServiceRoute | null {
     // Remove leading slash
     const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    // Find matching route
+
+    // 1. Cas spécial : adha-ai en sous-préfixe (ex: /accounting/adha-ai/..., /mobile/adha-ai/...)
+    if (normalizedPath.includes('/adha-ai/')) {
+      const adhaRoute = this.routes.find(r => r.service === 'adha-ai');
+      if (adhaRoute) {
+        this.logger.debug(`Resolved path ${path} to service adha-ai (sub-prefix match)`);
+        return adhaRoute;
+      }
+    }
+
+    // 2. Cas classique : préfixe direct
     const route = this.routes.find(r => normalizedPath.startsWith(r.prefix));
-    
     if (route) {
       this.logger.debug(`Resolved path ${path} to service ${route.service}`);
       return route;
