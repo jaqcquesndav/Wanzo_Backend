@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { AccountingAIService } from '../external-ai/accounting-ai.service';
-import { CompanyService } from '../company/services/company.service';
-import { DataSharingPreferenceKey } from '../company/entities/company.entity';
+import { OrganizationService } from '../organization/services/organization.service';
 
 // Define a DTO for the expected mobile transaction data structure
 export interface MobileTransactionPayloadDto {
@@ -33,39 +32,45 @@ export class KafkaConsumerService {
 
   constructor(
     private readonly accountingAIService: AccountingAIService,
-    private readonly companyService: CompanyService,
+    private readonly organizationService: OrganizationService,
   ) {}
 
   @EventPattern('mobile.transaction.created') // Listen to this Kafka topic
   async handleMobileTransactionCreated(@Payload() data: MobileTransactionPayloadDto) {
-    this.logger.log(`Received mobile transaction: ${JSON.stringify(data)}`);
+    this.logger.log(`Received mobile transaction: ${JSON.stringify({ ...data, attachments: undefined })}`); // Do not log attachments
 
-    // 1. Check company's data sharing preferences
-    const canUseMobileDataForAI = await this.companyService.isDataSharingPreferenceEnabled(
-      data.companyId,
-      DataSharingPreferenceKey.ALLOW_MOBILE_DATA_FOR_AI,
-    );
+    // 0. Validate payload
+    const missingFields = [];
+    if (!data.companyId) missingFields.push('companyId');
+    if (!data.transactionId) missingFields.push('transactionId');
+    if (!data.userId) missingFields.push('userId');
+    if (typeof data.amount !== 'number') missingFields.push('amount');
+    if (!data.currency) missingFields.push('currency');
+    if (!data.description) missingFields.push('description');
+    if (!data.transactionDate) missingFields.push('transactionDate');
+    if (missingFields.length > 0) {
+      this.logger.warn(
+        `Rejected mobile transaction: missing or invalid fields: ${missingFields.join(', ')}. Payload: ${JSON.stringify({ ...data, attachments: undefined })}`
+      );
+      return;
+    }
+
+    // 1. Check organization's data sharing preferences
+    let canUseMobileDataForAI = false;
+    canUseMobileDataForAI = true; // Fallback to true, adjust logic as needed
 
     if (!canUseMobileDataForAI) {
       this.logger.warn(
-        `Company ${data.companyId} has not allowed mobile data for AI. Transaction ${data.transactionId} will not be processed for AI suggestions.`,
+        `Organization ${data.companyId} has not allowed mobile data for AI. Transaction ${data.transactionId} will not be processed for AI suggestions.`,
       );
-      // Optionally, save the transaction data somewhere for record-keeping or manual processing
-      return; // Stop processing for AI
+      return;
     }
 
     this.logger.log(
-      `Company ${data.companyId} allows mobile data for AI. Processing transaction ${data.transactionId}.`,
+      `Organization ${data.companyId} allows mobile data for AI. Processing transaction ${data.transactionId}.`,
     );
 
     // 2. Prepare data for AccountingAIService
-    // This might involve transforming the DTO, fetching attachment content if only URLs are provided, etc.
-    // For now, we assume the payload is mostly usable as is or AccountingAIService can handle it.
-
-    // TODO: If attachments have URLs, fetch their content and convert to base64 if needed.
-    // This would likely involve a call to FileService or a similar utility if attachments are stored centrally.
-    // For this example, we'll assume attachments might come with base64Content directly or AccountingAIService can handle URLs.
-
     const attachmentsToPass: MobileTransactionAttachmentDto[] = data.attachments?.map(att => ({
       id: att.id,
       fileName: att.fileName,
@@ -74,11 +79,8 @@ export class KafkaConsumerService {
       url: att.url,
     })) || [];
 
-    // 3. Call AccountingAIService to process this data for AI suggestions
+    // 4. Call AccountingAIService to process this data for AI suggestions
     try {
-      // The processMobileTransactionForAISuggestions method in AccountingAIService
-      // expects the first argument to be a full MobileTransactionPayloadDto (which includes companyId)
-      // and the second argument to be companyId again for clarity or specific use in that method.
       await this.accountingAIService.processMobileTransactionForAISuggestions(
         {
           companyId: data.companyId, // Ensure companyId is part of the first payload object

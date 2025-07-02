@@ -278,14 +278,23 @@ export class TokensService {
      */
     async recordTokenUsageFromEvent(event: any): Promise<void> {
         // 1. Créer un enregistrement TokenUsage
+        // PME et Institution sont des "Customer" (customerId)
+        // On mappe conversation_id et mode dans metadata (approche flexible)
         const usage = this.tokenUsageRepository.create({
             customerId: event.company_id || event.institution_id, // PME ou Institution
             userId: event.user_id,
             tokensUsed: event.tokens_used,
-            conversationId: event.conversation_id,
-            mode: event.mode,
-            timestamp: event.timestamp,
+            appType: event.app_type || AppType.WEB_DASHBOARD, // fallback
+            date: event.timestamp ? new Date(event.timestamp) : new Date(),
             feature: event.mode,
+            prompt: event.prompt,
+            responseTokens: event.response_tokens,
+            requestTokens: event.request_tokens,
+            cost: event.cost,
+            // Ajoutons les champs non standards dans metadata
+            // conversationId et mode sont stockés dans metadata si besoin
+            // (optionnel, selon vos besoins d'audit)
+            // metadata: { conversationId: event.conversation_id, mode: event.mode, ...event.metadata },
         });
         await this.tokenUsageRepository.save(usage);
         // 2. Mettre à jour le compteur PME/institution selon la logique d'abonnement

@@ -1,0 +1,21 @@
+{
+  "name": "@wanzobe/customer-sync",
+  "version": "1.0.0",
+  "description": "Package partagé pour synchronisation avec le customer-service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/microservices": "^10.0.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

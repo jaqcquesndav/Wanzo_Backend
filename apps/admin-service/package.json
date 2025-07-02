@@ -33,6 +33,7 @@
     "@opentelemetry/sdk-node": "^0.202.0",
     "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@opentelemetry/semantic-conventions": "^1.34.0",
+    "@wanzobe/customer-sync": "^1.0.0",
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",

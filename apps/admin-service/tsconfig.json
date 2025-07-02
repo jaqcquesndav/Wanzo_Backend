@@ -5,7 +5,9 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "@wanzo/shared/*": ["../../packages/shared/*"]
+      "@wanzo/shared/*": ["../../packages/shared/*"],
+      "@wanzobe/customer-sync": ["../../packages/customer-sync/src"],
+      "@wanzobe/customer-sync/*": ["../../packages/customer-sync/src/*"]
     },
     "strict": true,
     "strictNullChecks": false,

@@ -16,6 +16,7 @@ services:
       - PORTFOLIO_SME_SERVICE_URL=http://portfolio-sme-service:3004
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
       - APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
+      - CUSTOMER_SERVICE_URL=http://customer-service:3011
       - PROMETHEUS_PORT=9464
     volumes:
       - api-gateway-logs:/app/apps/api-gateway/logs
@@ -26,6 +27,7 @@ services:
       - portfolio-sme-service
       - portfolio-institution-service
       - app-mobile-service
+      - customer-service
     networks:
       - kiota-network
     restart: unless-stopped
@@ -210,6 +212,66 @@ services:
       - kiota-network
     restart: unless-stopped
 
+  # Adha AI Service
+  adha-ai-service:
+    build:
+      context: .
+      dockerfile: ./apps/Adha-ai-service/Dockerfile
+    container_name: kiota-adha-ai-service
+    ports:
+      - "8002:8002"
+      - "9470:9464" # Port Prometheus (mapping différent)
+    environment:
+      - PORT=8002
+      - DJANGO_SETTINGS_MODULE=comptable_ia_api.settings
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - huggingface_api_key=${huggingface_api_key}
+      - chromadb_path=${chromadb_path}
+      - pinecone_api_key=${pinecone_api_key}
+      - pinecone_environment=${pinecone_environment}
+      - knowledge_base_path=${knowledge_base_path}
+      - KAFKA_BROKER_URL=kafka:29092
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - ./apps/Adha-ai-service/data:/app/data
+    depends_on:
+      - kafka
+      - prometheus
+      - grafana
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Customer Service
+  customer-service:
+    build:
+      context: .
+      dockerfile: ./apps/customer-service/Dockerfile
+    container_name: kiota-customer-service
+    ports:
+      - "3011:3011"
+      - "9470:9464"
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root123
+      - DB_DATABASE=customer-service
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=customer-service
+      - KAFKA_GROUP_ID=customer-service-group
+      - PROMETHEUS_PORT=9464
+    volumes:
+      - customer-service-logs:/app/apps/customer-service/logs
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
   # Base de données PostgreSQL commune
   postgres:
     image: postgres:15-alpine
@@ -307,6 +369,7 @@ volumes:
   portfolio-sme-service-logs:
   portfolio-institution-service-logs:
   app-mobile-service-logs:
+  customer-service-logs:
   prometheus-data:
   grafana-storage:
 

@@ -2,16 +2,15 @@ import { Injectable, Logger, NotFoundException, InternalServerErrorException } f
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { CompanyService } from '../company/services/company.service'; // Corrected path
-import { JournalService } from '../journals/services/journal.service'; // Corrected path
-import { ChatService } from '../chat/services/chat.service'; // Corrected path
-// Consolidated import for AI DTOs
-import { AccountingAIRequestDto, AccountingAIResponseDto, SingleAISuggestion, AIContextDataDto, MobileTransactionContextDto } from './dtos/ai-accounting.dto'; 
-import { DataSharingPreferenceKey } from '../company/entities/company.entity'; // Corrected path
-import { AccountingStandard } from '../../common/enums/accounting.enum'; // Corrected path
-import { CreateJournalDto, JournalLineDto } from '../journals/dtos/journal.dto'; // Corrected path
-import { JournalType } from '../journals/entities/journal.entity'; // Corrected path
-import { MobileTransactionPayloadDto, MobileTransactionAttachmentDto } from '../kafka/kafka-consumer.service'; // Import DTOs
+import { OrganizationService } from '../organization/services/organization.service';
+import { JournalService } from '../journals/services/journal.service';
+import { ChatService } from '../chat/services/chat.service';
+import { AccountingAIRequestDto, AccountingAIResponseDto, SingleAISuggestion, AIContextDataDto, MobileTransactionContextDto } from './dtos/ai-accounting.dto';
+import { AccountingMode } from '../organization/entities/organization.entity';
+import { AccountingStandard } from '../../common/enums/accounting.enum';
+import { CreateJournalDto, JournalLineDto } from '../journals/dtos/journal.dto';
+import { JournalType } from '../journals/entities/journal.entity';
+import { MobileTransactionPayloadDto, MobileTransactionAttachmentDto } from '../kafka/kafka-consumer.service';
 
 @Injectable()
 export class AccountingAIService {
@@ -21,7 +20,7 @@ export class AccountingAIService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-    private readonly companyService: CompanyService,
+    private readonly organizationService: OrganizationService,
     private readonly journalService: JournalService,
     private readonly chatService: ChatService,
   ) {
@@ -60,44 +59,37 @@ export class AccountingAIService {
       };
     }
 
-    const company = await this.companyService.findById(companyId);
+    const company = await this.organizationService.findById(companyId);
     if (!company) {
       this.logger.warn(`Company not found: ${companyId}`);
       throw new NotFoundException(`Company with ID ${companyId} not found.`);
     }
 
-    const accountingStandardToUse = company.metadata?.accountingStandard as AccountingStandard || AccountingStandard.SYSCOHADA;
-    const fiscalYearToUse = company.currentFiscalYear;
+    // Preferences and fiscal year/standard should come from config/settings, not legacy properties
+    // TODO: If per-organization preferences are needed, add a 'preferences' JSON field to Organization and read from there
+    const accountingStandardToUse = this.configService.get<AccountingStandard>('ACCOUNTING_STANDARD') || AccountingStandard.SYSCOHADA;
+    const fiscalYearToUse = this.configService.get<string>('CURRENT_FISCAL_YEAR');
     if (!fiscalYearToUse) {
-      this.logger.warn(`Current fiscal year not set for company ${companyId}`);
+      this.logger.warn(`Current fiscal year is not set in config for company ${companyId}`);
       throw new InternalServerErrorException('Current fiscal year is not set for the company.');
     }
 
-    // Initialize with attachments from controller if AI data sharing for chat is allowed
+    // Préférence de partage de données IA (chat)
+    const allowChatDataForAI = this.configService.get<boolean>('ALLOW_CHAT_DATA_FOR_AI') ?? false;
     let attachmentsForAI: Array<{ id: string; type: string; content: string; fileName: string }> = [];
-    const allowChatDataForAI = await this.companyService.isDataSharingPreferenceEnabled(
-      companyId,
-      DataSharingPreferenceKey.ALLOW_CHAT_DATA_FOR_AI,
-    );
-
     if (allowChatDataForAI && processedAttachmentsFromController && processedAttachmentsFromController.length > 0) {
-      this.logger.log(`Including ${processedAttachmentsFromController.length} chat attachments for AI context based on company preference.`);
+      this.logger.log(`Including ${processedAttachmentsFromController.length} chat attachments for AI context based on config preference.`);
       attachmentsForAI = processedAttachmentsFromController;
     } else if (processedAttachmentsFromController && processedAttachmentsFromController.length > 0) {
-      this.logger.log(`NOT including chat attachments for AI context. ${DataSharingPreferenceKey.ALLOW_CHAT_DATA_FOR_AI} is disabled for company ${companyId}.`);
+      this.logger.log(`NOT including chat attachments for AI context. ALLOW_CHAT_DATA_FOR_AI is disabled in config for company ${companyId}.`);
     }
 
-    // Placeholder for Mobile App Data Ingestion (e.g., from Kafka)
-    const allowMobileDataForAI = await this.companyService.isDataSharingPreferenceEnabled(
-      companyId,
-      DataSharingPreferenceKey.ALLOW_MOBILE_DATA_FOR_AI,
-    );
-
+    // Préférence de partage de données IA (mobile)
+    const allowMobileDataForAI = this.configService.get<boolean>('ALLOW_MOBILE_DATA_FOR_AI') ?? false;
     if (allowMobileDataForAI) {
-      this.logger.log(`Mobile data sharing is enabled for company ${companyId}. Placeholder for fetching/integrating mobile data.`);
+      this.logger.log(`Mobile data sharing is enabled in config for company ${companyId}. Placeholder for fetching/integrating mobile data.`);
       // const mobileData = await this.fetchMobileAppDataForAI(companyId, fiscalYearToUse);
-      // attachmentsForAI = attachmentsForAI.concat(mobileData.attachments); 
-      // Potentially merge other mobile data into context as well
+      // attachmentsForAI = attachmentsForAI.concat(mobileData.attachments);
     }
 
     // Get accounting context (accounts, recent journals)
@@ -166,12 +158,13 @@ export class AccountingAIService {
     }
 
     try {
-      const company = await this.companyService.findById(companyId);
+      const company = await this.organizationService.findById(companyId);
       if (!company) {
         this.logger.error(`Company not found: ${companyId} when trying to create journal from AI suggestion.`);
         throw new NotFoundException(`Company with ID ${companyId} not found.`);
       }
-      const fiscalYearToUse = company.currentFiscalYear;
+      // const fiscalYearToUse = company.currentFiscalYear; // Removed: not present on Organization
+      const fiscalYearToUse = this.configService.get<string>('CURRENT_FISCAL_YEAR');
       if (!fiscalYearToUse) {
         this.logger.error(`Current fiscal year not set for company ${companyId} when creating journal from AI.`);
         throw new InternalServerErrorException('Current fiscal year is not set for the company.');
@@ -265,26 +258,23 @@ export class AccountingAIService {
       };
     }
 
-    const company = await this.companyService.findById(companyId);
+    const company = await this.organizationService.findById(companyId);
     if (!company) {
       this.logger.warn(`Company not found: ${companyId} while processing mobile transaction ${payload.transactionId}`);
       return null;
     }
 
-    const allowMobileDataForAI = await this.companyService.isDataSharingPreferenceEnabled(
-      companyId,
-      DataSharingPreferenceKey.ALLOW_MOBILE_DATA_FOR_AI,
-    );
-
+    // Préférence de partage de données IA (mobile)
+    const allowMobileDataForAI = this.configService.get<boolean>('ALLOW_MOBILE_DATA_FOR_AI') ?? false;
     if (!allowMobileDataForAI) {
       this.logger.warn(`Data sharing for mobile data (ALLOW_MOBILE_DATA_FOR_AI) was disabled for company ${companyId} before processing transaction ${payload.transactionId}. Aborting.`);
       return null;
     }
 
-    const accountingStandardToUse = company.metadata?.accountingStandard as AccountingStandard || AccountingStandard.SYSCOHADA;
-    const fiscalYearToUse = company.currentFiscalYear;
+    const accountingStandardToUse = this.configService.get<AccountingStandard>('ACCOUNTING_STANDARD') || AccountingStandard.SYSCOHADA;
+    const fiscalYearToUse = this.configService.get<string>('CURRENT_FISCAL_YEAR');
     if (!fiscalYearToUse) {
-      this.logger.warn(`Current fiscal year not set for company ${companyId} while processing mobile transaction ${payload.transactionId}`);
+      this.logger.warn(`Current fiscal year is not set in config for company ${companyId} while processing mobile transaction ${payload.transactionId}`);
       return null; 
     }
 
@@ -373,13 +363,8 @@ export class AccountingAIService {
       if (response.data.suggestions && response.data.suggestions.length > 0) {
         this.logger.log(`AI provided ${response.data.suggestions.length} suggestions for mobile transaction ${payload.transactionId}.`);
         
-        const autoCreatePreference = await this.companyService.getStructuredDataSharingPreference<
-          { enabled: boolean; minConfidence: number } 
-        >(
-          companyId,
-          DataSharingPreferenceKey.AUTO_CREATE_JOURNAL_FROM_MOBILE_AI
-        );
-
+        // Préférence auto création journal mobile AI
+        let autoCreatePreference = this.configService.get<{ enabled: boolean; minConfidence: number }>('AUTO_CREATE_JOURNAL_FROM_MOBILE_AI');
         if (autoCreatePreference?.enabled) {
           this.logger.log(`Auto-creation of journal from mobile AI suggestion is ENABLED for company ${companyId}. Min confidence: ${autoCreatePreference.minConfidence}`);
           for (const suggestion of response.data.suggestions) {
@@ -390,37 +375,42 @@ export class AccountingAIService {
               this.logger.log(`Suggestion confidence (${suggestionConfidence}) meets threshold (${autoCreatePreference.minConfidence}). Attempting to create journal.`);
               try {
                 const createdJournal = await this.createJournalFromAISuggestion(suggestion, companyId, payload.userId);
-                if (createdJournal) {
-                  this.logger.log(`Successfully created journal entry from AI suggestion for transaction ${payload.transactionId}, journal ID: ${createdJournal.id}`);
+                if (!createdJournal) {
+                  this.logger.warn(`Journal creation from AI suggestion returned null for suggestion: ${JSON.stringify(suggestion)}`);
                 } else {
-                  this.logger.warn(`Journal creation from AI suggestion was not successful for transaction ${payload.transactionId} (suggestion: ${suggestion.description}). It might be unbalanced or have other issues.`);
+                  this.logger.log(`Successfully created journal from AI suggestion for transaction ${payload.transactionId}. Journal ID: ${createdJournal.id}`);
                 }
-              } catch (journalCreateError: any) {
-                this.logger.error(`Error auto-creating journal from AI suggestion for transaction ${payload.transactionId}: ${journalCreateError.message}`, journalCreateError.stack);
+              } catch (creationError) {
+                const errMsg = creationError instanceof Error ? creationError.message : JSON.stringify(creationError);
+                this.logger.error(`Error creating journal from AI suggestion for transaction ${payload.transactionId}: ${errMsg}`);
               }
             } else {
-              this.logger.log(`Suggestion confidence (${suggestionConfidence}) is BELOW threshold (${autoCreatePreference.minConfidence}). Journal will not be auto-created.`);
+              this.logger.log(`Suggestion confidence (${suggestionConfidence}) does not meet the minimum threshold (${autoCreatePreference.minConfidence}). Skipping journal creation for this suggestion.`);
             }
           }
         } else {
           this.logger.log(`Auto-creation of journal from mobile AI suggestion is DISABLED for company ${companyId}.`);
         }
       } else {
-        this.logger.log(`No suggestions provided by AI for mobile transaction ${payload.transactionId}.`);
+        this.logger.log(`No AI suggestions found for mobile transaction ${payload.transactionId}.`);
       }
-      return response.data;
 
+      return response.data;
     } catch (error: any) {
-      this.logger.error(`Error communicating with Django AI service for mobile transaction ${payload.transactionId} (company ${companyId}): ${error.message}`, error.stack);
-      return {
-        reply: 'Erreur lors du traitement de la transaction mobile par l\'IA.',
-        confidence: 0,
-        needsReview: true,
-        error: {
-          message: error.message || 'Unknown AI service communication error for mobile transaction',
-          service: 'ExternalAICommunicationError',
-        }
-      };
+      this.logger.error(`Error communicating with Django AI service for mobile transaction ${payload.transactionId}: ${error.message}`, error.stack);
+      return null;
     }
+  }
+
+  /**
+   * Placeholder for fetching mobile app data for AI processing.
+   * In a real implementation, this would fetch and return relevant data from the mobile app's transaction Kafka topic or other sources.
+   */
+  private async fetchMobileAppDataForAI(companyId: string, fiscalYear: number) {
+    // TODO: Implement data fetching logic
+    return {
+      attachments: [], // Array of processed attachments for AI
+      // other context data as needed
+    };
   }
 }

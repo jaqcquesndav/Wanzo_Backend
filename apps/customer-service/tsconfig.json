@@ -1,0 +1,14 @@
+{
+  "extends": "../../packages/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@wanzo/shared/*": ["../../packages/shared/*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

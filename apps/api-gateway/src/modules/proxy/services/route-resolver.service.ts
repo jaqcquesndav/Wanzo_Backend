@@ -67,6 +67,14 @@ export class RouteResolverService {
         roles: ['admin', 'manager'],
       },
       {
+        service: 'customer',
+        baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
+        prefix: 'customers',
+        healthCheck: '/health',
+        scopes: ['customers:read', 'customers:write', 'users:read', 'users:write', 'subscriptions:read', 'subscriptions:write'],
+        roles: ['admin', 'superadmin', 'service'],
+      },
+      {
         service: 'adha-ai',
         baseUrl: this.configService.get('ADHA_AI_SERVICE_URL', 'http://localhost:3010'),
         prefix: 'adha-ai',
