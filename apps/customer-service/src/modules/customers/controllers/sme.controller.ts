@@ -59,16 +59,24 @@ export class SmeController {
   @ApiResponse({ status: 200, description: 'SME validated successfully' })
   @ApiResponse({ status: 404, description: 'SME not found' })
   @Put(':id/validate')
-  async validate(@Param('id') id: string) {
-    return this.smeService.validate(id);
+  async validate(@Param('id') id: string, @Body() validationDto: { validatedBy: string }) {
+    return this.smeService.validate(id, validationDto.validatedBy);
   }
 
   @ApiOperation({ summary: 'Suspend an SME' })
   @ApiResponse({ status: 200, description: 'SME suspended successfully' })
   @ApiResponse({ status: 404, description: 'SME not found' })
   @Put(':id/suspend')
-  async suspend(@Param('id') id: string, @Body() suspensionDto: { reason: string }) {
-    return this.smeService.suspend(id, suspensionDto.reason);
+  async suspend(@Param('id') id: string, @Body() suspensionDto: { suspendedBy: string; reason: string }) {
+    return this.smeService.suspend(id, suspensionDto.suspendedBy, suspensionDto.reason);
+  }
+
+  @ApiOperation({ summary: 'Reject an SME' })
+  @ApiResponse({ status: 200, description: 'SME rejected successfully' })
+  @ApiResponse({ status: 404, description: 'SME not found' })
+  @Put(':id/reject')
+  async reject(@Param('id') id: string, @Body() rejectionDto: { rejectedBy: string; reason: string }) {
+    return this.smeService.reject(id, rejectionDto.rejectedBy, rejectionDto.reason);
   }
 
   @ApiOperation({ summary: 'Get SME-specific business data' })

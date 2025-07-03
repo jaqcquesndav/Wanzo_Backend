@@ -574,6 +574,88 @@ GET /land/api/v1/financial-institutions?page=1&limit=10
 }
 ```
 
+## Endpoints de Validation et Gestion de Statut
+
+### Valider une institution financière
+
+```
+PATCH /land/api/v1/financial-institutions/:institutionId/validate
+```
+
+#### Corps de la requête
+
+```json
+{
+  "validatedBy": "admin-123"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière validée avec succès"
+  }
+}
+```
+
+### Suspendre une institution financière
+
+```
+PATCH /land/api/v1/financial-institutions/:institutionId/suspend
+```
+
+#### Corps de la requête
+
+```json
+{
+  "suspendedBy": "admin-123",
+  "reason": "Non-conformité aux régulations bancaires"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière suspendue avec succès"
+  }
+}
+```
+
+### Rejeter une institution financière
+
+```
+PATCH /land/api/v1/financial-institutions/:institutionId/reject
+```
+
+#### Corps de la requête
+
+```json
+{
+  "rejectedBy": "admin-123",
+  "reason": "Documents falsifiés"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière rejetée avec succès"
+  }
+}
+    "message": "Institution financière rejetée avec succès"
+  }
+}
+```
+
 ## Logique métier
 
 ### Création d'institution financière

@@ -475,7 +475,7 @@ export class SmeService {
     return { success: true, message: 'SME deleted successfully' };
   }
 
-  async validate(id: string): Promise<{ success: boolean; message: string }> {
+  async validate(id: string, validatedBy: string): Promise<{ success: boolean; message: string }> {
     const sme = await this.smeRepository.findOne({
       where: { customerId: id },
       relations: ['customer'],
@@ -487,6 +487,8 @@ export class SmeService {
     
     if (sme.customer) {
       sme.customer.status = CustomerStatus.ACTIVE;
+      sme.customer.validatedAt = new Date();
+      sme.customer.validatedBy = validatedBy;
       await this.customerRepository.save(sme.customer);
     }
     
@@ -502,7 +504,7 @@ export class SmeService {
     return { success: true, message: 'SME validated successfully' };
   }
 
-  async suspend(id: string, reason: string): Promise<{ success: boolean; message: string }> {
+  async suspend(id: string, suspendedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
     const sme = await this.smeRepository.findOne({
       where: { customerId: id },
       relations: ['customer'],
@@ -515,6 +517,8 @@ export class SmeService {
     if (sme.customer) {
       sme.customer.status = CustomerStatus.SUSPENDED;
       sme.customer.suspensionReason = reason;
+      sme.customer.suspendedAt = new Date();
+      sme.customer.suspendedBy = suspendedBy;
       await this.customerRepository.save(sme.customer);
     }
     
@@ -528,6 +532,37 @@ export class SmeService {
     });
     
     return { success: true, message: 'SME suspended successfully' };
+  }
+
+  async reject(id: string, rejectedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
+    const sme = await this.smeRepository.findOne({
+      where: { customerId: id },
+      relations: ['customer'],
+    });
+    
+    if (!sme) {
+      throw new NotFoundException(`SME with ID ${id} not found`);
+    }
+    
+    if (sme.customer) {
+      sme.customer.status = CustomerStatus.INACTIVE;
+      sme.customer.suspensionReason = reason;
+      sme.customer.rejectedAt = new Date();
+      sme.customer.rejectedBy = rejectedBy;
+      await this.customerRepository.save(sme.customer);
+    }
+    
+    // Publish event to Kafka
+    await this.customerEventsProducer.emitSmeUpdated({
+      sme: {
+        customerId: id,
+        updatedAt: new Date(),
+        status: CustomerStatus.INACTIVE
+      },
+      customer: sme.customer
+    });
+    
+    return { success: true, message: 'SME rejected successfully' };
   }
 
   async getBusinessData(id: string): Promise<any> {

@@ -304,4 +304,79 @@ export class FinancialInstitutionController {
       }
     };
   }
+
+  @ApiOperation({ summary: 'Validate a financial institution' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Financial institution validated successfully',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Financial institution not found',
+    type: ApiErrorResponseDto
+  })
+  @Patch(':institutionId/validate')
+  async validateInstitution(
+    @Param('institutionId', ParseUUIDPipe) institutionId: string,
+    @Body() data: { validatedBy: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    await this.institutionService.validate(institutionId, data.validatedBy);
+    return {
+      success: true,
+      data: {
+        message: 'Institution financière validée avec succès'
+      }
+    };
+  }
+
+  @ApiOperation({ summary: 'Suspend a financial institution' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Financial institution suspended successfully',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Financial institution not found',
+    type: ApiErrorResponseDto
+  })
+  @Patch(':institutionId/suspend')
+  async suspendInstitution(
+    @Param('institutionId', ParseUUIDPipe) institutionId: string,
+    @Body() data: { suspendedBy: string; reason: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    await this.institutionService.suspend(institutionId, data.suspendedBy, data.reason);
+    return {
+      success: true,
+      data: {
+        message: 'Institution financière suspendue avec succès'
+      }
+    };
+  }
+
+  @ApiOperation({ summary: 'Reject a financial institution' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Financial institution rejected successfully',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Financial institution not found',
+    type: ApiErrorResponseDto
+  })
+  @Patch(':institutionId/reject')
+  async rejectInstitution(
+    @Param('institutionId', ParseUUIDPipe) institutionId: string,
+    @Body() data: { rejectedBy: string; reason: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    await this.institutionService.reject(institutionId, data.rejectedBy, data.reason);
+    return {
+      success: true,
+      data: {
+        message: 'Institution financière rejetée avec succès'
+      }
+    };
+  }
 }

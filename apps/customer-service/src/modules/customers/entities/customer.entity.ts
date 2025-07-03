@@ -165,6 +165,12 @@ export class Customer {
   suspensionReason!: string;
 
   @Column({ nullable: true })
+  rejectedAt!: Date;
+
+  @Column({ nullable: true })
+  rejectedBy!: string;
+
+  @Column({ nullable: true })
   reactivatedAt!: Date;
 
   @Column({ nullable: true })

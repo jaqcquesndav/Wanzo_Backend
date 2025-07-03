@@ -457,7 +457,7 @@ export class InstitutionService {
     return { success: true, message: 'Financial institution deleted successfully' };
   }
 
-  async validate(id: string): Promise<{ success: boolean; message: string }> {
+  async validate(id: string, validatedBy: string): Promise<{ success: boolean; message: string }> {
     const customer = await this.customerRepository.findOne({
       where: { id, type: CustomerType.FINANCIAL },
       relations: ['financialData'],
@@ -468,6 +468,8 @@ export class InstitutionService {
     }
     
     customer.status = CustomerStatus.ACTIVE;
+    customer.validatedAt = new Date();
+    customer.validatedBy = validatedBy;
     await this.customerRepository.save(customer);
     
     // Publish event to Kafka
@@ -475,14 +477,15 @@ export class InstitutionService {
       customer,
       institution: {
         customerId: customer.financialData?.id,
-        institutionType: customer.financialData?.type
+        institutionType: customer.financialData?.type,
+        status: CustomerStatus.ACTIVE
       }
     });
     
     return { success: true, message: 'Financial institution validated successfully' };
   }
 
-  async suspend(id: string, reason: string): Promise<{ success: boolean; message: string }> {
+  async suspend(id: string, suspendedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
     const customer = await this.customerRepository.findOne({
       where: { id, type: CustomerType.FINANCIAL },
       relations: ['financialData'],
@@ -494,6 +497,8 @@ export class InstitutionService {
     
     customer.status = CustomerStatus.SUSPENDED;
     customer.suspensionReason = reason;
+    customer.suspendedAt = new Date();
+    customer.suspendedBy = suspendedBy;
     await this.customerRepository.save(customer);
     
     // Publish event to Kafka
@@ -501,11 +506,41 @@ export class InstitutionService {
       customer,
       institution: {
         customerId: customer.financialData?.id,
-        institutionType: customer.financialData?.type
+        institutionType: customer.financialData?.type,
+        status: CustomerStatus.SUSPENDED
       }
     });
     
     return { success: true, message: 'Financial institution suspended successfully' };
+  }
+
+  async reject(id: string, rejectedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
+    const customer = await this.customerRepository.findOne({
+      where: { id, type: CustomerType.FINANCIAL },
+      relations: ['financialData'],
+    });
+    
+    if (!customer) {
+      throw new NotFoundException(`Financial institution with ID ${id} not found`);
+    }
+    
+    customer.status = CustomerStatus.INACTIVE;
+    customer.suspensionReason = reason;
+    customer.rejectedAt = new Date();
+    customer.rejectedBy = rejectedBy;
+    await this.customerRepository.save(customer);
+    
+    // Publish event to Kafka
+    await this.customerEventsProducer.emitInstitutionUpdated({
+      customer,
+      institution: {
+        customerId: customer.financialData?.id,
+        institutionType: customer.financialData?.type,
+        status: CustomerStatus.INACTIVE
+      }
+    });
+    
+    return { success: true, message: 'Financial institution rejected successfully' };
   }
 
   async getFinancialData(id: string): Promise<any> {

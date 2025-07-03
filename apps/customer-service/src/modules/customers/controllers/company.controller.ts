@@ -256,4 +256,79 @@ export class CompanyController {
       throw new UnauthorizedException('Vous n\'êtes pas autorisé à modifier cette entreprise');
     }
   }
+
+  @Patch(':companyId/validate')
+  @ApiOperation({ summary: 'Valider une entreprise' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Entreprise validée avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise non trouvée',
+    type: ApiErrorResponseDto
+  })
+  async validateCompany(
+    @Param('companyId') companyId: string,
+    @Body() data: { validatedBy: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    const result = await this.smeService.validate(companyId, data.validatedBy);
+    return {
+      success: true,
+      data: {
+        message: 'Entreprise validée avec succès'
+      }
+    };
+  }
+
+  @Patch(':companyId/suspend')
+  @ApiOperation({ summary: 'Suspendre une entreprise' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Entreprise suspendue avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise non trouvée',
+    type: ApiErrorResponseDto
+  })
+  async suspendCompany(
+    @Param('companyId') companyId: string,
+    @Body() data: { suspendedBy: string; reason: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    const result = await this.smeService.suspend(companyId, data.suspendedBy, data.reason);
+    return {
+      success: true,
+      data: {
+        message: 'Entreprise suspendue avec succès'
+      }
+    };
+  }
+
+  @Patch(':companyId/reject')
+  @ApiOperation({ summary: 'Rejeter une entreprise' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Entreprise rejetée avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise non trouvée',
+    type: ApiErrorResponseDto
+  })
+  async rejectCompany(
+    @Param('companyId') companyId: string,
+    @Body() data: { rejectedBy: string; reason: string }
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    const result = await this.smeService.reject(companyId, data.rejectedBy, data.reason);
+    return {
+      success: true,
+      data: {
+        message: 'Entreprise rejetée avec succès'
+      }
+    };
+  }
 }

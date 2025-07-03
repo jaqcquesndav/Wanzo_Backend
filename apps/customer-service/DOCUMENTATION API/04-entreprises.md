@@ -459,6 +459,85 @@ GET /land/api/v1/companies?page=1&limit=10
 }
 ```
 
+## Endpoints de Validation et Gestion de Statut
+
+### Valider une entreprise
+
+```
+PATCH /land/api/v1/companies/:companyId/validate
+```
+
+#### Corps de la requête
+
+```json
+{
+  "validatedBy": "admin-123"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Entreprise validée avec succès"
+  }
+}
+```
+
+### Suspendre une entreprise
+
+```
+PATCH /land/api/v1/companies/:companyId/suspend
+```
+
+#### Corps de la requête
+
+```json
+{
+  "suspendedBy": "admin-123",
+  "reason": "Non-conformité aux réglementations commerciales"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Entreprise suspendue avec succès"
+  }
+}
+```
+
+### Rejeter une entreprise
+
+```
+PATCH /land/api/v1/companies/:companyId/reject
+```
+
+#### Corps de la requête
+
+```json
+{
+  "rejectedBy": "admin-123",
+  "reason": "Documents falsifiés"
+}
+```
+
+#### Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Entreprise rejetée avec succès"
+  }
+}
+```
+
 ## Logique métier
 
 ### Création d'entreprise
