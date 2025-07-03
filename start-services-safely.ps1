@@ -9,7 +9,7 @@ try {
     Write-Host "Docker is running ✓" -ForegroundColor Green
 } catch {
     Write-Host "Docker is not running. Please start Docker Desktop first." -ForegroundColor Red
-    Write-Host "Run: .\fix-docker-connectivity.ps1" -ForegroundColor Yellow
+    Write-Host "Veuillez démarrer Docker Desktop et réessayer." -ForegroundColor Yellow
     exit 1
 }
 
