@@ -9,6 +9,8 @@ export enum UserRole {
   ANALYST = 'analyst',
   CUSTOMER_ADMIN = 'customer_admin',
   CUSTOMER_USER = 'customer_user',
+  VIEWER = 'viewer',
+  USER = 'user',
 }
 
 export enum UserStatus {
@@ -21,6 +23,29 @@ export enum UserStatus {
 export enum UserType {
   SYSTEM = 'system',
   CUSTOMER = 'customer',
+  SME = 'sme',
+  FINANCIAL_INSTITUTION = 'financial_institution',
+}
+
+export enum AccountType {
+  OWNER = 'OWNER',
+  MANAGER = 'MANAGER',
+  EMPLOYEE = 'EMPLOYEE',
+  CONSULTANT = 'CONSULTANT',
+  OTHER = 'OTHER',
+}
+
+export enum IdType {
+  NATIONAL_ID = 'national_id',
+  PASSPORT = 'passport',
+  DRIVERS_LICENSE = 'drivers_license',
+  OTHER = 'other'
+}
+
+export enum IdStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected'
 }
 
 /**
@@ -34,8 +59,17 @@ export class User {
   @Column()
   name!: string;
 
+  @Column({ nullable: true })
+  givenName?: string;
+
+  @Column({ nullable: true })
+  familyName?: string;
+
   @Column({ unique: true })
   email!: string;
+
+  @Column({ default: false })
+  emailVerified!: boolean;
 
   @Column({
     type: 'enum',
@@ -54,6 +88,22 @@ export class User {
   @Column({ nullable: true })
   customerId!: string;
 
+  @Column({ nullable: true })
+  companyId!: string;
+
+  @Column({ nullable: true })
+  financialInstitutionId!: string;
+
+  @Column({ default: false })
+  isCompanyOwner!: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: AccountType,
+    nullable: true
+  })
+  accountType?: AccountType;
+
   @ManyToOne(() => Customer, customer => customer.users, { nullable: true })
   @JoinColumn({ name: 'customerId' })
   customer!: Customer;
@@ -66,10 +116,10 @@ export class User {
   status!: UserStatus;
 
   @Column({ nullable: true })
-  avatar?: string;
+  picture?: string;
 
   @Column('simple-json', { nullable: true })
-  permissions?: {
+  permissions?: string[] | {
     applicationId: string;
     permissions: string[];
   }[];
@@ -78,36 +128,87 @@ export class User {
   department?: string;
 
   @Column({ nullable: true })
-  phoneNumber?: string;
+  phone?: string;
+  
+  @Column({ default: false })
+  phoneVerified!: boolean;
   
   @Column({ nullable: true })
   position?: string;
   
   @Column({ nullable: true })
-  idAgent?: string;
+  address?: string;
+  
+  @Column({
+    type: 'enum',
+    enum: IdType,
+    nullable: true
+  })
+  idType?: IdType;
   
   @Column({ nullable: true })
-  validityEnd?: Date;
+  idNumber?: string;
+
+  @Column({
+    type: 'enum',
+    enum: IdStatus,
+    nullable: true
+  })
+  idStatus?: IdStatus;
+  
+  @Column({ nullable: true })
+  identityDocumentType?: string;
+  
+  @Column({ nullable: true })
+  identityDocumentUrl?: string;
+  
+  @Column({
+    type: 'enum',
+    enum: IdStatus,
+    nullable: true,
+    default: IdStatus.PENDING
+  })
+  identityDocumentStatus?: IdStatus;
+  
+  @Column({ type: 'timestamp', nullable: true })
+  identityDocumentUpdatedAt?: Date;
+  
+  @Column({ nullable: true })
+  birthdate?: Date;
+  
+  @Column({ nullable: true })
+  bio?: string;
   
   @Column({ nullable: true })
   language?: string;
-  
-  @Column({ nullable: true })
-  timezone?: string;
-  
-  @Column('jsonb', { nullable: true })
-  kyc?: {
-    status: 'pending' | 'verified' | 'rejected';
-    verifiedAt?: string;
-    documents?: Array<{
-      type: string;
-      verified: boolean;
-      uploadedAt: string;
-    }>;
-  };
 
+  @Column({ nullable: true })
+  plan?: string;
+  
+  @Column({ default: 0 })
+  tokenBalance!: number;
+  
+  @Column({ default: 0 })
+  tokenTotal!: number;
+  
   @Column({ type: 'jsonb', nullable: true })
-  preferences?: Record<string, any>;
+  settings?: {
+    notifications?: {
+      email?: boolean;
+      sms?: boolean;
+      push?: boolean;
+    };
+    security?: {
+      twoFactorEnabled?: boolean;
+      twoFactorMethod?: string;
+      lastPasswordChange?: Date;
+    };
+    preferences?: {
+      theme?: string;
+      language?: string;
+      currency?: string;
+    };
+  };
 
   @Column({ type: 'jsonb', nullable: true })
   devices?: { deviceId: string; lastLogin: Date; deviceInfo: Record<string, any> }[];

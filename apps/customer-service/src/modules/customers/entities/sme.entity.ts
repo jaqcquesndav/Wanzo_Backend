@@ -13,16 +13,25 @@ export class Sme {
   @JoinColumn({ name: 'customerId' })
   customer!: Customer;
 
-  @Column()
+  @Column({ nullable: true })
+  name!: string;
+
+  @Column({ nullable: true })
+  logoUrl!: string;
+
+  @Column({ nullable: true })
   registrationNumber!: string;
 
   @Column({ nullable: true })
   taxIdentificationNumber!: string;
 
-  @Column()
+  @Column({ nullable: true })
+  nationalId!: string;
+
+  @Column({ nullable: true })
   legalForm!: string;
 
-  @Column()
+  @Column({ nullable: true })
   foundingDate!: Date;
 
   @Column({ default: 0 })
@@ -35,6 +44,9 @@ export class Sme {
   industry!: string;
 
   @Column({ nullable: true })
+  size!: string;
+
+  @Column({ nullable: true })
   subIndustry!: string;
 
   @Column({ type: 'text', nullable: true })
@@ -42,6 +54,9 @@ export class Sme {
 
   @Column({ nullable: true })
   website!: string;
+
+  @Column({ nullable: true })
+  facebookPage!: string;
 
   @Column({ type: 'jsonb', default: {} })
   additionalDetails!: Record<string, any>;

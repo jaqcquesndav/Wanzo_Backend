@@ -26,7 +26,8 @@ export enum AccountType {
   FREEMIUM = 'freemium',
   STANDARD = 'standard',
   PREMIUM = 'premium',
-  ENTERPRISE = 'enterprise'
+  ENTERPRISE = 'enterprise',
+  BUSINESS = 'business'
 }
 
 /**
@@ -40,6 +41,12 @@ export class Customer {
   @Column()
   name!: string;
 
+  @Column({ nullable: true })
+  logo?: string;
+
+  @Column({ nullable: true })
+  description?: string;
+
   @Column({
     type: 'enum',
     enum: CustomerType
@@ -52,14 +59,33 @@ export class Customer {
   @Column()
   phone!: string;
 
-  @Column()
-  address!: string;
+  @Column('jsonb', { nullable: true })
+  address!: {
+    street?: string;
+    commune?: string;
+    city?: string;
+    province?: string;
+    country?: string;
+  };
 
-  @Column()
-  city!: string;
+  @Column('jsonb', { nullable: true })
+  locations?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    address: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  }>;
 
-  @Column()
-  country!: string;
+  @Column('jsonb', { nullable: true })
+  contacts?: {
+    email?: string;
+    phone?: string;
+    altPhone?: string;
+  };
 
   @Column({
     type: 'enum',
@@ -68,26 +94,60 @@ export class Customer {
   })
   status!: CustomerStatus;
 
-  @Column()
-  billingContactName!: string;
+  @Column({ nullable: true })
+  website?: string;
 
-  @Column()
-  billingContactEmail!: string;
+  @Column({ nullable: true })
+  facebookPage?: string;
+
+  @Column({ nullable: true })
+  linkedinPage?: string;
+
+  @Column({ nullable: true })
+  billingContactName?: string;
+
+  @Column({ nullable: true })
+  billingContactEmail?: string;
 
   @Column({ default: 0 })
   tokenAllocation!: number;
 
   @Column({
     type: 'enum',
-    enum: AccountType
+    enum: AccountType,
+    nullable: true
   })
-  accountType!: AccountType;
+  accountType?: AccountType;
 
   @Column({ nullable: true })
   ownerId!: string;
 
   @Column({ nullable: true })
   ownerEmail!: string;
+
+  @Column('jsonb', { nullable: true })
+  owner?: {
+    id?: string;
+    name?: string;
+    gender?: string;
+    email?: string;
+    phone?: string;
+    hasOtherJob?: boolean;
+    cv?: string;
+    linkedin?: string;
+    facebook?: string;
+  };
+
+  @Column('jsonb', { nullable: true })
+  associates?: Array<{
+    id?: string;
+    name?: string;
+    gender?: string;
+    role?: string;
+    shares?: number;
+    email?: string;
+    phone?: string;
+  }>;
 
   @Column({ nullable: true })
   validatedAt!: Date;
@@ -119,6 +179,15 @@ export class Customer {
   }>;
 
   @Column('jsonb', { nullable: true })
+  subscription?: {
+    plan?: {
+      name?: string;
+    };
+    status?: string;
+    currentPeriodEnd?: Date;
+  };
+
+  @Column('jsonb', { nullable: true })
   preferences!: Record<string, any>;
 
   @OneToMany(() => CustomerDocument, document => document.customer)
@@ -146,6 +215,9 @@ export class Customer {
 
   @OneToMany(() => TokenUsage, tokenUsage => tokenUsage.customer)
   tokenUsages!: TokenUsage[];
+
+  @Column({ nullable: true })
+  createdBy?: string;
 
   @CreateDateColumn()
   createdAt!: Date;

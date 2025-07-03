@@ -11,6 +11,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { KafkaModule } from './modules/kafka/kafka.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
@@ -61,6 +62,7 @@ import { AuthModule } from './modules/auth/auth.module';
     BillingModule,
     KafkaModule,
     MonitoringModule,
+    HealthModule,
     AuthModule,
   ],
 })

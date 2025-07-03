@@ -7,8 +7,9 @@
       "@/*": ["src/*"],
       "@wanzo/shared/*": ["../../packages/shared/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./src/types"],
+    "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

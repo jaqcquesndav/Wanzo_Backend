@@ -33,7 +33,10 @@ export class SmeController {
   @ApiResponse({ status: 201, description: 'SME created successfully' })
   @Post()
   async create(@Body() createSmeDto: any) {
-    return this.smeService.create(createSmeDto);
+    // Pass a default auth0Id or extract it from the request context
+    // In a real application, you would get this from the authenticated user
+    const auth0Id = 'auth0|' + Math.random().toString(36).substring(2, 15);
+    return this.smeService.create(createSmeDto, auth0Id);
   }
 
   @ApiOperation({ summary: 'Update an SME' })

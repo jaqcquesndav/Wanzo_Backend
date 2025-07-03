@@ -88,7 +88,7 @@ export class CustomerEventsProducer {
     customerId: string;
     name: string;
     type: string;
-    accountType: string;
+    accountType?: string;
     createdBy: string;
     createdAt: string;
   }): Promise<void> {
@@ -109,7 +109,7 @@ export class CustomerEventsProducer {
     customerId: string;
     name: string;
     type: string;
-    accountType: string;
+    accountType?: string;
     updatedBy: string;
     updatedAt: string;
     changedFields: string[];
@@ -154,7 +154,7 @@ export class CustomerEventsProducer {
         customerId: customer.id,
         name: customer.name,
         type: customer.type,
-        accountType: customer.accountType,
+        accountType: customer.accountType ? customer.accountType.toString() : undefined,
         email: customer.email,
         createdBy: customer.ownerId || 'system',
         createdAt: customer.createdAt.toISOString(),
@@ -177,7 +177,7 @@ export class CustomerEventsProducer {
         customerId: customer.id,
         name: customer.name,
         type: customer.type,
-        accountType: customer.accountType,
+        accountType: customer.accountType ? customer.accountType.toString() : undefined,
         updatedBy: customer.ownerId || 'system',
         updatedAt: customer.updatedAt.toISOString(),
         changedFields: ['name', 'email', 'phone', 'address'] // Ideally would calculate actual changed fields
@@ -415,6 +415,10 @@ export class CustomerEventsProducer {
     sme: any;
   }): Promise<void> {
     try {
+      const createdAt = data.customer.createdAt ? 
+        data.customer.createdAt.toISOString() : 
+        new Date().toISOString();
+        
       const eventData = {
         customerId: data.customer.id,
         smeId: data.sme.customerId,
@@ -422,7 +426,7 @@ export class CustomerEventsProducer {
         name: data.customer.name,
         email: data.customer.email,
         registrationNumber: data.sme.registrationNumber,
-        createdAt: data.customer.createdAt.toISOString(),
+        createdAt: createdAt,
       };
       
       await this.kafkaClient.emit('customer.sme.created', eventData);
@@ -442,10 +446,14 @@ export class CustomerEventsProducer {
     customer?: Customer;
   }): Promise<void> {
     try {
+      const updatedAt = data.sme.updatedAt ? 
+        data.sme.updatedAt.toISOString() : 
+        new Date().toISOString();
+        
       const eventData = {
         customerId: data.sme.customerId,
         smeId: data.sme.customerId,
-        updatedAt: data.sme.updatedAt.toISOString(),
+        updatedAt: updatedAt,
         changedFields: ['registrationNumber', 'legalForm', 'industry'], // ideally calculate actual fields
       };
       
@@ -800,6 +808,26 @@ export class CustomerEventsProducer {
     } catch (error: unknown) {
       const err = error as Error;
       this.logger.error(`Failed to publish customer.deleted event: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+  
+  /**
+   * Publie un événement user.document.uploaded
+   */
+  async emitUserDocumentUploaded(data: {
+    userId: string;
+    documentType: string;
+    documentUrl: string;
+    status: string;
+    timestamp: string;
+  }): Promise<void> {
+    try {
+      await this.kafkaClient.emit('user.document.uploaded', data);
+      this.logger.log(`Event user.document.uploaded published for user ${data.userId}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to publish user.document.uploaded event: ${err.message}`, err.stack);
       throw error;
     }
   }
