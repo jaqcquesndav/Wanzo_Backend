@@ -236,14 +236,14 @@ services:
       - "8002:8002"
       - "9470:9464" # Port Prometheus (mapping différent)
     environment:
-      - PORT=8002
-      - DJANGO_SETTINGS_MODULE=comptable_ia_api.settings
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - huggingface_api_key=${huggingface_api_key}
-      - chromadb_path=${chromadb_path}
-      - pinecone_api_key=${pinecone_api_key}
-      - pinecone_environment=${pinecone_environment}
-      - knowledge_base_path=${knowledge_base_path}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      - CHROMADB_PATH=${CHROMADB_PATH}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - KNOWLEDGE_BASE_PATH=${KNOWLEDGE_BASE_PATH}
+      - DJANGO_SETTINGS_MODULE=comptable_ia_api.settings
+      - PORT=8002
       - KAFKA_BROKER_URL=kafka:29092
       - PROMETHEUS_PORT=9464
     env_file:
