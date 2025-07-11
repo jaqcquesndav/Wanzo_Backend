@@ -28,3 +28,13 @@ node_modules
 **/yarn-error.log*
 **/.DS_Store
 **/Thumbs.db
+
+# Exclure tous les dossiers dist sauf celui du service en cours de build
+**/dist
+!apps/customer-service/dist
+
+# Exclure les dossiers de test, logs et documentation volumineuse
+**/test
+**/logs
+**/docs
+**/DOCUMENTATION API

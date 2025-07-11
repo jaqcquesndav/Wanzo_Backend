@@ -18,6 +18,8 @@ services:
       - APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
       - CUSTOMER_SERVICE_URL=http://customer-service:3011
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/api-gateway/.env
     volumes:
       - api-gateway-logs:/app/apps/api-gateway/logs
     depends_on:
@@ -53,6 +55,8 @@ services:
       - KAFKA_CLIENT_ID=admin-service
       - KAFKA_GROUP_ID=admin-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/admin-service/.env
     volumes:
       - admin-service-logs:/app/apps/admin-service/logs
     depends_on:
@@ -83,6 +87,8 @@ services:
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/accounting-service/.env
     volumes:
       - accounting-service-logs:/app/apps/accounting-service/logs
     depends_on:
@@ -113,6 +119,8 @@ services:
       - KAFKA_CLIENT_ID=analytics-service
       - KAFKA_GROUP_ID=analytics-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/analytics-service/.env
     volumes:
       - analytics-service-logs:/app/apps/analytics-service/logs
     depends_on:
@@ -143,6 +151,8 @@ services:
       - KAFKA_CLIENT_ID=portfolio-sme-service
       - KAFKA_GROUP_ID=portfolio-sme-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/portfolio-sme-service/.env
     volumes:
       - portfolio-sme-service-logs:/app/apps/portfolio-sme-service/logs
     depends_on:
@@ -173,6 +183,8 @@ services:
       - KAFKA_CLIENT_ID=portfolio-institution-service
       - KAFKA_GROUP_ID=portfolio-institution-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/portfolio-institution-service/.env
     volumes:
       - portfolio-institution-service-logs:/app/apps/portfolio-institution-service/logs
     depends_on:
@@ -203,6 +215,8 @@ services:
       - KAFKA_CLIENT_ID=app-mobile-service
       - KAFKA_GROUP_ID=app-mobile-service-group
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/app_mobile_service/.env
     volumes:
       - app-mobile-service-logs:/app/apps/app_mobile_service/logs
     depends_on:
@@ -232,6 +246,8 @@ services:
       - knowledge_base_path=${knowledge_base_path}
       - KAFKA_BROKER_URL=kafka:29092
       - PROMETHEUS_PORT=9464
+    env_file:
+      - ./apps/Adha-ai-service/.env
     volumes:
       - ./apps/Adha-ai-service/data:/app/data
     depends_on:
@@ -271,97 +287,10 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
-
-  # Base de données PostgreSQL commune
-  postgres:
-    image: postgres:15-alpine
-    container_name: kiota-postgres
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=root123
-      - POSTGRES_MULTIPLE_DATABASES=admin-service,accounting-service,analytics-service,portfolio-sme-service,portfolio-institution-service,app_mobile_service,customer-service
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-    networks:
-      - kiota-network
-    restart: unless-stopped
-
-  # Kafka et ZooKeeper
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
-    container_name: kiota-zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - kiota-network
-    restart: unless-stopped
-
-  kafka:
-    image: confluentinc/cp-kafka:7.0.1
-    container_name: kiota-kafka
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    networks:
-      - kiota-network
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:v2.45.0
-    container_name: kiota-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - kiota-network
-    restart: unless-stopped
-
-  # Grafana pour la visualisation
-  grafana:
-    image: grafana/grafana:10.0.0
-    container_name: kiota-grafana
-    ports:
-      - "3002:3000"
-    volumes:
-      - grafana-storage:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=kiota-secret
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - prometheus
-    networks:
-      - kiota-network
-    restart: unless-stopped
+    env_file:
+      - ./apps/customer-service/.env
 
 volumes:
-  postgres-data:
   api-gateway-logs:
   admin-service-logs:
   accounting-service-logs:
@@ -369,9 +298,8 @@ volumes:
   portfolio-sme-service-logs:
   portfolio-institution-service-logs:
   app-mobile-service-logs:
+  adha-ai-service-data:
   customer-service-logs:
-  prometheus-data:
-  grafana-storage:
 
 networks:
   kiota-network:
