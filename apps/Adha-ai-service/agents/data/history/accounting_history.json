@@ -1,0 +1,306 @@
+{
+  "entries": [
+    {
+      "debit": [
+        {
+          "compte": "661",
+          "montant": 0.63,
+          "libelle": "Intérêts débiteurs au 31/07/22"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 0.63,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "02/08/2022",
+      "piece_reference": "INT-0208",
+      "description": "Intérêts débiteurs bancaires",
+      "id": "1",
+      "timestamp": "2025-04-09T21:00:42.958050"
+    },
+    {
+      "debit": [
+        {
+          "compte": "661",
+          "montant": 1.02,
+          "libelle": "Intérêts débiteurs au 31/08/22"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 1.02,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "02/09/2022",
+      "piece_reference": "INT-0209",
+      "description": "Intérêts débiteurs bancaires",
+      "id": "2",
+      "timestamp": "2025-04-09T21:00:42.959168"
+    },
+    {
+      "debit": [
+        {
+          "compte": "661",
+          "montant": 1.33,
+          "libelle": "Intérêts débiteurs au 30/09/22"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 1.33,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "03/10/2022",
+      "piece_reference": "INT-0310",
+      "description": "Intérêts débiteurs bancaires",
+      "id": "3",
+      "timestamp": "2025-04-09T21:00:42.960609"
+    },
+    {
+      "debit": [
+        {
+          "compte": "661",
+          "montant": 1.77,
+          "libelle": "Intérêts débiteurs au 31/10/22"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 1.77,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "02/11/2022",
+      "piece_reference": "INT-0211",
+      "description": "Intérêts débiteurs bancaires",
+      "id": "4",
+      "timestamp": "2025-04-09T21:00:42.963731"
+    },
+    {
+      "debit": [
+        {
+          "compte": "521",
+          "montant": 16000.0,
+          "libelle": "Banque"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "411",
+          "montant": 16000.0,
+          "libelle": "Virement reçu"
+        }
+      ],
+      "date": "05/12/2022",
+      "piece_reference": "VIR-0512",
+      "description": "Virement reçu",
+      "id": "5",
+      "timestamp": "2025-04-09T21:00:42.965497"
+    },
+    {
+      "debit": [
+        {
+          "compte": "601",
+          "montant": 3285.0,
+          "libelle": "Achat de matériels et mobiliers de bureau"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 3285.0,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "12/12/2022",
+      "piece_reference": "ACH-1212",
+      "description": "Transfert pour paiement facture 000",
+      "id": "6",
+      "timestamp": "2025-04-09T21:00:42.966935"
+    },
+    {
+      "debit": [
+        {
+          "compte": "631",
+          "montant": 83.52,
+          "libelle": "Frais pour paiement facture 01"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 83.52,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "12/12/2022",
+      "piece_reference": "FRAIS-1212",
+      "description": "Frais bancaires",
+      "id": "7",
+      "timestamp": "2025-04-09T21:00:42.968303"
+    },
+    {
+      "debit": [
+        {
+          "compte": "601",
+          "montant": 324.0,
+          "libelle": "Achat d'équipements des garagistes"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 324.0,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "12/12/2022",
+      "piece_reference": "ACH-1212-2",
+      "description": "Transfert pour paiement facture 01",
+      "id": "8",
+      "timestamp": "2025-04-09T21:00:42.969851"
+    },
+    {
+      "debit": [
+        {
+          "compte": "661",
+          "montant": 0.37,
+          "libelle": "Intérêts débiteurs au 31/12/22"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 0.37,
+          "libelle": "Banque"
+        }
+      ],
+      "date": "29/12/2022",
+      "piece_reference": "INT-2912",
+      "description": "Intérêts débiteurs bancaires",
+      "id": "9",
+      "timestamp": "2025-04-09T21:00:42.975178"
+    },
+    {
+      "debit": [
+        {
+          "compte": "411",
+          "montant": 3285,
+          "libelle": "Clients, créances en compte"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "701",
+          "montant": 3285,
+          "libelle": "Ventes de marchandises"
+        }
+      ],
+      "date": "10/04/2023",
+      "piece_reference": "FAC-0044",
+      "description": "Vente de matériel informatique à Mr, Mme Zito Pan. n. Saa.",
+      "id": "10",
+      "timestamp": "2025-04-09T22:09:24.530928"
+    },
+    {
+      "debit": [
+        {
+          "compte": "512",
+          "montant": 3285,
+          "libelle": "Banque"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "411",
+          "montant": 3285,
+          "libelle": "Clients, créances en compte"
+        }
+      ],
+      "date": "10/04/2023",
+      "piece_reference": "REC-00111",
+      "description": "Encaissement du paiement de la facture No 10008",
+      "id": "11",
+      "timestamp": "2025-04-09T22:09:24.538554"
+    },
+    {
+      "debit": [
+        {
+          "compte": "601",
+          "montant": 3285,
+          "libelle": "Achats de marchandises"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521",
+          "montant": 3285,
+          "libelle": "Banque locale"
+        }
+      ],
+      "date": "10/04/2023",
+      "piece_reference": "FAC-0044",
+      "description": "Achat de matériel informatique et mobilier de bureau payé comptant",
+      "id": "12",
+      "timestamp": "2025-04-09T22:30:57.225817"
+    },
+    {
+      "debit": [
+        {
+          "compte": "601100",
+          "montant": 3285.0,
+          "libelle": "Achat divers équipements - Facture 0044 du 10/08/2023 - Ets DHAMANI"
+        },
+        {
+          "compte": "445600",
+          "montant": 0.0,
+          "libelle": "TVA déductible sur achat divers équipements - Facture 0044 - Ets DHAMANI"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "401100",
+          "montant": 3285.0,
+          "libelle": "Dette Fournisseur Ets DHAMANI - Facture 0044 du 10/08/2023 - Achat divers équipements"
+        }
+      ],
+      "date": "10/08/2023",
+      "journal": "AC",
+      "piece_reference": "0044",
+      "description": "Achat divers équipements auprès de Ets DHAMANI",
+      "id": "13",
+      "timestamp": "2025-04-09T22:56:54.021518"
+    },
+    {
+      "debit": [
+        {
+          "compte": "401100",
+          "montant": 3285.0,
+          "libelle": "Règlement Fournisseur Ets DHAMANI - Reçu 00111 du 10/10/2023 - Paiement facture 0044"
+        }
+      ],
+      "credit": [
+        {
+          "compte": "521000",
+          "montant": 3285.0,
+          "libelle": "Sortie de caisse pour règlement Ets DHAMANI - Reçu 00111 du 10/10/2023 - Paiement facture 0044"
+        }
+      ],
+      "date": "10/10/2023",
+      "journal": "BQ",
+      "piece_reference": "00111",
+      "description": "Règlement de la facture 0044 auprès de Ets DHAMANI",
+      "id": "14",
+      "timestamp": "2025-04-09T22:56:54.030576"
+    }
+  ],
+  "last_updated": "2025-04-09T22:56:54.031811"
+}

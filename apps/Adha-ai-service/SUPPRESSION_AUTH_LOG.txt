@@ -1,0 +1,6 @@
+Suppression de l'authentification interne Django :
+- Suppression des vues : api/views/auth_views.py, api/views/admin/auth_views.py, api/views/company/auth_views.py, api/views/common/auth_utils.py
+- Suppression des modèles : api/models/user_profile.py, api/models/admin_key.py
+- Suppression des routes d'auth dans api/urls.py
+- Suppression des tests associés (si présents)
+- Prochaine étape : ajouter une authentification DRF custom JWT centralisée.
