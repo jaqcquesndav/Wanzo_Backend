@@ -1,40 +1,94 @@
-# Dossiers node_modules
+# Node.js dependencies
 node_modules
 **/node_modules
+npm-debug.log
+**/npm-debug.log
+yarn-debug.log
+**/yarn-debug.log
+yarn-error.log
+**/yarn-error.log
+package-lock.json
+**/package-lock.json
+yarn.lock
+**/yarn.lock
+.pnpm-store
+**/.pnpm-store
 
-# Note: We're not ignoring dist folders anymore because our Docker builds need them
-# **/dist
-# **/build
+# Build output
+# Note: We selectively include dist folders in service Dockerfiles
+**/dist
+**/build
+**/.turbo
+**/.next
+**/.nuxt
+**/out
+**/.output
 
-# Dossiers de développement
+# Development tools and configurations
 **/.git
+**/.github
 **/.vscode
 **/.idea
+**/.editorconfig
+**/.eslintrc*
+**/.prettierrc*
+**/.lintstagedrc*
+**/.stylelintrc*
+**/.browserslistrc
+**/tsconfig.tsbuildinfo
+**/.npmrc
 
-# Fichiers de logs
+# Test files
+**/test
+**/tests
+**/__tests__
+**/__mocks__
+**/jest.config.*
+**/*.spec.ts
+**/*.spec.js
+**/*.test.ts
+**/*.test.js
+**/coverage
+
+# Logs
 **/logs
 **/*.log
-
-# Fichiers d'environnement
-**/.env
-**/.env.local
-**/.env.development
-**/.env.test
-**/.env.production
-
-# Autres fichiers à ignorer
 **/npm-debug.log*
 **/yarn-debug.log*
 **/yarn-error.log*
+**/lerna-debug.log*
+
+# Environment & configuration files
+**/.env
+**/.env.local
+**/.env.development
+**/.env.development.local
+**/.env.test
+**/.env.test.local
+**/.env.production
+**/.env.production.local
+# Always include example env files
+!**/.env.example
+
+# OS specific files
 **/.DS_Store
 **/Thumbs.db
+**/*.swp
+**/*.swo
 
-# Exclure tous les dossiers dist sauf celui du service en cours de build
-**/dist
-!apps/customer-service/dist
-
-# Exclure les dossiers de test, logs et documentation volumineuse
-**/test
-**/logs
+# Documentation and misc
+**/*.md
+!**/README.md
 **/docs
-**/DOCUMENTATION API
+**/DOCUMENTATION
+**/LICENSE
+**/.gitignore
+**/.dockerignore
+**/docker-compose*.yml
+**/.travis.yml
+**/circle.yml
+**/.gitlab-ci.yml
+**/appveyor.yml
+
+# Allow dist folder for the service being built (to be managed in specific service Dockerfiles)
+# We handle this with COPY directives in the Dockerfiles instead
