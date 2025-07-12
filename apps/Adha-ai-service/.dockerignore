@@ -25,6 +25,16 @@ venv/
 ENV/
 env/
 .env
+.venv/
+virtualenv/
+
+# Large files and directories that should be excluded
+*.sqlite3
+*.db
+media/
+static/
+node_modules/
+**/node_modules/
 
 # Django
 *.log
@@ -68,3 +78,29 @@ fix_*.py
 check_*.py
 reset_*.py
 clean_*.py
+
+# Large model files and data that shouldn't be in the Docker context
+*.pkl
+*.h5
+*.onnx
+*.pt
+*.pth
+*.bin
+*.npy
+*.npz
+*.tfrecord
+*.tflite
+*.tar.gz
+*.zip
+*.rar
+*.7z
+datasets/
+**/datasets/
+models/
+**/models/
+checkpoints/
+**/checkpoints/
+embeddings/
+**/embeddings/
+migrations/
+**/migrations/

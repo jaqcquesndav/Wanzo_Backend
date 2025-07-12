@@ -3,12 +3,17 @@ node_modules
 npm-debug.log
 yarn-debug.log
 yarn-error.log
+package-lock.json
+yarn.lock
+.pnpm-store
 
 # Build files
-# Note: We need dist for this service
-# dist
+# Note: We need dist for this service - uncommenting dist can cause issues
 build
 .turbo
+.next
+.nuxt
+.output
 
 # Environment & configuration
 .env

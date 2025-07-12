@@ -92,3 +92,49 @@ yarn.lock
 
 # Allow dist folder for the service being built (to be managed in specific service Dockerfiles)
 # We handle this with COPY directives in the Dockerfiles instead
+
+# Python specific files (for services like Adha-ai-service)
+**/__pycache__/
+**/*.py[cod]
+**/*.so
+**/.Python
+**/venv/
+**/ENV/
+**/.env/
+**/.venv/
+**/*.egg-info/
+**/*.egg
+**/*.whl
+
+# Database files
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/db.sqlite3*
+
+# Large data and model files
+**/*.pkl
+**/*.h5
+**/*.onnx
+**/*.pt
+**/*.pth
+**/*.bin
+**/*.npy
+**/*.npz
+**/*.tfrecord
+**/*.tflite
+**/*.tar.gz
+**/*.zip
+**/*.rar
+**/*.7z
+**/datasets/
+**/models/
+**/checkpoints/
+**/embeddings/
+
+# Caches
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.cache/
+**/.eslintcache
