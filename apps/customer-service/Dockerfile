@@ -3,17 +3,17 @@ FROM node:18-alpine AS development
 WORKDIR /usr/src/app
 
 # Copie uniquement les fichiers nécessaires pour installer les dépendances
-COPY package*.json ./
-COPY tsconfig*.json ./
+COPY apps/customer-service/package*.json ./
+COPY apps/customer-service/tsconfig*.json ./
 
 # Copie le code source (hors dossiers ignorés par .dockerignore)
-COPY src ./src
+COPY apps/customer-service/src ./src
 
 # Si besoin de tests unitaires, décommentez la ligne suivante
 # COPY test ./test
 
 # Copie les fichiers de configuration utiles
-COPY .env* ./
+COPY apps/customer-service/.env* ./
 
 RUN npm install
 
@@ -26,7 +26,7 @@ ENV NODE_ENV=${NODE_ENV}
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY apps/customer-service/package*.json ./
 
 RUN npm install --only=production
 
