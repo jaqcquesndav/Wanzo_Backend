@@ -53,7 +53,8 @@ export class AuthService {
           type: UserType.EXTERNAL,
           createdAt: new Date().toISOString(),
           picture: 'https://example.com/avatar.jpg',
-          phoneNumber: '+243123456789'
+          phoneNumber: '+243123456789',
+          status: 'active'
         }
       };
     } catch (error) {
