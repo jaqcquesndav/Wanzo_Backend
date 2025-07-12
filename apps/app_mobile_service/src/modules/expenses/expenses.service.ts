@@ -61,7 +61,7 @@ export class ExpensesService {
   // Expense CRUD
   async createExpense(createExpenseDto: CreateExpenseDto, userId: string): Promise<Expense> {
     const { categoryId, ...restOfDto } = createExpenseDto;
-    let category = null;
+    let category: ExpenseCategory | null = null;
     if (categoryId) {
         category = await this.findOneExpenseCategory(categoryId);
         if (!category) {

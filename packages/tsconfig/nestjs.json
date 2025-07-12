@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "NestJS",
   "extends": "./base.json",
@@ -7,11 +7,17 @@
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true
+    "incremental": true,
+    "strictPropertyInitialization": false,
+    "strictBindCallApply": false,
+    "noImplicitAny": false,
+    "noFallthroughCasesInSwitch": true
   }
 }

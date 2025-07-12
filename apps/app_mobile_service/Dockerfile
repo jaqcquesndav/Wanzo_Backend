@@ -1,86 +1,29 @@
-FROM node:18-alpine AS builder
+﻿FROM node:18-alpine AS builder
 
-# Définir le répertoire de travail
+# Set working directory
 WORKDIR /app
 
-# Copier les fichiers package.json et package-lock.json (ou yarn.lock)
-COPY package*.json ./
-COPY turbo.json ./
+# Copy package.json files
+COPY package.json ./
+COPY apps/app_mobile_service/package.json ./apps/app_mobile_service/
 
-# Copier les configurations partagées
-COPY packages ./packages
-
-# Copier les fichiers spécifiques au service
-COPY apps/app_mobile_service ./apps/app_mobile_service
-COPY tsconfig*.json ./
-
-# Installer les dépendances (incluant les devDependencies)
+# Install dependencies
 RUN npm install
 
-# Installer des dépendances spécifiques manquantes qui pourraient être nécessaires
-RUN npm install --save jwks-rsa prom-client --legacy-peer-deps
-RUN npm install --save @nestjs/microservices@^10.3.0 kafkajs --legacy-peer-deps
+# Copy the rest of the application
+COPY . .
 
-# Vérifier le contenu des dossiers
-RUN ls -la ./apps/app_mobile_service
+# Install type definitions needed for build
+RUN npm install --save-dev --legacy-peer-deps @types/aws-sdk @types/luxon @types/ms @types/multer @types/nodemailer @types/nodemailer-direct-transport @types/nodemailer-ses-transport @types/nodemailer-smtp-transport @types/oracledb @types/semver @types/uuid
+RUN npm install --save-dev --legacy-peer-deps jwks-rsa
 
-# Construire l'application - exécuter d'abord nest build directement
-RUN cd apps/app_mobile_service && npx nest build
+# Build the application
+RUN npm run build --prefix apps/app_mobile_service
 
-# Puis utiliser turbo pour s'assurer que toutes les dépendances sont construites
-RUN npx turbo build --filter=app_mobile_service
+# Set non-root user for better security
+USER node
 
-# Vérifier que le dossier dist a été créé
-RUN ls -la ./apps/app_mobile_service
-RUN ls -la ./apps/app_mobile_service/dist || echo "Dist directory not found!"
-
-# Stage de production
-FROM node:18-alpine AS production
-
-# Définir le répertoire de travail
-WORKDIR /app
-
-# Copier les fichiers package.json et package-lock.json (ou yarn.lock)
-COPY package*.json ./
-
-# Copier les configurations partagées
-COPY --from=builder /app/packages ./packages
-
-# Créer les répertoires nécessaires
-RUN mkdir -p ./apps/app_mobile_service/dist
-
-# Copier uniquement les fichiers nécessaires pour la production
-COPY --from=builder /app/apps/app_mobile_service/package*.json ./apps/app_mobile_service/
-
-# Utiliser une commande shell pour copier les fichiers avec une gestion d'erreur
-RUN if [ -d "/app/apps/app_mobile_service/dist" ]; then \
-    cp -r /app/apps/app_mobile_service/dist/* ./apps/app_mobile_service/dist/ || echo "No dist files to copy"; \
-    fi
-
-# Copier le fichier .env.example s'il existe
-RUN if [ -f "/app/apps/app_mobile_service/.env.example" ]; then \
-    cp /app/apps/app_mobile_service/.env.example ./apps/app_mobile_service/.env.example || echo "Failed to copy .env.example"; \
-    fi
-
-# Installer les dépendances de production uniquement
-RUN npm install --only=production
-
-# Créer un dossier pour les logs
-RUN mkdir -p /app/apps/app_mobile_service/logs
-
-# Variables d'environnement
-ENV NODE_ENV=production
-ENV PORT=3006
-ENV DB_HOST=postgres
-ENV DB_PORT=5432
-ENV DB_USERNAME=postgres
-ENV DB_PASSWORD=root123
-ENV DB_DATABASE=app_mobile_service
-
-# Exposition du port
-EXPOSE 3006
-
-# Commande pour démarrer l'application - avec gestion d'erreur pour trouver le bon chemin
+# Start the service with conditional check
 CMD ["sh", "-c", "if [ -f 'apps/app_mobile_service/dist/src/main.js' ]; then \
     node apps/app_mobile_service/dist/src/main.js; \
     elif [ -f 'apps/app_mobile_service/dist/main.js' ]; then \

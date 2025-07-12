@@ -17,11 +17,17 @@ RUN apt-get update && \
         && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY apps/Adha-ai-service/requirements.txt ./
+# Utiliser une méthode robuste pour installer les dépendances
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --timeout 300 --retries 10 -r requirements.txt
 
-# Copy the rest of the code
-COPY . .
+# Copy only necessary files (not the entire code)
+COPY apps/Adha-ai-service/comptable_ia_api ./comptable_ia_api
+COPY apps/Adha-ai-service/api ./api
+COPY apps/Adha-ai-service/agents ./agents
+COPY apps/Adha-ai-service/config ./config
+COPY apps/Adha-ai-service/manage.py ./
 
 # Expose the port (assume 8002, change if needed)
 ENV PORT=8002

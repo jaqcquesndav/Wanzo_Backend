@@ -3,6 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./",
+    "skipLibCheck": true,
+    "useDefineForClassFields": false,
     "paths": {
       "@/*": ["src/*"],
       "@wanzo/shared/*": ["../../packages/shared/*"]
