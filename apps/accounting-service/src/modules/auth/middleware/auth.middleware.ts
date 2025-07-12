@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
+import { UserProfileDto } from '../dto/user-profile.dto';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
@@ -18,8 +19,15 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const user = await this.authService.validateToken(token);
-      req['user'] = user;
+      const response = await this.authService.validateToken(token);
+      if (!response.isValid || !response.user) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      
+      const userProfile: UserProfileDto = response.user;
+      // Assign the user profile to the request object, with explicit type casting to avoid TS errors
+      req['user'] = userProfile as any;
+      
       next();
     } catch (error) {
       throw new UnauthorizedException('Invalid token');

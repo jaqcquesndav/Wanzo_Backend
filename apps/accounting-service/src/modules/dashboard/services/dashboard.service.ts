@@ -149,7 +149,7 @@ export class DashboardService {
   }
 
   private async getTaxSummary(filters: DashboardFilterDto): Promise<any> {
-    const summary = await this.taxService.getTaxSummary(filters.fiscalYear, filters.companyId);
+    const summary = await this.taxService.getTaxSummary(filters.fiscalYearId || '', filters.companyId || '');
 
     return {
       totalDue: summary.totalDue,
@@ -177,8 +177,8 @@ export class DashboardService {
       accounts.accounts.map(async (account) => {
         const balance = await this.journalService.getAccountBalance(
           account.id,
-          filters.fiscalYear,
-          filters.companyId, 
+          filters.fiscalYearId || '',
+          filters.companyId || '', 
           filters.endDate ? new Date(filters.endDate) : undefined,
         );
         return {
@@ -209,7 +209,7 @@ export class DashboardService {
     // Récupérer les dernières écritures comptables
     const recentJournals = await this.journalService.findAll(
       {
-        fiscalYear: filters.fiscalYear,
+        fiscalYear: filters.fiscalYearId || '',
         startDate: filters.startDate ? new Date(filters.startDate) : undefined,
         endDate: filters.endDate ? new Date(filters.endDate) : undefined,
       },
@@ -236,8 +236,8 @@ export class DashboardService {
       accounts.accounts.map(account =>
         this.journalService.getAccountBalance(
           account.id,
-          filters.fiscalYear,
-          filters.companyId, 
+          filters.fiscalYearId || '',
+          filters.companyId || '', 
           filters.endDate ? new Date(filters.endDate) : undefined,
         ),
       ),
@@ -259,7 +259,14 @@ export class DashboardService {
   }
 
   private getPreviousFilters(filters: DashboardFilterDto): DashboardFilterDto {
-    const previousFilters = { ...filters };
+    // Create a new instance of DashboardFilterDto instead of a plain object
+    const previousFilters = new DashboardFilterDto();
+    // Copy properties
+    previousFilters.fiscalYearId = filters.fiscalYearId;
+    previousFilters.companyId = filters.companyId;
+    previousFilters.startDate = filters.startDate;
+    previousFilters.endDate = filters.endDate;
+    previousFilters.comparison = filters.comparison;
 
     if (filters.comparison === ComparisonType.PREVIOUS_PERIOD) {
       // Ajuster les dates pour la période précédente
@@ -270,7 +277,7 @@ export class DashboardService {
       }
     } else if (filters.comparison === ComparisonType.PREVIOUS_YEAR) {
       // Ajuster l'année fiscale pour l'année précédente
-      previousFilters.fiscalYear = (parseInt(filters.fiscalYear) - 1).toString();
+      previousFilters.fiscalYearId = filters.fiscalYearId ? (parseInt(filters.fiscalYearId) - 1).toString() : '';
     }
 
     return previousFilters;

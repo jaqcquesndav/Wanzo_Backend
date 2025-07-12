@@ -4,10 +4,11 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import {
   UserEventTopics,
   UserStatusChangedEvent,
-  SubscriptionChangedEvent,
-  UserCreatedEventData, // Correctly import UserCreatedEventData
+  UserCreatedEvent, // Base event type
   // Import other relevant event types from '@wanzo/shared/events/kafka-config' as needed
 } from '@wanzo/shared/events/kafka-config';
+import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzo/shared/events/subscription-events';
+import { ExtendedUserCreatedEvent } from '../types/extended-event-types';
 
 // Import services from accounting-service that will handle the business logic
 import { AccountService } from '../../accounts/services/account.service';
@@ -53,11 +54,11 @@ export class UserEventsConsumer {
     }
   }
 
-  @MessagePattern(UserEventTopics.SUBSCRIPTION_CHANGED)
+  @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED)
   async handleSubscriptionChanged(@Payload() event: SubscriptionChangedEvent): Promise<void> {
-    this.logger.log(`Received ${UserEventTopics.SUBSCRIPTION_CHANGED} event: ${JSON.stringify(event)}`);
+    this.logger.log(`Received ${SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED} event: ${JSON.stringify(event)}`);
     try {
-      this.logger.log(`Processing subscription change for organization ${event.entityId}, new plan: ${event.newPlan}, status: ${event.status}`);
+      this.logger.log(`Processing subscription change for organization ${event.entityId}, new plan: ${event.newPlan}, status: ${event.newStatus}`);
 
       // Ensure entityId is treated as organizationId for this context
       const organizationId = event.entityId; 
@@ -70,13 +71,13 @@ export class UserEventsConsumer {
 
       const updateDto: Partial<Organization> = {
         subscriptionPlan: event.newPlan,
-        subscriptionStatus: event.status,
-        subscriptionExpiresAt: event.expiresAt ? new Date(event.expiresAt) : undefined, // Changed null to undefined
+        subscriptionStatus: event.newStatus,
+        subscriptionExpiresAt: event.endDate ? new Date(event.endDate) : undefined
       };
 
-      if (event.status === 'active' && !organization.subscriptionStartedAt) {
-        updateDto.subscriptionStartedAt = event.timestamp ? new Date(event.timestamp) : new Date(); 
-      } else if (event.status === 'active' && event.timestamp) {
+      if (event.newStatus === 'active' && !organization.subscriptionStartedAt) {
+        updateDto.subscriptionStartedAt = event.startDate ? new Date(event.startDate) : new Date(); 
+      } else if (event.newStatus === 'active' && event.timestamp) {
         // If already active but a new timestamp is provided (e.g. renewal), update start date
         updateDto.subscriptionStartedAt = new Date(event.timestamp);
       }
@@ -87,12 +88,12 @@ export class UserEventsConsumer {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error handling ${UserEventTopics.SUBSCRIPTION_CHANGED} for entity ${event.entityId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(`Error handling ${SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED} for entity ${event.entityId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
     }
   }
 
   @MessagePattern(UserEventTopics.USER_CREATED)
-  async handleUserCreated(@Payload() event: UserCreatedEventData): Promise<void> { // Use UserCreatedEventData
+  async handleUserCreated(@Payload() event: ExtendedUserCreatedEvent): Promise<void> { // Using extended type with organization details
     this.logger.log(`Received ${UserEventTopics.USER_CREATED} event: ${JSON.stringify(event)}`);
     try {
       if (event.isOwner && event.organizationDetails) {

@@ -6,7 +6,7 @@ import { passportJwtSecret } from 'jwks-rsa';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, TokenBlacklist } from '../entities';
-import { UserRole } from '../dto';
+import { UserRole, UserType } from '../dto';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -39,7 +39,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(req: any, payload: any): Promise<any> {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     
-    const isBlacklisted = await this.tokenBlacklistRepository.findOne({ where: { token } });
+    // Only check blacklist if token exists
+    const isBlacklisted = token ? 
+      await this.tokenBlacklistRepository.findOne({ 
+        where: { token } 
+      }) : 
+      null;
     if (isBlacklisted) {
       this.logger.warn(`Blacklisted token received for user ${payload.sub}`);
       throw new UnauthorizedException('Token has been invalidated');
@@ -70,7 +75,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         picture: payload.picture,
         role: existingUsers === 0 ? UserRole.COMPANY_ADMIN : UserRole.COMPANY_USER,
         customerAccountId: customerAccountId,
-        userType: 'EXTERNAL',
+        userType: UserType.EXTERNAL,
       });
       await this.userRepository.save(user);
       this.logger.log(`Created new user ${user.id} for customer ${customerAccountId}`);
@@ -79,7 +84,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     user.lastLogin = new Date();
     await this.userRepository.save(user);
 
-    let permissions = [];
+    let permissions: string[] = [];
     if (user.customerAccountId) {
         permissions = ['read:accounting', 'write:accounting', 'read:portfolio-sme', 'read:mobile-app'];
     }

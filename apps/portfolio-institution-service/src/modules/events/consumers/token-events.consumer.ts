@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { UserEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/kafka-config';
+import { TokenEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/token-events';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { 
@@ -19,7 +19,7 @@ export class TokenEventsConsumer {
     private readonly institutionRepository: Repository<Institution>,
   ) {}
 
-  @MessagePattern(UserEventTopics.TOKEN_PURCHASE)
+  @MessagePattern(TokenEventTopics.TOKEN_PURCHASE)
   async handleTokenPurchase(@Payload() event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Received token purchase event: ${JSON.stringify(event)}`);
     
@@ -44,7 +44,7 @@ export class TokenEventsConsumer {
       
       // Record in token usage history
       institution.tokenUsageHistory.push({
-        date: event.timestamp,
+        date: new Date(event.timestamp),
         amount: event.amount,
         operation: 'purchase',
         balance: institution.tokenBalance,
@@ -59,7 +59,7 @@ export class TokenEventsConsumer {
     }
   }
 
-  @MessagePattern(UserEventTopics.TOKEN_USAGE)
+  @MessagePattern(TokenEventTopics.TOKEN_USAGE)
   async handleTokenUsage(@Payload() event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Received token usage event: ${JSON.stringify(event)}`);
     
@@ -91,7 +91,7 @@ export class TokenEventsConsumer {
       
       // Record in token usage history
       institution.tokenUsageHistory.push({
-        date: event.timestamp,
+        date: new Date(event.timestamp),
         amount: -event.amount, // Negative for usage
         operation: 'use',
         balance: institution.tokenBalance,

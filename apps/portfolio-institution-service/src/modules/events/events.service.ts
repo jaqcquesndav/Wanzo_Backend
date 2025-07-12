@@ -3,9 +3,9 @@ import { ClientKafka } from '@nestjs/microservices';
 import { 
   UserEventTopics, 
   UserStatusChangedEvent, 
-  UserRoleChangedEvent,
-  TokenTransactionEvent
+  UserRoleChangedEvent
 } from '../../../../../packages/shared/events/kafka-config';
+import { TokenEventTopics, TokenTransactionEvent } from '../../../../../packages/shared/events/token-events';
 import { SubscriptionChangedEvent, SubscriptionEventTopics } from '../../../../../packages/shared/events/subscription-events';
 import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
@@ -49,14 +49,14 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
 
   async publishTokenPurchase(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit('token.purchase', event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_PURCHASE, event);
   }
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit('token.usage', event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_USAGE, event);
   }
   async publishTokenAlert(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token alert event: ${JSON.stringify(event)}`);
-    this.eventsClient.emit('token.alert', event);
+    this.eventsClient.emit(TokenEventTopics.TOKEN_ALERT, event);
   }
 }

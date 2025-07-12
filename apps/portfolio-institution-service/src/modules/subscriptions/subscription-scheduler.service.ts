@@ -50,14 +50,16 @@ export class SubscriptionSchedulerService {
           
           // Publish event for subscription expiration
           await this.eventsService.publishSubscriptionExpired({
+            subscriptionId: institution.id, // Using institution.id as subscriptionId
             userId: adminUserId,
             entityId: institution.id,
             entityType: EntityType.INSTITUTION,
             newPlan: institution.subscriptionPlan as unknown as SubscriptionPlanType,
-            status: SubscriptionStatusType.EXPIRED,
-            timestamp: now,
-            changedBy: 'system',
-            reason: 'Subscription period ended'
+            newStatus: SubscriptionStatusType.EXPIRED,
+            startDate: '', // Required by interface but not relevant for expiration
+            endDate: now.toISOString(), // Using current time as end date
+            timestamp: now.toISOString(),
+            changedBy: 'system'
           });
         }
       }

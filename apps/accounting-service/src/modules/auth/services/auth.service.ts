@@ -50,7 +50,7 @@ export class AuthService {
           name: 'Test User',
           email: 'testuser@example.com',
           role: UserRole.COMPANY_USER,
-          userType: UserType.EXTERNAL,
+          type: UserType.EXTERNAL,
           createdAt: new Date().toISOString(),
           picture: 'https://example.com/avatar.jpg',
           phoneNumber: '+243123456789'

@@ -319,9 +319,41 @@ export type { SubscriptionChangedEvent } from './subscription-events';
 // Re-export token events
 export type { TokenTransactionEvent } from './token-events';
 
-// Re-export institution event data types for portfolio-institution-service
-export type { InstitutionCreatedEventData, InstitutionProfileUpdatedEventData, InstitutionStatusChangedEventData } from './kafka-config.d';
+// Inline the institution event data types from kafka-config.d.ts
+export interface InstitutionCreatedEventData {
+    institutionId: string;
+    name: string;
+    kiotaId: string;
+    type?: string;
+    createdByUserId: string;
+    timestamp: Date;
+    metadata?: Record<string, any>;
+}
 
-// Re-export institution types for portfolio-institution-service
-export { InstitutionStatusType } from './kafka-config.d';
+export interface InstitutionProfileUpdatedEventData {
+    institutionId: string;
+    updatedByUserId: string;
+    updatedFields: string[];
+    timestamp: Date;
+}
+
+export interface InstitutionStatusChangedEventData {
+    institutionId: string;
+    changedBy: string;
+    previousStatus: InstitutionStatusType;
+    newStatus: InstitutionStatusType;
+    reason?: string;
+    timestamp: Date;
+}
+
+// Inline InstitutionStatusType
+export enum InstitutionStatusType {
+    PENDING_VERIFICATION = 'pending_verification',
+    ACTIVE = 'active',
+    INACTIVE = 'inactive',
+    SUSPENDED = 'suspended',
+    UNDER_REVIEW = 'under_review',
+    CLOSED = 'closed'
+}
+
 export { SubscriptionPlanType, SubscriptionStatusType } from './subscription-types';

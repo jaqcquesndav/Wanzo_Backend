@@ -23,10 +23,12 @@ export class LoggerMiddleware implements NestMiddleware {
       const { method, originalUrl, ip } = req;
 
       if (req.user?.id) {
-        this.activityService.logUserActivity(
+        this.activityService.logActivity(
           req.user.id,
           'API_REQUEST',
-          `${method} ${originalUrl}`,
+          'API', // entityType
+          originalUrl, // entityId
+          `${method} ${originalUrl}`, // description
           {
             duration,
             statusCode: res.statusCode,

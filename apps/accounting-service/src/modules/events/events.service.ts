@@ -1,7 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ACCOUNTING_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
-import { UserEventTopics, DataSharingConsentChangedEventData } from '../../../../../packages/shared/events/kafka-config';
+import { UserEventTopics } from '../../../../../packages/shared/events/kafka-config';
+
+// Define the DataSharingConsentChangedEventData interface locally since it's not exported from kafka-config
+interface DataSharingConsentChangedEventData {
+  smeOrganizationId: string;
+  institutionId: string;
+  userId: string;
+  consentGranted: boolean;
+  timestamp: string;
+}
 
 @Injectable()
 export class EventsService {
@@ -23,17 +32,20 @@ export class EventsService {
 
   async publishDataSharingConsentChanged(eventData: DataSharingConsentChangedEventData): Promise<void> {
     try {
+      // Define the topic name as a constant since it's not in UserEventTopics
+      const DATA_SHARING_CONSENT_CHANGED = 'user.data_sharing.consent.changed';
+      
       this.logger.log(
-        `Publishing ${UserEventTopics.DATA_SHARING_CONSENT_CHANGED} event: ${JSON.stringify(
+        `Publishing ${DATA_SHARING_CONSENT_CHANGED} event: ${JSON.stringify(
           eventData,
         )}`,
       );
       await this.kafkaClient
-        .emit(UserEventTopics.DATA_SHARING_CONSENT_CHANGED, JSON.stringify(eventData))
+        .emit(DATA_SHARING_CONSENT_CHANGED, JSON.stringify(eventData))
         .toPromise();
     } catch (error) {
       this.logger.error(
-        `Failed to publish ${UserEventTopics.DATA_SHARING_CONSENT_CHANGED} event for organization ${eventData.smeOrganizationId}`,
+        `Failed to publish data sharing consent changed event for organization ${eventData.smeOrganizationId}`,
         error,
       );
       // Potentially throw the error or handle it as per application's error handling strategy

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { UserEventTopics, SubscriptionChangedEvent } from '@wanzo/shared/events/kafka-config';
+import { SubscriptionEventTopics } from '@wanzo/shared/events/subscription-events';
+import { SubscriptionChangedEvent } from '@wanzo/shared/events/subscription-events';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { 
@@ -22,7 +23,7 @@ export class SubscriptionEventsConsumer {
     private readonly institutionRepository: Repository<Institution>,
   ) {}
 
-  @MessagePattern(UserEventTopics.SUBSCRIPTION_CHANGED)
+  @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED)
   async handleSubscriptionChanged(@Payload() event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Received subscription changed event: ${JSON.stringify(event)}`);
     
@@ -66,9 +67,9 @@ export class SubscriptionEventsConsumer {
 
       // Update institution subscription details
       institution.subscriptionPlan = planMapping[event.newPlan as SubscriptionPlanType] || SubscriptionPlan.BASIC;
-      institution.subscriptionStatus = statusMapping[event.status as SubscriptionStatusType] || SubscriptionStatus.ACTIVE;
-      institution.subscriptionExpiresAt = event.expiresAt;
-      institution.updatedAt = event.timestamp;
+      institution.subscriptionStatus = statusMapping[event.newStatus as SubscriptionStatusType] || SubscriptionStatus.ACTIVE;
+      institution.subscriptionExpiresAt = new Date(event.endDate);
+      institution.updatedAt = new Date(event.timestamp);
       
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully updated subscription for institution ${event.entityId}`);
@@ -79,7 +80,7 @@ export class SubscriptionEventsConsumer {
     }
   }
 
-  @MessagePattern(UserEventTopics.SUBSCRIPTION_EXPIRED)
+  @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_EXPIRED)
   async handleSubscriptionExpired(@Payload() event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Received subscription expired event: ${JSON.stringify(event)}`);
     
@@ -100,7 +101,7 @@ export class SubscriptionEventsConsumer {
 
       // Mark subscription as expired
       institution.subscriptionStatus = SubscriptionStatus.EXPIRED;
-      institution.updatedAt = event.timestamp;
+      institution.updatedAt = new Date(event.timestamp);
       
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully marked subscription as expired for institution ${event.entityId}`);
