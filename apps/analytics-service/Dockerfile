@@ -41,10 +41,12 @@ WORKDIR /app
 # Copy only the built application from the builder stage
 COPY --from=builder /app/apps/analytics-service/dist /app/apps/analytics-service/dist
 COPY --from=builder /app/apps/analytics-service/package.json /app/apps/analytics-service/package.json
+COPY --from=builder /app/apps/analytics-service/package-lock.json /app/apps/analytics-service/package-lock.json
 COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/package-lock.json /app/package-lock.json
 
-# Install only production dependencies
-RUN npm ci --omit=dev --prefix apps/analytics-service
+# Install only production dependencies (fallback to npm install if npm ci fails)
+RUN npm ci --omit=dev --legacy-peer-deps --prefix apps/analytics-service || npm install --omit=dev --legacy-peer-deps --prefix apps/analytics-service
 
 # Set non-root user for better security
 USER node
