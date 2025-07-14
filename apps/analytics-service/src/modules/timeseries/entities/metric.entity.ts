@@ -6,7 +6,9 @@ export enum MetricType {
   AML_SCORE = 'aml_score',
   MARKET_INDEX = 'market_index',
   RISK_SCORE = 'risk_score',
-  FINANCIAL_RATIO = 'financial_ratio'
+  FINANCIAL_RATIO = 'financial_ratio',
+  HISTORICAL_PATTERN = 'historical_pattern',
+  MARKET = 'market'
 }
 
 @Entity('timeseries_metrics')
