@@ -2,6 +2,10 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { GraphAnalyticsService } from '../services/graph-analytics.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { Pattern } from '../interfaces/pattern.interface';
+import { Correlation } from '../interfaces/correlation.interface';
+import { Node as GraphNode } from '../entities/node.entity';
+import { Metric } from '../../timeseries/entities/metric.entity';
 
 @ApiTags('graph-analytics')
 @Controller('graph-analytics')
@@ -19,7 +23,7 @@ export class GraphAnalyticsController {
   async detectFraud(
     @Query('startDate') startDate: Date,
     @Query('endDate') endDate: Date,
-  ) {
+  ): Promise<{ success: boolean; patterns: { suspiciousTransactions: GraphNode[]; connectionPatterns: Pattern[]; riskScores: any[] } }> {
     const patterns = await this.graphAnalyticsService.detectFraudPatterns(startDate, endDate);
     return {
       success: true,
@@ -35,7 +39,7 @@ export class GraphAnalyticsController {
   async analyzeMarket(
     @Query('startDate') startDate: Date,
     @Query('endDate') endDate: Date,
-  ) {
+  ): Promise<{ success: boolean; trends: { marketIndices: Metric[]; correlations: Correlation[]; trends: any } }> {
     const trends = await this.graphAnalyticsService.analyzeMarketTrends({
       start: startDate,
       end: endDate,
@@ -49,7 +53,7 @@ export class GraphAnalyticsController {
   @Get('crisis-prediction')
   @ApiOperation({ summary: 'Predict potential financial crisis' })
   @ApiResponse({ status: 200, description: 'Crisis prediction completed successfully' })
-  async predictCrisis() {
+  async predictCrisis(): Promise<{ success: boolean; prediction: { indicators: any; historicalPatterns: Metric[]; predictions: any } }> {
     const prediction = await this.graphAnalyticsService.predictFinancialCrisis();
     return {
       success: true,

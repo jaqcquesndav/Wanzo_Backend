@@ -4,19 +4,8 @@ import { Between, Repository } from 'typeorm';
 import { Node, NodeType } from '../entities/node.entity';
 import { Edge, EdgeType } from '../entities/edge.entity';
 import { Metric, MetricType } from '../../timeseries/entities/metric.entity';
-
-// Define interfaces for typed arrays
-interface Pattern {
-  transaction: Node;
-  connections: Edge[];
-  riskLevel: number;
-}
-
-interface Correlation {
-  index1: Metric;
-  index2: Metric;
-  correlation: number;
-}
+import { Pattern } from '../interfaces/pattern.interface';
+import { Correlation } from '../interfaces/correlation.interface';
 
 @Injectable()
 export class GraphAnalyticsService {
