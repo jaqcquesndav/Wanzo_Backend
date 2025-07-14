@@ -41,12 +41,11 @@ WORKDIR /app
 # Copy only the built application from the builder stage
 COPY --from=builder /app/apps/portfolio-sme-service/dist /app/apps/portfolio-sme-service/dist
 COPY --from=builder /app/apps/portfolio-sme-service/package.json /app/apps/portfolio-sme-service/package.json
-COPY --from=builder /app/apps/portfolio-sme-service/package-lock.json /app/apps/portfolio-sme-service/package-lock.json
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/package-lock.json /app/package-lock.json
 
-# Install only production dependencies (fallback to npm install if npm ci fails)
-RUN npm ci --omit=dev --legacy-peer-deps --prefix apps/portfolio-sme-service || npm install --omit=dev --legacy-peer-deps --prefix apps/portfolio-sme-service
+# Install only production dependencies (using install instead of ci for monorepo structure)
+RUN npm install --omit=dev --legacy-peer-deps --prefix apps/portfolio-sme-service
 
 # Set non-root user for better security
 USER node

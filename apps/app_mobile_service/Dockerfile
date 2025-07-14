@@ -8,7 +8,7 @@ COPY package.json ./
 COPY apps/app_mobile_service/package.json ./apps/app_mobile_service/
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application
 COPY . .

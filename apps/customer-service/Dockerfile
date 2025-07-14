@@ -56,7 +56,7 @@ COPY --from=builder /app/apps/customer-service/dist/src/main.js ./apps/customer-
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional express && \
+    npm install --no-optional --legacy-peer-deps express && \
     npm cache clean --force
 
 # Environment variables

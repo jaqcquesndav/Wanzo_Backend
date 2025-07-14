@@ -57,7 +57,7 @@ COPY --from=builder /app/apps/api-gateway/dist/src/main.js ./apps/api-gateway/di
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional express && \
+    npm install --no-optional --legacy-peer-deps express && \
     npm cache clean --force
 
 # Environment variables
