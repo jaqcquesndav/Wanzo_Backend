@@ -1,5 +1,5 @@
 """
-WSGI config for comptable_ia_api project.
+WSGI config for adha_ai_service project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'comptable_ia_api.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'adha_ai_service.settings')
 
 application = get_wsgi_application()

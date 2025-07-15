@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-slim
+# Utiliser l'image PyTorch officielle CPU-only comme base pour accélérer le build
+FROM pytorch/pytorch:2.2.0-cpu
 
 # Set workdir
 WORKDIR /app
@@ -14,24 +15,30 @@ RUN apt-get update && \
         libxext6 \
         tesseract-ocr \
         poppler-utils \
+        postgresql-client \
         && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY apps/Adha-ai-service/requirements.txt ./
-# Utiliser une méthode robuste pour installer les dépendances
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --timeout 300 --retries 10 -r requirements.txt
+# Modifier requirements.txt pour enlever torch qui est déjà installé
+RUN grep -v "^torch" requirements.txt > requirements_no_torch.txt && \
+    pip install --upgrade pip && \
+    pip install --no-cache-dir --timeout 300 --retries 10 -r requirements_no_torch.txt
 
 # Copy only necessary files (not the entire code)
-COPY apps/Adha-ai-service/comptable_ia_api ./comptable_ia_api
+COPY apps/Adha-ai-service/adha_ai_service ./adha_ai_service
 COPY apps/Adha-ai-service/api ./api
 COPY apps/Adha-ai-service/agents ./agents
 COPY apps/Adha-ai-service/config ./config
 COPY apps/Adha-ai-service/manage.py ./
 
-# Expose the port (assume 8002, change if needed)
+# Expose the port
 ENV PORT=8002
 EXPOSE 8002
 
-# Entrypoint for Django app (adapt if using another entrypoint)
-CMD ["gunicorn", "comptable_ia_api.wsgi:application", "--bind", "0.0.0.0:8002", "--timeout", "120"]
+# Script de démarrage pour attendre PostgreSQL et exécuter les migrations
+COPY apps/Adha-ai-service/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["gunicorn", "adha_ai_service.wsgi:application", "--bind", "0.0.0.0:8002", "--timeout", "120"]
