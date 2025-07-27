@@ -1,5 +1,13 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
+export enum SettingCategory {
+  GENERAL = 'general',
+  SECURITY = 'security',
+  NOTIFICATIONS = 'notifications',
+  INTEGRATION = 'integration',
+  SYSTEM = 'system'
+}
+
 @Entity('settings')
 export class Setting {
   @PrimaryGeneratedColumn('uuid')
@@ -7,6 +15,13 @@ export class Setting {
 
   @Column()
   key!: string;
+
+  @Column({
+    type: 'enum',
+    enum: SettingCategory,
+    default: SettingCategory.GENERAL
+  })
+  category!: SettingCategory;
 
   @Column('jsonb')
   value!: any;

@@ -1,90 +1,79 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
 import { Prospect } from './prospect.entity';
 
 export enum AnalysisType {
   FINANCIAL = 'financial',
   MARKET = 'market',
   OPERATIONAL = 'operational',
-  RISK = 'risk'
+  RISK = 'risk',
 }
 
 export enum AnalysisStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
-  REJECTED = 'rejected'
+  NEEDS_REVIEW = 'needs_review',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
 }
 
 @Entity('prospect_analyses')
 export class ProspectAnalysis {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
-
-  @Column('uuid')
-  prospectId!: string;
-
-  @ManyToOne(() => Prospect, prospect => prospect.analyses)
-  @JoinColumn({ name: 'prospectId' })
-  prospect!: Prospect;
+  id: string;
 
   @Column({
     type: 'enum',
     enum: AnalysisType,
   })
-  type!: AnalysisType;
+  type: AnalysisType;
 
   @Column({
     type: 'enum',
     enum: AnalysisStatus,
-    default: AnalysisStatus.IN_PROGRESS
+    default: AnalysisStatus.IN_PROGRESS,
   })
-  status!: AnalysisStatus;
+  status: AnalysisStatus;
 
   @Column('jsonb')
-  criteria!: {
-    category: string;
-    weight: number;
-    score: number;
-    notes: string;
-  }[];
+  criteria: any[];
 
   @Column('decimal', { precision: 5, scale: 2 })
-  overallScore!: number;
+  overallScore: number;
 
   @Column('text')
-  summary!: string;
+  summary: string;
 
-  @Column('text', { array: true })
-  strengths!: string[];
+  @Column('simple-array', { nullable: true })
+  strengths: string[];
 
-  @Column('text', { array: true })
-  weaknesses!: string[];
+  @Column('simple-array', { nullable: true })
+  weaknesses: string[];
 
-  @Column('text', { array: true })
-  opportunities!: string[];
+  @Column('simple-array', { nullable: true })
+  opportunities: string[];
 
-  @Column('text', { array: true })
-  threats!: string[];
-
-  @Column('jsonb')
-  recommendations!: {
-    category: string;
-    description: string;
-    priority: string;
-    timeline: string;
-  }[];
+  @Column('simple-array', { nullable: true })
+  threats: string[];
 
   @Column('jsonb', { nullable: true })
-  metadata!: Record<string, any>;
+  recommendations: any[];
+
+  @Column()
+  createdBy: string;
 
   @Column({ nullable: true })
-  analyzedBy?: string;
+  reviewedBy: string;
 
-  @Column({ nullable: true })
-  reviewedBy?: string;
+  @ManyToOne(() => Prospect, (prospect: any) => prospect.analyses)
+  @JoinColumn({ name: 'prospectId' })
+  prospect: Prospect;
+
+  @Column()
+  prospectId: string;
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updatedAt: Date;
 }

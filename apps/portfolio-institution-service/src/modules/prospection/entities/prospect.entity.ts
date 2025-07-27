@@ -1,149 +1,148 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { ProspectAnalysis } from './prospect-analysis.entity';
-import { ProspectDocument } from './prospect-document.entity';
-
-export enum ProspectStatus {
-  NEW = 'new',
-  IN_ANALYSIS = 'in_analysis',
-  QUALIFIED = 'qualified',
-  REJECTED = 'rejected',
-  CONVERTED = 'converted'
-}
 
 export enum CompanySize {
   MICRO = 'micro',
   SMALL = 'small',
   MEDIUM = 'medium',
-  LARGE = 'large'
+  LARGE = 'large',
+  ENTERPRISE = 'enterprise',
 }
 
 export enum CompanySector {
   AGRICULTURE = 'agriculture',
   MANUFACTURING = 'manufacturing',
-  CONSTRUCTION = 'construction',
-  RETAIL = 'retail',
-  TRANSPORT = 'transport',
   TECHNOLOGY = 'technology',
+  FINANCE = 'finance',
+  HEALTHCARE = 'healthcare',
+  EDUCATION = 'education',
+  RETAIL = 'retail',
+  ENERGY = 'energy',
+  CONSTRUCTION = 'construction',
+  TRANSPORTATION = 'transportation',
+  HOSPITALITY = 'hospitality',
+  REAL_ESTATE = 'real_estate',
+  MEDIA = 'media',
+  TELECOM = 'telecom',
   SERVICES = 'services',
-  OTHER = 'other'
+  OTHER = 'other',
+}
+
+export enum ProspectStatus {
+  NEW = 'new',
+  IN_ANALYSIS = 'in_analysis',
+  QUALIFIED = 'qualified',
+  PROPOSAL = 'proposal',
+  NEGOTIATION = 'negotiation',
+  CLOSED_WON = 'closed_won',
+  CLOSED_LOST = 'closed_lost',
+}
+
+export enum PortfolioType {
+  TRADITIONAL = 'traditional',
+  INVESTMENT = 'investment',
+  LEASING = 'leasing',
 }
 
 @Entity('prospects')
 export class Prospect {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column()
-  kiotaId!: string;
-
-  @Column()
-  name!: string;
+  name: string;
 
   @Column({
     type: 'enum',
     enum: CompanySize,
+    default: CompanySize.SMALL,
   })
-  size!: CompanySize;
+  size: CompanySize;
 
   @Column({
     type: 'enum',
     enum: CompanySector,
   })
-  sector!: CompanySector;
+  sector: CompanySector;
+
+  @Column({ nullable: true })
+  rccm: string;
+
+  @Column({ nullable: true })
+  idnat: string;
+
+  @Column({ nullable: true })
+  nif: string;
 
   @Column()
-  rccm!: string;
+  address: string;
 
   @Column()
-  idnat!: string;
+  phone: string;
 
   @Column()
-  nif!: string;
+  email: string;
+
+  @Column({ nullable: true })
+  website: string;
 
   @Column()
-  address!: string;
-
-  @Column()
-  phone!: string;
-
-  @Column()
-  email!: string;
-
-  @Column()
-  website!: string;
-
-  @Column()
-  legalRepresentative!: string;
+  legalRepresentative: string;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  annualRevenue!: number;
+  annualRevenue: number;
 
-  @Column('integer')
-  employeeCount!: number;
+  @Column()
+  employeeCount: number;
 
   @Column('text')
-  description!: string;
+  description: string;
 
   @Column({
     type: 'enum',
     enum: ProspectStatus,
-    default: ProspectStatus.NEW
+    default: ProspectStatus.NEW,
   })
-  status!: ProspectStatus;
+  status: ProspectStatus;
 
-  @Column('jsonb')
-  financialData!: {
-    lastAuditDate?: Date;
-    auditFirm?: string;
-    keyMetrics: {
-      currentRatio?: number;
-      quickRatio?: number;
-      debtToEquity?: number;
-      profitMargin?: number;
-      assetTurnover?: number;
-    };
-    historicalPerformance: {
-      year: number;
-      revenue: number;
-      profit: number;
-      assets: number;
-      liabilities: number;
-    }[];
-  };
+  @Column({
+    type: 'enum',
+    enum: PortfolioType,
+    nullable: true,
+  })
+  portfolioType: PortfolioType;
 
-  @Column('jsonb')
-  contactHistory!: {
-    date: Date;
-    type: string;
-    notes: string;
-    outcome: string;
-    nextSteps?: string;
-    assignedTo?: string;
-  }[];
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  amount: number;
 
-  @OneToMany(() => ProspectAnalysis, analysis => analysis.prospect)
-  analyses!: ProspectAnalysis[];
-
-  @OneToMany(() => ProspectDocument, document => document.prospect)
-  documents!: ProspectDocument[];
-
-  @Column('jsonb', { nullable: true })
-  consentData?: {
-    shareWithAll: boolean;
-    targetInstitutionTypes?: string[];
-    lastUpdatedBy: string;
-    lastUpdatedAt: Date;
-  };
-
-  @Column('uuid')
-  institutionId!: string;
+  @Column('int', { nullable: true })
+  probability: number;
 
   @Column({ nullable: true })
-  createdBy?: string;
+  expectedCloseDate: Date;
+
+  @Column({ nullable: true })
+  assignedTo: string;
+
+  @Column('jsonb', { nullable: true })
+  financialData: any;
+
+  @OneToMany(() => Document, (document: any) => document.prospect, { cascade: true })
+  documents: Document[];
+
+  @OneToMany(() => ContactHistory, (contactHistory: any) => contactHistory.prospect, { cascade: true })
+  contactHistory: ContactHistory[];
+
+  @OneToMany(() => ProspectAnalysis, (analysis: any) => analysis.prospect, { cascade: true })
+  analyses: ProspectAnalysis[];
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updatedAt: Date;
 }
+
+// Import types after the class definition to avoid circular dependencies
+import { Document } from './document.entity';
+import { ContactHistory } from './contact-history.entity';
+import { ProspectAnalysis } from './prospect-analysis.entity';

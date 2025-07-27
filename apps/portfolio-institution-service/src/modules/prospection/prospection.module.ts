@@ -1,35 +1,51 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Prospect } from './entities/prospect.entity';
+import { Document } from './entities/document.entity';
+import { ContactHistory } from './entities/contact-history.entity';
 import { ProspectAnalysis } from './entities/prospect-analysis.entity';
-import { ProspectDocument } from './entities/prospect-document.entity';
+import { Campaign } from './entities/campaign.entity';
 import { ProspectService } from './services/prospect.service';
 import { ProspectAnalysisService } from './services/prospect-analysis.service';
-import { RiskAnalysisService } from './services/risk-analysis.service';
+import { CampaignService } from './services/campaign.service';
+import { LeadsService } from './services/leads.service';
+import { StatsService } from './services/stats.service';
 import { ProspectController } from './controllers/prospect.controller';
 import { ProspectAnalysisController } from './controllers/prospect-analysis.controller';
-import { InstitutionModule } from '../institution/institution.module';
-import { EventsModule } from '../events/events.module';
+import { CampaignController } from './controllers/campaign.controller';
+import { LeadsController } from './controllers/leads.controller';
+import { StatsController } from './controllers/stats.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Prospect, ProspectAnalysis, ProspectDocument]),
-    forwardRef(() => InstitutionModule), // Use forwardRef to break circular dependency
-    forwardRef(() => EventsModule),      // Add forwardRef to EventsModule
+    TypeOrmModule.forFeature([
+      Prospect,
+      Document,
+      ContactHistory,
+      ProspectAnalysis,
+      Campaign,
+    ]),
   ],
   providers: [
     ProspectService,
     ProspectAnalysisService,
-    RiskAnalysisService,
+    CampaignService,
+    LeadsService,
+    StatsService,
   ],
   controllers: [
     ProspectController,
     ProspectAnalysisController,
+    CampaignController,
+    LeadsController,
+    StatsController,
   ],
   exports: [
     ProspectService,
     ProspectAnalysisService,
-    RiskAnalysisService,
+    CampaignService,
+    LeadsService,
+    StatsService,
   ],
 })
 export class ProspectionModule {}

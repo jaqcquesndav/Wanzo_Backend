@@ -1,59 +1,40 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { ProspectService } from '../services/prospect.service';
-import { CreateProspectDto, UpdateProspectDto, ProspectFilterDto } from '../dtos/prospect.dto';
+import { CreateProspectDto } from '../dto/create-prospect.dto';
+import { UpdateProspectDto } from '../dto/update-prospect.dto';
+import { ProspectFilterDto } from '../dto/prospect-filter.dto';
+import { CreateDocumentDto } from '../dto/create-document.dto';
+import { CreateContactHistoryDto } from '../dto/create-contact-history.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
 
-@ApiTags('prospects')
 @Controller('prospects')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 export class ProspectController {
   constructor(private readonly prospectService: ProspectService) {}
 
-  @Post()
-  @Roles('admin', 'manager', 'analyst')
-  @ApiOperation({ summary: 'Create new prospect' })
-  @ApiResponse({ status: 201, description: 'Prospect created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input' })
-  async create(@Body() createProspectDto: CreateProspectDto, @Req() req: any) {
-    const prospect = await this.prospectService.create(
-      createProspectDto,
-      req.user.institutionId,
-      req.user.id,
-    );
+  @Get()
+  async findAll(@Query() filters: ProspectFilterDto) {
+    const { prospects, total } = await this.prospectService.findAll(filters);
+    return {
+      success: true,
+      prospects,
+      total,
+    };
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const prospect = await this.prospectService.findOne(id);
     return {
       success: true,
       prospect,
     };
   }
 
-  @Get()
-  @ApiOperation({ summary: 'Get all prospects' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'per_page', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Prospects retrieved successfully' })
-  async findAll(
-    @Query('page') page = 1,
-    @Query('per_page') perPage = 10,
-    @Query() filters: ProspectFilterDto,
-  ) {
-    const result = await this.prospectService.findAll(filters, +page, +perPage);
-    return {
-      success: true,
-      ...result,
-    };
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get prospect by ID' })
-  @ApiParam({ name: 'id', description: 'Prospect ID' })
-  @ApiResponse({ status: 200, description: 'Prospect retrieved successfully' })
-  @ApiResponse({ status: 404, description: 'Prospect not found' })
-  async findOne(@Param('id') id: string) {
-    const prospect = await this.prospectService.findById(id);
+  @Post()
+  async create(@Body() createProspectDto: CreateProspectDto, @Req() req) {
+    const userId = req.user.id;
+    const prospect = await this.prospectService.create(createProspectDto, userId);
     return {
       success: true,
       prospect,
@@ -61,15 +42,7 @@ export class ProspectController {
   }
 
   @Put(':id')
-  @Roles('admin', 'manager', 'analyst')
-  @ApiOperation({ summary: 'Update prospect' })
-  @ApiParam({ name: 'id', description: 'Prospect ID' })
-  @ApiResponse({ status: 200, description: 'Prospect updated successfully' })
-  @ApiResponse({ status: 404, description: 'Prospect not found' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateProspectDto: UpdateProspectDto,
-  ) {
+  async update(@Param('id') id: string, @Body() updateProspectDto: UpdateProspectDto) {
     const prospect = await this.prospectService.update(id, updateProspectDto);
     return {
       success: true,
@@ -78,12 +51,39 @@ export class ProspectController {
   }
 
   @Delete(':id')
-  @Roles('admin')
-  @ApiOperation({ summary: 'Delete prospect' })
-  @ApiParam({ name: 'id', description: 'Prospect ID' })
-  @ApiResponse({ status: 200, description: 'Prospect deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Prospect not found' })
   async remove(@Param('id') id: string) {
-    return await this.prospectService.delete(id);
+    await this.prospectService.remove(id);
+    return {
+      success: true,
+      message: 'Prospect deleted successfully',
+    };
+  }
+
+  @Post(':id/documents')
+  async addDocument(
+    @Param('id') id: string,
+    @Body() createDocumentDto: CreateDocumentDto,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    const document = await this.prospectService.addDocument(id, createDocumentDto, userId);
+    return {
+      success: true,
+      document,
+    };
+  }
+
+  @Post(':id/contact-history')
+  async addContactHistory(
+    @Param('id') id: string,
+    @Body() createContactHistoryDto: CreateContactHistoryDto,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    const result = await this.prospectService.addContactHistory(id, createContactHistoryDto, userId);
+    return {
+      success: true,
+      prospect: result.prospect,
+    };
   }
 }

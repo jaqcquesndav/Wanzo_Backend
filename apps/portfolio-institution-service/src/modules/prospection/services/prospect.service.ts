@@ -1,212 +1,138 @@
-import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, Like } from 'typeorm';
-import { Prospect, ProspectStatus } from '../entities/prospect.entity'; // Import ProspectStatus
-import { ProspectDocument, DocumentType } from '../entities/prospect-document.entity';
-import { CreateProspectDto, UpdateProspectDto, ProspectFilterDto } from '../dtos/prospect.dto';
+import { Repository } from 'typeorm';
+import { Prospect } from '../entities/prospect.entity';
+import { Document } from '../entities/document.entity';
+import { ContactHistory } from '../entities/contact-history.entity';
+import { CreateProspectDto } from '../dto/create-prospect.dto';
+import { UpdateProspectDto } from '../dto/update-prospect.dto';
+import { ProspectFilterDto } from '../dto/prospect-filter.dto';
+import { CreateDocumentDto } from '../dto/create-document.dto';
+import { CreateContactHistoryDto } from '../dto/create-contact-history.dto';
 
 @Injectable()
 export class ProspectService {
-  delete(_id: string) {
-    throw new Error('Method not implemented.');
-  }
-  private readonly logger = new Logger(ProspectService.name);
-
   constructor(
     @InjectRepository(Prospect)
     private prospectRepository: Repository<Prospect>,
-    @InjectRepository(ProspectDocument)
-    private documentRepository: Repository<ProspectDocument>,
+    @InjectRepository(Document)
+    private documentRepository: Repository<Document>,
+    @InjectRepository(ContactHistory)
+    private contactHistoryRepository: Repository<ContactHistory>,
   ) {}
 
-  async create(createProspectDto: CreateProspectDto, institutionId: string, userId: string): Promise<Prospect> {
-    const kiotaId = `KIOTA-PRS-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
-
-    const prospect = this.prospectRepository.create({
-      ...createProspectDto,
-      kiotaId,
-      institutionId,
-      createdBy: userId,
-    });
-
-    return await this.prospectRepository.save(prospect);
+  async findAll(filters: ProspectFilterDto): Promise<{ prospects: Prospect[]; total: number }> {
+    const { size, sector, status, min_revenue, max_revenue, page = 1, limit = 10 } = filters;
+    
+    const queryBuilder = this.prospectRepository.createQueryBuilder('prospect');
+    
+    if (size) {
+      queryBuilder.andWhere('prospect.size = :size', { size });
+    }
+    
+    if (sector) {
+      queryBuilder.andWhere('prospect.sector = :sector', { sector });
+    }
+    
+    if (status) {
+      queryBuilder.andWhere('prospect.status = :status', { status });
+    }
+    
+    if (min_revenue) {
+      queryBuilder.andWhere('prospect.annualRevenue >= :min_revenue', { min_revenue });
+    }
+    
+    if (max_revenue) {
+      queryBuilder.andWhere('prospect.annualRevenue <= :max_revenue', { max_revenue });
+    }
+    
+    const total = await queryBuilder.getCount();
+    
+    queryBuilder
+      .leftJoinAndSelect('prospect.documents', 'documents')
+      .leftJoinAndSelect('prospect.contactHistory', 'contactHistory')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .orderBy('prospect.createdAt', 'DESC');
+    
+    const prospects = await queryBuilder.getMany();
+    
+    return { prospects, total };
   }
 
-  async findAll(
-    filters: ProspectFilterDto & { institutionId?: string },
-    page = 1,
-    perPage = 10,
-  ): Promise<{
-    prospects: Prospect[];
-    total: number;
-    page: number;
-    perPage: number;
-  }> {
-    const where: any = {};
-
-    if (filters.institutionId) {
-      where.institutionId = filters.institutionId;
-    }
-
-    if (filters.size) {
-      where.size = filters.size;
-    }
-
-    if (filters.sector) {
-      where.sector = filters.sector;
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.minRevenue) {
-      where.annualRevenue = filters.maxRevenue 
-        ? Between(filters.minRevenue, filters.maxRevenue)
-        : MoreThanOrEqual(filters.minRevenue);
-    }
-
-    if (filters.search) {
-      where.name = Like(`%${filters.search}%`);
-    }
-
-    const [prospects, total] = await this.prospectRepository.findAndCount({
-      where,
-      relations: ['analyses', 'documents'],
-      skip: (page - 1) * perPage,
-      take: perPage,
-      order: { createdAt: 'DESC' },
-    });
-
-    return {
-      prospects,
-      total,
-      page,
-      perPage,
-    };
-  }
-
-  async findById(id: string): Promise<Prospect> {
+  async findOne(id: string): Promise<Prospect> {
     const prospect = await this.prospectRepository.findOne({
       where: { id },
-      relations: ['analyses', 'documents'],
+      relations: ['documents', 'contactHistory', 'analyses'],
     });
-
+    
     if (!prospect) {
       throw new NotFoundException(`Prospect with ID ${id} not found`);
     }
-
+    
     return prospect;
   }
 
+  async create(createProspectDto: CreateProspectDto, userId: string): Promise<Prospect> {
+    const prospect = this.prospectRepository.create({
+      ...createProspectDto,
+      // Ensure the assignedTo field is set to the user creating the prospect
+      // if not explicitly specified in the DTO
+      assignedTo: createProspectDto.assignedTo || userId,
+    });
+    
+    return this.prospectRepository.save(prospect);
+  }
+
   async update(id: string, updateProspectDto: UpdateProspectDto): Promise<Prospect> {
-    const prospect = await this.findById(id);
+    const prospect = await this.findOne(id);
+    
+    // Merge the updated fields into the existing prospect
+    const updatedProspect = this.prospectRepository.merge(prospect, updateProspectDto);
+    
+    return this.prospectRepository.save(updatedProspect);
+  }
 
-    // Validate status transition
-    if (updateProspectDto.status && prospect.status !== updateProspectDto.status) {
-      const allowedTransitions: Record<ProspectStatus, ProspectStatus[]> = {
-        [ProspectStatus.NEW]: [ProspectStatus.IN_ANALYSIS, ProspectStatus.QUALIFIED, ProspectStatus.REJECTED],
-        [ProspectStatus.IN_ANALYSIS]: [ProspectStatus.QUALIFIED, ProspectStatus.REJECTED],
-        [ProspectStatus.QUALIFIED]: [ProspectStatus.CONVERTED, ProspectStatus.REJECTED],
-        [ProspectStatus.REJECTED]: [], // Cannot transition from rejected
-        [ProspectStatus.CONVERTED]: [], // Cannot transition from converted via this method
-      };
-
-      if (!allowedTransitions[prospect.status]?.includes(updateProspectDto.status as ProspectStatus)) {
-        throw new BadRequestException(`Invalid status transition from ${prospect.status} to ${updateProspectDto.status}`);
-      }
-    }
-
-    Object.assign(prospect, updateProspectDto);
-    return await this.prospectRepository.save(prospect);
+  async remove(id: string): Promise<void> {
+    const prospect = await this.findOne(id);
+    
+    await this.prospectRepository.remove(prospect);
   }
 
   async addDocument(
-    id: string,
-    document: {
-      name: string;
-      type: string;
-      cloudinaryUrl: string;
-      description?: string;
-      validUntil?: Date;
-    },
-    userId: string,
-  ): Promise<ProspectDocument> {
-    const prospect = await this.findById(id);
-
-    const newDocument = this.documentRepository.create({
-      prospectId: prospect.id,
-      name: document.name,
-      type: document.type as DocumentType,
-      cloudinaryUrl: document.cloudinaryUrl,
-      description: document.description,
-      validUntil: document.validUntil,
-      createdBy: userId,
+    prospectId: string, 
+    createDocumentDto: CreateDocumentDto, 
+    userId: string
+  ): Promise<Document> {
+    const prospect = await this.findOne(prospectId);
+    
+    const document = this.documentRepository.create({
+      ...createDocumentDto,
+      prospectId,
+      uploadedBy: userId,
     });
-
-    return await this.documentRepository.save(newDocument);
+    
+    return this.documentRepository.save(document);
   }
 
   async addContactHistory(
-    id: string,
-    contact: {
-      type: string;
-      notes: string;
-      outcome: string;
-      nextSteps?: string;
-      assignedTo?: string;
-    },
-  ): Promise<Prospect> {
-    const prospect = await this.findById(id);
-
-    prospect.contactHistory.push({
-      ...contact,
-      date: new Date(),
+    prospectId: string, 
+    createContactHistoryDto: CreateContactHistoryDto, 
+    userId: string
+  ): Promise<{ contactHistory: ContactHistory; prospect: Prospect }> {
+    const prospect = await this.findOne(prospectId);
+    
+    const contactHistory = this.contactHistoryRepository.create({
+      ...createContactHistoryDto,
+      prospectId,
+      createdBy: userId,
     });
-
-    return await this.prospectRepository.save(prospect);
-  }
-
-  public async updateSmeDataSharingConsent(
-    smeOrganizationId: string, // Assuming this is the Prospect ID for now
-    shareWithAll: boolean,
-    targetInstitutionTypes: string[] | undefined,
-    consentingUserId: string,
-  ): Promise<void> {
-    this.logger.log(
-      `Updating consent for SME Organization ID (Prospect ID): ${smeOrganizationId}`,
-    );
-
-    const prospect = await this.prospectRepository.findOne({ where: { id: smeOrganizationId } });
-
-    if (!prospect) {
-      this.logger.warn(
-        `Prospect with ID ${smeOrganizationId} not found. Cannot update consent.`,
-      );
-      return; // Exit if prospect not found
-    }
-
-    prospect.consentData = {
-      shareWithAll,
-      targetInstitutionTypes: targetInstitutionTypes || [], // Ensure it's an array
-      lastUpdatedBy: consentingUserId,
-      lastUpdatedAt: new Date(),
-    };
-
-    try {
-      await this.prospectRepository.save(prospect);
-      this.logger.log(
-        `Successfully updated consent data for Prospect ID: ${smeOrganizationId}`,
-      );
-    } catch (error) {
-      // Log the error with more details if available
-      const errorMessage = error instanceof Error ? error.stack : String(error);
-      this.logger.error(
-        `Failed to save consent data for Prospect ID: ${smeOrganizationId}`,
-        errorMessage,
-      );
-      // Re-throw or handle error as appropriate
-      throw error;
-    }
+    
+    const savedContactHistory = await this.contactHistoryRepository.save(contactHistory);
+    
+    // Re-fetch the prospect with the updated contact history
+    const updatedProspect = await this.findOne(prospectId);
+    
+    return { contactHistory: savedContactHistory, prospect: updatedProspect };
   }
 }

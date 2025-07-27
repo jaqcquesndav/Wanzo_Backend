@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ProspectAnalysis, AnalysisStatus } from '../entities/prospect-analysis.entity';
-import { CreateAnalysisDto, UpdateAnalysisDto, AnalysisFilterDto } from '../dtos/prospect-analysis.dto';
+import { Prospect } from '../entities/prospect.entity';
+import { CreateAnalysisDto } from '../dto/create-analysis.dto';
 
 @Injectable()
 export class ProspectAnalysisService {
   constructor(
     @InjectRepository(ProspectAnalysis)
     private analysisRepository: Repository<ProspectAnalysis>,
+    @InjectRepository(Prospect)
+    private prospectRepository: Repository<Prospect>,
   ) {}
 
   async create(
@@ -16,64 +19,45 @@ export class ProspectAnalysisService {
     createAnalysisDto: CreateAnalysisDto,
     userId: string,
   ): Promise<ProspectAnalysis> {
+    // Check if prospect exists
+    const prospect = await this.prospectRepository.findOne({
+      where: { id: prospectId },
+    });
+
+    if (!prospect) {
+      throw new NotFoundException(`Prospect with ID ${prospectId} not found`);
+    }
+
+    // Create new analysis
     const analysis = this.analysisRepository.create({
       ...createAnalysisDto,
       prospectId,
-      analyzedBy: userId,
+      createdBy: userId,
       status: AnalysisStatus.IN_PROGRESS,
     });
 
-    return await this.analysisRepository.save(analysis);
+    return this.analysisRepository.save(analysis);
   }
 
-  async findAll(
-    filters: AnalysisFilterDto,
-    page = 1,
-    perPage = 10,
-  ): Promise<{
-    analyses: ProspectAnalysis[];
-    total: number;
-    page: number;
-    perPage: number;
-  }> {
-    const where: any = {};
-
-    if (filters.type) {
-      where.type = filters.type;
-    }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.minScore) {
-      where.overallScore = Between(filters.minScore, filters.maxScore || 100);
-    }
-
-    if (filters.search) {
-      where.summary = Like(`%${filters.search}%`);
-    }
-
-    const [analyses, total] = await this.analysisRepository.findAndCount({
-      where,
-      relations: ['prospect'],
-      skip: (page - 1) * perPage,
-      take: perPage,
-      order: { createdAt: 'DESC' },
+  async findByProspect(prospectId: string): Promise<ProspectAnalysis[]> {
+    // Check if prospect exists
+    const prospect = await this.prospectRepository.findOne({
+      where: { id: prospectId },
     });
 
-    return {
-      analyses,
-      total,
-      page,
-      perPage,
-    };
+    if (!prospect) {
+      throw new NotFoundException(`Prospect with ID ${prospectId} not found`);
+    }
+
+    return this.analysisRepository.find({
+      where: { prospectId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async findById(id: string): Promise<ProspectAnalysis> {
+  async findOne(id: string): Promise<ProspectAnalysis> {
     const analysis = await this.analysisRepository.findOne({
       where: { id },
-      relations: ['prospect'],
     });
 
     if (!analysis) {
@@ -83,57 +67,61 @@ export class ProspectAnalysisService {
     return analysis;
   }
 
-  async update(id: string, updateAnalysisDto: UpdateAnalysisDto, reviewerId?: string): Promise<ProspectAnalysis> {
-    const analysis = await this.findById(id);
+  async update(
+    id: string,
+    updateAnalysisDto: Partial<CreateAnalysisDto>,
+    userId: string,
+  ): Promise<ProspectAnalysis> {
+    const analysis = await this.findOne(id);
 
-    if (updateAnalysisDto.status === AnalysisStatus.COMPLETED && reviewerId) {
-      analysis.reviewedBy = reviewerId;
+    // Merge updated fields
+    const updatedAnalysis = this.analysisRepository.merge(analysis, {
+      ...updateAnalysisDto,
+      reviewedBy: userId,
+    });
+
+    return this.analysisRepository.save(updatedAnalysis);
+  }
+
+  async updateStatus(
+    id: string,
+    status: AnalysisStatus,
+    userId: string,
+  ): Promise<ProspectAnalysis> {
+    const analysis = await this.findOne(id);
+
+    analysis.status = status;
+    analysis.reviewedBy = userId;
+
+    return this.analysisRepository.save(analysis);
+  }
+
+  async getProspectScore(prospectId: string): Promise<{ score: number }> {
+    // Check if prospect exists
+    const prospect = await this.prospectRepository.findOne({
+      where: { id: prospectId },
+    });
+
+    if (!prospect) {
+      throw new NotFoundException(`Prospect with ID ${prospectId} not found`);
     }
 
-    Object.assign(analysis, updateAnalysisDto);
-    return await this.analysisRepository.save(analysis);
-  }
-
-  async findByProspect(prospectId: string): Promise<ProspectAnalysis[]> {
-    return await this.analysisRepository.find({
-      where: { prospectId },
-      order: { createdAt: 'DESC' },
+    // Get completed analyses
+    const analyses = await this.analysisRepository.find({
+      where: {
+        prospectId,
+        status: AnalysisStatus.COMPLETED,
+      },
     });
-  }
 
-  async getLatestAnalysis(prospectId: string): Promise<ProspectAnalysis | null> {
-    return await this.analysisRepository.findOne({
-      where: { prospectId },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async calculateAggregateScore(prospectId: string): Promise<number> {
-    const analyses = await this.findByProspect(prospectId);
-    
     if (analyses.length === 0) {
-      return 0;
+      return { score: 0 };
     }
 
-    const weightedScores = analyses.map(analysis => ({
-      score: analysis.overallScore,
-      weight: this.getAnalysisTypeWeight(analysis.type),
-    }));
+    // Calculate average score
+    const totalScore = analyses.reduce((sum, analysis) => sum + analysis.overallScore, 0);
+    const averageScore = totalScore / analyses.length;
 
-    const totalWeight = weightedScores.reduce((sum, item) => sum + item.weight, 0);
-    const weightedSum = weightedScores.reduce((sum, item) => sum + (item.score * item.weight), 0);
-
-    return totalWeight > 0 ? weightedSum / totalWeight : 0;
-  }
-
-  private getAnalysisTypeWeight(type: string): number {
-    const weights: Record<string, number> = {
-      financial: 0.4,
-      market: 0.3,
-      operational: 0.2,
-      risk: 0.1,
-    };
-
-    return weights[type] || 0.25;
+    return { score: averageScore };
   }
 }
