@@ -6,6 +6,13 @@ export enum RiskToleranceLevel {
   HIGH = 'high'
 }
 
+export enum PortfolioType {
+  CREDIT = 'credit',
+  SAVINGS = 'savings',
+  MICROFINANCE = 'microfinance',
+  TREASURY = 'treasury'
+}
+
 @Entity('portfolios')
 export class Portfolio {
   @PrimaryGeneratedColumn('uuid')
@@ -26,6 +33,19 @@ export class Portfolio {
     type: 'enum'
   })
   status!: string;
+  
+  @Column({
+    type: 'enum',
+    enum: PortfolioType,
+    default: PortfolioType.CREDIT
+  })
+  type!: PortfolioType;
+  
+  @Column({
+    nullable: true,
+    default: RiskToleranceLevel.MEDIUM
+  })
+  riskProfile?: string;
 
   @Column('decimal', { precision: 15, scale: 2 })
   totalAmount!: number;

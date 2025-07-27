@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { IsEnum, IsOptional, IsNumber, Min, Max, IsString } from 'class-validator';
 import { CompanySize, CompanySector, ProspectStatus } from '../entities/prospect.entity';
 
 export class ProspectFilterDto {
@@ -13,6 +13,10 @@ export class ProspectFilterDto {
   @IsEnum(ProspectStatus)
   @IsOptional()
   status?: ProspectStatus;
+  
+  @IsString()
+  @IsOptional()
+  institutionId?: string;
 
   @IsNumber()
   @Min(0)

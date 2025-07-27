@@ -116,6 +116,11 @@ export class PortfolioFilterDto {
   @IsOptional()
   @IsString()
   manager?: string;
+  
+  @ApiPropertyOptional({ description: 'Filter by institution ID' })
+  @IsOptional()
+  @IsString()
+  institutionId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by client ID' })
   @IsOptional()

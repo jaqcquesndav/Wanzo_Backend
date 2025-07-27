@@ -21,8 +21,12 @@ export class ProspectService {
     private contactHistoryRepository: Repository<ContactHistory>,
   ) {}
 
-  async findAll(filters: ProspectFilterDto): Promise<{ prospects: Prospect[]; total: number }> {
-    const { size, sector, status, min_revenue, max_revenue, page = 1, limit = 10 } = filters;
+  async findAll(
+    filters: ProspectFilterDto,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ prospects: Prospect[]; total: number }> {
+    const { size, sector, status, min_revenue, max_revenue, institutionId } = filters;
     
     const queryBuilder = this.prospectRepository.createQueryBuilder('prospect');
     

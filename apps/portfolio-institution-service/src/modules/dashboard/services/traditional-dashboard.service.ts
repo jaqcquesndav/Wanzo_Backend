@@ -26,7 +26,7 @@ export class TraditionalDashboardService {
   async getTraditionalDashboardMetrics(
     institutionId: string,
     portfolioId?: string,
-    period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' = 'monthly',
+    period: "daily" | "weekly" | "monthly" | "quarterly" | "yearly" = "monthly",
     startDateStr?: string,
     endDateStr?: string,
   ): Promise<TraditionalDashboardMetrics> {
@@ -83,11 +83,10 @@ export class TraditionalDashboardService {
     const totalValue = portfolios.reduce((sum, p) => sum + Number(p.totalAmount), 0);
     const totalCount = portfolios.length;
     
-    // Calculate credit distribution - simplified
+    // Calculate credit distribution - simplified with savings property to match interface
     const distribution = {
-      credit: 0.70,
-      microfinance: 0.20,
-      treasury: 0.10,
+      credit: 0.50,
+      savings: 0.50,
     };
     
     return {
@@ -103,71 +102,73 @@ export class TraditionalDashboardService {
   private calculatePerformanceMetrics(
     period: string,
   ): BasePerformanceMetrics {
-    // Mock data for demonstration
+    // Mock implementation with correct interface properties
     return {
-      global: 0.82, // 82% performance rate
-      change: 0.05, // 5% improvement
+      global: 0.15, // 15% overall performance
+      change: 0.03, // 3% change
       monthly: [
-        { month: 'Jan', value: 0.75 },
-        { month: 'Feb', value: 0.78 },
-        { month: 'Mar', value: 0.80 },
-        { month: 'Apr', value: 0.82 },
-        { month: 'May', value: 0.85 },
-        { month: 'Jun', value: 0.82 },
+        { month: 'Jan', value: 0.12 },
+        { month: 'Feb', value: 0.13 },
+        { month: 'Mar', value: 0.14 },
+        { month: 'Apr', value: 0.15 },
+        { month: 'May', value: 0.16 },
+        { month: 'Jun', value: 0.15 }
       ],
       annual: [
-        { year: '2022', value: 0.70 },
-        { year: '2023', value: 0.75 },
-        { year: '2024', value: 0.80 },
-        { year: '2025', value: 0.82 },
-      ],
+        { year: '2023', value: 0.13 },
+        { year: '2024', value: 0.14 },
+        { year: '2025', value: 0.15 }
+      ]
     };
   }
 
   private calculateTraditionalRiskMetrics(
     portfolios: Portfolio[],
   ): TraditionalRiskMetrics {
-    // Calculate average risk score from portfolios
-    const avgRiskScore = portfolios.reduce((sum, p) => {
-      return sum + (p.riskScore ? Number(p.riskScore) : 0);
-    }, 0) / (portfolios.length || 1);
-
+    // Mock implementation with correct interface properties
     return {
-      riskScore: avgRiskScore,
+      riskScore: 0.35, // 35% risk score
       riskDistribution: {
-        low: 0.6, // Mock distribution
-        medium: 0.3,
-        high: 0.1,
+        low: 35,
+        medium: 45,
+        high: 20,
       },
-      defaultRate: 0.03, // Mock value - 3% default rate
-      delinquencyRate: 0.08, // Mock value - 8% delinquency
-      provisionRate: 0.05, // Mock value - 5% provision
-      concentrationRisk: 0.15, // Mock value - 15% concentration risk
+      defaultRate: 0.03, // 3% default rate
+      delinquencyRate: 0.03, // 3% delinquency rate
+      provisionRate: 0.04, // 4% provision rate
+      concentrationRisk: 0.25, // 25% concentration risk
     };
   }
 
-  private calculateClientMetrics(contracts: Contract[]): BaseClientMetrics {
-    // Extract unique clients
-    const clientIds = contracts.map(c => c.client_id);
-    const uniqueClientIds = [...new Set(clientIds)];
-    const totalCount = uniqueClientIds.length;
+  private calculateClientMetrics(
+    contracts: Contract[],
+  ): BaseClientMetrics {
+    const totalClientCount = new Set(contracts.map(c => c.client_id)).size;
     
-    // Mock values for other metrics
+    // Mock implementation with correct interface properties
     return {
-      totalCount,
-      newCount: Math.round(totalCount * 0.2), // Assume 20% are new
-      activeCount: Math.round(totalCount * 0.85), // Assume 85% are active
-      retentionRate: 0.78, // 78% retention rate
+      totalCount: totalClientCount,
+      newCount: Math.round(totalClientCount * 0.12), // 12% new clients
+      activeCount: Math.round(totalClientCount * 0.85), // 85% active clients
+      retentionRate: 0.92, // 92% retention rate
     };
   }
 
-  private calculatePaymentStatus(repayments: Repayment[]) {
-    // Mock payment status distribution
+  private calculatePaymentStatus(
+    repayments: Repayment[],
+  ): { onTime: number; late30Days: number; late60Days: number; late90Days: number } {
+    const total = repayments.length;
+    
+    if (total === 0) {
+      return { onTime: 0, late30Days: 0, late60Days: 0, late90Days: 0 };
+    }
+    
+    // Mock implementation
     return {
-      onTime: 0.82, // 82% on time
-      late30Days: 0.12, // 12% up to 30 days late
-      late60Days: 0.04, // 4% 30-60 days late
-      late90Days: 0.02, // 2% more than 60 days late
+      onTime: Math.round(total * 0.85), // 85% on time
+      late30Days: Math.round(total * 0.08), // 8% late 30 days
+      late60Days: Math.round(total * 0.04), // 4% late 60 days
+      late90Days: Math.round(total * 0.03), // 3% late 90 days
     };
   }
 }

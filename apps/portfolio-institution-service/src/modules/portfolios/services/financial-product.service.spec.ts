@@ -36,20 +36,16 @@ describe('FinancialProductService', () => {
 
   describe('create', () => {
     const createProductDto: CreateFinancialProductDto = {
-      portfolioId: 'portfolio-123',
+      portfolio_id: 'portfolio-123',
       name: 'Test Product',
       type: ProductType.CREDIT,
-      characteristics: {
-        minAmount: 1000,
-        maxAmount: 10000,
-        minDuration: 12,
-        maxDuration: 36,
-        interestRateType: 'fixed',
-        minInterestRate: 5,
-        maxInterestRate: 15,
-        requiredGuarantees: ['collateral'],
-        eligibilityCriteria: ['minimum_revenue'],
-      },
+      base_interest_rate: 8.5,
+      interest_type: 'fixed',
+      description: 'A test financial product',
+      min_amount: 1000,
+      max_amount: 10000,
+      min_term: 12,
+      max_term: 36
     };
 
     it('should create a financial product successfully', async () => {
