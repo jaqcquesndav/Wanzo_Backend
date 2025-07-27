@@ -7,7 +7,20 @@ import {
 } from '../../../../../packages/shared/events/kafka-config';
 import { TokenEventTopics, TokenTransactionEvent } from '../../../../../packages/shared/events/token-events';
 import { SubscriptionChangedEvent, SubscriptionEventTopics } from '../../../../../packages/shared/events/subscription-events';
-import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
+import {
+  PortfolioEventTopics,
+  FundingRequestStatusChangedEvent,
+  ContractCreatedEvent,
+  ContractStatusChangedEvent,
+  ContractRestructuredEvent,
+  DisbursementCompletedEvent,
+  RepaymentReceivedEvent,
+  PaymentScheduleUpdatedEvent,
+  DocumentUploadedEvent,
+  DocumentUpdatedEvent,
+  DocumentStatusChangedEvent
+} from '../../../../../packages/shared/events/portfolio-events';
+import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './events.module';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {
@@ -51,10 +64,64 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Publishing token purchase event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(TokenEventTopics.TOKEN_PURCHASE, event);
   }
+
+  // Événements du portfolio
+  async publishFundingRequestStatusChanged(event: FundingRequestStatusChangedEvent): Promise<void> {
+    this.logger.log(`Publishing funding request status changed event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.FUNDING_REQUEST_STATUS_CHANGED, event);
+  }
+
+  async publishContractCreated(event: ContractCreatedEvent): Promise<void> {
+    this.logger.log(`Publishing contract created event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.CONTRACT_CREATED, event);
+  }
+
+  async publishContractStatusChanged(event: ContractStatusChangedEvent): Promise<void> {
+    this.logger.log(`Publishing contract status changed event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.CONTRACT_STATUS_CHANGED, event);
+  }
+
+  async publishContractRestructured(event: ContractRestructuredEvent): Promise<void> {
+    this.logger.log(`Publishing contract restructured event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.CONTRACT_RESTRUCTURED, event);
+  }
+
+  async publishDisbursementCompleted(event: DisbursementCompletedEvent): Promise<void> {
+    this.logger.log(`Publishing disbursement completed event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.DISBURSEMENT_COMPLETED, event);
+  }
+
+  async publishRepaymentReceived(event: RepaymentReceivedEvent): Promise<void> {
+    this.logger.log(`Publishing repayment received event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.REPAYMENT_RECEIVED, event);
+  }
+
+  async publishPaymentScheduleUpdated(event: PaymentScheduleUpdatedEvent): Promise<void> {
+    this.logger.log(`Publishing payment schedule updated event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.PAYMENT_SCHEDULE_UPDATED, event);
+  }
+  
+  // Événements de documents
+  async publishDocumentUploaded(event: DocumentUploadedEvent): Promise<void> {
+    this.logger.log(`Publishing document uploaded event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.DOCUMENT_UPLOADED, event);
+  }
+
+  async publishDocumentUpdated(event: DocumentUpdatedEvent): Promise<void> {
+    this.logger.log(`Publishing document updated event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.DOCUMENT_UPDATED, event);
+  }
+
+  async publishDocumentStatusChanged(event: DocumentStatusChangedEvent): Promise<void> {
+    this.logger.log(`Publishing document status changed event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(PortfolioEventTopics.DOCUMENT_STATUS_CHANGED, event);
+  }
+  
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(TokenEventTopics.TOKEN_USAGE, event);
   }
+  
   async publishTokenAlert(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token alert event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(TokenEventTopics.TOKEN_ALERT, event);

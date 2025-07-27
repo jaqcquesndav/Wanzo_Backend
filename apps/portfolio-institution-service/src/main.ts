@@ -1,13 +1,13 @@
 import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { ConfigService } from '@nestjs/config';
 import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { setupSwagger } from './swagger.config';
 
 async function bootstrap() {
   // Configure Winston logger
@@ -85,24 +85,7 @@ async function bootstrap() {
   );
 
   // 6) Swagger documentation setup
-  const config = new DocumentBuilder()
-    .setTitle('Kiota Portfolio Institution Service API')
-    .setDescription('The Kiota Portfolio Institution Service API documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('institution', 'Institution profile management')
-    .addTag('prospection', 'Company prospection and analysis')
-    .addTag('portfolios', 'Portfolio management')
-    .addTag('operations', 'Operations management')
-    .addTag('reports', 'Reports and analytics')
-    .addTag('messages', 'Messaging system')
-    .addTag('notifications', 'Notifications management')
-    .addTag('settings', 'System settings')
-    .addTag('health', 'System health and monitoring')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  setupSwagger(app);
 
   // Start all microservices
   await app.startAllMicroservices();

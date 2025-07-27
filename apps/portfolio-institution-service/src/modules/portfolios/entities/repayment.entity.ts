@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, ManyToMany, JoinTable } from 'typeorm';
 import { Portfolio } from './portfolio.entity';
 import { Contract } from './contract.entity';
+import { PaymentSchedule } from './payment-schedule.entity';
 
 export enum RepaymentStatus {
   PENDING = 'pending',
@@ -8,6 +9,21 @@ export enum RepaymentStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   PARTIAL = 'partial'
+}
+
+export enum RepaymentMethod {
+  BANK_TRANSFER = 'bank_transfer',
+  CASH = 'cash',
+  CHECK = 'check',
+  MOBILE_MONEY = 'mobile_money',
+  OTHER = 'other'
+}
+
+export enum RepaymentType {
+  STANDARD = 'standard',
+  PARTIAL = 'partial',
+  ADVANCE = 'advance',
+  EARLY_PAYOFF = 'early_payoff'
 }
 
 @Entity('repayments')
@@ -63,6 +79,20 @@ export class Repayment {
   @Column({ nullable: true })
   payment_method?: string;
 
+  @Column({
+    type: 'enum',
+    enum: RepaymentMethod,
+    nullable: true
+  })
+  payment_method_type?: RepaymentMethod;
+
+  @Column({
+    type: 'enum',
+    enum: RepaymentType,
+    default: RepaymentType.STANDARD
+  })
+  payment_type!: RepaymentType;
+
   @Column({ nullable: true })
   transaction_id?: string;
 
@@ -83,6 +113,26 @@ export class Repayment {
 
   @Column({ nullable: true })
   processed_by?: string;
+
+  @Column({ nullable: true, default: false })
+  is_external!: boolean;
+
+  @ManyToMany(() => PaymentSchedule)
+  @JoinTable({
+    name: 'repayment_schedule_items',
+    joinColumn: { name: 'repayment_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'schedule_id', referencedColumnName: 'id' }
+  })
+  payment_schedules!: PaymentSchedule[];
+
+  @Column('jsonb', { nullable: true })
+  allocation?: {
+    schedule_id: string;
+    principal_amount: number;
+    interest_amount: number;
+    penalties_amount: number;
+    fees_amount: number;
+  }[];
 
   @CreateDateColumn()
   created_at!: Date;

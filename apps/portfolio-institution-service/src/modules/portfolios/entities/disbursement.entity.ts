@@ -3,11 +3,20 @@ import { Portfolio } from './portfolio.entity';
 import { Contract } from './contract.entity';
 
 export enum DisbursementStatus {
+  DRAFT = 'draft',
   PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
   PROCESSING = 'processing',
   COMPLETED = 'completed',
   FAILED = 'failed',
   CANCELED = 'canceled'
+}
+
+export enum DisbursementType {
+  FULL = 'full',
+  PARTIAL = 'partial',
+  INSTALLMENT = 'installment'
 }
 
 @Entity('disbursements')
@@ -44,9 +53,19 @@ export class Disbursement {
   @Column({
     type: 'enum',
     enum: DisbursementStatus,
-    default: DisbursementStatus.PENDING
+    default: DisbursementStatus.DRAFT
   })
   status!: DisbursementStatus;
+
+  @Column({
+    type: 'enum',
+    enum: DisbursementType,
+    default: DisbursementType.FULL
+  })
+  disbursement_type!: DisbursementType;
+
+  @Column({ nullable: true })
+  installment_number?: number;
 
   @Column({ nullable: true })
   payment_method?: string;
@@ -67,6 +86,9 @@ export class Disbursement {
   transaction_date?: Date;
 
   @Column({ nullable: true })
+  requested_date?: Date;
+
+  @Column({ nullable: true })
   notes?: string;
 
   @Column({ nullable: true })
@@ -76,7 +98,31 @@ export class Disbursement {
   approval_date?: Date;
 
   @Column({ nullable: true })
+  rejection_reason?: string;
+
+  @Column({ nullable: true })
+  rejected_by?: string;
+
+  @Column({ nullable: true })
+  rejection_date?: Date;
+
+  @Column({ nullable: true })
   executed_by?: string;
+
+  @Column({ nullable: true })
+  execution_date?: Date;
+
+  @Column({ nullable: true })
+  prerequisites_verified?: boolean;
+
+  @Column('jsonb', { nullable: true })
+  documents?: {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+    upload_date: Date;
+  }[];
 
   @CreateDateColumn()
   created_at!: Date;

@@ -1,13 +1,25 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne, OneToMany } from 'typeorm';
 import { Portfolio } from './portfolio.entity';
 import { FundingRequest } from './funding-request.entity';
+import { PaymentSchedule } from './payment-schedule.entity';
 
 export enum ContractStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',
-  COMPLETED = 'completed',
+  SUSPENDED = 'suspended',
+  RESTRUCTURED = 'restructured',
+  LITIGATION = 'litigation',
   DEFAULTED = 'defaulted',
+  COMPLETED = 'completed',
   CANCELED = 'canceled'
+}
+
+export enum AmortizationType {
+  CONSTANT = 'constant',
+  DEGRESSIVE = 'degressive',
+  BALLOON = 'balloon',
+  BULLET = 'bullet',
+  CUSTOM = 'custom'
 }
 
 @Entity('contracts')
@@ -98,7 +110,34 @@ export class Contract {
   }[];
 
   @Column({ nullable: true })
+  amortization_type?: string;
+
+  @Column({ nullable: true })
+  last_payment_date?: Date;
+
+  @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
+  total_paid_amount?: number;
+
+  @Column({ nullable: true })
+  suspension_reason?: string;
+
+  @Column({ nullable: true })
+  suspension_date?: Date;
+
+  @Column({ nullable: true })
+  restructured_date?: Date;
+
+  @Column({ nullable: true })
+  litigation_date?: Date;
+
+  @Column({ nullable: true })
+  litigation_reason?: string;
+
+  @Column({ nullable: true })
   created_by?: string;
+
+  @OneToMany(() => PaymentSchedule, paymentSchedule => paymentSchedule.contract)
+  payment_schedules!: PaymentSchedule[];
 
   @CreateDateColumn()
   created_at!: Date;
