@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { validate } from 'class-validator'; // Assurez-vous que cette importation est présente
+import { validate } from 'class-validator';
 import { BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { FinancialProduct } from '../entities/financial-product.entity';
+import { FinancialProduct, ProductStatus, ProductType } from '../entities/financial-product.entity';
 import { CreateFinancialProductDto, UpdateFinancialProductDto, ProductFilterDto } from '../dtos/financial-product.dto';
 
 @Injectable()
@@ -14,11 +14,13 @@ export class FinancialProductService {
   ) {}
 
   async create(createProductDto: CreateFinancialProductDto): Promise<FinancialProduct> {
-    const kiotaId = `KIOTA-FP-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 2).toUpperCase()}`;
+    // Generate a unique code for the product
+    const code = `FP-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 
     const product = this.productRepository.create({
       ...createProductDto,
-      kiotaId,
+      code,
+      status: ProductStatus.ACTIVE
     });
 
     return await this.productRepository.save(product);
@@ -34,27 +36,39 @@ export class FinancialProductService {
     page: number;
     perPage: number;
   }> {
-    const where: any = {};
+    const queryBuilder = this.productRepository.createQueryBuilder('fp');
 
-    if (filters.portfolioId) {
-      where.portfolioId = filters.portfolioId;
+    if (filters.portfolio_id) {
+      queryBuilder.andWhere('fp.portfolio_id = :portfolioId', { portfolioId: filters.portfolio_id });
+    }
+
+    if (filters.status) {
+      queryBuilder.andWhere('fp.status = :status', { status: filters.status });
     }
 
     if (filters.type) {
-      where.type = filters.type;
+      queryBuilder.andWhere('fp.type = :type', { type: filters.type });
     }
 
     if (filters.search) {
-      where.name = Like(`%${filters.search}%`);
+      queryBuilder.andWhere('(fp.name LIKE :search OR fp.code LIKE :search)', { 
+        search: `%${filters.search}%` 
+      });
     }
 
-    const [products, total] = await this.productRepository.findAndCount({
-      where,
-      relations: ['portfolio'],
-      skip: (page - 1) * perPage,
-      take: perPage,
-      order: { createdAt: 'DESC' },
-    });
+    if (filters.min_interest_rate) {
+      queryBuilder.andWhere('fp.base_interest_rate >= :minRate', { minRate: filters.min_interest_rate });
+    }
+
+    if (filters.max_interest_rate) {
+      queryBuilder.andWhere('fp.base_interest_rate <= :maxRate', { maxRate: filters.max_interest_rate });
+    }
+
+    const [products, total] = await queryBuilder
+      .skip((page - 1) * perPage)
+      .take(perPage)
+      .orderBy('fp.created_at', 'DESC')
+      .getManyAndCount();
 
     return {
       products,
@@ -67,7 +81,6 @@ export class FinancialProductService {
   async findById(id: string): Promise<FinancialProduct> {
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['portfolio'],
     });
 
     if (!product) {
@@ -80,14 +93,14 @@ export class FinancialProductService {
   async update(id: string, updateProductDto: UpdateFinancialProductDto): Promise<FinancialProduct> {
     const product = await this.findById(id);
   
-    // Valider les données de updateProductDto
+    // Validate update data
     const errors = await validate(updateProductDto);
     if (errors.length > 0) {
       const errorMessages = errors.map(err => Object.values(err.constraints || {}).join(', ')).join('; ');
       throw new BadRequestException(`Validation failed: ${errorMessages}`);
     }
   
-    // Mettre à jour les propriétés du produit
+    // Update product properties
     Object.assign(product, updateProductDto);
     return await this.productRepository.save(product);
   }
@@ -95,8 +108,8 @@ export class FinancialProductService {
   async delete(id: string): Promise<{ success: boolean; message: string }> {
     const product = await this.findById(id);
     
-    // Deactivate the product instead of deleting it
-    product.active = false;
+    // Set status to inactive instead of deleting
+    product.status = ProductStatus.INACTIVE;
     await this.productRepository.save(product);
 
     return {

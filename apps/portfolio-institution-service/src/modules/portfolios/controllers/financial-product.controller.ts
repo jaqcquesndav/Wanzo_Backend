@@ -5,6 +5,7 @@ import { CreateFinancialProductDto, UpdateFinancialProductDto, ProductFilterDto 
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { ProductStatus, ProductType } from '../entities/financial-product.entity';
 
 @ApiTags('financial-products')
 @Controller('financial-products')
@@ -31,8 +32,11 @@ export class FinancialProductController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'per_page', required: false, type: Number })
   @ApiQuery({ name: 'portfolio_id', required: false })
-  @ApiQuery({ name: 'type', required: false, enum: ['credit', 'bond', 'equity'] })
+  @ApiQuery({ name: 'status', required: false, enum: ProductStatus })
+  @ApiQuery({ name: 'type', required: false, enum: ProductType })
   @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'min_interest_rate', required: false, type: Number })
+  @ApiQuery({ name: 'max_interest_rate', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Financial products retrieved successfully' })
   async findAll(
     @Query('page') page = 1,
@@ -78,9 +82,9 @@ export class FinancialProductController {
 
   @Delete(':id')
   @Roles('admin')
-  @ApiOperation({ summary: 'Delete financial product' })
+  @ApiOperation({ summary: 'Delete financial product (sets to inactive)' })
   @ApiParam({ name: 'id', description: 'Product ID' })
-  @ApiResponse({ status: 200, description: 'Financial product deleted successfully' })
+  @ApiResponse({ status: 200, description: 'Financial product deactivated successfully' })
   @ApiResponse({ status: 404, description: 'Financial product not found' })
   async remove(@Param('id') id: string) {
     return await this.productService.delete(id);

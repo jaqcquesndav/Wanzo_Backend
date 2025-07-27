@@ -1,3 +1,67 @@
+export interface BaseAssetMetrics {
+  totalValue: number;
+  totalCount: number;
+  averageSize: number;
+  growth: number;
+}
+
+export interface BaseClientMetrics {
+  totalCount: number;
+  newCount: number;
+  activeCount: number;
+  retentionRate: number;
+}
+
+export interface BaseRiskMetrics {
+  riskScore: number;
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  defaultRate: number;
+}
+
+export interface BasePerformanceMetrics {
+  global: number;
+  change: number;
+  monthly: Array<{
+    month: string;
+    value: number;
+  }>;
+  annual: Array<{
+    year: string;
+    value: number;
+  }>;
+}
+
+export interface TraditionalAssetMetrics extends BaseAssetMetrics {
+  distribution: {
+    credit: number;
+    savings: number;
+  };
+  creditUtilization: number;
+}
+
+export interface TraditionalRiskMetrics extends BaseRiskMetrics {
+  delinquencyRate: number;
+  provisionRate: number;
+  concentrationRisk: number;
+}
+
+export interface TraditionalDashboardMetrics {
+  assets: TraditionalAssetMetrics;
+  performance: BasePerformanceMetrics;
+  risk: TraditionalRiskMetrics;
+  clients: BaseClientMetrics;
+  paymentStatus?: {
+    onTime: number;
+    late30Days: number;
+    late60Days: number;
+    late90Days: number;
+  };
+}
+
 export interface DashboardData {
   institution: {
     name: string;
@@ -38,4 +102,5 @@ export interface DashboardData {
     timestamp: Date;
     metadata?: Record<string, any>;
   }>;
+  traditional: TraditionalDashboardMetrics;
 }

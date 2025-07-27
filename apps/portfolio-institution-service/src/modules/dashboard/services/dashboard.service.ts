@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { InstitutionService } from '../../institution/services/institution.service';
 import { ProspectService } from '../../prospection/services/prospect.service';
 import { PortfolioService } from '../../portfolios/services/portfolio.service';
-import { OperationService } from '../../operations/services/operation.service';
-import { DashboardData } from '../interfaces/dashboard.interface';
+import { DashboardData, TraditionalDashboardMetrics, BasePerformanceMetrics, TraditionalAssetMetrics, TraditionalRiskMetrics, BaseClientMetrics } from '../interfaces/dashboard.interface';
+import { Portfolio } from '../../portfolios/entities/portfolio.entity';
+import { FinancialProduct, ProductStatus, ProductType } from '../../portfolios/entities/financial-product.entity';
+import { FundingRequest } from '../../portfolios/entities/funding-request.entity';
+import { Contract } from '../../portfolios/entities/contract.entity';
+import { Repayment, RepaymentStatus } from '../../portfolios/entities/repayment.entity';
 
 @Injectable()
 export class DashboardService {
@@ -11,7 +17,16 @@ export class DashboardService {
     private institutionService: InstitutionService,
     private prospectService: ProspectService,
     private portfolioService: PortfolioService,
-    private operationService: OperationService,
+    @InjectRepository(Portfolio)
+    private portfolioRepository: Repository<Portfolio>,
+    @InjectRepository(FinancialProduct)
+    private productRepository: Repository<FinancialProduct>,
+    @InjectRepository(FundingRequest)
+    private fundingRequestRepository: Repository<FundingRequest>,
+    @InjectRepository(Contract)
+    private contractRepository: Repository<Contract>,
+    @InjectRepository(Repayment)
+    private repaymentRepository: Repository<Repayment>,
   ) {}
 
   async getDashboardData(institutionId: string): Promise<DashboardData> {
@@ -19,22 +34,29 @@ export class DashboardService {
       institution,
       portfolioStats,
       prospectStats,
-      operationStats,
       recentActivity,
+      traditional,
     ] = await Promise.all([
       this.getInstitutionOverview(institutionId),
       this.getPortfolioStatistics(institutionId),
       this.getProspectStatistics(institutionId),
-      this.getOperationStatistics(institutionId),
       this.getRecentActivity(institutionId),
+      this.getTraditionalDashboardMetrics(institutionId),
     ]);
 
     return {
       institution,
       portfolioStats,
       prospectStats,
-      operationStats,
+      operationStats: {
+        totalOperations: 0,
+        totalValue: 0,
+        byType: {},
+        byStatus: {},
+        approvalRate: 0,
+      },
       recentActivity,
+      traditional,
     };
   }
 
@@ -54,14 +76,27 @@ export class DashboardService {
   }
 
   private async getPortfolioStatistics(institutionId: string) {
-    const portfolios = await this.portfolioService.findAll({ institutionId });
+    const portfoliosResult = await this.portfolioRepository.find({
+      where: { clientId: institutionId },
+    });
     
     return {
-      totalPortfolios: portfolios.total,
-      totalValue: portfolios.portfolios.reduce((sum, p) => sum + p.metrics.netValue, 0),
-      averageReturn: portfolios.portfolios.reduce((sum, p) => sum + p.metrics.averageReturn, 0) / portfolios.total,
-      byType: this.groupPortfoliosByType(portfolios.portfolios),
-      topPerforming: this.getTopPerformingPortfolios(portfolios.portfolios),
+      totalPortfolios: portfoliosResult.length,
+      totalValue: portfoliosResult.reduce((sum, p) => sum + Number(p.totalAmount), 0),
+      averageReturn: 0.08, // Mock value - 8% average return
+      byType: portfoliosResult.reduce((acc: Record<string, number>, portfolio) => {
+        const type = portfolio.status;
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {}),
+      topPerforming: portfoliosResult
+        .slice(0, 5)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          totalAmount: p.totalAmount,
+          performance: Math.random() * 0.15 // Mock performance between 0-15%
+        })),
     };
   }
 
@@ -75,30 +110,12 @@ export class DashboardService {
       conversionRate: this.calculateConversionRate(prospects.prospects),
     };
   }
-
-  private async getOperationStatistics(institutionId: string) {
-    const operations = await this.operationService.findAll({ institutionId });
-    
-    return {
-      totalOperations: operations.total,
-      totalValue: this.calculateTotalOperationValue(operations.operations),
-      byType: this.groupOperationsByType(operations.operations),
-      byStatus: this.groupOperationsByStatus(operations.operations),
-      approvalRate: this.calculateApprovalRate(operations.operations),
-    };
-  }
-
+  
   private async getRecentActivity(institutionId: string) {
-    // Combine recent activities from different sources
-    const [recentProspects, recentOperations] = await Promise.all([
-      this.prospectService.findAll({ institutionId }, 1, 5),
-      this.operationService.findAll({ institutionId }, 1, 5),
-    ]);
+    // Only get prospect activities
+    const recentProspects = await this.prospectService.findAll({ institutionId }, 1, 10);
 
-    return this.mergeAndSortActivities([
-      ...this.formatProspectActivities(recentProspects.prospects),
-      ...this.formatOperationActivities(recentOperations.operations),
-    ]);
+    return this.formatProspectActivities(recentProspects.prospects);
   }
 
   private groupPortfoliosByType(portfolios: any[]): Record<string, number> {
@@ -194,5 +211,137 @@ export class DashboardService {
     metadata?: Record<string, any>;
   }>) {
     return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  // Traditional Dashboard metrics implementation
+  private async getTraditionalDashboardMetrics(institutionId: string): Promise<TraditionalDashboardMetrics> {
+    // Get portfolios for the institution
+    const portfolios = await this.portfolioRepository.find({
+      where: { clientId: institutionId },
+    });
+    
+    const portfolioIds = portfolios.map(p => p.id);
+    
+    // Get products for these portfolios
+    const products = await this.productRepository.find({
+      where: { portfolio_id: In(portfolioIds) },
+    });
+    
+    // Get contracts for these portfolios
+    const contracts = await this.contractRepository.find({
+      where: { portfolio_id: In(portfolioIds) },
+    });
+    
+    // Get repayments for these contracts
+    const repayments = await this.repaymentRepository.find({
+      where: { contract_id: In(contracts.map(c => c.id)) },
+    });
+
+    // Calculate metrics
+    const performance = this.calculateTraditionalPerformance(products, contracts);
+    const assets = this.calculateTraditionalAssetDistribution(products);
+    const risk = this.calculateTraditionalRiskMetrics(repayments);
+    const clients = this.calculateTraditionalClientMetrics(contracts);
+
+    return {
+      performance,
+      assets,
+      risk,
+      clients
+    };
+  }
+
+  private calculateTraditionalPerformance(products: FinancialProduct[], contracts: Contract[]): BasePerformanceMetrics {
+    // Mock data for now
+    return {
+      global: 0.08,
+      change: 0.02,
+      monthly: [
+        { month: 'Jan', value: 0.07 },
+        { month: 'Feb', value: 0.075 },
+        { month: 'Mar', value: 0.08 }
+      ],
+      annual: [
+        { year: '2023', value: 0.06 },
+        { year: '2024', value: 0.07 },
+        { year: '2025', value: 0.08 }
+      ]
+    };
+  }
+
+  private calculateTraditionalAssetDistribution(products: FinancialProduct[]): TraditionalAssetMetrics {
+    const totalValue = products.reduce((sum, p) => sum + Number(p.max_amount), 0);
+    const totalCount = products.length;
+    
+    // Calculate distribution
+    const creditProducts = products.filter(p => p.type === ProductType.CREDIT);
+    const savingsProducts = products.filter(p => p.type === ProductType.SAVINGS);
+    
+    const creditValue = creditProducts.reduce((sum, p) => sum + Number(p.max_amount), 0);
+    const savingsValue = savingsProducts.reduce((sum, p) => sum + Number(p.max_amount), 0);
+    
+    return {
+      totalValue,
+      totalCount,
+      averageSize: totalCount > 0 ? totalValue / totalCount : 0,
+      growth: 0.05, // Mock 5% growth
+      distribution: {
+        credit: totalValue > 0 ? creditValue / totalValue : 0,
+        savings: totalValue > 0 ? savingsValue / totalValue : 0
+      },
+      creditUtilization: 0.7 // Mock 70% utilization
+    };
+  }
+
+  private calculateTraditionalRiskMetrics(repayments: Repayment[]): TraditionalRiskMetrics {
+    const total = repayments.length;
+    
+    // Calculate delinquency rates
+    const onTimeCount = repayments.filter(r => 
+      r.status === RepaymentStatus.COMPLETED || r.status === RepaymentStatus.PENDING
+    ).length;
+    
+    const late30Count = repayments.filter(r => 
+      r.status === RepaymentStatus.PARTIAL && r.daysLate && r.daysLate <= 30
+    ).length;
+    
+    const late60Count = repayments.filter(r => 
+      r.status === RepaymentStatus.PARTIAL && r.daysLate && r.daysLate > 30 && r.daysLate <= 60
+    ).length;
+    
+    const late90Count = repayments.filter(r => 
+      r.status === RepaymentStatus.PARTIAL && r.daysLate && r.daysLate > 60
+    ).length;
+
+    const onTimeRate = total > 0 ? onTimeCount / total : 0;
+    const delinquencyRate = total > 0 ? (late30Count + late60Count + late90Count) / total : 0;
+    
+    return {
+      riskScore: 65, // Mock risk score
+      riskDistribution: {
+        low: 0.6,
+        medium: 0.3,
+        high: 0.1
+      },
+      defaultRate: 0.03, // Mock 3% default rate
+      delinquencyRate,
+      provisionRate: 0.05, // Mock 5% provision rate
+      concentrationRisk: 0.25 // Mock 25% concentration risk
+    };
+  }
+
+  private calculateTraditionalClientMetrics(contracts: Contract[]): BaseClientMetrics {
+    // Get unique clients
+    const uniqueClients = [...new Set(contracts.map(c => c.client_id))];
+    const totalClients = uniqueClients.length;
+    const activeClients = Math.floor(totalClients * 0.8); // Mock 80% active
+    const newClients = Math.floor(totalClients * 0.15); // Mock 15% new
+    
+    return {
+      totalCount: totalClients,
+      activeCount: activeClients,
+      newCount: newClients,
+      retentionRate: 0.85 // Mock 85% retention
+    };
   }
 }

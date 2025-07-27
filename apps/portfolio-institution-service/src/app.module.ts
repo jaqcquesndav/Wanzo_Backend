@@ -7,12 +7,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { InstitutionModule } from './modules/institution/institution.module';
 import { ProspectionModule } from './modules/prospection/prospection.module';
 import { PortfoliosModule } from './modules/portfolios/portfolios.module';
-import { OperationsModule } from './modules/operations/operations.module';
-import { MessagesModule } from './modules/messages/messages.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { HealthModule } from './modules/health/health.module';
-import { EventsModule } from './modules/events/events.module'; // Added
+import { EventsModule } from './modules/events/events.module';
+import { VirementsModule } from './modules/virements/virements.module';
 
 // <-- On importe le MonitoringModule (avec ton PrometheusController)
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -52,8 +51,8 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     InstitutionModule,
     ProspectionModule,
     PortfoliosModule,
-    OperationsModule,
-    MessagesModule,
+    VirementsModule, // Added
+    NotificationsModule,
     NotificationsModule,
     SettingsModule,
     HealthModule,
@@ -93,3 +92,4 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
+

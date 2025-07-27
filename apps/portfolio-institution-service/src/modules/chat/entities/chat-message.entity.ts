@@ -29,7 +29,23 @@ export class ChatMessage {
   content!: string;
 
   @Column('int', { default: 0 })
+  likes!: number;
+
+  @Column('int', { default: 0 })
+  dislikes!: number;
+
+  @Column('int', { default: 0 })
   tokensUsed!: number;
+
+  @Column('jsonb', { nullable: true })
+  attachment?: {
+    name: string;
+    type: string;
+    content: string;
+  };
+
+  @Column({ default: false })
+  error!: boolean;
 
   @Column('jsonb', { nullable: true })
   metadata!: Record<string, any>;

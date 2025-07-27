@@ -1,6 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { ChatMessage } from './chat-message.entity';
 
+export interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  contextLength: number;
+}
+
 @Entity('chats')
 export class Chat {
   @PrimaryGeneratedColumn('uuid')
@@ -24,6 +32,9 @@ export class Chat {
 
   @Column('jsonb', { nullable: true })
   context!: Record<string, any>;
+
+  @Column('jsonb')
+  model!: AIModel;
 
   @Column('jsonb', { nullable: true })
   metadata!: Record<string, any>;
