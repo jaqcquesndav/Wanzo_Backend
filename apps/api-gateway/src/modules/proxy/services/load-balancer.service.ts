@@ -62,7 +62,6 @@ export class LoadBalancerService {
       'admin',
       'analytics',
       'accounting',
-      'portfolio-sme',
       'portfolio-institution'
     ];
 

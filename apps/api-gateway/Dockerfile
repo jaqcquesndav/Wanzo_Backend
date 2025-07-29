@@ -1,4 +1,4 @@
-﻿FROM node:18-alpine AS builder
+﻿FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -44,7 +44,7 @@ RUN mkdir -p ./apps/api-gateway/dist/src
 RUN cp ./apps/api-gateway/mock-service.js ./apps/api-gateway/dist/src/main.js
 
 # Production stage - minimal runtime image
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -67,7 +67,6 @@ ENV AUTH_SERVICE_URL=http://auth-service:3000
 ENV ADMIN_SERVICE_URL=http://admin-service:3001
 ENV ANALYTICS_SERVICE_URL=http://analytics-service:3002
 ENV ACCOUNTING_SERVICE_URL=http://accounting-service:3003
-ENV PORTFOLIO_SME_SERVICE_URL=http://portfolio-sme-service:3004
 ENV PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
 ENV APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
 

@@ -51,14 +51,6 @@ export class RouteResolverService {
         roles: ['admin', 'accountant'],
       },
       {
-        service: 'portfolio-sme',
-        baseUrl: this.configService.get('PORTFOLIO_SME_SERVICE_URL', 'http://localhost:3004'),
-        prefix: 'portfolio/sme',
-        healthCheck: '/health',
-        scopes: ['portfolio:read', 'portfolio:write'],
-        roles: ['admin', 'manager'],
-      },
-      {
         service: 'portfolio-institution',
         baseUrl: this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://localhost:3005'),
         prefix: 'portfolio/institution',

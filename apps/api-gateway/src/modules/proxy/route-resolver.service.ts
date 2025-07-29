@@ -36,11 +36,6 @@ export class RouteResolverService {
         prefix: 'accounting',
       },
       {
-        service: 'portfolio-sme',
-        baseUrl: this.configService.get('PORTFOLIO_SME_SERVICE_URL', 'http://localhost:3004'),
-        prefix: 'portfolio/sme',
-      },
-      {
         service: 'portfolio-institution',
         baseUrl: this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://localhost:3005'),
         prefix: 'portfolio/institution',

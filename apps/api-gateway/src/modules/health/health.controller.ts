@@ -31,7 +31,6 @@ export class HealthController {
       () => this.healthService.checkAdminService(),
       () => this.healthService.checkAnalyticsService(),
       () => this.healthService.checkAccountingService(),
-      () => this.healthService.checkPortfolioSmeService(),
       () => this.healthService.checkPortfolioInstitutionService(),
     ]);
   }

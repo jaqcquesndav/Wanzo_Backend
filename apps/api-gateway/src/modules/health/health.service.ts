@@ -29,11 +29,6 @@ export class HealthService {
     return this.http.pingCheck('accounting_service', `${accountingServiceUrl}/health`);
   }
 
-  async checkPortfolioSmeService(): Promise<HealthIndicatorResult> {
-    const portfolioSmeServiceUrl = this.configService.get<string>('PORTFOLIO_SME_SERVICE_URL');
-    return this.http.pingCheck('portfolio_sme_service', `${portfolioSmeServiceUrl}/health`);
-  }
-
   async checkPortfolioInstitutionService(): Promise<HealthIndicatorResult> {
     const portfolioInstitutionServiceUrl = this.configService.get<string>('PORTFOLIO_INSTITUTION_SERVICE_URL');
     return this.http.pingCheck('portfolio_institution_service', `${portfolioInstitutionServiceUrl}/health`);
