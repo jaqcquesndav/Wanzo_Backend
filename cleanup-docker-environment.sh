@@ -43,7 +43,6 @@ services=(
     "app_mobile_service"
     "customer-service"
     "portfolio-institution-service"
-    "portfolio-sme-service"
 )
 
 for service in "${services[@]}"; do

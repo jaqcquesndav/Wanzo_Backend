@@ -43,14 +43,7 @@ export class CustomerEventsDistributor {
       });
       
       // Portfolio service spécifique selon le type de client
-      if (customer.type === 'sme') {
-        await this.customerEventsProducer.emitCustomerCreated({
-          customerId: customer.id,
-          customerType: customer.type,
-          timestamp: new Date().toISOString(),
-          targetService: 'portfolio-sme-service'
-        });
-      } else if (customer.type === 'institution') {
+      if (customer.type === 'institution') {
         await this.customerEventsProducer.emitCustomerCreated({
           customerId: customer.id,
           customerType: customer.type,
@@ -106,14 +99,7 @@ export class CustomerEventsDistributor {
       // Portfolio services - si les informations de profil sont modifiées
       const profileFields = ['name', 'address', 'phone', 'email', 'city', 'country'];
       if (updatedFields.some((field: string) => profileFields.includes(field))) {
-        if (data.customerType === 'sme') {
-          await this.customerEventsProducer.emitCustomerUpdated({
-            customerId: data.customerId,
-            updatedFields: updatedFields.filter((field: string) => profileFields.includes(field)),
-            timestamp: new Date().toISOString(),
-            targetService: 'portfolio-sme-service'
-          });
-        } else if (data.customerType === 'institution') {
+        if (data.customerType === 'institution') {
           await this.customerEventsProducer.emitCustomerUpdated({
             customerId: data.customerId,
             updatedFields: updatedFields.filter((field: string) => profileFields.includes(field)),
@@ -164,14 +150,7 @@ export class CustomerEventsDistributor {
       });
       
       // Portfolio services
-      if (data.customerType === 'sme') {
-        await this.customerEventsProducer.emitCustomerValidated({
-          customerId: data.customerId,
-          adminId: data.adminId,
-          timestamp: data.timestamp,
-          targetService: 'portfolio-sme-service'
-        });
-      } else if (data.customerType === 'institution') {
+      if (data.customerType === 'institution') {
         await this.customerEventsProducer.emitCustomerValidated({
           customerId: data.customerId,
           adminId: data.adminId,
@@ -223,15 +202,7 @@ export class CustomerEventsDistributor {
       });
       
       // Portfolio services
-      if (data.customerType === 'sme') {
-        await this.customerEventsProducer.emitCustomerSuspended({
-          customerId: data.customerId,
-          adminId: data.adminId,
-          reason: data.reason,
-          timestamp: data.timestamp,
-          targetService: 'portfolio-sme-service'
-        });
-      } else if (data.customerType === 'institution') {
+      if (data.customerType === 'institution') {
         await this.customerEventsProducer.emitCustomerSuspended({
           customerId: data.customerId,
           adminId: data.adminId,
@@ -283,14 +254,7 @@ export class CustomerEventsDistributor {
       });
       
       // Portfolio services
-      if (data.customerType === 'sme') {
-        await this.customerEventsProducer.emitCustomerReactivated({
-          customerId: data.customerId,
-          adminId: data.adminId,
-          timestamp: data.timestamp,
-          targetService: 'portfolio-sme-service'
-        });
-      } else if (data.customerType === 'institution') {
+      if (data.customerType === 'institution') {
         await this.customerEventsProducer.emitCustomerReactivated({
           customerId: data.customerId,
           adminId: data.adminId,
@@ -330,9 +294,7 @@ export class CustomerEventsDistributor {
       await this.customerEventsProducer.emitCustomerDeleted(data.customerId, 'accounting-service');
       
       // Portfolio services
-      if (data.customerType === 'sme') {
-        await this.customerEventsProducer.emitCustomerDeleted(data.customerId, 'portfolio-sme-service');
-      } else if (data.customerType === 'institution') {
+      if (data.customerType === 'institution') {
         await this.customerEventsProducer.emitCustomerDeleted(data.customerId, 'portfolio-institution-service');
       }
       

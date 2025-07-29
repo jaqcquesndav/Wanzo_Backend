@@ -8,8 +8,7 @@ $services = @(
     "analytics-service",
     "api-gateway",
     "app_mobile_service",
-    "portfolio-institution-service",
-    "portfolio-sme-service"
+    "portfolio-institution-service"
 )
 
 # Fonction pour exécuter les tests d'un service

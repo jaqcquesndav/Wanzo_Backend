@@ -64,7 +64,6 @@ $services = @(
     "admin-service",
     "accounting-service",
     "analytics-service",
-    "portfolio-sme-service",
     "portfolio-institution-service",
     "customer-service",
     "app-mobile-service",

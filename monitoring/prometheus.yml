@@ -45,11 +45,6 @@ scrape_configs:
       - targets: ['portfolio-institution-service:9464']
     metrics_path: '/metrics'
 
-  - job_name: 'portfolio-sme-service'
-    static_configs:
-      - targets: ['portfolio-sme-service:9464']
-    metrics_path: '/metrics'
-
   - job_name: 'customer-service'
     static_configs:
       - targets: ['customer-service:9464']

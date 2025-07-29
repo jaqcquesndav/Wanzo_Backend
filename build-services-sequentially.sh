@@ -20,7 +20,6 @@ services=(
     "analytics-service"
     "api-gateway"
     "app-mobile-service"
-    "portfolio-sme-service"
     "portfolio-institution-service"
 )
 

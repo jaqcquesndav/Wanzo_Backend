@@ -59,11 +59,6 @@ start "Accounting Service" cmd /k "cd apps\accounting-service && npm install && 
 
 timeout /t 5
 
-echo Starting Portfolio SME Service...
-start "Portfolio SME Service" cmd /k "cd apps\portfolio-sme-service && npm install && npm run start:dev"
-
-timeout /t 5
-
 echo Starting Portfolio Institution Service...
 start "Portfolio Institution Service" cmd /k "cd apps\portfolio-institution-service && npm install && npm run start:dev"
 
@@ -114,7 +109,6 @@ $services = @(
     @{Name="Admin Service"; Path="apps\admin-service"; Port=3001},
     @{Name="Analytics Service"; Path="apps\analytics-service"; Port=3002},
     @{Name="Accounting Service"; Path="apps\accounting-service"; Port=3003},
-    @{Name="Portfolio SME Service"; Path="apps\portfolio-sme-service"; Port=3004},
     @{Name="Portfolio Institution Service"; Path="apps\portfolio-institution-service"; Port=3005},
     @{Name="Mobile Service"; Path="apps\app_mobile_service"; Port=3006},
     @{Name="API Gateway"; Path="apps\api-gateway"; Port=3000}
@@ -167,7 +161,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=root123
-      - POSTGRES_MULTIPLE_DATABASES=admin-service,accounting-service,analytics-service,portfolio-sme-service,portfolio-institution-service,app_mobile_service
+      - POSTGRES_MULTIPLE_DATABASES=admin-service,accounting-service,analytics-service,portfolio-institution-service,app_mobile_service
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d

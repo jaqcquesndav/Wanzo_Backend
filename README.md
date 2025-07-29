@@ -58,7 +58,6 @@ npm install
 cp apps/admin-service/.env.example apps/admin-service/.env
 cp apps/analytics-service/.env.example apps/analytics-service/.env
 cp apps/accounting-service/.env.example apps/accounting-service/.env
-cp apps/portfolio-sme-service/.env.example apps/portfolio-sme-service/.env
 cp apps/portfolio-institution-service/.env.example apps/portfolio-institution-service/.env
 ```
 
@@ -74,7 +73,6 @@ Or start individual services:
 npm run dev --filter=admin-service
 npm run dev --filter=analytics-service
 npm run dev --filter=accounting-service
-npm run dev --filter=portfolio-sme-service
 npm run dev --filter=portfolio-institution-service
 ```
 

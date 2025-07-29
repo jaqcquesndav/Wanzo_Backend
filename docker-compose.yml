@@ -41,7 +41,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root123
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-sme-service,portfolio-institution-service,app_mobile_service,customer-service
+      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,app_mobile_service,customer-service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -68,7 +68,6 @@ services:
       - ADMIN_SERVICE_URL=http://admin-service:3001
       - ANALYTICS_SERVICE_URL=http://analytics-service:3010
       - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
-      - PORTFOLIO_SME_SERVICE_URL=http://portfolio-sme-service:3004
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
       - APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
       - CUSTOMER_SERVICE_URL=http://customer-service:3011
@@ -81,7 +80,6 @@ services:
       - admin-service
       - accounting-service
       - analytics-service
-      - portfolio-sme-service
       - portfolio-institution-service
       - app-mobile-service
       - customer-service
@@ -185,37 +183,7 @@ services:
       - kiota-network
     restart: unless-stopped
 
-  # Portfolio SME Service
-  portfolio-sme-service:
-    build:
-      context: .
-      dockerfile: ./apps/portfolio-sme-service/Dockerfile
-    container_name: kiota-portfolio-sme-service
-    ports:
-      - "3004:3004"
-      - "9467:9464" # Port Prometheus (mapping différent)
-    environment:
-      - NODE_ENV=production
-      - PORT=3004
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
-      - DB_DATABASE=portfolio-sme-service
-      - KAFKA_BROKERS=kafka:29092
-      - KAFKA_CLIENT_ID=portfolio-sme-service
-      - KAFKA_GROUP_ID=portfolio-sme-service-group
-      - PROMETHEUS_PORT=9464
-    env_file:
-      - ./apps/portfolio-sme-service/.env
-    volumes:
-      - portfolio-sme-service-logs:/app/apps/portfolio-sme-service/logs
-    depends_on:
-      - postgres
-      - kafka
-    networks:
-      - kiota-network
-    restart: unless-stopped
+
 
   # Portfolio Institution Service
   portfolio-institution-service:
@@ -388,7 +356,6 @@ volumes:
   admin-service-logs:
   accounting-service-logs:
   analytics-service-logs:
-  portfolio-sme-service-logs:
   portfolio-institution-service-logs:
   app-mobile-service-logs:
   adha-ai-service-data:

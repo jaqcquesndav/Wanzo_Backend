@@ -17,8 +17,7 @@ npm install
 # Build each service individually
 $services = @(
     "analytics-service",
-    "portfolio-institution-service",
-    "portfolio-sme-service"
+    "portfolio-institution-service"
 )
 
 foreach ($service in $services) {

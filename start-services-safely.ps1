@@ -41,7 +41,7 @@ Start-Sleep -Seconds 10
 
 # Start portfolio services
 Write-Host "Starting portfolio services..." -ForegroundColor Yellow
-docker-compose up -d portfolio-sme-service portfolio-institution-service
+docker-compose up -d portfolio-institution-service
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to start portfolio services" -ForegroundColor Red

@@ -52,7 +52,7 @@ docker-compose down --remove-orphans
 
 # List of services to build in order
 services=("postgres" "zookeeper" "kafka" "api-gateway" "admin-service" 
-          "accounting-service" "analytics-service" "portfolio-sme-service" 
+          "accounting-service" "analytics-service" 
           "portfolio-institution-service" "customer-service" "app-mobile-service" 
           "adha-ai-service")
 

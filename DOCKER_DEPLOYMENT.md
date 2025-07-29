@@ -16,7 +16,6 @@ L'architecture Docker de Kiota-Suit comprend les éléments suivants :
   - `admin-service` : Gestion des utilisateurs et administration (port 3001)
   - `analytics-service` : Analyses et statistiques (port 3002)
   - `accounting-service` : Comptabilité et finances (port 3003)
-  - `portfolio-sme-service` : Gestion des portefeuilles PME (port 3004)
   - `portfolio-institution-service` : Gestion des portefeuilles institutions (port 3005)
   - `app-mobile-service` : Service pour l'application mobile (port 3006)
   - `customer-service` : Service de gestion des clients (port 3011)

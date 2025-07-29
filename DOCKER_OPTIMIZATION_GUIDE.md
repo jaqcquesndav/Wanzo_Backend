@@ -100,7 +100,6 @@ The following services have been successfully optimized and build correctly:
 - `admin-service`
 - `api-gateway`
 - `app_mobile_service`
-- `portfolio-sme-service`
 - `portfolio-institution-service`
 
 ### Common Build Issues

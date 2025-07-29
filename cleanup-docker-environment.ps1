@@ -42,8 +42,7 @@ $services = @(
     "api-gateway",
     "app_mobile_service",
     "customer-service",
-    "portfolio-institution-service",
-    "portfolio-sme-service"
+    "portfolio-institution-service"
 )
 
 foreach ($service in $services) {
