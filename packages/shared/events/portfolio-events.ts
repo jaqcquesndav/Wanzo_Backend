@@ -127,7 +127,7 @@ export interface PaymentScheduleUpdatedEvent {
   contractId: string;
   contractNumber: string;
   portfolioId: string;
-  clientId: string;
+  clientId: string;.
   updateDate: Date;
   updatedBy?: string;
   reason: string;
