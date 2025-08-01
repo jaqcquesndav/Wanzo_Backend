@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Put, UseGuards, Request, Query, HttpStatus, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { FiscalYearsService } from '../services/fiscal-years.service';
+import { FiscalYearsService } from '../services/fiscal-year.service';
 import { FiscalYear, FiscalYearStatus } from '../entities/fiscal-year.entity';
 import { CreateFiscalYearDto } from '../dtos/create-fiscal-year.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';

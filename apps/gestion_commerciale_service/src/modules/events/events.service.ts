@@ -8,8 +8,16 @@ import {
   SubscriptionEventTopics,
   SubscriptionChangedEvent,
   TokenEventTopics,
-  TokenTransactionEvent
+  TokenTransactionEvent,
+  BusinessOperationEventTopics
 } from '@wanzo/shared/events/kafka-config';
+import { 
+  BusinessOperationCreatedEvent, 
+  BusinessOperationUpdatedEvent, 
+  BusinessOperationDeletedEvent,
+  SharedOperationType,
+  SharedOperationStatus
+} from '@wanzo/shared/events/commerce-operations';
 import { GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
@@ -75,5 +83,68 @@ export class EventsService {
   async publishTokenUsage(event: TokenTransactionEvent): Promise<void> {
     this.logger.log(`Publishing token usage event: ${JSON.stringify(event)}`);
     this.eventsClient.emit(TokenEventTopics.TOKEN_USAGE, event);
+  }
+
+  /**
+   * Publie un événement de création d'opération commerciale
+   * @param event Données de l'opération créée
+   */
+  async publishBusinessOperationCreated(event: BusinessOperationCreatedEvent): Promise<void> {
+    this.logger.log(`Publishing business operation created event: ${JSON.stringify({
+      id: event.id,
+      type: event.type,
+      clientId: event.clientId,
+      companyId: event.companyId,
+      amountCdf: event.amountCdf
+    })}`);
+    
+    try {
+      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_CREATED, event);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error publishing ${BusinessOperationEventTopics.OPERATION_CREATED}: ${errorMessage}`, 
+        error instanceof Error ? error.stack : undefined);
+    }
+  }
+
+  /**
+   * Publie un événement de mise à jour d'opération commerciale
+   * @param event Données de l'opération mise à jour
+   */
+  async publishBusinessOperationUpdated(event: BusinessOperationUpdatedEvent): Promise<void> {
+    this.logger.log(`Publishing business operation updated event: ${JSON.stringify({
+      id: event.id,
+      type: event.type,
+      clientId: event.clientId,
+      companyId: event.companyId
+    })}`);
+    
+    try {
+      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_UPDATED, event);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error publishing ${BusinessOperationEventTopics.OPERATION_UPDATED}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined);
+    }
+  }
+
+  /**
+   * Publie un événement de suppression d'opération commerciale
+   * @param event Données de l'opération supprimée
+   */
+  async publishBusinessOperationDeleted(event: BusinessOperationDeletedEvent): Promise<void> {
+    this.logger.log(`Publishing business operation deleted event: ${JSON.stringify({
+      id: event.id,
+      clientId: event.clientId,
+      companyId: event.companyId
+    })}`);
+    
+    try {
+      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_DELETED, event);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error publishing ${BusinessOperationEventTopics.OPERATION_DELETED}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined);
+    }
   }
 }

@@ -1,17 +1,17 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, FindOptionsWhere } from 'typeorm';
+import { Repository, Like, FindOptionsWhere, In } from 'typeorm';
 import { Account } from '../entities/account.entity';
 import { CreateAccountDto, UpdateAccountDto, AccountFilterDto } from '../dtos/account.dto';
 import { AccountType } from '../entities/account.entity'; // Import AccountType
-import { FiscalYearsService } from '../../fiscal-years/services/fiscal-years.service'; // Corrected import path
+import { FiscalYearsService } from '../../fiscal-years/services/fiscal-year.service';
 
 @Injectable()
 export class AccountService {
   constructor(
     @InjectRepository(Account)
     private accountRepository: Repository<Account>,
-    private readonly fiscalYearsService: FiscalYearsService, // Inject FiscalYearsService
+    private readonly fiscalYearsService: FiscalYearsService,
   ) {}
 
   async create(createAccountDto: CreateAccountDto, userId: string): Promise<Account> {
@@ -152,8 +152,25 @@ export class AccountService {
   }
 
   async findOneByCodeAndCompany(code: string, companyId: string): Promise<Account | null> {
-    return await this.accountRepository.findOne({
-      where: { code, companyId: companyId },
+    return this.accountRepository.findOne({
+      where: { code, companyId }
+    });
+  }
+  
+  /**
+   * Trouve plusieurs comptes par leurs codes pour une entreprise
+   * @param companyId ID de l'entreprise
+   * @param codes Liste des codes de compte
+   * @returns Liste des comptes correspondants
+   */
+  async findByAccountCodes(companyId: string, codes: string[]): Promise<Account[]> {
+    if (!codes.length) return [];
+    
+    return this.accountRepository.find({
+      where: {
+        companyId,
+        code: In(codes)
+      }
     });
   }
 

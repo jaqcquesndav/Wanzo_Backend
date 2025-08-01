@@ -7,6 +7,11 @@ export enum MessageRole {
   SYSTEM = 'system'
 }
 
+export enum MessageDirection {
+  OUTGOING = 'outgoing',  // De l'utilisateur vers l'assistant
+  INCOMING = 'incoming'   // De l'assistant vers l'utilisateur
+}
+
 @Entity('chat_messages')
 export class ChatMessage {
   @PrimaryGeneratedColumn('uuid')
@@ -24,6 +29,16 @@ export class ChatMessage {
     enum: MessageRole,
   })
   role!: MessageRole;
+  
+  @Column({
+    type: 'enum',
+    enum: MessageDirection,
+    default: MessageDirection.OUTGOING
+  })
+  direction!: MessageDirection;
+  
+  @Column({ nullable: true })
+  contentType?: string;
 
   @Column('text')
   content!: string;

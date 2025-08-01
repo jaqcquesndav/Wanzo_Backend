@@ -74,6 +74,14 @@ export class RouteResolverService {
         scopes: ['ai:use', 'ai:read', 'ai:write'],
         roles: ['admin', 'user', 'analyst', 'accountant', 'manager'],
       },
+      {
+        service: 'gestion_commerciale',
+        baseUrl: this.configService.get('GESTION_COMMERCIALE_SERVICE_URL', 'http://localhost:3006'),
+        prefix: 'commerce',
+        healthCheck: '/health',
+        scopes: ['commerce:read', 'commerce:write', 'operations:manage', 'inventory:manage'],
+        roles: ['admin', 'user', 'manager', 'accountant'],
+      },
     ];
   }
 

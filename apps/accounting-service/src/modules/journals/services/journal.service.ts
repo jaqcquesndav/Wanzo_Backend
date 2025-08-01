@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Like, FindOptionsWhere } from 'typeorm';
-import { Journal, JournalStatus, JournalType } from '../entities/journal.entity';
+import { Journal, JournalStatus, JournalType, JournalSource } from '../entities/journal.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto } from '../dtos/journal.dto';
 import { AccountService } from '../../accounts/services/account.service';
@@ -318,5 +318,89 @@ export class JournalService {
     query.orderBy('journal.date', 'ASC').addOrderBy('journal.createdAt', 'ASC'); // Chronological order
 
     return await query.getMany();
+  }
+
+  /**
+   * Crée une écriture comptable à partir d'une source externe (comme les opérations commerciales)
+   * @param data Les données de l'écriture à créer
+   * @returns L'écriture comptable créée
+   */
+  async createJournalEntryFromExternalSource(data: {
+    externalId: string;
+    externalSource: string;
+    companyId: string;
+    date: Date;
+    description: string;
+    journalType: JournalType;
+    amount: number;
+    currency: string;
+    lines: {
+      accountCode: string;
+      description: string;
+      debit: number;
+      credit: number;
+    }[];
+  }): Promise<Journal> {
+    try {
+      // Vérifier que tous les comptes existent par code
+      const accountCodes = data.lines.map(line => line.accountCode);
+      const accounts = await this.accountService.findByAccountCodes(data.companyId, accountCodes);
+      
+      // Créer une map de codes de compte vers ID de compte
+      const accountCodeMap: { [code: string]: string } = {};
+      accounts.forEach(account => {
+        accountCodeMap[account.code] = account.id;
+      });
+
+      // Vérifier que tous les codes de compte sont valides
+      for (const line of data.lines) {
+        if (!accountCodeMap[line.accountCode]) {
+          throw new BadRequestException(`Le compte avec le code ${line.accountCode} n'existe pas`);
+        }
+      }
+
+      // Calculer les totaux pour vérifier l'équilibre débit/crédit
+      const totalDebit = data.lines.reduce((sum, line) => sum + line.debit, 0);
+      const totalCredit = data.lines.reduce((sum, line) => sum + line.credit, 0);
+
+      if (Math.abs(totalDebit - totalCredit) > 0.001) { // Tolérance pour les erreurs d'arrondi
+        throw new BadRequestException(`Déséquilibre entre débit (${totalDebit}) et crédit (${totalCredit})`);
+      }
+
+      // Créer le journal en utilisant les propriétés correctes
+      const journal = new Journal();
+      journal.companyId = data.companyId;
+      journal.date = data.date;
+      journal.description = data.description;
+      journal.journalType = data.journalType;
+      journal.status = JournalStatus.POSTED; // Les écritures externes sont automatiquement validées
+      journal.reference = data.externalId; // Stocker l'ID externe comme référence
+      journal.source = JournalSource.IMPORT; // Source externe = import
+      journal.createdBy = 'system'; // Les écritures automatiques sont créées par le système
+      journal.totalDebit = totalDebit;
+      journal.totalCredit = totalCredit;
+
+      // Sauvegarder le journal
+      const savedJournal = await this.journalRepository.save(journal);
+
+      // Créer les lignes du journal
+      const lines = data.lines.map(line => {
+        const journalLine = new JournalLine();
+        journalLine.journalId = savedJournal.id;
+        journalLine.accountId = accountCodeMap[line.accountCode];
+        journalLine.accountCode = line.accountCode;  // Enregistrer aussi le code du compte
+        journalLine.debit = line.debit;
+        journalLine.credit = line.credit;
+        return journalLine;
+      });
+
+      // Sauvegarder les lignes
+      await this.journalLineRepository.save(lines);
+
+      // Retourner le journal avec ses lignes
+      return this.findById(savedJournal.id);
+    } catch (error: any) {
+      throw new BadRequestException(`Erreur lors de la création de l'écriture comptable: ${error.message || 'Erreur inconnue'}`);
+    }
   }
 }

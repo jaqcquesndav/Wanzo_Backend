@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AccountingSettings } from '../entities/accounting-settings.entity';
 import { UserSettings } from '../entities/user-settings.entity';
 import { IntegrationsSettings } from '../entities/integrations-settings.entity';
+import { DataSource, DataSourceType, DataSourceStatus } from '../entities/data-source.entity';
 import { SettingsDto } from '../dtos/settings.dto';
 import { UpdateGeneralSettingsDto } from '../dtos/update-general-settings.dto';
 import { UpdateAccountingSettingsDto } from '../dtos/update-accounting-settings.dto';
@@ -13,6 +14,8 @@ import { UpdateIntegrationsSettingsDto } from '../dtos/update-integrations-setti
 
 @Injectable()
 export class SettingsService {
+  private readonly logger = new Logger(SettingsService.name);
+
   constructor(
     @InjectRepository(AccountingSettings)
     private accountingSettingsRepository: Repository<AccountingSettings>,
@@ -20,6 +23,8 @@ export class SettingsService {
     private userSettingsRepository: Repository<UserSettings>,
     @InjectRepository(IntegrationsSettings)
     private integrationsSettingsRepository: Repository<IntegrationsSettings>,
+    @InjectRepository(DataSource)
+    private dataSourceRepository: Repository<DataSource>,
   ) {}
 
   async getAllSettings(companyId: string, userId: string): Promise<SettingsDto> {
@@ -120,5 +125,104 @@ export class SettingsService {
       await this.integrationsSettingsRepository.save(settings);
     }
     return settings;
+  }
+
+  /**
+   * Vérifie si une source de données spécifique est activée pour une entreprise
+   * @param companyId ID de l'entreprise
+   * @param sourceName Nom de la source (ex: "commerce_operations")
+   * @returns true si la source est activée, false sinon
+   */
+  async isDataSourceEnabled(companyId: string, sourceName: string): Promise<boolean> {
+    try {
+      const dataSource = await this.dataSourceRepository.findOne({
+        where: {
+          companyId,
+          name: sourceName
+        }
+      });
+
+      // Si la source n'existe pas, considérer qu'elle n'est pas activée
+      if (!dataSource) {
+        this.logger.debug(`Data source ${sourceName} not found for company ${companyId}`);
+        return false;
+      }
+
+      // Vérifier si la source est active
+      return dataSource.status === DataSourceStatus.ACTIVE;
+    } catch (error: any) {
+      this.logger.error(`Error checking data source status: ${error.message || 'Unknown error'}`, error.stack || '');
+      // En cas d'erreur, par défaut ne pas autoriser l'accès
+      return false;
+    }
+  }
+
+  /**
+   * Obtient toutes les sources de données pour une entreprise
+   * @param companyId ID de l'entreprise
+   * @returns Liste des sources de données
+   */
+  async getDataSources(companyId: string): Promise<DataSource[]> {
+    return this.dataSourceRepository.find({
+      where: { companyId }
+    });
+  }
+
+  /**
+   * Active une source de données pour une entreprise
+   * @param companyId ID de l'entreprise
+   * @param sourceName Nom de la source
+   * @param userId ID de l'utilisateur qui effectue l'action
+   * @returns La source de données activée
+   */
+  async enableDataSource(companyId: string, sourceName: string, userId: string): Promise<DataSource> {
+    let dataSource = await this.dataSourceRepository.findOne({
+      where: {
+        companyId,
+        name: sourceName
+      }
+    });
+
+    if (!dataSource) {
+      // Si la source n'existe pas, la créer
+      dataSource = this.dataSourceRepository.create({
+        companyId,
+        name: sourceName,
+        type: sourceName.includes('commerce') ? DataSourceType.EXTERNAL : DataSourceType.INTERNAL,
+        status: DataSourceStatus.ACTIVE,
+        createdBy: userId,
+        lastUpdated: new Date()
+      });
+    } else {
+      // Si elle existe, l'activer
+      dataSource.status = DataSourceStatus.ACTIVE;
+      dataSource.lastUpdated = new Date();
+    }
+
+    return this.dataSourceRepository.save(dataSource);
+  }
+
+  /**
+   * Désactive une source de données pour une entreprise
+   * @param companyId ID de l'entreprise
+   * @param sourceName Nom de la source
+   * @returns La source de données désactivée
+   */
+  async disableDataSource(companyId: string, sourceName: string): Promise<DataSource> {
+    const dataSource = await this.dataSourceRepository.findOne({
+      where: {
+        companyId,
+        name: sourceName
+      }
+    });
+
+    if (!dataSource) {
+      throw new NotFoundException(`Data source ${sourceName} not found for company ${companyId}`);
+    }
+
+    dataSource.status = DataSourceStatus.INACTIVE;
+    dataSource.lastUpdated = new Date();
+
+    return this.dataSourceRepository.save(dataSource);
   }
 }

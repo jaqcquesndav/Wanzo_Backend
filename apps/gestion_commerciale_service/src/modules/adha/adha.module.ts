@@ -5,18 +5,19 @@ import { AdhaController } from './adha.controller';
 import { AdhaConversation } from './entities/adha-conversation.entity';
 import { AdhaMessage } from './entities/adha-message.entity';
 import { AuthModule } from '../auth/auth.module';
-// import { OpenAIService } from '../openai/openai.service'; // If you have a separate OpenAI module
+import { EventsModule } from '../events/events.module';
+import { AdhaAiService } from './services/adha-ai.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AdhaConversation, AdhaMessage]),
     AuthModule,
-    // OpenaiModule, // If you create one
+    EventsModule, // Importer le module d'événements pour utiliser Kafka
   ],
   controllers: [AdhaController],
   providers: [
     AdhaService,
-    // OpenAIService, // Provide OpenAIService if it's not global or part of another imported module
+    AdhaAiService, // Ajouter le service AdhaAiService
   ],
 })
 export class AdhaModule {}

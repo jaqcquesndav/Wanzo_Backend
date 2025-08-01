@@ -2,6 +2,8 @@ import { KafkaOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionEventTopics } from './subscription-events';
 import type { SubscriptionChangedEvent } from './subscription-events';
+import { BusinessOperationEventTopics } from './commerce-operations';
+import type { BusinessOperationCreatedEvent, BusinessOperationUpdatedEvent, BusinessOperationDeletedEvent } from './commerce-operations';
 
 // #region Core Enums and Interfaces
 
@@ -51,6 +53,8 @@ export enum CustomerEventTopics {
     CUSTOMER_SUSPENDED = 'customer.suspended',
     CUSTOMER_REACTIVATED = 'customer.reactivated',
 }
+
+export { BusinessOperationEventTopics } from './commerce-operations';
 
 export enum FinanceEventTopics {
     INVOICE_CREATED = 'finance.invoice.created',

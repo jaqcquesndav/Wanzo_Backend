@@ -11,5 +11,5 @@ producer = KafkaProducer(
 
 def send_journal_entry_to_accounting(journal_entry):
     # Le topic doit correspondre à celui consommé par accounting-service pour les écritures
-    producer.send('accounting-journal-entries', journal_entry)
+    producer.send('accounting.journal.entry', journal_entry)
     producer.flush()

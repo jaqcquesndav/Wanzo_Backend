@@ -12,6 +12,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { HealthModule } from './modules/health/health.module';
 import { EventsModule } from './modules/events/events.module';
 import { VirementsModule } from './modules/virements/virements.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 // <-- On importe le MonitoringModule (avec ton PrometheusController)
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -53,10 +54,10 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     PortfoliosModule,
     VirementsModule, // Added
     NotificationsModule,
-    NotificationsModule,
     SettingsModule,
     HealthModule,
     EventsModule, // Added
+    ChatModule, // Added for Adha AI integration
 
     // 4) Ajout du MonitoringModule pour /metrics
     MonitoringModule,

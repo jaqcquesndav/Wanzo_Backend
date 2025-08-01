@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -17,13 +18,14 @@ import { AdhaModule } from './modules/adha/adha.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { FinancingModule } from './modules/financing/financing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { OperationJournalModule } from './modules/operations/operation-journal.module';
+import { BusinessOperationsModule } from './modules/operations/business-operations.module';
 import { SettingsUserProfileModule } from './modules/settings-user-profile/settings-user-profile.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { DocumentManagementModule } from './modules/documents/document-management.module';
 import { EntitiesModule } from './modules/shared/entities.module';
 import { SharedModule } from './modules/shared/shared.module';
 import { EventsModule } from './modules/events/events.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 // Nouveau module d'authentification avec intégration à la plateforme
 import { AuthModule } from './auth/auth.module';
@@ -71,6 +73,7 @@ import { TokenBlacklist } from './modules/auth/entities';
     }),
     // Modules d'intégration avec la plateforme
     AuthModule, // Nouveau module d'authentification avec la plateforme
+    MonitoringModule, // Module de monitoring Prometheus
     
     // Modules existants
     SharedModule,
@@ -88,7 +91,7 @@ import { TokenBlacklist } from './modules/auth/entities';
     ExpensesModule,
     FinancingModule,
     NotificationsModule,
-    OperationJournalModule,
+    BusinessOperationsModule,
     SettingsUserProfileModule,
     SettingsModule,
     DocumentManagementModule,
@@ -123,6 +126,7 @@ import { TokenBlacklist } from './modules/auth/entities';
 export class AppModule implements NestModule {
   // Configuration des middlewares
   configure(consumer: MiddlewareConsumer) {
+    // Middleware d'audit pour toutes les routes sauf health et metrics
     consumer
       .apply(AuditMiddleware)
       .exclude(
@@ -130,5 +134,14 @@ export class AppModule implements NestModule {
         { path: 'metrics', method: RequestMethod.GET }
       )
       .forRoutes('*'); // Appliquer à toutes les routes
+    
+    // Middleware Prometheus pour mesurer les temps de réponse des requêtes HTTP
+    consumer
+      .apply(PrometheusMiddleware)
+      .exclude(
+        { path: 'health', method: RequestMethod.GET },
+        { path: 'metrics', method: RequestMethod.GET }
+      )
+      .forRoutes('*');
   }
 }

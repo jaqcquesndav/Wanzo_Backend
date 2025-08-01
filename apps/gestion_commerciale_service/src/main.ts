@@ -100,6 +100,7 @@ async function bootstrap() {
     .addTag('notifications', 'Gestion des notifications')
     .addTag('settings', 'Paramètres utilisateur et application')
     .addTag('operations', 'Journal des opérations')
+    .addTag('business-operations', 'Opérations commerciales')
     .setContact('Équipe Wanzo', 'https://wanzo.com', 'support@wanzo.com')
     .setLicense('Propriétaire', 'https://wanzo.com/terms')
     .setExternalDoc('Documentation supplémentaire', 'https://docs.wanzo.com')

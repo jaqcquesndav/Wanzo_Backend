@@ -47,6 +47,32 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Envoie une confirmation de traitement d'écriture comptable
+   * 
+   * @param journalEntryId ID de l'écriture traitée
+   * @param sourceId ID de la source (opération commerciale, etc.)
+   * @param success Statut de succès du traitement
+   * @param message Message optionnel (raison d'échec, etc.)
+   */
+  async sendJournalEntryProcessingStatus(
+    journalEntryId: string,
+    sourceId: string,
+    success: boolean,
+    message?: string,
+  ): Promise<void> {
+    const statusMessage = {
+      journalEntryId,
+      sourceId,
+      success,
+      message,
+      timestamp: new Date().toISOString(),
+      processedBy: 'accounting-service',
+    };
+    
+    await this.sendMessage('accounting.journal.status', statusMessage);
+  }
+
   // Example of sending a message and waiting for a response (Request-Reply pattern)
   // This requires the consumer to be set up to send a response back.
   // async sendMessageWithResponse<TResponse = any, TRequest = any>(
