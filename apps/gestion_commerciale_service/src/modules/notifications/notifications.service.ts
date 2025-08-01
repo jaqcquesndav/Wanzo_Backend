@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, IsNull, Not, UpdateResult } from 'typeorm';
-import { Notification, NotificationType } from './entities/notification.entity';
+import { Notification } from './entities/notification.entity';
+import { NotificationType } from './enums/notification-type.enum';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ListNotificationsDto, NotificationStatusQuery } from './dto/list-notifications.dto';
 import { User } from '../auth/entities/user.entity';
@@ -23,7 +24,7 @@ export class NotificationsService {
     listNotificationsDto: ListNotificationsDto,
     user: User,
   ): Promise<{ data: Notification[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 10, sortBy = 'receivedAt', sortOrder = 'DESC', status, type } = listNotificationsDto;
+    const { page = 1, limit = 10, sortBy = 'timestamp', sortOrder = 'DESC', status, type } = listNotificationsDto;
     const skip = (page - 1) * limit;
 
     const where: any = { userId: user.id };

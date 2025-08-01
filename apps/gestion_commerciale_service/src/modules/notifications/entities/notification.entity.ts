@@ -1,17 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
-
-export enum NotificationType {
-  INFO = 'info',
-  ALERT = 'alert',
-  REMINDER = 'reminder',
-  NEW_SALE = 'new_sale',
-  STOCK_ALERT = 'stock_alert',
-  SUBSCRIPTION_UPDATE = 'subscription_update',
-  GENERAL_MESSAGE = 'general_message',
-  // Add other specific types as needed
-}
+import { NotificationType } from '../enums/notification-type.enum';
 
 export interface NotificationData {
   entityType?: string; // e.g., 'sale', 'product', 'subscription', 'user'
@@ -52,13 +42,13 @@ export class Notification {
   @Column()
   title: string;
 
-  @ApiProperty({ description: 'Body content of the notification', example: 'A new sale has been completed for 2500 FCFA.' })
+  @ApiProperty({ description: 'Message content of the notification', example: 'A new sale has been completed for 2500 FCFA.' })
   @Column('text')
-  body: string;
+  message: string;
 
   @ApiProperty({ description: 'When the notification was received', example: '2025-06-01T10:00:00.000Z' })
-  @CreateDateColumn({ type: 'timestamp with time zone' })
-  receivedAt: Date;
+  @CreateDateColumn({ type: 'timestamp with time zone', name: 'timestamp' })
+  timestamp: Date;
 
   @ApiProperty({ 
     description: 'When the notification was read by the user. Null if unread.', 
@@ -68,6 +58,24 @@ export class Notification {
   })
   @Column({ type: 'timestamp with time zone', nullable: true })
   readAt: Date | null;
+  
+  @ApiProperty({
+    description: 'Whether the notification has been read',
+    example: false,
+    type: Boolean
+  })
+  get isRead(): boolean {
+    return this.readAt !== null;
+  }
+  
+  @ApiProperty({
+    description: 'Action route for navigation when tapped',
+    example: '/sales/123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+    nullable: true
+  })
+  @Column({ nullable: true })
+  actionRoute: string | null;
 
   @ApiProperty({ 
     description: 'Additional data associated with the notification',
@@ -80,6 +88,6 @@ export class Notification {
       customerName: 'John Doe'
     }
   })
-  @Column({ type: 'jsonb', nullable: true })
-  data: NotificationData | null;
+  @Column({ type: 'jsonb', nullable: true, name: 'additional_data' })
+  additionalData: NotificationData | null;
 }

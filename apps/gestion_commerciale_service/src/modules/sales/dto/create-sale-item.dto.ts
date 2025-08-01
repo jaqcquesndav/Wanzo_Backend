@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUUID, IsNumber, Min, IsPositive } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsNumber, Min, IsPositive, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSaleItemDto {
@@ -11,6 +11,15 @@ export class CreateSaleItemDto {
   @IsUUID()
   @IsNotEmpty()
   productId: string;
+
+  @ApiProperty({
+    description: 'Nom du produit',
+    example: 'Stylo à bille bleu',
+    required: true
+  })
+  @IsString()
+  @IsNotEmpty()
+  productName: string;
 
   @ApiProperty({
     description: 'Quantité du produit vendu',
@@ -31,7 +40,45 @@ export class CreateSaleItemDto {
   })
   @IsNumber()
   @Min(0)
-  unitPrice: number; // Price at the time of sale, can be validated against product price or set by system
+  unitPrice: number;
 
-  // totalPrice will be calculated in the service: quantity * unitPrice
+  @ApiProperty({
+    description: 'Remise appliquée sur l\'article',
+    example: 50.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  discount?: number;
+
+  @ApiProperty({
+    description: 'Code de la devise (optionnel)',
+    example: 'USD',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  currencyCode?: string;
+
+  @ApiProperty({
+    description: 'Taux de taxe en pourcentage (optionnel)',
+    example: 16.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  taxRate?: number;
+
+  @ApiProperty({
+    description: 'Notes sur l\'article (optionnel)',
+    example: 'Couleur spéciale commandée',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

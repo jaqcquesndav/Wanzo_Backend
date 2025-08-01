@@ -1,9 +1,35 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
-import { ExpenseCategory } from './expense-category.entity';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
-import { Company } from '../../company/entities/company.entity';
 import { ApiProperty } from '@nestjs/swagger';
+
+export enum ExpenseCategoryType {
+  RENT = 'rent',
+  UTILITIES = 'utilities',
+  SUPPLIES = 'supplies',
+  SALARIES = 'salaries',
+  MARKETING = 'marketing',
+  TRANSPORT = 'transport',
+  MAINTENANCE = 'maintenance',
+  OTHER = 'other',
+  INVENTORY = 'inventory',
+  EQUIPMENT = 'equipment',
+  TAXES = 'taxes',
+  INSURANCE = 'insurance',
+  LOAN = 'loan',
+  OFFICE = 'office',
+  TRAINING = 'training',
+  TRAVEL = 'travel',
+  SOFTWARE = 'software',
+  ADVERTISING = 'advertising',
+  LEGAL = 'legal',
+  MANUFACTURING = 'manufacturing',
+  CONSULTING = 'consulting',
+  RESEARCH = 'research',
+  FUEL = 'fuel',
+  ENTERTAINMENT = 'entertainment',
+  COMMUNICATION = 'communication'
+}
 
 @Entity('expenses')
 export class Expense {
@@ -16,39 +42,8 @@ export class Expense {
   id: string;
 
   @ApiProperty({
-    description: 'Identifiant de l\'utilisateur ayant créé la dépense',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
-    format: 'uuid'
-  })
-  @Column()
-  userId: string;
-
-  @ApiProperty({
-    description: 'Relation avec l\'utilisateur',
-    type: () => User
-  })
-  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true }) // User who created the expense
-  @JoinColumn({ name: 'userId' })
-  user?: User;
-
-  @ApiProperty({
-    description: 'Identifiant de l\'entreprise',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
-    format: 'uuid'
-  })
-  @Column()
-  companyId: string;
-
-  @ApiProperty({
-    description: 'Relation avec l\'entreprise',
-    type: () => Company
-  })
-  @ManyToOne(() => Company, { onDelete: 'CASCADE' }) // Expense belongs to a company
-  @JoinColumn({ name: 'companyId' })
-  company: Company;
-  @ApiProperty({
     description: 'Date de la dépense',
-    example: '2025-06-04T12:00:00Z',
+    example: '2023-08-01T12:30:00.000Z',
     type: 'string',
     format: 'date-time'
   })
@@ -56,8 +51,15 @@ export class Expense {
   date: Date;
 
   @ApiProperty({
+    description: 'Motif de la dépense',
+    example: 'Achat de fournitures de bureau'
+  })
+  @Column()
+  motif: string;
+
+  @ApiProperty({
     description: 'Montant de la dépense',
-    example: 250.50,
+    example: 150.00,
     type: 'number',
     format: 'decimal'
   })
@@ -65,34 +67,23 @@ export class Expense {
   amount: number;
 
   @ApiProperty({
-    description: 'Motif de la dépense',
-    example: 'Achat de fournitures de bureau'
+    description: 'Catégorie de la dépense',
+    enum: ExpenseCategoryType,
+    example: ExpenseCategoryType.SUPPLIES
   })
-  @Column()
-  motif: string; // Renamed from description as per API doc
-
-  @ApiProperty({
-    description: 'Identifiant de la catégorie de dépense',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
-    format: 'uuid'
+  @Column({
+    type: 'enum',
+    enum: ExpenseCategoryType
   })
-  @Column()
-  categoryId: string;
-
-  @ApiProperty({
-    description: 'Relation avec la catégorie de dépense',
-    type: () => ExpenseCategory
-  })
-  @ManyToOne(() => ExpenseCategory, category => category.expenses, { onDelete: 'RESTRICT' }) // Prevent deleting category if expenses exist
-  @JoinColumn({ name: 'categoryId' })
-  category: ExpenseCategory;
+  category: ExpenseCategoryType;
 
   @ApiProperty({
     description: 'Méthode de paiement utilisée',
-    example: 'carte'
+    example: 'cash',
+    nullable: true
   })
-  @Column()
-  paymentMethod: string; // e.g., "cash", "card", "bank_transfer"
+  @Column({ nullable: true })
+  paymentMethod: string;
 
   @ApiProperty({
     description: 'URLs des pièces jointes',
@@ -101,7 +92,7 @@ export class Expense {
     type: [String]
   })
   @Column('simple-array', { nullable: true })
-  attachmentUrls?: string[]; // Array of Cloudinary URLs
+  attachmentUrls?: string[];
 
   @ApiProperty({
     description: 'Identifiant du fournisseur (optionnel)',
@@ -111,18 +102,61 @@ export class Expense {
   })
   @Column({ nullable: true })
   supplierId?: string;
+  
   @ApiProperty({
     description: 'Relation avec le fournisseur',
     type: () => Supplier,
     nullable: true
   })
-  @ManyToOne(() => Supplier, { nullable: true, onDelete: 'SET NULL' }) // Optional link to a supplier
+  @ManyToOne(() => Supplier, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'supplierId' })
   supplier?: Supplier;
 
   @ApiProperty({
+    description: 'Bénéficiaire de la dépense',
+    example: 'Fournisseur ABC',
+    nullable: true
+  })
+  @Column({ nullable: true })
+  beneficiary?: string;
+
+  @ApiProperty({
+    description: 'Notes additionnelles',
+    example: 'Achat urgent pour projet client',
+    nullable: true
+  })
+  @Column({ type: 'text', nullable: true })
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Code de la devise',
+    example: 'USD',
+    nullable: true
+  })
+  @Column({ nullable: true, default: 'USD' })
+  currencyCode?: string;
+
+  @ApiProperty({
+    description: 'Identifiant de l\'utilisateur',
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
+    format: 'uuid',
+    nullable: true
+  })
+  @Column({ nullable: true })
+  userId?: string;
+
+  @ApiProperty({
+    description: 'Relation avec l\'utilisateur',
+    type: () => User,
+    nullable: true
+  })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  user?: User;
+
+  @ApiProperty({
     description: 'Date de création',
-    example: '2025-06-04T12:00:00Z',
+    example: '2023-08-01T12:30:00.000Z',
     type: 'string',
     format: 'date-time'
   })
@@ -131,7 +165,7 @@ export class Expense {
 
   @ApiProperty({
     description: 'Date de dernière mise à jour',
-    example: '2025-06-04T14:30:00Z',
+    example: '2023-08-01T12:30:00.000Z',
     type: 'string',
     format: 'date-time'
   })

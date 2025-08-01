@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expense } from '../entities/expense.entity';
+import { Expense, ExpenseCategoryType } from '../entities/expense.entity';
 import { ExpenseCategory } from '../entities/expense-category.entity';
 import { ExpenseCategoryEnum, CATEGORY_NAME_TO_ENUM_MAP } from '../enums/expense-category.enum';
 
@@ -73,15 +73,29 @@ export class ExpenseResponseDto {
 
   /**
    * Convertit une entité Expense en ExpenseResponseDto
+   * Accepte soit un ExpenseCategoryType (enum) ou une entité ExpenseCategory
    */
-  static fromEntity(expense: Expense, category: ExpenseCategory): ExpenseResponseDto {
+  static fromEntity(expense: Expense, category: ExpenseCategoryType | ExpenseCategory): ExpenseResponseDto {
     const dto = new ExpenseResponseDto();
     dto.id = expense.id;
     dto.date = expense.date.toISOString();
     dto.amount = expense.amount;
     dto.motif = expense.motif;
+    
+    // Déterminer le nom de la catégorie selon le type passé
+    let categoryName: string;
+    if (typeof category === 'string') {
+      // Si c'est une valeur enum
+      categoryName = category;
+    } else if (typeof category === 'object' && category.name) {
+      // Si c'est une entité ExpenseCategory
+      categoryName = category.name;
+    } else {
+      categoryName = ExpenseCategoryType.OTHER;
+    }
+    
     // Mapper la catégorie personnalisée vers l'enum attendu par le frontend
-    dto.category = mapCategoryToEnum(category.name);
+    dto.category = mapCategoryToEnum(categoryName);
     dto.paymentMethod = expense.paymentMethod;
     dto.attachmentUrls = expense.attachmentUrls || [];
     dto.supplierId = expense.supplierId;

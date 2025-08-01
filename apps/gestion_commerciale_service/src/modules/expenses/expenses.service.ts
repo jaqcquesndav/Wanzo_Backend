@@ -37,6 +37,23 @@ export class ExpensesService {
     });
     return { data, total, page, limit };
   }
+  
+  /**
+   * Récupère les catégories de dépenses associées à une liste de dépenses
+   */
+  async getExpenseCategoriesForExpenses(expenses: Expense[]): Promise<ExpenseCategory[]> {
+    // Récupérer tous les types de catégories utilisés
+    const categoryTypes = [...new Set(expenses.map(expense => expense.category))];
+    
+    // Récupérer les catégories correspondantes depuis la base de données
+    // En supposant que le nom de la catégorie dans l'entité ExpenseCategory 
+    // correspond à la valeur enum de ExpenseCategoryType
+    const categories = await this.expenseCategoryRepository.createQueryBuilder('category')
+      .where('category.name IN (:...names)', { names: categoryTypes })
+      .getMany();
+      
+    return categories;
+  }
 
   async findOneExpenseCategory(id: string): Promise<ExpenseCategory> {
     const category = await this.expenseCategoryRepository.findOneBy({ id });
@@ -60,21 +77,13 @@ export class ExpensesService {
 
   // Expense CRUD
   async createExpense(createExpenseDto: CreateExpenseDto, userId: string): Promise<Expense> {
-    const { categoryId, ...restOfDto } = createExpenseDto;
-    let category: ExpenseCategory | null = null;
-    if (categoryId) {
-        category = await this.findOneExpenseCategory(categoryId);
-        if (!category) {
-            throw new NotFoundException(`ExpenseCategory with ID "${categoryId}" not found.`);
-        }
-    }
-
+    // Créer la dépense directement avec le DTO
     const newExpense = this.expenseRepository.create({
-      ...restOfDto,
+      ...createExpenseDto,
       userId,
-      category: categoryId ? { id: categoryId } as ExpenseCategory : undefined,
       // attachmentUrls will be handled separately if file uploads are involved
     });
+    
     return this.expenseRepository.save(newExpense);
   }    async findAllExpenses(
     listExpensesDto: ListExpensesDto,
@@ -124,30 +133,10 @@ export class ExpensesService {
 
   async updateExpense(id: string, updateExpenseDto: UpdateExpenseDto, userId: string): Promise<Expense> {
     const expense = await this.findOneExpense(id, userId); // Ensures user owns the expense
-    const { categoryId, ...restOfDto } = updateExpenseDto;
+    
+    // Merge properties from the DTO
+    this.expenseRepository.merge(expense, updateExpenseDto);
 
-    // Explicitly handle attempts to change the category
-    if (updateExpenseDto.hasOwnProperty('categoryId')) {
-      if (categoryId === null) {
-        // If categoryId is explicitly passed as null, throw an error because category is mandatory.
-        throw new BadRequestException('Expense category is mandatory and cannot be set to null. Please provide a valid categoryId.');
-      } else if (typeof categoryId === 'string' && categoryId.length > 0) {
-        // If a valid categoryId string is provided, fetch and update the category.
-        const category = await this.findOneExpenseCategory(categoryId); // This throws NotFoundException if category doesn't exist.
-        expense.category = category;
-        expense.categoryId = category.id; // Ensure the foreign key ID is also updated.
-      }
-      // If categoryId is present in the DTO but undefined (e.g., { categoryId: undefined }),
-      // it implies an attempt to set an invalid value for a mandatory field.
-      // This should ideally be caught by DTO validation (e.g., @IsNotEmpty() if it wasn't optional).
-      // For this logic, if categoryId is undefined here, no change to category is made by this block.
-    }
-    // If 'categoryId' is not a property in updateExpenseDto at all (not included in the request body),
-    // then the category of the expense remains unchanged.
-
-    // Merge other properties from the DTO.
-    // categoryId has been destructured, so it won't be in restOfDto.
-    this.expenseRepository.merge(expense, restOfDto);
     return this.expenseRepository.save(expense);
   }
 

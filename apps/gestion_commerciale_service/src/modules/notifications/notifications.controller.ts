@@ -16,7 +16,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../auth/entities/user.entity';
 import { ListNotificationsDto, NotificationStatusQuery } from './dto/list-notifications.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { Notification, NotificationType } from './entities/notification.entity';
+import { Notification } from './entities/notification.entity';
+import { NotificationType } from './enums/notification-type.enum';
 import { UpdateResult } from 'typeorm';
 
 @ApiTags('Notifications')
@@ -30,7 +31,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'List notifications for the current user' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
-  @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort by field name (e.g., receivedAt)', example: 'receivedAt' })
+  @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort by field name (e.g., timestamp)', example: 'timestamp' })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'], description: 'Sort order' })
   @ApiQuery({ name: 'status', required: false, enum: NotificationStatusQuery, description: 'Filter by read/unread status' })
   @ApiQuery({ name: 'type', required: false, enum: NotificationType, description: 'Filter by notification type' })

@@ -1,6 +1,6 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, Min, IsDateString, IsNotEmpty, IsPhoneNumber } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, Min, IsDateString, IsNotEmpty, IsPhoneNumber, IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { SupplierCategory } from '../entities/supplier.entity';
+import { SupplierCategory } from '../enums/supplier-category.enum';
 
 export class CreateSupplierDto {
   @ApiProperty({
@@ -33,11 +33,11 @@ export class CreateSupplierDto {
   @ApiProperty({
     description: 'Numéro de téléphone du fournisseur',
     example: '+33123456789',
-    required: false
+    required: true
   })
-  @IsOptional()
   @IsPhoneNumber(undefined) // Specify region or leave undefined for general validation
-  phoneNumber?: string;
+  @IsNotEmpty()
+  phoneNumber: string;
 
   @ApiProperty({
     description: 'Adresse postale du fournisseur',
@@ -78,4 +78,33 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsDateString()
   lastPurchaseDate?: string;
+  
+  @ApiProperty({
+    description: 'Notes ou informations supplémentaires',
+    example: 'Fournisseur préféré pour les produits électroniques',
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+  
+  @ApiProperty({
+    description: 'Délai de livraison moyen en jours',
+    example: 5,
+    minimum: 0,
+    required: true
+  })
+  @IsInt()
+  @Min(0)
+  @IsNotEmpty()
+  deliveryTimeInDays: number;
+  
+  @ApiProperty({
+    description: 'Termes de paiement',
+    example: 'Net 30',
+    required: true
+  })
+  @IsString()
+  @IsNotEmpty()
+  paymentTerms: string;
 }

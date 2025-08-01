@@ -4,11 +4,11 @@ import { Customer } from '../../customers/entities/customer.entity';
 import { SaleItem } from './sale-item.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
-export enum PaymentStatus {
+export enum SaleStatus {
   PENDING = 'pending',
-  PAID = 'paid',
-  PARTIALLY_PAID = 'partially_paid',
-  REFUNDED = 'refunded',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  PARTIALLY_PAID = 'partiallyPaid'
 }
 
 @Entity('sales')
@@ -20,6 +20,14 @@ export class Sale {
   })
   @PrimaryGeneratedColumn('uuid')
   id: string;
+  
+  @ApiProperty({
+    description: 'Identifiant local de la vente',
+    example: 'SALE-2025-0001',
+    nullable: true
+  })
+  @Column({ nullable: true })
+  localId: string | null;
 
   @ApiProperty({
     description: 'Identifiant du client',
@@ -29,6 +37,14 @@ export class Sale {
   })
   @Column({ name: 'customer_id', nullable: true }) // A sale might not always have a registered customer
   customerId: string | null;
+
+  @ApiProperty({
+    description: 'Nom du client',
+    example: 'Jean Dupont',
+    nullable: false
+  })
+  @Column()
+  customerName: string;
 
   @ApiProperty({
     description: 'Relation avec le client',
@@ -46,46 +62,75 @@ export class Sale {
     format: 'date-time'
   })
   @Column({ name: 'sale_date', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  saleDate: Date;
+  date: Date;
 
   @ApiProperty({
-    description: 'Montant total de la vente',
-    example: 1500.00,
+    description: 'Date d\'échéance',
+    example: '2025-06-18T12:00:00Z',
+    type: 'string',
+    format: 'date-time',
+    nullable: true
+  })
+  @Column({ name: 'due_date', type: 'timestamptz', nullable: true })
+  dueDate: Date | null;
+
+  @ApiProperty({
+    description: 'Montant total de la vente en Francs Congolais',
+    example: 1500000.00,
     type: 'number',
     format: 'decimal'
   })
-  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_amount' })
-  totalAmount: number;
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_amount_in_cdf' })
+  totalAmountInCdf: number;
 
   @ApiProperty({
-    description: 'Montant déjà payé',
-    example: 1000.00,
+    description: 'Montant déjà payé en Francs Congolais',
+    example: 1000000.00,
     type: 'number',
     format: 'decimal',
     default: 0
   })
-  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'amount_paid', default: 0 })
-  amountPaid: number;
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'amount_paid_in_cdf', default: 0 })
+  amountPaidInCdf: number;
 
   @ApiProperty({
-    description: 'Statut du paiement',
-    enum: PaymentStatus,
-    example: PaymentStatus.PARTIALLY_PAID,
-    default: PaymentStatus.PENDING
+    description: 'Statut de la vente',
+    enum: SaleStatus,
+    example: SaleStatus.PARTIALLY_PAID,
+    default: SaleStatus.PENDING
   })
   @Column({
     type: 'enum',
-    enum: PaymentStatus,
-    default: PaymentStatus.PENDING,
-    name: 'payment_status'
+    enum: SaleStatus,
+    default: SaleStatus.PENDING,
+    name: 'status'
   })
-  paymentStatus: PaymentStatus;  @ApiProperty({
-    description: 'Identifiant de la méthode de paiement',
+  status: SaleStatus;
+
+  @ApiProperty({
+    description: 'Taux de change utilisé pour la vente',
+    example: 2000.00,
+    type: 'number',
+    format: 'decimal'
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'exchange_rate' })
+  exchangeRate: number;
+  
+  @ApiProperty({
+    description: 'Méthode de paiement',
     example: 'cash',
+    nullable: false
+  })
+  @Column({ name: 'payment_method', type: 'varchar' })
+  paymentMethod: string;
+
+  @ApiProperty({
+    description: 'Référence de paiement',
+    example: 'TRANS-123456',
     nullable: true
   })
-  @Column({ name: 'payment_method_id', nullable: true, type: 'varchar' }) // Assuming this is an ID to a payment method configuration/entity
-  paymentMethodId: string | null;
+  @Column({ name: 'payment_reference', nullable: true, type: 'varchar' })
+  paymentReference: string | null;
 
   @ApiProperty({
     description: 'Notes sur la vente',
@@ -94,6 +139,14 @@ export class Sale {
   })
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+
+  @ApiProperty({
+    description: 'Statut de synchronisation',
+    example: 'synced',
+    nullable: true
+  })
+  @Column({ name: 'sync_status', nullable: true, type: 'varchar' })
+  syncStatus: string | null;
 
   @ApiProperty({
     description: 'Identifiant de l\'utilisateur ayant effectué la vente',

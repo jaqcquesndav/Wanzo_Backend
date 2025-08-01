@@ -40,7 +40,7 @@ export class CustomersController {
   @Get()
   @ApiOperation({ 
     summary: 'Récupérer tous les clients', 
-    description: 'Récupère la liste de tous les clients avec pagination.'
+    description: 'Récupère la liste de tous les clients avec pagination, recherche et tri.'
   })
   @ApiQuery({ 
     name: 'page', 
@@ -54,17 +54,55 @@ export class CustomersController {
     description: 'Nombre d\'éléments par page', 
     type: Number 
   })
+  @ApiQuery({ 
+    name: 'search', 
+    required: false, 
+    description: 'Termes de recherche (nom, email ou téléphone)', 
+    type: String 
+  })
+  @ApiQuery({ 
+    name: 'sortBy', 
+    required: false, 
+    description: 'Champ sur lequel trier (createdAt, fullName, etc.)', 
+    type: String 
+  })
+  @ApiQuery({ 
+    name: 'sortOrder', 
+    required: false, 
+    description: 'Ordre de tri (ASC ou DESC)', 
+    enum: ['ASC', 'DESC']
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Liste des clients récupérée avec succès',
-    type: [Customer]
+    schema: {
+      type: 'object',
+      properties: {
+        customers: { type: 'array', items: { $ref: '#/components/schemas/Customer' } },
+        total: { type: 'number', description: 'Nombre total de clients' },
+        page: { type: 'number', description: 'Page actuelle' },
+        limit: { type: 'number', description: 'Nombre d\'éléments par page' }
+      }
+    }
   })
   @ApiResponse({ 
     status: 401, 
     description: 'Non autorisé'
   })
-  findAll() { // Add @Query() for pagination, sorting, filtering
-    return this.customersService.findAll();
+  findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC'
+  ) {
+    return this.customersService.findAll({
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+      search,
+      sortBy,
+      sortOrder: sortOrder as 'ASC' | 'DESC'
+    });
   }
   @Get(':id')
   @ApiOperation({ 

@@ -4,8 +4,8 @@ import { SalesService } from './sales.service';
 import { SalesController } from './sales.controller';
 import { Sale } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
-import { Product } from '../products/entities/product.entity'; // Import Product entity
-import { ProductsModule } from '../products/products.module'; // Import ProductsModule
+import { Product } from '../inventory/entities/product.entity'; // Import Product entity
+import { ProductsModule } from '../inventory/products.module'; // Import ProductsModule
 import { CustomersModule } from '../customers/customers.module'; // Import CustomersModule
 
 @Module({

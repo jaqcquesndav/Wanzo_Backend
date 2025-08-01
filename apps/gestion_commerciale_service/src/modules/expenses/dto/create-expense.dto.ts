@@ -1,27 +1,17 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, Min, IsUUID, IsOptional, IsArray, ArrayNotEmpty, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsNumber, Min, IsUUID, IsOptional, IsArray, IsUrl, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { ExpenseCategoryType } from '../entities/expense.entity';
 
 export class CreateExpenseDto {
   @ApiProperty({
     description: 'Date de la dépense',
-    example: '2025-06-04',
+    example: '2023-08-01T12:30:00.000Z',
     required: true
   })
   @IsDateString()
   @IsNotEmpty()
   date: string;
-
-  @ApiProperty({
-    description: 'Montant de la dépense',
-    example: 250.50,
-    minimum: 0,
-    required: true
-  })
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  amount: number;
 
   @ApiProperty({
     description: 'Motif de la dépense',
@@ -33,34 +23,34 @@ export class CreateExpenseDto {
   motif: string;
 
   @ApiProperty({
-    description: 'Identifiant de la catégorie de dépense',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    format: 'uuid',
+    description: 'Montant de la dépense',
+    example: 150.00,
+    minimum: 0,
     required: true
   })
-  @IsUUID()
-  @IsNotEmpty()
-  categoryId: string;
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  amount: number;
 
   @ApiProperty({
-    description: 'Méthode de paiement utilisée',
-    example: 'carte',
+    description: 'Catégorie de la dépense',
+    enum: ExpenseCategoryType,
+    example: ExpenseCategoryType.SUPPLIES,
     required: true
+  })
+  @IsEnum(ExpenseCategoryType)
+  @IsNotEmpty()
+  category: ExpenseCategoryType;
+
+  @ApiProperty({
+    description: 'Méthode de paiement utilisée (optionnel)',
+    example: 'cash',
+    required: false
   })
   @IsString()
-  @IsNotEmpty()
-  paymentMethod: string;
-
-  @ApiProperty({
-    description: 'URLs des pièces jointes',
-    example: ['https://example.com/attachments/receipt1.jpg', 'https://example.com/attachments/receipt2.jpg'],
-    required: false,
-    type: [String]
-  })
-  @IsArray()
   @IsOptional()
-  @IsUrl({}, { each: true })
-  attachmentUrls?: string[];
+  paymentMethod?: string;
 
   @ApiProperty({
     description: 'Identifiant du fournisseur (optionnel)',
@@ -72,5 +62,30 @@ export class CreateExpenseDto {
   @IsOptional()
   supplierId?: string;
 
-  // userId and companyId will be set from the authenticated user context in the service
+  @ApiProperty({
+    description: 'Bénéficiaire de la dépense (optionnel)',
+    example: 'Fournisseur ABC',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  beneficiary?: string;
+
+  @ApiProperty({
+    description: 'Notes additionnelles (optionnel)',
+    example: 'Achat urgent pour projet client',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Code de la devise (optionnel)',
+    example: 'USD',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  currencyCode?: string;
 }

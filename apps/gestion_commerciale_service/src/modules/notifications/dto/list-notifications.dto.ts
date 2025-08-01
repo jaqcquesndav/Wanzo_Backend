@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NotificationType } from '../entities/notification.entity';
+import { NotificationType } from '../enums/notification-type.enum';
 
 export enum NotificationStatusQuery {
   ALL = 'all',

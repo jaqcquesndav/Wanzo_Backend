@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, DeepPartial } from 'typeorm';
-import { Sale, PaymentStatus } from './entities/sale.entity';
+import { DataSource, Repository, DeepPartial, FindOptionsWhere, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Sale, SaleStatus } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto, UpdateSaleItemDto } from './dto/update-sale.dto';
-import { Product } from '../products/entities/product.entity';
+import { CompleteSaleDto } from './dto/complete-sale.dto';
+import { CancelSaleDto } from './dto/cancel-sale.dto';
+import { Product } from '../inventory/entities/product.entity';
 import { CustomersService } from '../customers/customers.service';
 import { Customer } from '../customers/entities/customer.entity';
 
@@ -27,7 +29,17 @@ export class SalesService {
 
   async create(createSaleDto: CreateSaleDto): Promise<Sale> {
     return this.dataSource.transaction(async (transactionalEntityManager) => {
-      const { customerId, items, paymentStatus, saleDate, notes, userId, amountPaid, paymentMethodId } = createSaleDto;
+      const { 
+        customerId, 
+        customerName, 
+        items, 
+        date, 
+        dueDate, 
+        notes, 
+        paymentMethod, 
+        paymentReference, 
+        exchangeRate 
+      } = createSaleDto;
 
       let customerEntity: Customer | null = null;
       if (customerId) {
@@ -37,7 +49,7 @@ export class SalesService {
         }
       }
 
-      let totalAmount = 0;
+      let totalAmountInCdf = 0;
       const saleItemEntities: SaleItem[] = [];
 
       for (const itemDto of items) {
@@ -45,49 +57,63 @@ export class SalesService {
         if (!product) {
           throw new NotFoundException(`Product with ID "${itemDto.productId}" not found.`);
         }
-        if (product.quantityInStock < itemDto.quantity) {
-          throw new BadRequestException(`Not enough stock for product "${product.name}". Available: ${product.quantityInStock}, Requested: ${itemDto.quantity}`);
+        if (product.stockQuantity < itemDto.quantity) {
+          throw new BadRequestException(`Not enough stock for product "${product.name}". Available: ${product.stockQuantity}, Requested: ${itemDto.quantity}`);
         }
 
-        product.quantityInStock -= itemDto.quantity;
+        product.stockQuantity -= itemDto.quantity;
         await transactionalEntityManager.save(Product, product);
 
+        // Calculate total price for the item
+        const totalPrice = itemDto.quantity * itemDto.unitPrice - (itemDto.discount || 0);
+        
         const saleItem = transactionalEntityManager.create(SaleItem, {
           product: product,
           productId: product.id,
+          productName: itemDto.productName,
           quantity: itemDto.quantity,
-          unitPrice: itemDto.unitPrice, 
-          totalPrice: itemDto.quantity * itemDto.unitPrice,
+          unitPrice: itemDto.unitPrice,
+          discount: itemDto.discount || null,
+          currencyCode: itemDto.currencyCode || 'CDF',
+          taxRate: itemDto.taxRate || null,
+          taxAmount: itemDto.taxRate ? (totalPrice * itemDto.taxRate / 100) : null,
+          notes: itemDto.notes || null,
+          totalPrice: totalPrice,
         });
         
-        totalAmount += saleItem.totalPrice;
+        totalAmountInCdf += saleItem.totalPrice;
         saleItemEntities.push(saleItem);
       }
       
       const saleData: DeepPartial<Sale> = {
         items: saleItemEntities, 
-        totalAmount: totalAmount,
-        saleDate: saleDate ? new Date(saleDate) : new Date(),
-        paymentStatus: paymentStatus || PaymentStatus.PENDING,
-        notes: notes || null, // Can be null if entity property `notes` is `string | null`
-        userId: userId,
-        amountPaid: amountPaid || 0,
-        paymentMethodId: paymentMethodId || null, // Can be null if entity property `paymentMethodId` is `string | null`
+        totalAmountInCdf: totalAmountInCdf,
+        amountPaidInCdf: 0, // Initialize as unpaid
+        date: new Date(date),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        status: SaleStatus.PENDING, // New sales start as pending
+        customerName: customerName,
+        notes: notes || null,
+        paymentMethod: paymentMethod,
+        paymentReference: paymentReference || null,
+        exchangeRate: exchangeRate,
+        syncStatus: 'created',
+        userId: 'system', // This should be replaced with authenticated user ID in a real implementation
       };
 
       if (customerEntity) {
         saleData.customer = customerEntity;
         saleData.customerId = customerEntity.id;
       } else {
-        saleData.customer = null; // Explicitly set customer relation to null
-        saleData.customerId = null; // Explicitly set customerId to null
+        saleData.customer = null;
+        saleData.customerId = null;
       }
             
       const newSale = transactionalEntityManager.create(Sale, saleData);
       const savedSale = await transactionalEntityManager.save(Sale, newSale);
 
-      if (customerEntity && totalAmount > 0) {
-        await this.customersService.updateTotalPurchases(customerEntity.id, totalAmount, transactionalEntityManager);
+      if (customerEntity && totalAmountInCdf > 0) {
+        await this.customersService.updateTotalPurchases(customerEntity.id, totalAmountInCdf, transactionalEntityManager);
       }
       
       const resultSale = await transactionalEntityManager.findOne(Sale, { where: { id: savedSale.id }, relations: ['customer', 'items', 'items.product'] });
@@ -98,8 +124,150 @@ export class SalesService {
     });
   }
 
-  async findAll(): Promise<Sale[]> {
-    return this.saleRepository.find({ relations: ['customer', 'items', 'items.product'] });
+  async findAll(options?: {
+    page?: number,
+    limit?: number,
+    dateFrom?: string,
+    dateTo?: string,
+    customerId?: string,
+    status?: string,
+    minAmount?: number,
+    maxAmount?: number,
+    sortBy?: string,
+    sortOrder?: string,
+  }): Promise<Sale[]> {
+    const {
+      page = 1,
+      limit = 10,
+      dateFrom,
+      dateTo,
+      customerId,
+      status,
+      minAmount,
+      maxAmount,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = options || {};
+    
+    const skip = (page - 1) * limit;
+    
+    // Build where conditions
+    const where: FindOptionsWhere<Sale> = {};
+    
+    // Handle date filtering
+    if (dateFrom && dateTo) {
+      where.date = Between(new Date(dateFrom), new Date(dateTo));
+    } else if (dateFrom) {
+      where.date = MoreThanOrEqual(new Date(dateFrom));
+    } else if (dateTo) {
+      where.date = LessThanOrEqual(new Date(dateTo));
+    }
+    
+    if (customerId) {
+      where.customerId = customerId;
+    }
+    
+    if (status) {
+      where.status = status as any; 
+    }
+    
+    // Handle amount filtering
+    if (minAmount !== undefined && maxAmount !== undefined) {
+      where.totalAmountInCdf = Between(minAmount, maxAmount);
+    } else if (minAmount !== undefined) {
+      where.totalAmountInCdf = MoreThanOrEqual(minAmount);
+    } else if (maxAmount !== undefined) {
+      where.totalAmountInCdf = LessThanOrEqual(maxAmount);
+    }
+    
+    // Build order condition
+    const order: Record<string, 'ASC' | 'DESC'> = {};
+    order[sortBy] = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    
+    return this.saleRepository.find({
+      where,
+      relations: ['customer', 'items', 'items.product'],
+      skip,
+      take: limit,
+      order,
+    });
+  }
+  
+  // New method for marking a sale as completed
+  async completeSale(id: string, completeSaleDto: CompleteSaleDto): Promise<Sale> {
+    const { amountPaidInCdf, paymentMethod, paymentReference } = completeSaleDto;
+    
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      const sale = await transactionalEntityManager.findOne(Sale, { 
+        where: { id }, 
+        relations: ['items', 'customer'] 
+      });
+      
+      if (!sale) {
+        throw new NotFoundException(`Sale with ID "${id}" not found`);
+      }
+      
+      if (sale.status === SaleStatus.CANCELLED) {
+        throw new BadRequestException('Cannot complete a cancelled sale');
+      }
+      
+      if (sale.status === SaleStatus.COMPLETED) {
+        throw new BadRequestException('Sale is already completed');
+      }
+      
+      // Update sale properties
+      sale.amountPaidInCdf = amountPaidInCdf;
+      sale.paymentMethod = paymentMethod;
+      sale.paymentReference = paymentReference || null;
+      
+      // Mark as completed if the full amount is paid
+      if (amountPaidInCdf >= sale.totalAmountInCdf) {
+        sale.status = SaleStatus.COMPLETED;
+      } else {
+        sale.status = SaleStatus.PARTIALLY_PAID;
+      }
+      
+      return transactionalEntityManager.save(Sale, sale);
+    });
+  }
+  
+  // New method for cancelling a sale
+  async cancelSale(id: string, cancelSaleDto: CancelSaleDto): Promise<Sale> {
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      const sale = await transactionalEntityManager.findOne(Sale, { 
+        where: { id }, 
+        relations: ['items', 'items.product'] 
+      });
+      
+      if (!sale) {
+        throw new NotFoundException(`Sale with ID "${id}" not found`);
+      }
+      
+      if (sale.status === SaleStatus.CANCELLED) {
+        throw new BadRequestException('Sale is already cancelled');
+      }
+      
+      // Return products to inventory
+      for (const item of sale.items) {
+        const product = await transactionalEntityManager.findOne(Product, { where: { id: item.productId } });
+        if (product) {
+          product.stockQuantity += item.quantity;
+          await transactionalEntityManager.save(Product, product);
+        }
+      }
+      
+      // Update sale status
+      sale.status = SaleStatus.CANCELLED;
+      
+      // Add cancellation reason if provided
+      if (cancelSaleDto.reason) {
+        sale.notes = sale.notes 
+          ? `${sale.notes}\nCancellation reason: ${cancelSaleDto.reason}`
+          : `Cancellation reason: ${cancelSaleDto.reason}`;
+      }
+      
+      return transactionalEntityManager.save(Sale, sale);
+    });
   }
 
   async findOne(id: string): Promise<Sale> {
@@ -120,17 +288,17 @@ export class SalesService {
       throw new NotFoundException(`Sale with ID "${id}" not found`);
     }
 
-    const originalTotalAmount = saleToUpdate.totalAmount;
+    const originalTotalAmountInCdf = saleToUpdate.totalAmountInCdf;
     const originalCustomerId = saleToUpdate.customer?.id;
 
     return this.dataSource.transaction(async transactionalEntityManager => {
-      const { items: itemUpdates, customerId, saleDate, ...otherUpdates } = updateSaleDto;
+      const { items: itemUpdates, customerId, date, ...otherUpdates } = updateSaleDto;
 
       // 1. Update top-level sale properties
       const updatePayload: DeepPartial<Sale> = { ...otherUpdates };
 
-      if (saleDate !== undefined) {
-        updatePayload.saleDate = new Date(saleDate);
+      if (date !== undefined) {
+        updatePayload.date = new Date(date);
       }
 
       if (customerId !== undefined) { 
@@ -168,7 +336,7 @@ export class SalesService {
             if (existingItem.productId !== itemUpdateDto.productId) {
               // Product for this item is changing
               if (originalItemProduct) {
-                originalItemProduct.quantityInStock += originalItemQuantity;
+                originalItemProduct.stockQuantity += originalItemQuantity;
                 await transactionalEntityManager.save(Product, originalItemProduct);
               }
               
@@ -176,10 +344,10 @@ export class SalesService {
               if (!newProductForItem) {
                 throw new NotFoundException(`Product with ID "${itemUpdateDto.productId}" for item update not found.`);
               }
-              if (newProductForItem.quantityInStock < itemUpdateDto.quantity) {
-                throw new BadRequestException(`Not enough stock for new product "${newProductForItem.name}". Requested: ${itemUpdateDto.quantity}, Available: ${newProductForItem.quantityInStock}`);
+              if (newProductForItem.stockQuantity < itemUpdateDto.quantity) {
+                throw new BadRequestException(`Not enough stock for new product "${newProductForItem.name}". Requested: ${itemUpdateDto.quantity}, Available: ${newProductForItem.stockQuantity}`);
               }
-              newProductForItem.quantityInStock -= itemUpdateDto.quantity;
+              newProductForItem.stockQuantity -= itemUpdateDto.quantity;
               await transactionalEntityManager.save(Product, newProductForItem);
               
               existingItem.product = newProductForItem;
@@ -188,10 +356,10 @@ export class SalesService {
               // Product is the same, quantity might change
               if (!originalItemProduct) throw new Error(`Consistency error: Product not found for existing item ${existingItem.id}`);
               const quantityChange = itemUpdateDto.quantity - originalItemQuantity;
-              if (originalItemProduct.quantityInStock < quantityChange) {
-                throw new BadRequestException(`Not enough stock for product "${originalItemProduct.name}". Additional needed: ${quantityChange}, Available: ${originalItemProduct.quantityInStock}`);
+              if (originalItemProduct.stockQuantity < quantityChange) {
+                throw new BadRequestException(`Not enough stock for product "${originalItemProduct.name}". Additional needed: ${quantityChange}, Available: ${originalItemProduct.stockQuantity}`);
               }
-              originalItemProduct.quantityInStock -= quantityChange;
+              originalItemProduct.stockQuantity -= quantityChange;
               await transactionalEntityManager.save(Product, originalItemProduct);
             }
 
@@ -208,10 +376,10 @@ export class SalesService {
             if (!product) {
               throw new NotFoundException(`Product with ID "${itemUpdateDto.productId}" for new item not found.`);
             }
-            if (product.quantityInStock < itemUpdateDto.quantity) {
-              throw new BadRequestException(`Not enough stock for product "${product.name}". Requested: ${itemUpdateDto.quantity}, Available: ${product.quantityInStock}`);
+            if (product.stockQuantity < itemUpdateDto.quantity) {
+              throw new BadRequestException(`Not enough stock for product "${product.name}". Requested: ${itemUpdateDto.quantity}, Available: ${product.stockQuantity}`);
             }
-            product.quantityInStock -= itemUpdateDto.quantity;
+            product.stockQuantity -= itemUpdateDto.quantity;
             await transactionalEntityManager.save(Product, product);
 
             const newSaleItem = transactionalEntityManager.create(SaleItem, {
@@ -229,7 +397,7 @@ export class SalesService {
         // Case 3: Items to delete (those remaining in existingItemsMap)
         for (const itemToDelete of existingItemsMap.values()) {
           if (itemToDelete.product) {
-            itemToDelete.product.quantityInStock += itemToDelete.quantity;
+            itemToDelete.product.stockQuantity += itemToDelete.quantity;
             await transactionalEntityManager.save(Product, itemToDelete.product);
           }
           await transactionalEntityManager.remove(SaleItem, itemToDelete);
@@ -238,20 +406,20 @@ export class SalesService {
       }
       
       // 3. Recalculate totalAmount
-      saleToUpdate.totalAmount = saleToUpdate.items.reduce((sum, item) => sum + item.totalPrice, 0);
+      saleToUpdate.totalAmountInCdf = saleToUpdate.items.reduce((sum, item) => sum + item.totalPrice, 0);
 
       // 4. Save the updated sale (cascades to SaleItems)
       await transactionalEntityManager.save(Sale, saleToUpdate);
       
       // 5. Adjust customer's total purchases
       const newFinalCustomerId = saleToUpdate.customer?.id;
-      const newFinalTotalAmount = saleToUpdate.totalAmount;
+      const newFinalTotalAmount = saleToUpdate.totalAmountInCdf;
 
       if (originalCustomerId) {
         if (originalCustomerId !== newFinalCustomerId) { 
-          await this.customersService.updateTotalPurchases(originalCustomerId, -originalTotalAmount, transactionalEntityManager);
+          await this.customersService.updateTotalPurchases(originalCustomerId, -originalTotalAmountInCdf, transactionalEntityManager);
         } else { 
-          const amountDifference = newFinalTotalAmount - originalTotalAmount;
+          const amountDifference = newFinalTotalAmount - originalTotalAmountInCdf;
           if (amountDifference !== 0) {
             await this.customersService.updateTotalPurchases(originalCustomerId, amountDifference, transactionalEntityManager);
           }
@@ -281,13 +449,13 @@ export class SalesService {
         throw new NotFoundException(`Sale with ID "${id}" not found`);
       }
 
-      const originalTotalAmount = sale.totalAmount;
+      const originalTotalAmount = sale.totalAmountInCdf;
       const saleCustomerId = sale.customer?.id;
 
       for (const item of sale.items) {
         const product = item.product; 
         if (product) {
-          product.quantityInStock += item.quantity;
+          product.stockQuantity += item.quantity;
           await transactionalEntityManager.save(Product, product);
         }
       }

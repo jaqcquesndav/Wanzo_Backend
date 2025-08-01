@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserSubscription } from '../../subscriptions/entities/user-subscription.entity';
-import { Company } from '../../company/entities/company.entity'; // Assuming a Company entity
+// Relations supprimées pour adapter à la nouvelle architecture
+// L'intégration avec la plateforme remplacera ces relations
 
 export enum UserRole {
   OWNER = 'owner', // Super Admin
@@ -115,19 +115,18 @@ export class User {
 
   @ApiProperty({
     description: 'Entreprise associée à l\'utilisateur',
-    type: () => Company,
+    example: { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Entreprise A' },
     required: false
   })
-  @ManyToOne(() => Company, company => company.users, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'companyId' })
-  company?: Company;
+  // Relation supprimée et remplacée par une référence simple
+  company?: any; // Type simplifié pour l'intégration
 
   @ApiProperty({
     description: 'Abonnements associés à l\'utilisateur',
-    type: [UserSubscription]
+    example: [{ id: '123', plan: 'premium' }]
   })
-  @OneToMany(() => UserSubscription, userSubscription => userSubscription.user)
-  subscriptions: UserSubscription[];
+  // Relation supprimée et remplacée par une référence simple
+  subscriptions?: any[]; // Type simplifié pour l'intégration
 
   @ApiProperty({
     description: 'Date et heure de création du compte',

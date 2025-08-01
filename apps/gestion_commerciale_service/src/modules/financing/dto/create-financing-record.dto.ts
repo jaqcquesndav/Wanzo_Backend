@@ -1,67 +1,168 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsDateString, IsEnum, IsOptional, IsArray, ValidateNested, IsUrl } from 'class-validator';
+import { 
+  IsString, IsNotEmpty, IsNumber, IsDateString, IsEnum, IsOptional, IsArray, ValidateNested, IsUrl,
+  IsInt, IsPositive, Min, IsUUID, IsCurrency
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { FinancingRecordType, FinancingRecordStatus } from '../entities/financing-record.entity';
+import { FinancingType, FinancingRequestStatus } from '../entities/financing-record.entity';
 
-export class RelatedDocumentDto {
-  @ApiProperty({ description: 'Name of the related document', example: 'Loan Agreement' })
+export class DocumentDto {
+  @ApiProperty({ description: 'Type du document', example: 'businessPlan' })
+  @IsString()
+  @IsNotEmpty()
+  type: string;
+
+  @ApiProperty({ description: 'Nom du document', example: 'Plan d\'affaires 2025' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'URL of the related document', example: 'https://example.com/loan_agreement.pdf' })
+  @ApiProperty({ description: 'URL du document', example: 'https://example.com/business_plan.pdf' })
   @IsUrl()
   @IsNotEmpty()
   url: string;
 }
 
-export class CreateFinancingRecordDto {
-  @ApiProperty({
-    description: 'Type of financing',
-    enum: FinancingRecordType,
-    example: FinancingRecordType.LOAN,
-  })
-  @IsEnum(FinancingRecordType)
-  @IsNotEmpty()
-  type: FinancingRecordType;
-
-  @ApiProperty({ description: 'Source or purpose of the financing', example: 'Bank X Loan' })
+export class ExistingLoanDto {
+  @ApiProperty({ description: 'Prêteur', example: 'Banque XYZ' })
   @IsString()
   @IsNotEmpty()
-  sourceOrPurpose: string;
+  lender: string;
 
-  @ApiProperty({ description: 'Amount of financing', example: 50000 })
+  @ApiProperty({ description: 'Montant initial', example: 10000 })
   @IsNumber()
-  @IsNotEmpty()
-  amount: number;
+  @IsPositive()
+  originalAmount: number;
 
-  @ApiProperty({ description: 'Date of the financing record', example: '2025-07-15T10:00:00.000Z' })
-  @IsDateString()
-  @IsNotEmpty()
-  date: string; // Using string for ISO8601 date, will be converted to Date object in service
+  @ApiProperty({ description: 'Solde restant', example: 6000 })
+  @IsNumber()
+  @IsPositive()
+  outstandingBalance: number;
 
-  @ApiPropertyOptional({ description: 'Terms of the financing (e.g., interest rate, repayment schedule)', example: '5% interest, 36 months repayment' })
+  @ApiProperty({ description: 'Mensualité', example: 500 })
+  @IsNumber()
+  @IsPositive()
+  monthlyPayment: number;
+}
+
+export class BusinessInformationDto {
+  @ApiProperty({ description: 'Nom de l\'entreprise', example: 'Ma Société SARL' })
   @IsString()
-  @IsOptional()
-  terms?: string;
+  @IsNotEmpty()
+  name: string;
 
-  @ApiPropertyOptional({
-    description: 'Status of the financing record',
-    enum: FinancingRecordStatus,
-    default: FinancingRecordStatus.PENDING,
-    example: FinancingRecordStatus.ACTIVE,
-  })
-  @IsEnum(FinancingRecordStatus)
-  @IsOptional()
-  status?: FinancingRecordStatus = FinancingRecordStatus.PENDING;
+  @ApiProperty({ description: 'Numéro d\'enregistrement', example: 'RCCM/CD/KIN/123456' })
+  @IsString()
+  @IsNotEmpty()
+  registrationNumber: string;
 
-  @ApiPropertyOptional({
-    description: 'Related documents (e.g., contracts, agreements)',
-    type: [RelatedDocumentDto],
+  @ApiProperty({ description: 'Adresse', example: '123 Avenue de la Libération, Kinshasa' })
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @ApiProperty({ description: 'Années d\'activité', example: 3 })
+  @IsInt()
+  @IsPositive()
+  yearsInBusiness: number;
+
+  @ApiProperty({ description: 'Nombre d\'employés', example: 10 })
+  @IsInt()
+  @IsPositive()
+  numberOfEmployees: number;
+
+  @ApiProperty({ description: 'Chiffre d\'affaires annuel', example: 50000 })
+  @IsNumber()
+  @IsPositive()
+  annualRevenue: number;
+}
+
+export class FinancialInformationDto {
+  @ApiProperty({ description: 'Revenu mensuel', example: 5000 })
+  @IsNumber()
+  @IsPositive()
+  monthlyRevenue: number;
+
+  @ApiProperty({ description: 'Dépenses mensuelles', example: 3000 })
+  @IsNumber()
+  @IsPositive()
+  monthlyExpenses: number;
+
+  @ApiPropertyOptional({ 
+    description: 'Prêts existants',
+    type: [ExistingLoanDto],
+    required: false
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => RelatedDocumentDto)
+  @Type(() => ExistingLoanDto)
   @IsOptional()
-  relatedDocuments?: RelatedDocumentDto[];
+  existingLoans?: ExistingLoanDto[];
+}
+
+export class CreateFinancingRecordDto {
+  @ApiPropertyOptional({ description: 'ID du produit de financement', example: '123e4567-e89b-12d3-a456-426614174002' })
+  @IsUUID()
+  @IsOptional()
+  productId?: string;
+
+  @ApiProperty({
+    description: 'Type de financement',
+    enum: FinancingType,
+    example: FinancingType.BUSINESS_LOAN,
+  })
+  @IsEnum(FinancingType)
+  @IsNotEmpty()
+  type: FinancingType;
+
+  @ApiProperty({ description: 'Montant demandé', example: 5000.00 })
+  @IsNumber()
+  @IsPositive()
+  amount: number;
+
+  @ApiProperty({ description: 'Devise (CDF, USD, etc.)', example: 'CDF' })
+  @IsString()
+  @IsNotEmpty()
+  currency: string;
+
+  @ApiProperty({ description: 'Durée en mois', example: 12 })
+  @IsInt()
+  @IsPositive()
+  term: number;
+
+  @ApiProperty({ description: 'Objet du financement', example: 'Achat d\'équipements' })
+  @IsString()
+  @IsNotEmpty()
+  purpose: string;
+
+  @ApiPropertyOptional({ description: 'ID de l\'institution financière', example: '123e4567-e89b-12d3-a456-426614174003' })
+  @IsUUID()
+  @IsOptional()
+  institutionId?: string;
+
+  @ApiProperty({ description: 'Informations sur l\'entreprise' })
+  @ValidateNested()
+  @Type(() => BusinessInformationDto)
+  businessInformation: BusinessInformationDto;
+
+  @ApiProperty({ description: 'Informations financières' })
+  @ValidateNested()
+  @Type(() => FinancialInformationDto)
+  financialInformation: FinancialInformationDto;
+
+  @ApiPropertyOptional({ 
+    description: 'Documents soumis',
+    type: [DocumentDto],
+    required: false
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DocumentDto)
+  @IsOptional()
+  documents?: DocumentDto[];
+
+  @ApiPropertyOptional({ description: 'Notes supplémentaires' })
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

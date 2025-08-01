@@ -1,14 +1,14 @@
 import { DataSource } from 'typeorm';
 import { Supplier } from './modules/suppliers/entities/supplier.entity';
 import { Company } from './modules/company/entities/company.entity';
-import { Product } from './modules/products/entities/product.entity';
+import { Product } from './modules/inventory/entities/product.entity';
 import { User } from './modules/auth/entities/user.entity';
 import { UserSubscription } from './modules/subscriptions/entities/user-subscription.entity';
 import { SubscriptionTier } from './modules/subscriptions/entities/subscription-tier.entity';
 import { Sale } from './modules/sales/entities/sale.entity';
 import { SaleItem } from './modules/sales/entities/sale-item.entity';
 import { Customer } from './modules/customers/entities/customer.entity';
-import { OperationJournalEntry } from './modules/operation-journal/entities/operation-journal-entry.entity';
+import { OperationJournalEntry } from './modules/operations/entities/operation-journal-entry.entity';
 import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 

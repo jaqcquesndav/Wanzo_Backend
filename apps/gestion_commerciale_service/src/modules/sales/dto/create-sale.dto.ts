@@ -1,81 +1,48 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString, IsNumber, Min, ValidateNested, IsArray, ArrayMinSize, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString, IsNumber, Min, ValidateNested, IsArray, ArrayMinSize, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateSaleItemDto } from './create-sale-item.dto';
-import { PaymentStatus } from '../entities/sale.entity';
+import { SaleStatus } from '../entities/sale.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSaleDto {
   @ApiProperty({
-    description: 'Identifiant unique du client (optionnel)',
+    description: 'Date de la vente',
+    example: '2023-08-01T12:30:00.000Z',
+    format: 'date-time',
+    required: true
+  })
+  @IsDateString()
+  @IsNotEmpty()
+  date: string;
+
+  @ApiProperty({
+    description: 'Date d\'échéance (optionnel)',
+    example: '2023-08-15T12:30:00.000Z',
+    format: 'date-time',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
+
+  @ApiProperty({
+    description: 'Identifiant du client (optionnel)',
     example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     format: 'uuid',
     required: false
   })
   @IsUUID()
-  @IsOptional() // Customer might be anonymous or not yet registered
+  @IsOptional()
   customerId?: string;
 
   @ApiProperty({
-    description: 'Date de la vente (optionnel, par défaut: date actuelle)',
-    example: '2025-06-04T12:00:00Z',
-    format: 'date-time',
-    required: false
-  })
-  @IsDateString()
-  @IsOptional() // Defaults to current date in entity
-  saleDate?: string;
-
-  // totalAmount will be calculated based on items in the service
-
-  @ApiProperty({
-    description: 'Montant payé',
-    example: 500.00,
-    minimum: 0,
-    required: false
-  })
-  @IsNumber()
-  @Min(0)
-  @IsOptional() // Might not be paid immediately
-  amountPaid?: number;
-
-  @ApiProperty({
-    description: 'Statut du paiement',
-    enum: PaymentStatus,
-    example: PaymentStatus.PENDING,
-    required: false,
-    default: PaymentStatus.PENDING
-  })
-  @IsEnum(PaymentStatus)
-  @IsOptional()
-  paymentStatus?: PaymentStatus; // Defaults to PENDING in entity
-
-  @ApiProperty({
-    description: 'Identifiant de la méthode de paiement',
-    example: 'cash',
-    required: false
-  })
-  @IsString()
-  @IsOptional()
-  paymentMethodId?: string; // E.g., 'cash', 'card_xyz', or UUID to a payment methods table
-
-  @ApiProperty({
-    description: 'Notes sur la vente',
-    example: 'Livraison à domicile prévue le 05/06/2025',
-    required: false
-  })
-  @IsString()
-  @IsOptional()
-  notes?: string;
-
-  @ApiProperty({
-    description: 'Identifiant de l\'utilisateur effectuant la vente',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
-    format: 'uuid',
+    description: 'Nom du client',
+    example: 'Jean Dupont',
     required: true
   })
-  @IsUUID() // Assuming userId will be injected from the authenticated user context by the service/decorator
-  @IsNotEmpty() // This should be handled by auth, not directly in DTO from client usually
-  userId: string; // Or remove and handle in service based on request.user
+  @IsString()
+  @IsNotEmpty()
+  customerName: string;
 
   @ApiProperty({
     description: 'Articles de la vente',
@@ -87,4 +54,41 @@ export class CreateSaleDto {
   @ArrayMinSize(1)
   @Type(() => CreateSaleItemDto)
   items: CreateSaleItemDto[];
+
+  @ApiProperty({
+    description: 'Méthode de paiement',
+    example: 'cash',
+    required: true
+  })
+  @IsString()
+  @IsNotEmpty()
+  paymentMethod: string;
+
+  @ApiProperty({
+    description: 'Référence de paiement (optionnel)',
+    example: 'TRANS-123456',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  paymentReference?: string;
+
+  @ApiProperty({
+    description: 'Notes sur la vente (optionnel)',
+    example: 'Livraison à domicile prévue',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Taux de change',
+    example: 2000.00,
+    minimum: 0,
+    required: true
+  })
+  @IsNumber()
+  @IsPositive()
+  exchangeRate: number;
 }

@@ -1,14 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Product } from '../../products/entities/product.entity';
-
-export enum SupplierCategory {
-  STRATEGIC = 'strategic',
-  REGULAR = 'regular',
-  NEW_SUPPLIER = 'newSupplier',
-  OCCASIONAL = 'occasional',
-  INTERNATIONAL = 'international',
-}
+import { Product } from '../../inventory/entities/product.entity';
+import { SupplierCategory } from '../enums/supplier-category.enum';
 
 @Entity('suppliers')
 export class Supplier {
@@ -46,10 +39,10 @@ export class Supplier {
   @ApiProperty({
     description: 'Numéro de téléphone du fournisseur',
     example: '+33123456789',
-    required: false
+    required: true
   })
-  @Column({ nullable: true })
-  phoneNumber?: string;
+  @Column()
+  phoneNumber: string;
 
   @ApiProperty({
     description: 'Adresse postale du fournisseur',
@@ -106,11 +99,35 @@ export class Supplier {
   updatedAt: Date;
 
   @ApiProperty({
+    description: 'Notes ou informations supplémentaires',
+    example: 'Fournisseur préféré pour les produits électroniques',
+    required: false
+  })
+  @Column({ type: 'text', nullable: true })
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Délai de livraison moyen en jours',
+    example: 5,
+    minimum: 0
+  })
+  @Column({ type: 'int', default: 0 })
+  deliveryTimeInDays: number;
+
+  @ApiProperty({
+    description: 'Termes de paiement',
+    example: 'Net 30',
+    required: true
+  })
+  @Column()
+  paymentTerms: string;
+
+  @ApiProperty({
     description: 'Produits associés à ce fournisseur',
     type: [Product],
     required: false
   })
   // Define the relationship with products
-  @OneToMany(() => Product, product => product.supplier)
+  @ManyToMany(() => Product, product => product.suppliers)
   products?: Product[];
 }

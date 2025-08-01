@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Supplier } from '../suppliers/entities/supplier.entity';
 import { Company } from '../company/entities/company.entity';
-import { Product } from '../products/entities/product.entity';
+import { Product } from '../inventory/entities/product.entity';
 import { User } from '../auth/entities/user.entity';
 
 /**

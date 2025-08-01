@@ -11,6 +11,9 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  Put,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { FinancingService } from './financing.service';
 import { CreateFinancingRecordDto } from './dto/create-financing-record.dto';
@@ -20,13 +23,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../auth/entities/user.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { FinancingRecord, FinancingRecordType, FinancingRecordStatus } from './entities/financing-record.entity';
+import { FinancingRecord, FinancingType, FinancingRequestStatus } from './entities/financing-record.entity';
 import { FinancingRequestResponseDto } from './dto/financing-request-response.dto';
 
-@ApiTags('financing-requests')
+@ApiTags('financing')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('financing-requests')
+@Controller('api/v1/financing/requests')
 export class FinancingController {
   constructor(private readonly financingService: FinancingService) {}
 
@@ -54,8 +57,8 @@ export class FinancingController {
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
   @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort by field name' })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'], description: 'Sort order' })
-  @ApiQuery({ name: 'type', required: false, enum: FinancingRecordType, description: 'Filter by financing type' })
-  @ApiQuery({ name: 'status', required: false, enum: FinancingRecordStatus, description: 'Filter by financing status' })
+  @ApiQuery({ name: 'type', required: false, enum: FinancingType, description: 'Filter by financing type' })
+  @ApiQuery({ name: 'status', required: false, enum: FinancingRequestStatus, description: 'Filter by financing status' })
   @ApiQuery({ name: 'dateFrom', required: false, type: String, description: 'Filter from date (ISO8601)' })
   @ApiQuery({ name: 'dateTo', required: false, type: String, description: 'Filter to date (ISO8601)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search term for source/purpose or terms' })
@@ -124,6 +127,80 @@ export class FinancingController {
     return {
       success: true,
       message: 'Financing request deleted successfully',
+      statusCode: 200
+    };
+  }
+
+  @Post(':id/submit')
+  @ApiOperation({ summary: 'Submit a financing request' })
+  @ApiParam({ name: 'id', type: String, description: 'Financing Request ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'The financing request has been successfully submitted.' })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 404, description: 'Financing request not found.' })
+  async submitRequest(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    const record = await this.financingService.findOne(id, user);
+    
+    if (!record) {
+      throw new NotFoundException(`Financing request with ID ${id} not found`);
+    }
+    
+    if (record.status !== FinancingRequestStatus.DRAFT) {
+      throw new BadRequestException('Only requests in draft status can be submitted');
+    }
+    
+    const updatedRecord = await this.financingService.update(id, {
+      status: FinancingRequestStatus.SUBMITTED,
+      applicationDate: new Date()
+    }, user);
+    
+    return {
+      success: true,
+      message: 'Demande de financement soumise avec succès',
+      data: {
+        id: updatedRecord.id,
+        status: updatedRecord.status,
+        applicationDate: updatedRecord.applicationDate
+      },
+      statusCode: 200
+    };
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a financing request' })
+  @ApiParam({ name: 'id', type: String, description: 'Financing Request ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'The financing request has been successfully cancelled.' })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 404, description: 'Financing request not found.' })
+  async cancelRequest(
+    @Param('id', ParseUUIDPipe) id: string, 
+    @Body('reason') reason: string,
+    @CurrentUser() user: User
+  ) {
+    const record = await this.financingService.findOne(id, user);
+    
+    if (!record) {
+      throw new NotFoundException(`Financing request with ID ${id} not found`);
+    }
+    
+    // Cannot cancel completed, disbursed or already cancelled requests
+    if ([FinancingRequestStatus.COMPLETED, FinancingRequestStatus.DISBURSED, FinancingRequestStatus.CANCELLED].includes(record.status)) {
+      throw new BadRequestException(`Cannot cancel a request with status ${record.status}`);
+    }
+    
+    const updatedRecord = await this.financingService.update(id, {
+      status: FinancingRequestStatus.CANCELLED,
+      notes: reason ? `${record.notes ? record.notes + '\n\n' : ''}Annulation: ${reason}` : record.notes
+    }, user);
+    
+    return {
+      success: true,
+      message: 'Demande de financement annulée avec succès',
+      data: {
+        id: updatedRecord.id,
+        status: updatedRecord.status
+      },
       statusCode: 200
     };
   }

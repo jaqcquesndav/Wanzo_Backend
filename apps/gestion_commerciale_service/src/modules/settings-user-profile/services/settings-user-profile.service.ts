@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessSector } from '../entities/business-sector.entity';
@@ -145,8 +145,27 @@ export class SettingsUserProfileService {
     const { password, hashPassword, validatePassword, ...result } = user;
     return result;
   }
+  
+  async getUserByIdWithCompanyCheck(userId: string, companyId: string): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'> | null> {
+    const user = await this.userRepository.findOne({ 
+        where: { id: userId }, 
+        relations: ['company'] 
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID '${userId}' not found.`);
+    }
+    
+    // Check if user belongs to the same company as the requesting admin
+    if (user.companyId !== companyId) {
+      throw new ForbiddenException(`Access denied: You can only access users from your own company.`);
+    }
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, hashPassword, validatePassword, ...result } = user;
+    return result;
+  }
 
-  async updateUserById(userId: string, updateUserByAdminDto: UpdateUserByAdminDto): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'> | null> {
+  async updateUserById(userId: string, updateUserByAdminDto: UpdateUserByAdminDto): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'>> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID '${userId}' not found.`);
@@ -166,24 +185,32 @@ export class SettingsUserProfileService {
     if (updateUserByAdminDto.profilePictureUrl) user.profilePictureUrl = updateUserByAdminDto.profilePictureUrl;
     if (typeof updateUserByAdminDto.isActive === 'boolean') user.isActive = updateUserByAdminDto.isActive;
     
-    // Fields like address, dateOfBirth, languagePreference, timezone, businessName, etc., 
-    // from UpdateUserByAdminDto are not direct properties of the User entity.
-    // They would need to be added to the User entity or stored in the user.settings JSONB field.
-    // Example for user.settings:
-    // if (!user.settings) user.settings = {};
-    // if (updateUserByAdminDto.address) user.settings.address = updateUserByAdminDto.address;
-    // if (updateUserByAdminDto.dateOfBirth) user.settings.dateOfBirth = updateUserByAdminDto.dateOfBirth;
-    // if (updateUserByAdminDto.languagePreference) user.settings.languagePreference = updateUserByAdminDto.languagePreference;
-    // if (updateUserByAdminDto.timezone) user.settings.timezone = updateUserByAdminDto.timezone;
-    // if (updateUserByAdminDto.businessName) user.settings.businessName = updateUserByAdminDto.businessName;
-    // if (updateUserByAdminDto.businessSectorId) user.settings.businessSectorId = updateUserByAdminDto.businessSectorId;
-    // if (updateUserByAdminDto.businessDescription) user.settings.businessDescription = updateUserByAdminDto.businessDescription;
-    // if (updateUserByAdminDto.website) user.settings.website = updateUserByAdminDto.website;
-
+    // Save the user entity with the updated fields
     const updatedUser = await this.userRepository.save(user);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, hashPassword, validatePassword, ...result } = updatedUser;
-    return result;
+    
+    // Create a new object without password and methods
+    const { password, ...userWithoutPassword } = updatedUser;
+    
+    // TypeScript will infer the correct return type
+    return userWithoutPassword as Omit<User, 'password' | 'hashPassword' | 'validatePassword'>;
+  }
+  
+  async updateUserByIdWithCompanyCheck(userId: string, updateUserByAdminDto: UpdateUserByAdminDto, companyId: string): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'>> {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId },
+      relations: ['company']
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID '${userId}' not found.`);
+    }
+    
+    // Check if user belongs to the same company as the requesting admin
+    if (user.companyId !== companyId) {
+      throw new ForbiddenException(`Access denied: You can only update users from your own company.`);
+    }
+    
+    // Use the updateUserById method to perform the update
+    return this.updateUserById(userId, updateUserByAdminDto);
   }
 
   async deleteUser(userId: string): Promise<void> {

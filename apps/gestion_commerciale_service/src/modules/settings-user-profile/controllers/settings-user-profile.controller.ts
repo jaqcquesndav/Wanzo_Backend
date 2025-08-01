@@ -56,9 +56,15 @@ export class SettingsUserProfileController {
   @ApiOperation({ summary: 'Get user by ID (Admin/Owner)' })
   @ApiResponse({ status: HttpStatus.OK, description: 'User retrieved successfully.', type: User })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found.' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden: Admin can only access users from their own company.' })
   async getUserById(@Param('userId') userId: string, @Req() req: AuthenticatedRequest): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'> | null> {
-    // TODO: Add logic to ensure an ADMIN can only get users from their own company.
-    return this.settingsUserProfileService.getUserById(userId);
+    // Ensure an ADMIN can only get users from their own company
+    if (req.user.role === UserRole.ADMIN && req.user.companyId) {
+      return this.settingsUserProfileService.getUserByIdWithCompanyCheck(userId, req.user.companyId);
+    } else {
+      // OWNER can access any user
+      return this.settingsUserProfileService.getUserById(userId);
+    }
   }
 
   @Patch('users/:userId')
@@ -67,9 +73,15 @@ export class SettingsUserProfileController {
   @ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully.', type: User })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found.' })
   @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email already exists.' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden: Admin can only update users from their own company.' })
   async updateUserById(@Param('userId') userId: string, @Body() updateUserByAdminDto: UpdateUserByAdminDto, @Req() req: AuthenticatedRequest): Promise<Omit<User, 'password' | 'hashPassword' | 'validatePassword'> | null> {
-    // TODO: Add logic to ensure an ADMIN can only update users from their own company.
-    return this.settingsUserProfileService.updateUserById(userId, updateUserByAdminDto);
+    // Ensure an ADMIN can only update users from their own company
+    if (req.user.role === UserRole.ADMIN && req.user.companyId) {
+      return this.settingsUserProfileService.updateUserByIdWithCompanyCheck(userId, updateUserByAdminDto, req.user.companyId);
+    } else {
+      // OWNER can update any user
+      return this.settingsUserProfileService.updateUserById(userId, updateUserByAdminDto);
+    }
   }
 
   @Patch('users/:userId/role')

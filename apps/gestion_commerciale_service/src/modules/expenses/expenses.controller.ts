@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -23,16 +24,16 @@ import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { ListExpensesDto } from './dto/list-expenses.dto';
-import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
-import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
-import { ListExpenseCategoriesDto } from './dto/list-expense-categories.dto';
 import { ExpenseResponseDto } from './dto/expense-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../auth/entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
-import { Expense } from './entities/expense.entity';
+import { Expense, ExpenseCategoryType } from './entities/expense.entity';
 import { ExpenseCategory } from './entities/expense-category.entity';
+import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
+import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
+import { ListExpenseCategoriesDto } from './dto/list-expense-categories.dto';
 
 @ApiTags('dépenses')
 @ApiBearerAuth('JWT-auth')

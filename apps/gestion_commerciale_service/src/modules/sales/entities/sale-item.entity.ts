@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Sale } from './sale.entity';
-import { Product } from '../../products/entities/product.entity';
+import { Product } from '../../inventory/entities/product.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('sale_items')
@@ -38,6 +38,13 @@ export class SaleItem {
   productId: string;
 
   @ApiProperty({
+    description: 'Nom du produit',
+    example: 'Stylo à bille bleu'
+  })
+  @Column({ name: 'product_name' })
+  productName: string;
+
+  @ApiProperty({
     description: 'Relation avec le produit',
     type: () => Product
   })
@@ -63,11 +70,57 @@ export class SaleItem {
   unitPrice: number;
 
   @ApiProperty({
-    description: 'Prix total de l\'article (quantité × prix unitaire)',
+    description: 'Remise appliquée sur l\'article',
+    example: 50.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'discount', nullable: true, default: 0 })
+  discount: number | null;
+
+  @ApiProperty({
+    description: 'Code de la devise',
+    example: 'USD',
+    nullable: true
+  })
+  @Column({ name: 'currency_code', nullable: true, default: 'CDF' })
+  currencyCode: string | null;
+
+  @ApiProperty({
+    description: 'Taux de taxe en pourcentage',
+    example: 16.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'tax_rate', nullable: true })
+  taxRate: number | null;
+
+  @ApiProperty({
+    description: 'Montant de la taxe',
+    example: 120.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'tax_amount', nullable: true })
+  taxAmount: number | null;
+
+  @ApiProperty({
+    description: 'Notes sur l\'article',
+    example: 'Couleur spéciale commandée',
+    nullable: true
+  })
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
+  @ApiProperty({
+    description: 'Prix total de l\'article (quantité × prix unitaire - remise)',
     example: 1500.00,
     type: 'number',
     format: 'decimal'
   })
   @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_price' })
-  totalPrice: number; // quantity * unitPrice
+  totalPrice: number; // quantity * unitPrice - discount
 }
