@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common'; // Added forwardRef, Inject
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm'; // Added EntityManager
-import { User, UserRole } from '../auth/entities/user.entity';
-import { CreateUserDto } from '../auth/dto/create-user.dto'; // Assuming this can be used for the admin user
+import { User, UserRole } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto'; // Assuming this can be used for the admin user
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
