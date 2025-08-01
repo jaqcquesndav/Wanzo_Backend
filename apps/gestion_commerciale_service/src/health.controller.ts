@@ -15,7 +15,7 @@ export class HealthController {
       properties: {
         status: { type: 'string', example: 'ok' },
         timestamp: { type: 'string', example: '2023-01-01T00:00:00.000Z' },
-        service: { type: 'string', example: 'app_mobile_service' },
+        service: { type: 'string', example: 'gestion_commerciale_service' },
         version: { type: 'string', example: '1.0.0' },
       }
     }
@@ -24,7 +24,7 @@ export class HealthController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'app_mobile_service',
+      service: 'gestion_commerciale_service',
       version: '1.0.0',
     };
   }

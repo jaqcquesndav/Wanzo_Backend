@@ -10,7 +10,7 @@ import {
   TokenEventTopics,
   TokenTransactionEvent
 } from '@wanzo/shared/events/kafka-config';
-import { APP_MOBILE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
+import { GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
 export class EventsService {
@@ -18,17 +18,17 @@ export class EventsService {
 
   constructor(
     // Use the correct injection token for the Kafka client
-    @Inject(APP_MOBILE_KAFKA_PRODUCER_SERVICE) private readonly eventsClient: ClientKafka,
+    @Inject(GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE) private readonly eventsClient: ClientKafka,
   ) {}
 
   async onModuleInit() {
     // Wait for connection to Kafka
     try {
       await this.eventsClient.connect();
-      this.logger.log('Successfully connected to Kafka event bus for app_mobile_service');
+      this.logger.log('Successfully connected to Kafka event bus for gestion_commerciale_service');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown Kafka connection error';
-      this.logger.error(`Failed to connect to Kafka for app_mobile_service: ${errorMessage}`, err instanceof Error ? err.stack : undefined);
+      this.logger.error(`Failed to connect to Kafka for gestion_commerciale_service: ${errorMessage}`, err instanceof Error ? err.stack : undefined);
     }
   }
 

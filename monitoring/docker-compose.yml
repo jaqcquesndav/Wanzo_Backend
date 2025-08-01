@@ -107,7 +107,7 @@ networks:
 #     static_configs:
 #       - targets: ['host.docker.internal:9464']
 #
-#   - job_name: 'app-mobile-service'
+#   - job_name: 'gestion-commerciale-service'
 #     static_configs:
 #       - targets: ['host.docker.internal:9466']
 #

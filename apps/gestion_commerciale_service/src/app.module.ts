@@ -39,7 +39,7 @@ import { TokenBlacklist } from './modules/auth/entities';
         port: configService.get<number>('DATABASE_PORT', 5432),
         username: configService.get<string>('DATABASE_USER', 'postgres'),
         password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
-        database: configService.get<string>('DATABASE_NAME', 'wanzo_app_mobile_db'),
+        database: configService.get<string>('DATABASE_NAME', 'wanzo_gestion_commerciale_db'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<string>('NODE_ENV', 'development') === 'development',
         logging: configService.get<string>('NODE_ENV', 'development') === 'development',

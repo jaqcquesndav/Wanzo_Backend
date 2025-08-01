@@ -41,7 +41,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root123
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,app_mobile_service,customer-service
+      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -69,7 +69,7 @@ services:
       - ANALYTICS_SERVICE_URL=http://analytics-service:3010
       - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
-      - APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
+      - GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
       - CUSTOMER_SERVICE_URL=http://customer-service:3011
       - PROMETHEUS_PORT=9464
     env_file:
@@ -81,7 +81,7 @@ services:
       - accounting-service
       - analytics-service
       - portfolio-institution-service
-      - app-mobile-service
+      - gestion-commerciale-service
       - customer-service
     networks:
       - kiota-network
@@ -217,12 +217,12 @@ services:
       - kiota-network
     restart: unless-stopped
 
-  # App Mobile Service
-  app-mobile-service:
+  # Gestion Commerciale Service
+  gestion-commerciale-service:
     build:
       context: .
-      dockerfile: ./apps/app_mobile_service/Dockerfile
-    container_name: kiota-app-mobile-service
+      dockerfile: ./apps/gestion_commerciale_service/Dockerfile
+    container_name: kiota-gestion-commerciale-service
     ports:
       - "3006:3006"
       - "9469:9464" # Port Prometheus (mapping différent)
@@ -233,15 +233,15 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=root123
-      - DB_DATABASE=app_mobile_service
+      - DB_DATABASE=gestion_commerciale_service
       - KAFKA_BROKERS=kafka:29092
-      - KAFKA_CLIENT_ID=app-mobile-service
-      - KAFKA_GROUP_ID=app-mobile-service-group
+      - KAFKA_CLIENT_ID=gestion-commerciale-service
+      - KAFKA_GROUP_ID=gestion-commerciale-service-group
       - PROMETHEUS_PORT=9464
     env_file:
-      - ./apps/app_mobile_service/.env
+      - ./apps/gestion_commerciale_service/.env
     volumes:
-      - app-mobile-service-logs:/app/apps/app_mobile_service/logs
+      - gestion-commerciale-service-logs:/app/apps/gestion_commerciale_service/logs
     depends_on:
       - postgres
       - kafka
@@ -357,7 +357,7 @@ volumes:
   accounting-service-logs:
   analytics-service-logs:
   portfolio-institution-service-logs:
-  app-mobile-service-logs:
+  gestion-commerciale-service-logs:
   adha-ai-service-data:
   customer-service-logs:
   postgres_data:

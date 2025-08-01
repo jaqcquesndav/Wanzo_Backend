@@ -13,7 +13,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Connect to Kafka as a client (producer/consumer)
-  // For app_mobile_service, it will primarily be a producer.
+  // For gestion_commerciale_service, it will primarily be a producer.
   // If it also needs to consume events, the same connection can be used,
   // and specific consumer setup will be in the relevant modules/controllers.
   const configService = app.get(ConfigService); // Get ConfigService instance
@@ -126,7 +126,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, customOptions);
   // Add other global configurations: CORS, etc.
-  const port = process.env.PORT || 3006; // Port unique pour app_mobile_service
+  const port = process.env.PORT || 3006; // Port unique pour gestion_commerciale_service
   await app.startAllMicroservices(); // Start Kafka client
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);

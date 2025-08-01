@@ -39,7 +39,7 @@ graph TD
     
     %% Mobile App Flow
     MobileApp -->|"1. Send message with optional attachments"| Gateway
-    Gateway -->|"2. Route to app_mobile_service"| AdhaController
+    Gateway -->|"2. Route to gestion_commerciale_service"| AdhaController
     AdhaController -->|"3. Process message"| AdhaService
     AdhaService -->|"4. Forward to accounting service if accounting-related"| AccountingAIService
     

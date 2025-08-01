@@ -68,7 +68,7 @@ ENV ADMIN_SERVICE_URL=http://admin-service:3001
 ENV ANALYTICS_SERVICE_URL=http://analytics-service:3002
 ENV ACCOUNTING_SERVICE_URL=http://accounting-service:3003
 ENV PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
-ENV APP_MOBILE_SERVICE_URL=http://app-mobile-service:3006
+ENV GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
 
 # Expose service port
 EXPOSE 3000

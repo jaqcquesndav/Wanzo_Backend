@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventsService } from './events.service';
-import { KafkaProducerModule, APP_MOBILE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
+import { KafkaProducerModule, GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 /**
  * This module contains the core functionality of the EventsModule without

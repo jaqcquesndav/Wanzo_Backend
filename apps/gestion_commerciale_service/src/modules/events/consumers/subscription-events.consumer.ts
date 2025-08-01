@@ -34,7 +34,7 @@ export class SubscriptionEventsConsumer {
       const user = await this.userRepository.findOne({ where: { id: event.userId } });
       
       if (!user) {
-        this.logger.warn(`User with ID ${event.userId} not found in app_mobile_service`);
+        this.logger.warn(`User with ID ${event.userId} not found in gestion_commerciale_service`);
         return;
       }
 
