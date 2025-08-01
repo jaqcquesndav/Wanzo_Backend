@@ -1,4 +1,8 @@
-﻿FROM node:20-alpine AS builder
+﻿# NOTE: There's a known vulnerability in the Node.js image. In production,
+# this should be addressed by using a custom hardened image or by accepting
+# the risk after proper security assessment. For development purposes, 
+# we're using the standard image.
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -44,6 +48,9 @@ RUN mkdir -p ./apps/api-gateway/dist/src
 RUN cp ./apps/api-gateway/mock-service.js ./apps/api-gateway/dist/src/main.js
 
 # Production stage - minimal runtime image
+# NOTE: There's a known vulnerability in the Node.js image. In production,
+# this should be addressed by using a custom hardened image or by accepting
+# the risk after proper security assessment.
 FROM node:20-alpine AS production
 
 # Set working directory

@@ -1,4 +1,8 @@
-﻿FROM node:18-alpine AS builder
+﻿# NOTE: There's a known vulnerability in the Node.js image. In production,
+# this should be addressed by using a custom hardened image or by accepting
+# the risk after proper security assessment. For development purposes, 
+# we're using the standard image.
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
