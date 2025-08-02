@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FiscalYearsService } from './fiscal-years.service';
+import { FiscalYearsService } from './fiscal-year.service';
 import { FiscalYear, FiscalYearStatus } from '../entities/fiscal-year.entity';
-import { Journal, JournalSource } from '../../journals/entities/journal.entity';
 import { CreateFiscalYearDto } from '../dtos/create-fiscal-year.dto';
 import { AuditFiscalYearDto } from '../dtos/audit-fiscal-year.dto';
 import { ImportFiscalYearDto } from '../dtos/import-fiscal-year.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { JournalSource } from '../../journals/entities/journal.entity';
 
 describe('FiscalYearsService', () => {
   let service: FiscalYearsService;
@@ -39,7 +39,7 @@ describe('FiscalYearsService', () => {
           useValue: fiscalYearRepository,
         },
         {
-          provide: getRepositoryToken(Journal),
+          provide: 'JournalRepository',
           useValue: journalRepository,
         },
       ],

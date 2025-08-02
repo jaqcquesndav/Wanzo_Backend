@@ -78,12 +78,12 @@ describe('AccountController', () => {
 
   describe('findAll', () => {
     it('should return all accounts with filters', async () => {
-      const page = 1;
-      const pageSize = 20;
       const filters: AccountFilterDto = { 
         type: AccountType.ASSET, 
         isAnalytic: false, 
-        search: 'test' 
+        search: 'test',
+        page: 1,
+        pageSize: 20
       };
       
       const accounts = [
@@ -93,13 +93,13 @@ describe('AccountController', () => {
 
       mockAccountService.findAll.mockResolvedValue(accounts);
 
-      const result = await controller.findAll(page, pageSize, filters);
+      const result = await controller.findAll(filters);
 
       expect(result).toEqual({
         success: true,
         data: accounts,
       });
-      expect(mockAccountService.findAll).toHaveBeenCalledWith(filters, page, pageSize);
+      expect(mockAccountService.findAll).toHaveBeenCalledWith(filters);
     });
   });
 

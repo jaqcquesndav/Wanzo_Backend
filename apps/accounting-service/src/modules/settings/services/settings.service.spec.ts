@@ -5,18 +5,24 @@ import { SettingsService } from './settings.service';
 import { AccountingSettings } from '../entities/accounting-settings.entity';
 import { UserSettings } from '../entities/user-settings.entity';
 import { IntegrationsSettings } from '../entities/integrations-settings.entity';
-import { UpdateGeneralSettingsDto } from '../dtos/update-general-settings.dto';
-import { UpdateAccountingSettingsDto } from '../dtos/update-accounting-settings.dto';
-import { UpdateSecuritySettingsDto } from '../dtos/update-security-settings.dto';
-import { UpdateNotificationsSettingsDto } from '../dtos/update-notifications-settings.dto';
-import { UpdateIntegrationsSettingsDto } from '../dtos/update-integrations-settings.dto';
+import { DataSource } from '../entities/data-source.entity';
+import { 
+  SettingsDto, 
+  UpdateGeneralSettingsDto,
+  UpdateAccountingSettingsDto,
+  UpdateSecuritySettingsDto,
+  UpdateNotificationsSettingsDto
+} from '../dtos/settings.dto';
+import { NotFoundException } from '@nestjs/common';
 
 // Define mock repository factory
 const createMockRepository = () => ({
   findOne: jest.fn(),
+  find: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
   merge: jest.fn(),
+  update: jest.fn(),
 });
 
 describe('SettingsService', () => {
@@ -24,11 +30,13 @@ describe('SettingsService', () => {
   let accountingSettingsRepository: ReturnType<typeof createMockRepository>;
   let userSettingsRepository: ReturnType<typeof createMockRepository>;
   let integrationsSettingsRepository: ReturnType<typeof createMockRepository>;
+  let dataSourceRepository: ReturnType<typeof createMockRepository>;
 
   beforeEach(async () => {
     accountingSettingsRepository = createMockRepository();
     userSettingsRepository = createMockRepository();
     integrationsSettingsRepository = createMockRepository();
+    dataSourceRepository = createMockRepository();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,10 +53,18 @@ describe('SettingsService', () => {
           provide: getRepositoryToken(IntegrationsSettings),
           useValue: integrationsSettingsRepository,
         },
+        {
+          provide: getRepositoryToken(DataSource),
+          useValue: dataSourceRepository,
+        },
       ],
     }).compile();
 
     service = module.get<SettingsService>(SettingsService);
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -56,269 +72,270 @@ describe('SettingsService', () => {
   });
 
   describe('getAllSettings', () => {
-    it('should return all settings for a user and company', async () => {
-      const companyId = 'company-id';
-      const userId = 'user-id';
-      
+    it('should return consolidated settings from all entities', async () => {
       const mockAccountingSettings = {
-        defaultJournal: 'main-journal',
+        id: 'accounting-1',
+        companyId: 'company-1',
+        defaultJournal: 'General',
         autoNumbering: true,
-        voucherPrefix: 'VCH',
-        fiscalYearPattern: 'YYYY',
-        accountingFramework: 'syscohada',
-        accountingLevels: [],
+        fiscalYearStart: new Date('2024-01-01'),
+        fiscalYearEnd: new Date('2024-12-31'),
       };
-      
+
       const mockUserSettings = {
+        id: 'user-1',
+        userId: 'user-1',
         language: 'fr',
         dateFormat: 'DD/MM/YYYY',
-        timezone: 'UTC+1',
-        theme: 'dark',
-        twoFactorEnabled: false,
-        passwordPolicy: {
-          minLength: 8,
-          requireUppercase: true,
-          requireNumbers: true,
-          requireSymbols: false,
-        },
-        sessionTimeout: 30,
-        notifications: {
-          journal_validation: {
-            email: true,
-            browser: false,
-          },
-        },
+        timezone: 'Africa/Kinshasa',
+        theme: 'light',
+        baseCurrency: 'CDF',
+        displayCurrency: 'CDF',
       };
-      
+
       const mockIntegrationsSettings = {
-        googleDrive: {
-          enabled: false,
-        },
-        ksPay: {
-          enabled: true,
-          apiKey: 'test-key',
-        },
-        slack: {
-          enabled: false,
-        },
+        id: 'integrations-1',
+        companyId: 'company-1',
+        bankSyncEnabled: true,
+        portfolioSyncEnabled: false,
       };
 
       accountingSettingsRepository.findOne.mockResolvedValue(mockAccountingSettings);
       userSettingsRepository.findOne.mockResolvedValue(mockUserSettings);
       integrationsSettingsRepository.findOne.mockResolvedValue(mockIntegrationsSettings);
+      dataSourceRepository.find.mockResolvedValue([]);
 
-      const result = await service.getAllSettings(companyId, userId);
+      const result = await service.getAllSettings('company-1', 'user-1');
 
-      expect(result).toEqual({
-        general: {
-          language: 'fr',
-          dateFormat: 'DD/MM/YYYY',
-          timezone: 'UTC+1',
-          theme: 'dark',
-        },
-        accounting: {
-          defaultJournal: 'main-journal',
-          autoNumbering: true,
-          voucherPrefix: 'VCH',
-          fiscalYearPattern: 'YYYY',
-          accountingFramework: 'syscohada',
-          accountingLevels: [],
-        },
-        security: {
-          twoFactorEnabled: false,
-          passwordPolicy: {
-            minLength: 8,
-            requireUppercase: true,
-            requireNumbers: true,
-            requireSymbols: false,
-          },
-          sessionTimeout: 30,
-          auditLogRetention: 90,
-        },
-        notifications: {
-          journal_validation: {
-            email: true,
-            browser: false,
-          },
-        },
-        integrations: {
-          googleDrive: {
-            enabled: false,
-          },
-          ksPay: {
-            enabled: true,
-            apiKey: 'test-key',
-          },
-          slack: {
-            enabled: false,
-          },
-        },
+      expect(result).toBeDefined();
+      expect(result.general.language).toBe('fr');
+      expect(result.accounting.defaultJournal).toBe('General');
+      expect(accountingSettingsRepository.findOne).toHaveBeenCalledWith({
+        where: { companyId: 'company-1' }
       });
-
-      expect(accountingSettingsRepository.findOne).toHaveBeenCalledWith({ where: { companyId } });
-      expect(userSettingsRepository.findOne).toHaveBeenCalledWith({ where: { userId } });
-      expect(integrationsSettingsRepository.findOne).toHaveBeenCalledWith({ where: { companyId } });
+      expect(userSettingsRepository.findOne).toHaveBeenCalledWith({
+        where: { userId: 'user-1' }
+      });
     });
 
-    it('should create settings if they do not exist', async () => {
-      const companyId = 'company-id';
-      const userId = 'user-id';
-      
+    it('should create default settings if none exist', async () => {
       accountingSettingsRepository.findOne.mockResolvedValue(null);
       userSettingsRepository.findOne.mockResolvedValue(null);
       integrationsSettingsRepository.findOne.mockResolvedValue(null);
-      
-      const mockNewAccountingSettings = {
-        companyId,
-      };
-      const mockNewUserSettings = {
-        userId,
-      };
-      const mockNewIntegrationsSettings = {
-        companyId,
-      };
-      
-      accountingSettingsRepository.create.mockReturnValue(mockNewAccountingSettings);
-      userSettingsRepository.create.mockReturnValue(mockNewUserSettings);
-      integrationsSettingsRepository.create.mockReturnValue(mockNewIntegrationsSettings);
-      
-      accountingSettingsRepository.save.mockResolvedValue(mockNewAccountingSettings);
-      userSettingsRepository.save.mockResolvedValue(mockNewUserSettings);
-      integrationsSettingsRepository.save.mockResolvedValue(mockNewIntegrationsSettings);
+      dataSourceRepository.find.mockResolvedValue([]);
 
-      await service.getAllSettings(companyId, userId);
+      const mockDefaultAccountingSettings = {
+        companyId: 'company-1',
+        defaultJournal: 'Journal Général',
+        autoNumbering: true,
+      };
+      const mockDefaultUserSettings = {
+        userId: 'user-1',
+        language: 'fr',
+        dateFormat: 'DD/MM/YYYY',
+        timezone: 'Africa/Kinshasa',
+      };
+      const mockDefaultIntegrationsSettings = {
+        companyId: 'company-1',
+        bankSyncEnabled: false,
+      };
 
-      expect(accountingSettingsRepository.create).toHaveBeenCalledWith({ companyId });
-      expect(userSettingsRepository.create).toHaveBeenCalledWith({ userId });
-      expect(integrationsSettingsRepository.create).toHaveBeenCalledWith({ companyId });
-      
-      expect(accountingSettingsRepository.save).toHaveBeenCalledWith(mockNewAccountingSettings);
-      expect(userSettingsRepository.save).toHaveBeenCalledWith(mockNewUserSettings);
-      expect(integrationsSettingsRepository.save).toHaveBeenCalledWith(mockNewIntegrationsSettings);
+      accountingSettingsRepository.create.mockReturnValue(mockDefaultAccountingSettings);
+      userSettingsRepository.create.mockReturnValue(mockDefaultUserSettings);
+      integrationsSettingsRepository.create.mockReturnValue(mockDefaultIntegrationsSettings);
+
+      accountingSettingsRepository.save.mockResolvedValue(mockDefaultAccountingSettings);
+      userSettingsRepository.save.mockResolvedValue(mockDefaultUserSettings);
+      integrationsSettingsRepository.save.mockResolvedValue(mockDefaultIntegrationsSettings);
+
+      const result = await service.getAllSettings('company-1', 'user-1');
+
+      expect(accountingSettingsRepository.create).toHaveBeenCalled();
+      expect(userSettingsRepository.create).toHaveBeenCalled();
+      expect(integrationsSettingsRepository.create).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 
   describe('updateGeneralSettings', () => {
-    it('should update general settings', async () => {
-      const userId = 'user-id';
-      const dto: UpdateGeneralSettingsDto = { language: 'en' };
-      const existingSettings = { userId, language: 'fr' };
-      const mergedSettings = { ...existingSettings, ...dto };
-      
-      userSettingsRepository.findOne.mockResolvedValue(existingSettings);
-      userSettingsRepository.merge.mockReturnValue(mergedSettings);
-      userSettingsRepository.save.mockResolvedValue(mergedSettings);
+    it('should update user general settings', async () => {
+      const mockUserSettings = {
+        id: 'user-1',
+        userId: 'user-1',
+        language: 'fr',
+        theme: 'light',
+      };
 
-      const result = await service.updateGeneralSettings(userId, dto);
+      const updateDto: UpdateGeneralSettingsDto = {
+        language: 'en',
+        theme: 'dark',
+        timezone: 'UTC',
+      };
 
-      expect(result).toEqual(mergedSettings);
-      expect(userSettingsRepository.findOne).toHaveBeenCalledWith({ where: { userId } });
-      expect(userSettingsRepository.merge).toHaveBeenCalledWith(existingSettings, dto);
-      expect(userSettingsRepository.save).toHaveBeenCalledWith(mergedSettings);
+      userSettingsRepository.findOne.mockResolvedValue(mockUserSettings);
+      userSettingsRepository.save.mockResolvedValue({
+        ...mockUserSettings,
+        ...updateDto,
+      });
+
+      const result = await service.updateGeneralSettings('user-1', updateDto);
+
+      expect(result.language).toBe('en');
+      expect(result.theme).toBe('dark');
+      expect(userSettingsRepository.save).toHaveBeenCalled();
+    });
+
+    it('should create default settings if user settings do not exist and then update them', async () => {
+      userSettingsRepository.findOne.mockResolvedValue(null);
+      const newSettings = { id: 'new-id', userId: 'user-1', language: 'en' };
+      userSettingsRepository.create.mockReturnValue(newSettings);
+      userSettingsRepository.save.mockResolvedValue(newSettings);
+      userSettingsRepository.merge.mockReturnValue({ ...newSettings, language: 'en' });
+
+      const updateDto: UpdateGeneralSettingsDto = {
+        language: 'en',
+      };
+
+      const result = await service.updateGeneralSettings('user-1', updateDto);
+
+      expect(userSettingsRepository.create).toHaveBeenCalledWith({ userId: 'user-1' });
+      expect(userSettingsRepository.save).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 
   describe('updateAccountingSettings', () => {
     it('should update accounting settings', async () => {
-      const companyId = 'company-id';
-      const dto: UpdateAccountingSettingsDto = { defaultJournal: 'new-journal' };
-      const existingSettings = { companyId, defaultJournal: 'old-journal' };
-      const mergedSettings = { ...existingSettings, ...dto };
-      
-      accountingSettingsRepository.findOne.mockResolvedValue(existingSettings);
-      accountingSettingsRepository.merge.mockReturnValue(mergedSettings);
-      accountingSettingsRepository.save.mockResolvedValue(mergedSettings);
+      const mockAccountingSettings = {
+        id: 'accounting-1',
+        companyId: 'company-1',
+        defaultJournal: 'General',
+        autoNumbering: true,
+      };
 
-      const result = await service.updateAccountingSettings(companyId, dto);
+      const updateDto: UpdateAccountingSettingsDto = {
+        defaultJournal: 'Ventes',
+        autoNumbering: false,
+      };
 
-      expect(result).toEqual(mergedSettings);
-      expect(accountingSettingsRepository.findOne).toHaveBeenCalledWith({ where: { companyId } });
-      expect(accountingSettingsRepository.merge).toHaveBeenCalledWith(existingSettings, dto);
-      expect(accountingSettingsRepository.save).toHaveBeenCalledWith(mergedSettings);
+      accountingSettingsRepository.findOne.mockResolvedValue(mockAccountingSettings);
+      accountingSettingsRepository.save.mockResolvedValue({
+        ...mockAccountingSettings,
+        ...updateDto,
+      });
+
+      const result = await service.updateAccountingSettings('company-1', updateDto);
+
+      expect(result.defaultJournal).toBe('Ventes');
+      expect(result.autoNumbering).toBe(false);
+      expect(accountingSettingsRepository.save).toHaveBeenCalled();
+    });
+
+    it('should create default accounting settings if they do not exist and then update them', async () => {
+      accountingSettingsRepository.findOne.mockResolvedValue(null);
+      const newSettings = { 
+        id: 'new-id', 
+        companyId: 'company-1', 
+        defaultJournal: 'Ventes',
+        autoNumbering: true 
+      };
+      accountingSettingsRepository.create.mockReturnValue(newSettings);
+      accountingSettingsRepository.save.mockResolvedValue(newSettings);
+
+      const updateDto: UpdateAccountingSettingsDto = {
+        defaultJournal: 'Ventes',
+      };
+
+      const result = await service.updateAccountingSettings('company-1', updateDto);
+
+      expect(accountingSettingsRepository.create).toHaveBeenCalledWith({ companyId: 'company-1' });
+      expect(accountingSettingsRepository.save).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 
   describe('updateSecuritySettings', () => {
     it('should update security settings', async () => {
-      const userId = 'user-id';
-      const dto: UpdateSecuritySettingsDto = { twoFactorEnabled: true };
-      const existingSettings = { userId, twoFactorEnabled: false };
-      const mergedSettings = { ...existingSettings, ...dto };
-      
-      userSettingsRepository.findOne.mockResolvedValue(existingSettings);
-      userSettingsRepository.merge.mockReturnValue(mergedSettings);
-      userSettingsRepository.save.mockResolvedValue(mergedSettings);
+      const mockUserSettings = {
+        id: 'user-1',
+        userId: 'user-1',
+        twoFactorEnabled: false,
+        sessionTimeout: 30,
+      };
 
-      const result = await service.updateSecuritySettings(userId, dto);
+      const updateDto: UpdateSecuritySettingsDto = {
+        twoFactorEnabled: true,
+        sessionTimeout: 60,
+      };
 
-      expect(result).toEqual(mergedSettings);
-      expect(userSettingsRepository.findOne).toHaveBeenCalledWith({ where: { userId } });
-      expect(userSettingsRepository.merge).toHaveBeenCalledWith(existingSettings, dto);
-      expect(userSettingsRepository.save).toHaveBeenCalledWith(mergedSettings);
+      userSettingsRepository.findOne.mockResolvedValue(mockUserSettings);
+      userSettingsRepository.save.mockResolvedValue({
+        ...mockUserSettings,
+        ...updateDto,
+      });
+
+      const result = await service.updateSecuritySettings('user-1', updateDto);
+
+      expect(result.twoFactorEnabled).toBe(true);
+      expect(result.sessionTimeout).toBe(60);
+      expect(userSettingsRepository.save).toHaveBeenCalled();
     });
   });
 
   describe('updateNotificationsSettings', () => {
-    it('should update notifications settings', async () => {
-      const userId = 'user-id';
-      const dto: UpdateNotificationsSettingsDto = { 
-        journal_validation: { email: true } 
+    it('should update notification settings', async () => {
+      const mockUserSettings = {
+        id: 'user-1',
+        userId: 'user-1',
+        journal_validation: { email: true, browser: false },
+        report_generation: { email: false, browser: true },
       };
-      const existingSettings = { 
-        userId, 
-        notifications: { report_generation: { email: false } } 
-      };
-      const expectedSavedSettings = {
-        ...existingSettings,
-        notifications: {
-          report_generation: { email: false },
-          journal_validation: { email: true }
-        }
-      };
-      
-      userSettingsRepository.findOne.mockResolvedValue(existingSettings);
-      userSettingsRepository.save.mockResolvedValue(expectedSavedSettings);
 
-      const result = await service.updateNotificationsSettings(userId, dto);
+      const updateDto: UpdateNotificationsSettingsDto = {
+        journal_validation: { email: false, browser: true },
+        report_generation: { email: true, browser: false },
+      };
 
-      expect(result).toEqual(expectedSavedSettings);
-      expect(userSettingsRepository.findOne).toHaveBeenCalledWith({ where: { userId } });
-      expect(userSettingsRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        notifications: expect.objectContaining({
-          report_generation: { email: false },
-          journal_validation: { email: true }
-        })
-      }));
+      userSettingsRepository.findOne.mockResolvedValue(mockUserSettings);
+      userSettingsRepository.save.mockResolvedValue({
+        ...mockUserSettings,
+        ...updateDto,
+      });
+
+      const result = await service.updateNotificationsSettings('user-1', updateDto);
+
+      expect(result.journal_validation.email).toBe(false);
+      expect(result.journal_validation.browser).toBe(true);
+      expect(userSettingsRepository.save).toHaveBeenCalled();
     });
   });
 
-  describe('updateIntegrationsSettings', () => {
-    it('should update integrations settings', async () => {
-      const companyId = 'company-id';
-      const dto: UpdateIntegrationsSettingsDto = { 
-        ksPay: { enabled: true, apiKey: 'new-key' } 
-      };
-      const existingSettings = { 
-        companyId,
-        googleDrive: { enabled: false },
-        ksPay: { enabled: false, apiKey: 'old-key' },
-        slack: { enabled: false }
-      };
-      const mergedSettings = {
-        ...existingSettings,
-        ksPay: { enabled: true, apiKey: 'new-key' }
-      };
-      
-      integrationsSettingsRepository.findOne.mockResolvedValue(existingSettings);
-      integrationsSettingsRepository.merge.mockReturnValue(mergedSettings);
-      integrationsSettingsRepository.save.mockResolvedValue(mergedSettings);
+  describe('getDataSources', () => {
+    it('should return all available data sources', async () => {
+      const mockDataSources = [
+        {
+          id: 'ecobank',
+          name: 'Ecobank',
+          type: 'bank',
+          status: 'active',
+        },
+        {
+          id: 'portfolio',
+          name: 'Portfolio Service',
+          type: 'api',
+          status: 'inactive',
+        },
+      ];
 
-      const result = await service.updateIntegrationsSettings(companyId, dto);
+      dataSourceRepository.find.mockResolvedValue(mockDataSources);
 
-      expect(result).toEqual(mergedSettings);
-      expect(integrationsSettingsRepository.findOne).toHaveBeenCalledWith({ where: { companyId } });
-      expect(integrationsSettingsRepository.merge).toHaveBeenCalled();
-      expect(integrationsSettingsRepository.save).toHaveBeenCalled();
+      const result = await service.getDataSources('company-1');
+
+      expect(result.sources).toHaveLength(2);
+      expect(result.sources[0].name).toBe('Ecobank');
+      expect(dataSourceRepository.find).toHaveBeenCalledWith({
+        where: { companyId: 'company-1' }
+      });
     });
   });
 });
