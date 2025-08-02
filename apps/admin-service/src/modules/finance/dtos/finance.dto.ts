@@ -3,21 +3,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsArray, IsBoolean, IsISO8601, IsUUID, Min, ValidateNested, IsNotEmpty, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus, TokenType, TokenTransactionType } from '../entities/finance.entity';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
-// Common
-class PaginationDto {
-  @ApiProperty()
-  @IsNumber()
-  totalCount: number;
-
-  @ApiProperty()
-  @IsNumber()
-  page: number;
-
-  @ApiProperty()
-  @IsNumber()
-  totalPages: number;
-}
+// Note: Removed custom PaginationDto in favor of standardized PaginatedResponse interface
 
 // 1. Subscription Plan
 export class SubscriptionPlanMetadataDto {
@@ -190,11 +178,23 @@ export class SubscriptionDto {
   metadata?: Record<string, any>;
 }
 
-export class PaginatedSubscriptionsDto extends PaginationDto {
+export class PaginatedSubscriptionsDto implements PaginatedResponse<SubscriptionDto> {
   @ApiProperty({ type: [SubscriptionDto] })
   @ValidateNested({ each: true })
   @Type(() => SubscriptionDto)
   items: SubscriptionDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
 }
 
 export class CreateSubscriptionDto {
@@ -395,11 +395,23 @@ export class InvoiceDto {
   notes?: string | null;
 }
 
-export class PaginatedInvoicesDto extends PaginationDto {
+export class PaginatedInvoicesDto implements PaginatedResponse<InvoiceDto> {
   @ApiProperty({ type: [InvoiceDto] })
   @ValidateNested({ each: true })
   @Type(() => InvoiceDto)
   items: InvoiceDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
 }
 
 export class CreateInvoiceItemDto {
@@ -565,11 +577,23 @@ export class PaymentDto {
   metadata: { approvalNotes: string };
 }
 
-export class PaginatedPaymentsDto extends PaginationDto {
+export class PaginatedPaymentsDto implements PaginatedResponse<PaymentDto> {
   @ApiProperty({ type: [PaymentDto] })
   @ValidateNested({ each: true })
   @Type(() => PaymentDto)
   items: PaymentDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
 }
 
 export class RecordManualPaymentDto {
@@ -730,11 +754,23 @@ export class TransactionDto {
   metadata?: { invoiceId: string; paymentId: string };
 }
 
-export class PaginatedTransactionsDto extends PaginationDto {
+export class PaginatedTransactionsDto implements PaginatedResponse<TransactionDto> {
   @ApiProperty({ type: [TransactionDto] })
   @ValidateNested({ each: true })
   @Type(() => TransactionDto)
   items: TransactionDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
 }
 
 export class CreateTransactionDto {
@@ -884,11 +920,23 @@ export class TokenTransactionDto {
   relatedInvoiceId?: string;
 }
 
-export class PaginatedTokenTransactionsDto extends PaginationDto {
+export class PaginatedTokenTransactionsDto implements PaginatedResponse<TokenTransactionDto> {
   @ApiProperty({ type: [TokenTransactionDto] })
   @ValidateNested({ each: true })
   @Type(() => TokenTransactionDto)
   items: TokenTransactionDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
 }
 
 export class GetTokenBalanceQueryDto {

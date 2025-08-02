@@ -30,7 +30,7 @@ describe('ChatController', () => {
 
   describe('getAllChatSessions', () => {
     it('should return an array of chat sessions', async () => {
-      const result: ChatSessionsResponseDto = { sessions: [], totalCount: 0 };
+      const result: ChatSessionsResponseDto = { items: [], totalCount: 0, page: 1, totalPages: 1 };
       mockChatService.getAllChatSessions.mockResolvedValue(result);
 
       const query: GetChatSessionsQueryDto = { page: 1, limit: 10 };

@@ -44,7 +44,7 @@ describe('CustomersController', () => {
   describe('findAll', () => {
     it('should call customersService.findAll with query params', async () => {
       const queryParams = new CustomerQueryParamsDto();
-      const result: CustomerListResponseDto = { customers: [], totalCount: 0, page: 1, totalPages: 1 };
+      const result: CustomerListResponseDto = { items: [], totalCount: 0, page: 1, totalPages: 1 };
       mockCustomersService.findAll.mockResolvedValue(result);
 
       await controller.findAll(queryParams);

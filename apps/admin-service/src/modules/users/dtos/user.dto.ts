@@ -19,6 +19,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole, UserStatus, UserType } from '../entities/enums';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // User DTOs
 export class UserDto {
@@ -328,10 +329,17 @@ export class UserQueryParamsDto {
   limit?: number = 10;
 }
 
-export class UsersResponseDto {
-  users: UserDto[];
+export class UsersResponseDto implements PaginatedResponse<UserDto> {
+  @ApiProperty({ type: [UserDto] })
+  items: UserDto[];
+
+  @ApiProperty()
   totalCount: number;
+
+  @ApiProperty()
   page: number;
+
+  @ApiProperty()
   totalPages: number;
 }
 
@@ -367,10 +375,17 @@ export class UserSessionsQueryDto {
   limit?: number = 10;
 }
 
-export class UserSessionsResponseDto {
-  sessions: UserSessionDto[];
-  total: number;
+export class UserSessionsResponseDto implements PaginatedResponse<UserSessionDto> {
+  @ApiProperty({ type: [UserSessionDto] })
+  items: UserSessionDto[];
+
+  @ApiProperty()
+  totalCount: number;
+
+  @ApiProperty()
   page: number;
+
+  @ApiProperty()
   totalPages: number;
 }
 
@@ -413,10 +428,17 @@ export class UserActivityQueryDto {
   limit?: number = 20;
 }
 
-export class UserActivityResponseDto {
-  activities: UserActivityDto[];
-  total: number;
+export class UserActivityResponseDto implements PaginatedResponse<UserActivityDto> {
+  @ApiProperty({ type: [UserActivityDto] })
+  items: UserActivityDto[];
+
+  @ApiProperty()
+  totalCount: number;
+
+  @ApiProperty()
   page: number;
+
+  @ApiProperty()
   totalPages: number;
 }
 

@@ -143,7 +143,7 @@ describe('UsersService', () => {
       
       const result = await service.findAll(filterDto);
       
-      expect(result.users.length).toBe(1);
+      expect(result.items.length).toBe(1);
       expect(result.totalCount).toBe(1);
       expect(result.page).toBe(1);
       expect(result.totalPages).toBe(1);

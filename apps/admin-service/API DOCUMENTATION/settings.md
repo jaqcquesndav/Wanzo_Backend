@@ -10,6 +10,28 @@ All API endpoints are relative to the base URL: `/api`
 
 All endpoints require Bearer Token authentication. Different settings may require different permission levels.
 
+## Standard Response Types
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
 ## Settings Data Models
 
 ### General Settings

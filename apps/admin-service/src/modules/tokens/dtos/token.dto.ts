@@ -2,6 +2,7 @@ import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsNumber, IsIn, IsArray, ValidateNested, IsISO8601, IsObject, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomerType, TokenTransactionType, AppType } from '../entities/token.entity';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // Sub-DTOs
 class DiscountTierDto {
@@ -434,13 +435,25 @@ export class GetTokenStatsQueryDto {
     period?: string;
 }
 
-// Response DTOs
-export class TokenPackagesResponseDto {
+// Response DTOs using standardized interfaces
+export class TokenPackagesResponseDto implements PaginatedResponse<TokenPackageDto> {
     @ApiProperty({ type: [TokenPackageDto] })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => TokenPackageDto)
-    packages: TokenPackageDto[];
+    items: TokenPackageDto[];
+
+    @ApiProperty()
+    @IsNumber()
+    totalCount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    page: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalPages: number;
 }
 
 export class PurchaseTokensResponseDto {
@@ -455,32 +468,48 @@ export class PurchaseTokensResponseDto {
     newBalance: TokenBalanceDto;
 }
 
-export class TokenUsageResponseDto {
+export class TokenUsageResponseDto implements PaginatedResponse<TokenUsageDto> {
     @ApiProperty({ type: [TokenUsageDto] })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => TokenUsageDto)
-    usages: TokenUsageDto[];
+    items: TokenUsageDto[];
 
     @ApiProperty()
     @IsNumber()
     totalCount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    page: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalPages: number;
 
     @ApiProperty()
     @IsNumber()
     totalTokensUsed: number;
 }
 
-export class TokenHistoryResponseDto {
+export class TokenHistoryResponseDto implements PaginatedResponse<TokenTransactionDto> {
     @ApiProperty({ type: [TokenTransactionDto] })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => TokenTransactionDto)
-    transactions: TokenTransactionDto[];
+    items: TokenTransactionDto[];
 
     @ApiProperty()
     @IsNumber()
     totalCount: number;
+
+    @ApiProperty()
+    @IsNumber()
+    page: number;
+
+    @ApiProperty()
+    @IsNumber()
+    totalPages: number;
 }
 
 export class AllocateTokensResponseDto {

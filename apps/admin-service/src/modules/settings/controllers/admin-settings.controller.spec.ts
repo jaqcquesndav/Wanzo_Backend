@@ -348,7 +348,7 @@ describe('AdminSettingsController', () => {
   describe('getLoginHistory', () => {
     it('should return login history', async () => {
       const mockHistory: LoginHistoryResponseDto = {
-        history: [
+        items: [
           { 
             id: 'login1', 
             date: new Date().toISOString(), 
@@ -368,9 +368,9 @@ describe('AdminSettingsController', () => {
             userAgent: 'Mozilla/5.0'
           }
         ],
-        total: 2,
+        totalCount: 2,
         page: 1,
-        limit: 10
+        totalPages: 1
       };
       
       mockSettingsService.getLoginHistory.mockResolvedValue(mockHistory);

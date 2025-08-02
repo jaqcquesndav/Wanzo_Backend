@@ -2,6 +2,28 @@
 
 This document outlines the API endpoints for the Chat module.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## Chat Session Management
 
 ### 1. Get All Chat Sessions

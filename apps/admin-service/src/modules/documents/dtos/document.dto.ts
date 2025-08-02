@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DocumentStatus, DocumentType } from '../entities/document.entity';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 export class DocumentDto {
   @ApiProperty({
@@ -78,12 +79,27 @@ export class UpdateDocumentStatusDto {
   status: DocumentStatus;
 }
 
-export class DocumentsResponseDto {
+export class DocumentsResponseDto implements PaginatedResponse<DocumentDto> {
   @ApiProperty({
     description: 'Array of document objects',
     type: [DocumentDto]
   })
-  data: DocumentDto[];
+  items: DocumentDto[];
+
+  @ApiProperty({
+    description: 'Total number of documents'
+  })
+  totalCount: number;
+
+  @ApiProperty({
+    description: 'Current page number'
+  })
+  page: number;
+
+  @ApiProperty({
+    description: 'Total number of pages'
+  })
+  totalPages: number;
 }
 
 export class DocumentResponseDto {

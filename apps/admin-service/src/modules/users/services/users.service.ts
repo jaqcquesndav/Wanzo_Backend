@@ -9,6 +9,7 @@ import {
   UpdateUserRoleDto,
   UserFilterDto,
   UserDto,
+  UsersResponseDto,
   ToggleStatusDto,
   ResetPasswordDto
 } from '../dtos';
@@ -82,7 +83,7 @@ export class UsersService {
   }
 
   // User CRUD Operations
-  async findAll(filterDto: UserFilterDto): Promise<{ users: UserDto[], totalCount: number, page: number, totalPages: number }> {
+  async findAll(filterDto: UserFilterDto): Promise<UsersResponseDto> {
     const { 
       search, 
       role, 
@@ -127,7 +128,7 @@ export class UsersService {
     
     // Get results
     const users = await query.getMany();
-    return { users: users.map(user => this.mapUserToDto(user)), totalCount, page, totalPages };
+    return { items: users.map(user => this.mapUserToDto(user)), totalCount, page, totalPages };
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserDto> {

@@ -87,7 +87,7 @@ describe('TokensService', () => {
       tokenPackageRepository.find.mockResolvedValue(packages);
 
       const result = await service.getAvailableTokenPackages();
-      expect(result.packages).toEqual(packages);
+      expect(result.items).toEqual(packages);
     });
   });
 
@@ -140,9 +140,11 @@ describe('TokensService', () => {
 
         const result = await service.getTokenUsageHistory(customerId, query);
 
-        expect(result.usages.length).toBe(1);
+        expect(result.items.length).toBe(1);
         expect(result.totalCount).toBe(usageCount);
         expect(result.totalTokensUsed).toBe(100);
+        expect(result.page).toBe(1);
+        expect(result.totalPages).toBe(1);
         expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('usage.appType = :appType', { appType: query.appType });
     });
   });
@@ -167,9 +169,11 @@ describe('TokensService', () => {
 
         const result = await service.getTokenTransactionHistory(customerId, query);
 
-        expect(result.transactions.length).toBe(1);
+        expect(result.items.length).toBe(1);
         expect(result.totalCount).toBe(transactionCount);
-        expect(result.transactions[0].customerName).toBe('Test Corp');
+        expect(result.page).toBe(1);
+        expect(result.totalPages).toBe(1);
+        expect(result.items[0].customerName).toBe('Test Corp');
     });
   });
   

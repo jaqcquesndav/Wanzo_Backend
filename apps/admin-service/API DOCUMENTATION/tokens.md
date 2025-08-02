@@ -10,6 +10,28 @@ All API endpoints are relative to the base URL: `/api`
 
 All endpoints require Bearer Token authentication. Refer to the [Auth API Documentation](./auth.md) for details on authentication.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## Tokens Data Models
 
 ### TokenPackage
@@ -150,12 +172,15 @@ interface TokenStatistics {
 ### 2. Get Available Token Packages
 
 *   **Endpoint:** `GET /tokens/packages`
-*   **Description:** Retrieves a list of available token packages for purchase.
+*   **Description:** Retrieves a paginated list of available token packages for purchase.
 *   **Permissions Required:** `tokens:read`
+*   **Query Parameters:**
+    - `page` (optional): Page number (default: 1)
+    - `limit` (optional): Items per page (default: 10)
 *   **Successful Response (200 OK):**
     ```json
     {
-      "packages": [
+      "items": [
         {
           "id": "pkg_small_1000",
           "name": "Small Pack",
@@ -189,7 +214,10 @@ interface TokenStatistics {
           }
         }
         // ... more packages
-      ]
+      ],
+      "totalCount": 15,
+      "page": 1,
+      "totalPages": 2
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).
@@ -254,7 +282,7 @@ interface TokenStatistics {
 *   **Successful Response (200 OK):**
     ```json
     {
-      "usages": [
+      "items": [
         {
           "id": "usage_123",
           "customerId": "cust_123",
@@ -270,6 +298,9 @@ interface TokenStatistics {
         }
         // ... more usage records
       ],
+      "totalCount": 150,
+      "page": 1,
+      "totalPages": 8
       "totalCount": 150,
       "totalTokensUsed": 37500
     }
@@ -290,7 +321,7 @@ interface TokenStatistics {
 *   **Successful Response (200 OK):**
     ```json
     {
-      "transactions": [
+      "items": [
         {
           "id": "trans_789xyz",
           "customerId": "cust_123",
@@ -322,7 +353,9 @@ interface TokenStatistics {
         }
         // ... more transactions
       ],
-      "totalCount": 75
+      "totalCount": 75,
+      "page": 1,
+      "totalPages": 4
     }
     ```
 *   **Error Responses:** See [Standard Error Responses](#standard-error-responses).

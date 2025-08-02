@@ -13,6 +13,8 @@ import {
   ValidateNested
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // General Settings DTOs
 export class GeneralSettingsDto {
@@ -247,6 +249,7 @@ export class ActiveSessionDto {
 }
 
 export class ActiveSessionsResponseDto {
+  @ApiProperty({ type: [ActiveSessionDto] })
   sessions: ActiveSessionDto[];
 }
 
@@ -261,11 +264,18 @@ export class LoginAttemptDto {
   userAgent?: string;
 }
 
-export class LoginHistoryResponseDto {
-  history: LoginAttemptDto[];
-  total: number;
+export class LoginHistoryResponseDto implements PaginatedResponse<LoginAttemptDto> {
+  @ApiProperty({ type: [LoginAttemptDto] })
+  items: LoginAttemptDto[];
+
+  @ApiProperty()
+  totalCount: number;
+
+  @ApiProperty()
   page: number;
-  limit: number;
+
+  @ApiProperty()
+  totalPages: number;
 }
 
 // Notification Preferences DTOs
@@ -279,6 +289,7 @@ export class NotificationPreferenceDto {
 }
 
 export class NotificationPreferencesResponseDto {
+  @ApiProperty({ type: [NotificationPreferenceDto] })
   preferences: NotificationPreferenceDto[];
 }
 

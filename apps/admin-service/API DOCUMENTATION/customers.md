@@ -2,6 +2,28 @@
 
 This document outlines the API endpoints, request/response structures, and functionalities related to customer management. This includes CRUD operations for customers, Know Your Customer (KYC) processes, data validation, document handling, and differentiation between various customer types.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## 1. Customer Endpoints
 
 ### 1.1. List Customers
@@ -20,7 +42,7 @@ This document outlines the API endpoints, request/response structures, and funct
     *   `200 OK`:
         ```json
         {
-          "customers": [
+          "items": [
             {
               "id": "cust_123",
               "name": "Acme Corp",

@@ -80,7 +80,7 @@ export class CustomersService {
     const totalPages = Math.ceil(totalCount / limit);
 
     return {
-      customers: customers.map(customer => this.mapToDto(customer)),
+      items: customers.map(customer => this.mapToDto(customer)),
       totalCount,
       page,
       totalPages

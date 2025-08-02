@@ -66,10 +66,13 @@ export class ChatService {
     }
 
     const [sessions, totalCount] = await this.chatSessionRepository.findAndCount(options);
+    const totalPages = Math.ceil(totalCount / limit);
     
     return { 
-      sessions: sessions.map(s => this.mapChatSessionToDto(s)), 
-      totalCount 
+      items: sessions.map(s => this.mapChatSessionToDto(s)), 
+      totalCount,
+      page,
+      totalPages
     };
   }
 
@@ -223,9 +226,11 @@ export class ChatService {
     });
     
     return {
-      messages: messages.map(m => this.mapChatMessageToDto(m)).reverse(), // Reverse to show oldest first
+      items: messages.map(m => this.mapChatMessageToDto(m)).reverse(), // Reverse to show oldest first
       totalCount,
       hasMore,
+      page: 1, // Default for cursor-based pagination
+      totalPages: Math.ceil(totalCount / limit),
     };
   }
 

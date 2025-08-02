@@ -4,16 +4,27 @@ import { Repository } from 'typeorm';
 import { Document, DocumentStatus, DocumentType } from '../entities/document.entity';
 import {
   DocumentDto,
+  DocumentsResponseDto,
   UpdateDocumentStatusDto,
   UpdateDocumentDto,
   DocumentQueryParamsDto,
+  CreateDocumentDto,
   DocumentFolderDto,
   CreateDocumentFolderDto,
   UpdateDocumentFolderDto,
   FolderQueryParamsDto
 } from '../dtos';
 import { EventsService } from '../../events/events.service';
-import { DocumentEventTopics, DocumentUploadedEvent, DocumentDeletedEvent } from '@wanzo/shared/events/kafka-config';
+// Import events from shared package
+// import { DocumentEventTopics } from '@wanzo/shared/events/kafka-config';
+// import type { DocumentUploadedEvent, DocumentDeletedEvent } from '@wanzo/shared/events/kafka-config';
+
+// Temporary local enum until shared package import works
+enum DocumentEventTopics {
+  DOCUMENT_UPLOADED = 'document.uploaded',
+  DOCUMENT_DELETED = 'document.deleted',
+  DOCUMENT_ANALYSIS_COMPLETED = 'document.analysis.completed',
+}
 
 @Injectable()
 export class DocumentsService {
@@ -28,13 +39,7 @@ export class DocumentsService {
   /**
    * Get all documents with pagination and filtering
    */
-  async findAll(queryParams: DocumentQueryParamsDto): Promise<{
-    documents: DocumentDto[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
+  async findAll(queryParams: DocumentQueryParamsDto): Promise<DocumentsResponseDto> {
     const { page = 1, limit = 10, search, type, status, startDate, endDate } = queryParams;
     
     // Build query
@@ -72,14 +77,13 @@ export class DocumentsService {
     const documents = await queryBuilder.getMany();
     
     // Calculate total pages
-    const pages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit);
     
     return {
-      documents: documents.map(doc => this.mapToDto(doc)),
-      total,
+      items: (documents || []).map(doc => this.mapToDto(doc)),
+      totalCount: total,
       page,
-      limit,
-      pages
+      totalPages
     };
   }
 
@@ -100,16 +104,26 @@ export class DocumentsService {
    * Create a new document
    */
   async create(
-    createDocumentDto: any,
+    createDocumentDto: CreateDocumentDto,
     fileSize: number,
     fileUrl: string,
     userId: string,
-    mimeType: string
-  ): Promise<DocumentDto> {    try {
+    mimeType: string,
+    fileName?: string
+  ): Promise<DocumentDto> {
+    try {
+      // Validate required fields
+      if (!createDocumentDto.companyId) {
+        throw new BadRequestException('Company ID is required');
+      }
+      if (!createDocumentDto.type) {
+        throw new BadRequestException('Document type is required');
+      }
+
       const document = this.documentsRepository.create({
         companyId: createDocumentDto.companyId,
         type: createDocumentDto.type,
-        fileName: createDocumentDto.fileName || 'Unnamed Document',
+        fileName: fileName || 'Unnamed Document',
         fileUrl,
         mimeType,
         fileSize,
@@ -118,6 +132,8 @@ export class DocumentsService {
 
       const savedDocument = await this.documentsRepository.save(document);
 
+      // TODO: Re-enable events when event types are properly imported
+      /*
       const eventPayload: DocumentUploadedEvent = {
         documentId: savedDocument.id,
         fileName: savedDocument.fileName,
@@ -129,11 +145,18 @@ export class DocumentsService {
         timestamp: new Date().toISOString(),
       };
       this.eventsService.emit(DocumentEventTopics.DOCUMENT_UPLOADED, eventPayload);
+      */
 
       return this.mapToDto(savedDocument);
     } catch (error) {
       this.logger.error(`Failed to create document: ${error instanceof Error ? error.message : 'Unknown error'}`, 
         error instanceof Error ? error.stack : '');
+      
+      // Re-throw validation errors as-is
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
       throw new BadRequestException('Failed to create document');
     }
   }
@@ -167,12 +190,15 @@ export class DocumentsService {
 
     await this.documentsRepository.remove(document);
 
+    // TODO: Re-enable events when event types are properly imported
+    /*
     const eventPayload: DocumentDeletedEvent = {
       documentId: id,
       deletedBy: userId,
       timestamp: new Date().toISOString(),
     };
     this.eventsService.emit(DocumentEventTopics.DOCUMENT_DELETED, eventPayload);
+    */
   }
 
   /**
@@ -197,13 +223,7 @@ export class DocumentsService {
   /**
    * Find documents by company ID
    */
-  async findByCompany(companyId: string, queryParams: DocumentQueryParamsDto): Promise<{
-    documents: DocumentDto[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
+  async findByCompany(companyId: string, queryParams: DocumentQueryParamsDto): Promise<DocumentsResponseDto> {
     const { page = 1, limit = 10 } = queryParams;
     
     // Build query with company filter
@@ -214,7 +234,7 @@ export class DocumentsService {
     // ... similar to findAll method
     
     // Get total count
-    const total = await queryBuilder.getCount();
+    const totalCount = await queryBuilder.getCount();
     
     // Apply pagination
     const skip = (page - 1) * limit;
@@ -224,14 +244,13 @@ export class DocumentsService {
     const documents = await queryBuilder.getMany();
     
     // Calculate total pages
-    const pages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(totalCount / limit);
     
     return {
-      documents: documents.map(doc => this.mapToDto(doc)),
-      total,
+      items: (documents || []).map(doc => this.mapToDto(doc)),
+      totalCount,
       page,
-      limit,
-      pages
+      totalPages
     };
   }
 

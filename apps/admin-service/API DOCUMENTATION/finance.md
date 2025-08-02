@@ -2,6 +2,28 @@
 
 This document outlines the API endpoints, request/response structures, and functionalities related to finance, billing, and subscription management. This includes handling financial transactions, managing subscription plans, customer subscriptions, payment processing, invoicing, and revenue reporting.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## 1. Subscription Plan Endpoints
 
 ### 1.1. List Subscription Plans
@@ -48,6 +70,49 @@ This document outlines the API endpoints, request/response structures, and funct
     *   `401 Unauthorized`: Authentication token is missing or invalid.
     *   `403 Forbidden`: Authenticated user does not have permission to list subscription plans.
     *   `500 Internal Server Error`: Unexpected server error.
+
+## 1.2. Standardized Finance Service Endpoints
+
+### 1.2.1. Get Financial Transactions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/transactions`
+*   **Description:** Retrieves paginated financial transactions with filtering options.
+*   **Query Parameters:**
+    - `page` (optional): Page number (default: 1)
+    - `limit` (optional): Items per page (default: 10)
+    - `startDate` (optional): Filter transactions from date (ISO string)
+    - `endDate` (optional): Filter transactions to date (ISO string)
+    - `type` (optional): Transaction type filter
+    - `status` (optional): Transaction status filter
+*   **Response:** `PaginatedResponse<Transaction>`
+
+### 1.2.2. Get Payments
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/payments`
+*   **Description:** Retrieves paginated payments with filtering options.
+*   **Query Parameters:** Same as transactions
+*   **Response:** `PaginatedResponse<Payment>`
+
+### 1.2.3. Get Invoices
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/invoices`
+*   **Description:** Retrieves paginated invoices with filtering options.
+*   **Query Parameters:** Same as transactions
+*   **Response:** `PaginatedResponse<Invoice>`
+
+### 1.2.4. Get Subscriptions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/subscriptions`
+*   **Description:** Retrieves paginated subscriptions with filtering options.
+*   **Query Parameters:** Same as transactions
+*   **Response:** `PaginatedResponse<Subscription>`
+
+### 1.2.5. Get Token Transactions
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/tokens/transactions`
+*   **Description:** Retrieves paginated token transactions with filtering options.
+*   **Query Parameters:** Same as transactions
+*   **Response:** `PaginatedResponse<TokenTransaction>`
 
 ## 2. Subscription Endpoints
 

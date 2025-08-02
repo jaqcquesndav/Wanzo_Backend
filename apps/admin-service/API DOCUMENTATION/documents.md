@@ -10,6 +10,28 @@ All API endpoints are relative to the base URL: `/api`
 
 All endpoints require Bearer Token authentication.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## Endpoints
 
 ### 1. Get All Documents for a Company

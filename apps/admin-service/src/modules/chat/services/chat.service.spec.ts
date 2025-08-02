@@ -44,7 +44,7 @@ describe('ChatService', () => {
       const result = await service.getAllChatSessions(query, user);
 
       expect(result.totalCount).toEqual(1);
-      expect(result.sessions.length).toEqual(1);
+      expect(result.items.length).toEqual(1);
       expect(mockSessionRepository.findAndCount).toHaveBeenCalled();
     });
   });

@@ -1,8 +1,10 @@
 import { IsString, IsOptional, IsEmail, IsEnum, IsInt, IsPositive, Min, Max, IsDateString, IsObject, ValidateNested, IsUUID, IsArray, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 import { CustomerType, CustomerStatus, AccountType } from '../entities/customer.entity';
 import { DocumentType, DocumentStatus } from '../entities/document.entity';
 import { ValidationStepStatus } from '../entities/validation.entity';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // Base Customer DTO for responses
 export class CustomerDto {
@@ -216,11 +218,18 @@ export class CustomerQueryParamsDto {
   search?: string;
 }
 
-// DTO for customer list response
-export class CustomerListResponseDto {
-  customers: CustomerDto[];
+// DTO for customer list response - implementing PaginatedResponse
+export class CustomerListResponseDto implements PaginatedResponse<CustomerDto> {
+  @ApiProperty({ type: [CustomerDto], description: 'List of customers' })
+  items: CustomerDto[];
+
+  @ApiProperty({ description: 'Total number of customers' })
   totalCount: number;
+
+  @ApiProperty({ description: 'Current page number' })
   page: number;
+
+  @ApiProperty({ description: 'Total number of pages' })
   totalPages: number;
 }
 

@@ -1,5 +1,5 @@
 
-import { Controller, Get, UseGuards, Request, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, UseGuards, Request, Query, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../../modules/auth/decorators/roles.decorator';
@@ -15,9 +15,13 @@ import {
   SystemHealthDto, 
   NotificationDto,
   DashboardQueryParamsDto,
-  WidgetResponseDto
+  WidgetResponseDto,
+  DashboardCompleteDataDto,
+  DashboardConfigurationDto,
+  UpdateDashboardConfigurationDto
 } from '../dtos';
 import { Request as ExpressRequest } from 'express';
+import { APIResponse } from '../../../common/interfaces';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -28,7 +32,7 @@ export class DashboardController {
 
   @Get()
   @ApiOperation({ summary: 'Get main dashboard data' })
-  @ApiResponse({ status: 200, description: 'Main dashboard data retrieved successfully.', type: MainDashboardDto })
+  @ApiResponse({ status: 200, description: 'Main dashboard data retrieved successfully.', type: DashboardCompleteDataDto })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'dateRange', required: false, type: String })
   @ApiQuery({ name: 'timeZone', required: false, type: String })
@@ -36,11 +40,77 @@ export class DashboardController {
   async getMainDashboardData(
     @Request() req: ExpressRequest,
     @Query() queryParams: DashboardQueryParamsDto
-  ): Promise<MainDashboardDto> {
-    // Note: We're ignoring queryParams for now, but in a real implementation we would use them
-    return this.dashboardService.getMainDashboardData(req.user.companyId);
+  ): Promise<DashboardCompleteDataDto> {
+    return this.dashboardService.getMainDashboardData(req.user.companyId, queryParams);
   }
 
+  @Get('widgets/:widgetId')
+  @ApiOperation({ summary: 'Get data for a specific widget' })
+  @ApiResponse({ status: 200, description: 'Widget data retrieved successfully.', type: WidgetResponseDto })
+  @ApiParam({ name: 'widgetId', description: 'The ID of the widget to fetch data for' })
+  @ApiQuery({ name: 'userId', required: false, description: 'Optional user ID if widget data is user-specific' })
+  @Roles(Role.Admin, Role.User)
+  async getWidgetData(
+    @Param('widgetId') widgetId: string,
+    @Request() req: ExpressRequest
+  ): Promise<WidgetResponseDto> {
+    return this.dashboardService.getWidgetData(widgetId, req.user.id);
+  }
+
+  @Get('configuration')
+  @ApiOperation({ summary: 'Get user dashboard configuration' })
+  @ApiResponse({ status: 200, description: 'Dashboard configuration retrieved successfully.', type: DashboardConfigurationDto })
+  @Roles(Role.Admin, Role.User)
+  async getDashboardConfiguration(
+    @Request() req: ExpressRequest
+  ): Promise<DashboardConfigurationDto> {
+    return this.dashboardService.getDashboardConfiguration(req.user.id);
+  }
+
+  @Put('configuration')
+  @ApiOperation({ summary: 'Update user dashboard configuration' })
+  @ApiResponse({ status: 200, description: 'Dashboard configuration updated successfully.' })
+  @Roles(Role.Admin, Role.User)
+  async updateDashboardConfiguration(
+    @Request() req: ExpressRequest,
+    @Body() updateData: UpdateDashboardConfigurationDto
+  ): Promise<APIResponse<DashboardConfigurationDto>> {
+    const updatedConfig = await this.dashboardService.updateDashboardConfiguration(req.user.id, updateData);
+    return {
+      success: true,
+      data: updatedConfig,
+      message: 'Dashboard configuration updated successfully.'
+    };
+  }
+
+  @Get('statistics/sales')
+  @ApiOperation({ summary: 'Get sales statistics' })
+  @ApiResponse({ status: 200, description: 'Sales statistics retrieved successfully.' })
+  @ApiQuery({ name: 'period', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @Roles(Role.Admin)
+  async getSalesStatistics(
+    @Request() req: ExpressRequest,
+    @Query() query: any
+  ): Promise<any> {
+    return this.dashboardService.getSalesStatistics(req.user.companyId, query);
+  }
+
+  @Get('statistics/user-engagement')
+  @ApiOperation({ summary: 'Get user engagement statistics' })
+  @ApiResponse({ status: 200, description: 'User engagement statistics retrieved successfully.' })
+  @ApiQuery({ name: 'metricType', required: false, type: String })
+  @ApiQuery({ name: 'dateRange', required: false, type: String })
+  @Roles(Role.Admin)
+  async getUserEngagementStatistics(
+    @Request() req: ExpressRequest,
+    @Query() query: any
+  ): Promise<any> {
+    return this.dashboardService.getUserEngagementStatistics(req.user.companyId, query);
+  }
+
+  // Legacy endpoints for backward compatibility
   @Get('kpis')
   @ApiOperation({ summary: 'Get Key Performance Indicators' })
   @ApiResponse({ status: 200, description: 'KPIs retrieved successfully.', type: KpisDto })
@@ -87,28 +157,5 @@ export class DashboardController {
   @Roles(Role.Admin, Role.User)
   async getNotifications(@Request() req: ExpressRequest): Promise<NotificationDto[]> {
     return this.dashboardService.getNotifications(req.user.id);
-  }
-
-  @Get('widgets/:widgetId')
-  @ApiOperation({ summary: 'Get data for a specific widget' })
-  @ApiResponse({ status: 200, description: 'Widget data retrieved successfully.', type: WidgetResponseDto })
-  @ApiParam({ name: 'widgetId', description: 'The ID of the widget to fetch data for' })
-  @ApiQuery({ name: 'userId', required: false, description: 'Optional user ID if widget data is user-specific' })
-  @Roles(Role.Admin, Role.User)
-  async getWidgetData(
-    @Param('widgetId') widgetId: string,
-    @Request() req: ExpressRequest
-  ): Promise<WidgetResponseDto> {
-    // This is a placeholder - you would need to implement getWidgetData in the service
-    return {
-      data: {
-        widgetId,
-        title: "Sample Widget",
-        type: "feed",
-        content: [
-          { message: "Sample widget content", timestamp: new Date().toISOString() }
-        ]
-      }
-    };
   }
 }

@@ -339,7 +339,7 @@ export class SettingsService {
     });
 
     return {
-      history: history.map(entry => ({
+      items: history.map(entry => ({
         id: entry.id,
         date: entry.date.toISOString(),
         ipAddress: entry.ipAddress,
@@ -348,9 +348,9 @@ export class SettingsService {
         status: entry.status,
         userAgent: entry.userAgent
       })),
-      total,
+      totalCount: total,
       page,
-      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

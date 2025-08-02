@@ -89,7 +89,7 @@ describe('CustomersService', () => {
       const result = await service.findAll({});
 
       expect(mockCustomerRepository.findAndCount).toHaveBeenCalled();
-      expect(result.customers).toHaveLength(totalCount);
+      expect(result.items).toHaveLength(totalCount);
       expect(result.totalCount).toBe(totalCount);
     });
   });

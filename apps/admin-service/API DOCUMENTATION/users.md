@@ -2,6 +2,28 @@
 
 This document outlines the API endpoints for managing users, including CRUD operations, roles, permissions, user activity, and sessions.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## 1. User Object
 
 Represents a user in the system.
@@ -64,7 +86,7 @@ Super Admins can see all users. Company Admins can see users within their own co
 
 ```json
 {
-  "users": [
+  "items": [
     // Array of User objects (see section 1)
   ],
   "totalCount": 100,

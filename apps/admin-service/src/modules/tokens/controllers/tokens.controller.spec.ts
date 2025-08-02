@@ -64,7 +64,7 @@ describe('TokensController', () => {
 
   describe('getAvailableTokenPackages', () => {
     it('should return available token packages', async () => {
-      const result: { packages: TokenPackageDto[] } = { packages: [] }; // Explicitly typed
+      const result: { items: TokenPackageDto[], totalCount: number, page: number, totalPages: number } = { items: [], totalCount: 0, page: 1, totalPages: 1 }; // Explicitly typed
       mockTokensService.getAvailableTokenPackages.mockResolvedValue(result);
 
       expect(await controller.getAvailableTokenPackages()).toBe(result);
@@ -87,7 +87,7 @@ describe('TokensController', () => {
   describe('getTokenUsageHistory', () => {
     it('should return token usage history', async () => {
       const query: GetTokenUsageQueryDto = { page: 1, limit: 10 };
-      const result: { usages: TokenUsageDto[], totalCount: number, totalTokensUsed: number } = { usages: [], totalCount: 0, totalTokensUsed: 0 }; // Explicitly typed
+      const result: { items: TokenUsageDto[], totalCount: number, totalTokensUsed: number, page: number, totalPages: number } = { items: [], totalCount: 0, totalTokensUsed: 0, page: 1, totalPages: 1 }; // Explicitly typed
       mockTokensService.getTokenUsageHistory.mockResolvedValue(result);
 
       expect(await controller.getTokenUsageHistory(mockUser, query)).toBe(result);
@@ -98,7 +98,7 @@ describe('TokensController', () => {
   describe('getTokenTransactionHistory', () => {
     it('should return token transaction history', async () => {
       const query: GetTokenHistoryQueryDto = { page: 1, limit: 10 };
-      const result: { transactions: TokenTransactionDto[], totalCount: number } = { transactions: [], totalCount: 0 }; // Explicitly typed
+      const result: { items: TokenTransactionDto[], totalCount: number, page: number, totalPages: number } = { items: [], totalCount: 0, page: 1, totalPages: 1 }; // Explicitly typed
       mockTokensService.getTokenTransactionHistory.mockResolvedValue(result);
 
       expect(await controller.getTokenTransactionHistory(mockUser, query)).toBe(result);

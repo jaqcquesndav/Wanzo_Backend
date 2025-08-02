@@ -46,7 +46,13 @@ export class TokensService {
 
     async getAvailableTokenPackages(): Promise<TokenPackagesResponseDto> {
         const packages = await this.tokenPackageRepository.find();
-        return { packages };
+        
+        return {
+            items: packages,
+            totalCount: packages.length,
+            page: 1,
+            totalPages: 1
+        };
     }
 
     async purchaseTokens(customerId: string, purchaseTokensDto: PurchaseTokensDto, proofDocument?: Express.Multer.File): Promise<PurchaseTokensResponseDto> {
@@ -136,7 +142,13 @@ export class TokensService {
             cost: u.cost,
         }));
 
-        return { usages: dtos, totalCount, totalTokensUsed };
+        return { 
+            items: dtos, 
+            totalCount, 
+            totalTokensUsed,
+            page,
+            totalPages: Math.ceil(totalCount / limit)
+        };
     }
 
     async getTokenTransactionHistory(customerId: string, query: GetTokenHistoryQueryDto): Promise<TokenHistoryResponseDto> {
@@ -177,7 +189,12 @@ export class TokensService {
             metadata: t.metadata,
         }));
 
-        return { transactions: dtos, totalCount };
+        return { 
+            items: dtos, 
+            totalCount,
+            page,
+            totalPages: Math.ceil(totalCount / limit)
+        };
     }
 
     async getTokenUsageStats(customerId: string, period: string): Promise<any> {

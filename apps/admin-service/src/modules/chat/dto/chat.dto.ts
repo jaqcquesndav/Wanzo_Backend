@@ -1,6 +1,8 @@
 import { IsString, IsOptional, IsEnum, IsArray, IsUUID, IsBoolean, IsObject, IsNumber, IsDate, IsDateString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 import { ChatSessionStatus, ChatPriority, ChatMessageSender, MessageStatus } from '../entities';
+import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // Chat Session DTOs
 export class ChatSessionDto {
@@ -15,9 +17,18 @@ export class ChatSessionDto {
   tags?: string[];
 }
 
-export class ChatSessionsResponseDto {
-  sessions: ChatSessionDto[];
+export class ChatSessionsResponseDto implements PaginatedResponse<ChatSessionDto> {
+  @ApiProperty({ type: [ChatSessionDto] })
+  items: ChatSessionDto[];
+
+  @ApiProperty()
   totalCount: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  totalPages: number;
 }
 
 export class GetChatSessionsQueryDto {
@@ -94,9 +105,20 @@ export class ChatMessageDto {
   attachments?: ChatAttachmentDto[];
 }
 
-export class ChatMessagesResponseDto {
-  messages: ChatMessageDto[];
+export class ChatMessagesResponseDto implements PaginatedResponse<ChatMessageDto> {
+  @ApiProperty({ type: [ChatMessageDto] })
+  items: ChatMessageDto[];
+
+  @ApiProperty()
   totalCount: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  totalPages: number;
+
+  @ApiProperty()
   hasMore: boolean;
 }
 

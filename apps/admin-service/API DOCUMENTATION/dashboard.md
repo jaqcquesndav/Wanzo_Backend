@@ -2,6 +2,28 @@
 
 This document outlines the API endpoints, request/response structures, and functionalities related to the main dashboard. This includes fetching aggregated data, statistics, analytics, and user-specific dashboard configurations.
 
+## Standard Response Types
+
+### PaginatedResponse<T>
+```typescript
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+```
+
+### APIResponse<T>
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: APIError;
+}
+```
+
 ## 1. Dashboard Data Endpoints
 
 ### 1.1. Get Main Dashboard Data
