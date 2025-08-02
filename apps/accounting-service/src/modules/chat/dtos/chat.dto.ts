@@ -113,6 +113,31 @@ export class ChatRequestDto {
   writeMode?: boolean;
 }
 
+// DTO pour l'endpoint POST /chat/message conforme à la documentation
+export class SendMessageDto {
+  @ApiPropertyOptional({ description: 'Existing conversation ID' })
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
+
+  @ApiProperty({ description: 'Message to send' })
+  message!: MessageRequestDto;
+
+  @ApiProperty({ description: 'AI model ID' })
+  @IsString()
+  modelId!: string;
+
+  @ApiPropertyOptional({ description: 'Activate ADHA write mode for accounting entries' })
+  @IsOptional()
+  @IsBoolean()
+  writeMode?: boolean;
+
+  @ApiPropertyOptional({ description: 'Context for the conversation' })
+  @IsOptional()
+  @IsArray()
+  context?: string[];
+}
+
 export class AiModelDto {
   @ApiProperty({ description: 'Model ID' })
   @IsString()
@@ -151,20 +176,25 @@ export class JournalEntryLineDto {
   @ApiProperty({ description: 'Credit amount' })
   @IsNumber()
   credit!: number;
+
+  @ApiPropertyOptional({ description: 'Line description' })
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
 
 export class JournalEntryDto {
   @ApiProperty({ description: 'Entry ID' })
   @IsString()
-  entryId!: string;
+  id!: string;
 
   @ApiProperty({ description: 'Entry date' })
   @IsDateString()
   date!: string;
 
-  @ApiProperty({ description: 'Journal code' })
+  @ApiProperty({ description: 'Journal type' })
   @IsString()
-  journalCode!: string;
+  journalType!: string;
 
   @ApiProperty({ description: 'Reference' })
   @IsString()
@@ -174,18 +204,111 @@ export class JournalEntryDto {
   @IsString()
   description!: string;
 
+  @ApiProperty({ description: 'Status' })
+  @IsString()
+  status!: string;
+
+  @ApiProperty({ description: 'Source (agent, manual, etc.)' })
+  @IsString()
+  source!: string;
+
+  @ApiProperty({ description: 'Agent ID that created this entry' })
+  @IsString()
+  agentId!: string;
+
+  @ApiProperty({ description: 'Validation status' })
+  @IsString()
+  validationStatus!: string;
+
   @ApiProperty({ description: 'Journal entry lines', type: [JournalEntryLineDto] })
   @IsArray()
   lines!: JournalEntryLineDto[];
 
-  @ApiProperty({ description: 'Status', enum: ['pending', 'validated', 'rejected'] })
-  @IsString()
-  status!: string;
+  @ApiProperty({ description: 'Total debit amount' })
+  @IsNumber()
+  totalDebit!: number;
 
-  @ApiPropertyOptional({ description: 'Attachment ID' })
-  @IsOptional()
+  @ApiProperty({ description: 'Total credit amount' })
+  @IsNumber()
+  totalCredit!: number;
+
+  @ApiProperty({ description: 'Total VAT amount' })
+  @IsNumber()
+  totalVat!: number;
+}
+
+// DTO pour les réponses de message
+export class MessageResponseDto {
+  @ApiProperty({ description: 'Message ID' })
   @IsString()
-  attachmentId?: string;
+  id!: string;
+
+  @ApiProperty({ description: 'Sender type' })
+  @IsString()
+  sender!: 'user' | 'bot';
+
+  @ApiProperty({ description: 'Message content' })
+  @IsString()
+  content!: string;
+
+  @ApiProperty({ description: 'Message timestamp' })
+  @IsString()
+  timestamp!: string;
+
+  @ApiPropertyOptional({ description: 'Number of likes' })
+  @IsOptional()
+  @IsNumber()
+  likes?: number;
+
+  @ApiPropertyOptional({ description: 'Number of dislikes' })
+  @IsOptional()
+  @IsNumber()
+  dislikes?: number;
+}
+
+// DTO pour les réponses de chat
+export class ChatResponseDto {
+  @ApiProperty({ description: 'Success status' })
+  @IsBoolean()
+  success!: boolean;
+
+  @ApiProperty({ description: 'Response data' })
+  data!: {
+    message: MessageResponseDto;
+    conversationId: string;
+    journalEntry?: JournalEntryDto;
+  };
+}
+
+// DTO pour les conversations
+export class ConversationDto {
+  @ApiProperty({ description: 'Conversation ID' })
+  @IsString()
+  id!: string;
+
+  @ApiProperty({ description: 'Conversation title' })
+  @IsString()
+  title!: string;
+
+  @ApiProperty({ description: 'Last update timestamp' })
+  @IsString()
+  timestamp!: string;
+
+  @ApiProperty({ description: 'Is conversation active' })
+  @IsBoolean()
+  isActive!: boolean;
+
+  @ApiProperty({ description: 'AI model used' })
+  model!: AiModelDto;
+
+  @ApiProperty({ description: 'Conversation context' })
+  @IsArray()
+  context!: string[];
+
+  @ApiPropertyOptional({ description: 'Conversation messages' })
+  @IsOptional()
+  @IsArray()
+  messages?: MessageResponseDto[];
 }
 
 export class ValidateJournalEntryDto {

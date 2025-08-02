@@ -20,6 +20,15 @@ export class UserSettings {
   @Column({ default: 'light' })
   theme!: string;
 
+  @Column({ default: 'CDF' })
+  baseCurrency!: string;
+
+  @Column({ default: 'CDF' })
+  displayCurrency!: string;
+
+  @Column('jsonb', { default: {} })
+  exchangeRates!: object;
+
   @Column({ default: false })
   twoFactorEnabled!: boolean;
 

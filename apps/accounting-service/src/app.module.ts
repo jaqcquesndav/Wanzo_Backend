@@ -23,6 +23,11 @@ import { AuditModule } from './modules/audit/audit.module';
 import { KafkaModule } from './modules/kafka/kafka.module';
 import { ReportingModule } from './modules/reporting/reporting.module'; // Added import
 import { EventsModule } from './modules/events/events.module'; // Import the new EventsModule
+import { LedgerModule } from './modules/ledger/ledger.module'; // Import LedgerModule
+import { NotificationModule } from './modules/notifications/notifications.module'; // Import NotificationModule
+import { UserModule } from './modules/users/users.module'; // Import UserModule
+import { DeclarationModule } from './modules/declarations/declarations.module'; // Import DeclarationModule
+import { DashboardModule } from './modules/dashboard/dashboard.module'; // Import DashboardModule
 
 // Import du MonitoringModule qui contient PrometheusController
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -75,6 +80,11 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     KafkaModule,
     ReportingModule, // Added ReportingModule
     EventsModule, // Add EventsModule to imports
+    LedgerModule, // Add LedgerModule to imports
+    NotificationModule, // Add NotificationModule to imports
+    UserModule, // Add UserModule to imports
+    DeclarationModule, // Add DeclarationModule to imports
+    DashboardModule, // Add DashboardModule to imports
 
     // 4) Import du module qui gère Prometheus
     MonitoringModule,

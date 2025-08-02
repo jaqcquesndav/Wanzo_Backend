@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, HttpCode, HttpStatus, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AccountService } from '../services/account.service';
 import { CreateAccountDto, UpdateAccountDto, AccountFilterDto } from '../dtos/account.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -29,18 +30,17 @@ export class AccountController {
 
   @Get()
   @ApiOperation({ summary: 'Get all accounts' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  @ApiQuery({ name: 'type', required: false, enum: ['asset', 'liability', 'equity', 'revenue', 'expense'] })
-  @ApiQuery({ name: 'isAnalytic', required: false, type: Boolean })
-  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'search', required: false, description: 'Search term for code or name' })
+  @ApiQuery({ name: 'type', required: false, enum: ['asset', 'liability', 'equity', 'revenue', 'expense', 'all'], description: 'Filter by account type' })
+  @ApiQuery({ name: 'standard', required: false, enum: ['SYSCOHADA', 'IFRS', 'all'], description: 'Filter by accounting standard' })
+  @ApiQuery({ name: 'isAnalytic', required: false, type: Boolean, description: 'Filter by analytic accounts' })
+  @ApiQuery({ name: 'sortBy', required: false, enum: ['code', 'name', 'type'], description: 'Sort field' })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'], description: 'Sort order' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number for pagination' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Number of accounts per page' })
   @ApiResponse({ status: 200, description: 'Accounts retrieved successfully' })
-  async findAll(
-    @Query('page') page = 1,
-    @Query('pageSize') pageSize = 20,
-    @Query() filters: AccountFilterDto,
-  ) {
-    const result = await this.accountService.findAll(filters, +page, +pageSize);
+  async findAll(@Query() filters: AccountFilterDto) {
+    const result = await this.accountService.findAll(filters);
     return {
       success: true,
       data: result,
@@ -94,12 +94,14 @@ export class AccountController {
   @Roles('admin')
   @ApiOperation({ summary: 'Delete account' })
   @ApiParam({ name: 'id', description: 'Account ID' })
-  @ApiResponse({ status: 204, description: 'Account deleted successfully' })
+  @ApiResponse({ status: 200, description: 'Account deleted successfully' })
   @ApiResponse({ status: 404, description: 'Account not found' })
   @ApiResponse({ status: 409, description: 'Cannot delete account with child accounts' })
-  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.accountService.delete(id);
+    return {
+      success: true
+    };
   }
 
   @Get('hierarchy/:rootId?')
@@ -111,6 +113,66 @@ export class AccountController {
     return {
       success: true,
       data: hierarchy,
+    };
+  }
+
+  @Post('batch')
+  @Roles('admin', 'accountant')
+  @ApiOperation({ summary: 'Import or export accounts' })
+  @ApiQuery({ name: 'action', required: true, enum: ['import', 'export'], description: 'The action to perform' })
+  @ApiQuery({ name: 'format', required: false, enum: ['csv', 'excel'], description: 'Export format (required for export)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 200, description: 'Batch operation completed successfully' })
+  @UseInterceptors(FileInterceptor('file'))
+  async batchOperation(
+    @Query('action') action: 'import' | 'export',
+    @Req() req: any,
+    @Query('format') format?: 'csv' | 'excel',
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (action === 'import') {
+      if (!file) {
+        return {
+          success: false,
+          error: 'File is required for import operation'
+        };
+      }
+      // TODO: Implement importAccounts method
+      const result = { imported: 0, errors: [] };
+      return {
+        success: true,
+        data: result
+      };
+    } else if (action === 'export') {
+      if (!format) {
+        return {
+          success: false,
+          error: 'Format is required for export operation'
+        };
+      }
+      // TODO: Implement exportAccounts method
+      return {
+        success: true,
+        data: { message: 'Export functionality to be implemented' }
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Invalid action. Must be import or export'
+      };
+    }
+  }
+
+  @Post('batch/create')
+  @Roles('admin', 'accountant')
+  @ApiOperation({ summary: 'Create multiple accounts' })
+  @ApiResponse({ status: 201, description: 'Accounts created successfully' })
+  async createMultiple(@Body() createAccountsDto: CreateAccountDto[], @Req() req: any) {
+    // TODO: Implement createMultiple method
+    const result = { created: 0, errors: [] };
+    return {
+      success: true,
+      data: result
     };
   }
 }

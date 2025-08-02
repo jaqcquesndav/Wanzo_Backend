@@ -306,4 +306,57 @@ export class AccountService {
     // Consider logging the outcome
     console.log(`Default chart of accounts setup initiated for company ${companyId} by user ${userId}`);
   }
+
+  /**
+   * Create multiple accounts at once
+   */
+  async createMultiple(createAccountsDto: CreateAccountDto[], userId: string): Promise<{ created: number; errors: { account: CreateAccountDto; error: string }[] }> {
+    const results: { created: number; errors: { account: CreateAccountDto; error: string }[] } = { created: 0, errors: [] };
+
+    for (const dto of createAccountsDto) {
+      try {
+        await this.create(dto, userId);
+        results.created++;
+      } catch (error) {
+        results.errors.push({
+          account: dto,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Import accounts from file
+   */
+  async importAccounts(file: Express.Multer.File, userId: string): Promise<{ imported: number; errors: { error: string }[] }> {
+    // TODO: Implement file parsing logic (CSV/Excel)
+    // This is a placeholder implementation
+    const results: { imported: number; errors: { error: string }[] } = { imported: 0, errors: [] };
+    
+    try {
+      // Parse file content here
+      // const accounts = await this.parseAccountsFile(file);
+      // const importResult = await this.createMultiple(accounts, userId);
+      // return importResult;
+      
+      // Placeholder response
+      results.errors.push({ error: 'Import functionality not yet implemented' });
+    } catch (error) {
+      results.errors.push({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+
+    return results;
+  }
+
+  /**
+   * Export accounts to file
+   */
+  async exportAccounts(format: 'csv' | 'excel'): Promise<any> {
+    // TODO: Implement export logic
+    // This is a placeholder implementation
+    throw new Error('Export functionality not yet implemented');
+  }
 }

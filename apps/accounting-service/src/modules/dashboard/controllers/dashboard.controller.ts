@@ -22,12 +22,14 @@ export class DashboardController {
     status: 200, 
     description: 'Dashboard data retrieved successfully'
   })
+  @ApiQuery({ name: 'period', required: false, enum: ['day', 'week', 'month', 'quarter', 'year'], description: 'Time period for dashboard data' })
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year (default: current fiscal year)' })
   async getDashboard(
     @Query() filterDto: DashboardFilterDto,
     @Request() req: ExpressRequest & { user: { companyId: string } }
   ): Promise<{ success: boolean, data: DashboardResponseDto }> {
     const dashboardData = await this.dashboardService.getDashboardData({
+      period: filterDto.period,
       fiscalYearId: filterDto.fiscalYearId,
       // Nous utilisons companyId ici pour le service, mais ce n'est pas dans le DTO public
       // Ce paramètre sera géré en interne
@@ -37,6 +39,141 @@ export class DashboardController {
     return {
       success: true,
       data: dashboardData
+    };
+  }
+
+  @Get('quick-stats')
+  @ApiOperation({ 
+    summary: 'Get Quick Stats',
+    description: 'Retrieves only the quick statistics data.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Quick stats retrieved successfully'
+  })
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
+  async getQuickStats(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ) {
+    const quickStats = await this.dashboardService.getQuickStats({
+      fiscalYearId: filterDto.fiscalYearId,
+      companyId: req.user.companyId
+    } as any);
+    
+    return {
+      success: true,
+      data: quickStats
+    };
+  }
+
+  @Get('financial-ratios')
+  @ApiOperation({ 
+    summary: 'Get Financial Ratios',
+    description: 'Retrieves financial ratios and metrics.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Financial ratios retrieved successfully'
+  })
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
+  async getFinancialRatios(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ) {
+    const ratios = await this.dashboardService.getFinancialRatios({
+      fiscalYearId: filterDto.fiscalYearId,
+      companyId: req.user.companyId
+    } as any);
+    
+    return {
+      success: true,
+      data: ratios
+    };
+  }
+
+  @Get('key-performance-indicators')
+  @ApiOperation({ 
+    summary: 'Get Key Performance Indicators',
+    description: 'Retrieves credit score and financial rating.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'KPIs retrieved successfully'
+  })
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
+  async getKeyPerformanceIndicators(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ) {
+    const kpis = await this.dashboardService.getKeyPerformanceIndicators({
+      fiscalYearId: filterDto.fiscalYearId,
+      companyId: req.user.companyId
+    } as any);
+    
+    return {
+      success: true,
+      data: kpis
+    };
+  }
+
+  @Get('revenue')
+  @ApiOperation({ 
+    summary: 'Get Revenue Data',
+    description: 'Retrieves revenue data for charts.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Revenue data retrieved successfully'
+  })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO format)' })
+  @ApiQuery({ name: 'period', required: false, enum: ['day', 'week', 'month'], description: 'Time period' })
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
+  async getRevenueData(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ) {
+    const revenueData = await this.dashboardService.getRevenueData({
+      startDate: filterDto.startDate,
+      endDate: filterDto.endDate,
+      period: filterDto.period,
+      fiscalYearId: filterDto.fiscalYearId,
+      companyId: req.user.companyId
+    } as any);
+    
+    return {
+      success: true,
+      data: revenueData
+    };
+  }
+
+  @Get('expenses')
+  @ApiOperation({ 
+    summary: 'Get Expenses Data',
+    description: 'Retrieves expenses breakdown for charts.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Expenses data retrieved successfully'
+  })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO format)' })
+  @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
+  async getExpensesData(
+    @Query() filterDto: DashboardFilterDto,
+    @Request() req: ExpressRequest & { user: { companyId: string } }
+  ) {
+    const expensesData = await this.dashboardService.getExpensesData({
+      startDate: filterDto.startDate,
+      endDate: filterDto.endDate,
+      fiscalYearId: filterDto.fiscalYearId,
+      companyId: req.user.companyId
+    } as any);
+    
+    return {
+      success: true,
+      data: expensesData
     };
   }
 }

@@ -153,8 +153,8 @@ export class ChatService {
   // Méthodes spécifiques au service de comptabilité
   async getAccountingContext(companyId: string, fiscalYear: string, accountingStandard: AccountingStandard): Promise<Record<string, any>> {
     const [accounts, journals] = await Promise.all([
-      this.accountService.findAll({ companyId, fiscalYear, accountingStandard }), // Pass fiscalYear and accountingStandard
-      this.journalService.findAll({ companyId, fiscalYear }, 1, 10), // Pass fiscalYear
+      this.accountService.findAll({ companyId }), // Filtres supportés par AccountFilterDto
+      this.journalService.findAll({ companyId }, 1, 10), // Filtres supportés par JournalFilterDto
     ]);
 
     return {
@@ -168,6 +168,8 @@ export class ChatService {
         description: journal.description,
         amount: journal.totalDebit,
       })),
+      fiscalYear,
+      accountingStandard,
     };
   }
 
@@ -191,5 +193,86 @@ export class ChatService {
    */
   async updateMessage(message: ChatMessage): Promise<ChatMessage> {
     return await this.messageRepository.save(message);
+  }
+
+  /**
+   * Generate AI response for chat messages
+   */
+  async generateAIResponse(
+    userMessage: string,
+    modelId: string,
+    writeMode: boolean,
+    context: string[]
+  ): Promise<{
+    content: string;
+    metadata?: any;
+    journalEntry?: any;
+  }> {
+    // Cette méthode simulera une réponse d'IA jusqu'à intégration d'un vrai service d'IA
+    
+    if (writeMode) {
+      // Mode écriture - générer une proposition d'écriture comptable
+      const journalEntry = {
+        id: `agent-${Math.random().toString(36).substring(2, 11)}`,
+        date: new Date().toISOString().split('T')[0],
+        journalType: 'purchases',
+        reference: `AUTO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        description: `Écriture générée: ${userMessage.substring(0, 50)}...`,
+        status: 'draft',
+        source: 'agent',
+        agentId: modelId,
+        validationStatus: 'pending',
+        lines: [
+          {
+            accountCode: '626100',
+            accountName: 'Frais de télécommunication',
+            debit: 100.00,
+            credit: 0,
+            description: 'Frais HT'
+          },
+          {
+            accountCode: '445660',
+            accountName: 'TVA déductible',
+            debit: 20.00,
+            credit: 0,
+            description: 'TVA 20%'
+          },
+          {
+            accountCode: '401100',
+            accountName: 'Fournisseurs',
+            debit: 0,
+            credit: 120.00,
+            description: 'Dette fournisseur'
+          }
+        ],
+        totalDebit: 120.00,
+        totalCredit: 120.00,
+        totalVat: 20.00
+      };
+
+      return {
+        content: 'J\'ai analysé votre facture et propose cette écriture comptable :',
+        metadata: { journalEntry },
+        journalEntry
+      };
+    } else {
+      // Mode conversation normal
+      const responses = [
+        `Pour répondre à votre question sur "${userMessage.substring(0, 30)}...", voici les éléments importants à considérer en comptabilité SYSCOHADA.`,
+        `D'après les normes SYSCOHADA, concernant "${userMessage.substring(0, 30)}...", il faut suivre les procédures suivantes.`,
+        `Votre demande sur "${userMessage.substring(0, 30)}..." nécessite une approche spécifique selon le référentiel comptable OHADA.`
+      ];
+
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+      return {
+        content: randomResponse,
+        metadata: {
+          modelUsed: modelId,
+          contextApplied: context,
+          generatedAt: new Date().toISOString()
+        }
+      };
+    }
   }
 }

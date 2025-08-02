@@ -141,3 +141,53 @@ export class JournalFilterDto {
   @IsString()
   source?: string;
 }
+
+export class UpdateJournalDto {
+  @ApiPropertyOptional({ description: 'Journal date' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  date?: Date;
+
+  @ApiPropertyOptional({ description: 'Journal type', enum: JournalType })
+  @IsOptional()
+  @IsEnum(JournalType)
+  journalType?: JournalType;
+
+  @ApiPropertyOptional({ description: 'Journal description' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({ description: 'Journal reference' })
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @ApiPropertyOptional({ description: 'Journal status', enum: JournalStatus })
+  @IsOptional()
+  @IsEnum(JournalStatus)
+  status?: JournalStatus;
+
+  @ApiPropertyOptional({ description: 'Journal lines', type: [JournalLineDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => JournalLineDto)
+  lines?: JournalLineDto[];
+
+  @ApiPropertyOptional({ description: 'Additional metadata' })
+  @IsOptional()
+  metadata?: Record<string, any>;
+}
+
+export class ValidateJournalDto {
+  @ApiProperty({ description: 'Validation status', enum: ['validated', 'rejected'] })
+  @IsEnum(['validated', 'rejected'])
+  validationStatus!: 'validated' | 'rejected';
+
+  @ApiPropertyOptional({ description: 'Rejection reason (required if status is rejected)' })
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}

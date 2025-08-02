@@ -91,11 +91,90 @@ Récupère tous les paramètres de l'organisation et de l'utilisateur actuel.
     },
     "ksPay": {
       "enabled": true,
-      "apiKey": "ks_..."
+      "apiKey": "ks_demo_key"
     },
     "slack": {
       "enabled": false,
       "webhookUrl": null
+    },
+    "dataSharing": {
+      "banks": false,
+      "microfinance": false,
+      "coopec": false,
+      "analysts": false,
+      "partners": false,
+      "consentGiven": false,
+      "consentDate": null,
+      "lastModified": "2024-08-02T10:00:00Z",
+      "modifiedBy": "admin@example.com"
+    },
+    "dataSources": {
+      "sources": [
+        {
+          "id": "wanzo-mobile",
+          "name": "Wanzo Mobile",
+          "description": "Application tout-en-un pour la gestion des ventes, facturation, caisse, stocks, clients, fournisseurs avec assistant Adha intégré",
+          "icon": "Smartphone",
+          "isConnected": false,
+          "isConfigurable": true,
+          "syncStatus": "disabled"
+        },
+        {
+          "id": "web-scraping",
+          "name": "Collecte Web",
+          "description": "Collecte automatique des données de factures électroniques et transactions en ligne",
+          "icon": "LinkIcon",
+          "isConnected": false,
+          "isConfigurable": true,
+          "syncStatus": "disabled"
+        },
+        {
+          "id": "external-db",
+          "name": "Bases de données externes",
+          "description": "Connexion à des bases de données tierces (ERP, CRM, etc.)",
+          "icon": "Database",
+          "isConnected": false,
+          "isConfigurable": true,
+          "syncStatus": "disabled"
+        }
+      ]
+    },
+    "bankIntegrations": [
+      {
+        "provider": "trust_bank",
+        "enabled": false,
+        "syncFrequency": "daily",
+        "accountMappings": []
+      }
+    ],
+    "eInvoicing": {
+      "provider": "dgi_congo",
+      "enabled": false,
+      "taxpayerNumber": "",
+      "autoSubmit": false,
+      "validateBeforeSubmit": true,
+      "syncInvoices": false
+    },
+    "taxIntegration": {
+      "dgiEnabled": false,
+      "taxpayerNumber": "",
+      "autoCalculateTax": true,
+      "taxRates": [
+        {
+          "type": "VAT",
+          "rate": 18,
+          "description": "TVA Standard",
+          "accountId": "445100"
+        }
+      ],
+      "declarationFrequency": "monthly"
+    },
+    "portfolioIntegration": {
+      "enabled": false,
+      "portfolioTypes": [],
+      "automaticValuation": false,
+      "valuationFrequency": "monthly",
+      "currencyConversion": true
     }
   }
 }
@@ -171,6 +250,280 @@ Met à jour les taux de change des devises.
 {
   "success": true,
   "message": "Taux de change mis à jour"
+}
+```
+
+### Récupérer les Paramètres de Partage de Données
+
+Récupère la configuration du partage de données avec les partenaires.
+
+**URL:** `/settings/data-sharing`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes (Admin uniquement)
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "banks": true,
+    "microfinance": false,
+    "coopec": true,
+    "analysts": true,
+    "partners": false,
+    "consentGiven": true,
+    "consentDate": "2024-08-01T10:00:00Z",
+    "lastModified": "2024-08-02T10:00:00Z",
+    "modifiedBy": "admin@example.com"
+  }
+}
+```
+
+### Mettre à jour les Paramètres de Partage de Données
+
+Met à jour la configuration du partage de données.
+
+**URL:** `/settings/data-sharing`
+
+**Method:** `PUT`
+
+**Authentication Required:** Yes (Admin uniquement)
+
+**Request Body:**
+```json
+{
+  "banks": true,
+  "microfinance": true,
+  "coopec": true,
+  "analysts": true,
+  "partners": false,
+  "consentGiven": true
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "banks": true,
+    "microfinance": true,
+    "coopec": true,
+    "analysts": true,
+    "partners": false,
+    "consentGiven": true,
+    "consentDate": "2024-08-02T10:00:00Z",
+    "lastModified": "2024-08-02T10:00:00Z",
+    "modifiedBy": "admin@example.com"
+  },
+  "message": "Paramètres de partage mis à jour avec succès"
+}
+```
+
+### Récupérer les Sources de Données
+
+Récupère la configuration des sources de données connectées.
+
+**URL:** `/settings/data-sources`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "sources": [
+      {
+        "id": "wanzo-mobile",
+        "name": "Wanzo Mobile",
+        "description": "Application tout-en-un pour la gestion des ventes, facturation, caisse, stocks, clients, fournisseurs avec assistant Adha intégré",
+        "icon": "Smartphone",
+        "isConnected": true,
+        "isConfigurable": true,
+        "config": {
+          "syncFrequency": "realtime",
+          "dataTypes": ["sales", "inventory", "customers"]
+        },
+        "lastSyncDate": "2024-08-02T09:30:00Z",
+        "syncStatus": "active"
+      },
+      {
+        "id": "web-scraping",
+        "name": "Collecte Web",
+        "description": "Collecte automatique des données de factures électroniques et transactions en ligne",
+        "icon": "LinkIcon",
+        "isConnected": false,
+        "isConfigurable": true,
+        "syncStatus": "disabled"
+      }
+    ]
+  }
+}
+```
+
+### Mettre à jour une Source de Données
+
+Met à jour la configuration d'une source de données spécifique.
+
+**URL:** `/settings/data-sources`
+
+**Method:** `PUT`
+
+**Authentication Required:** Yes
+
+**Request Body:**
+```json
+{
+  "sourceId": "wanzo-mobile",
+  "isConnected": true,
+  "config": {
+    "syncFrequency": "hourly",
+    "dataTypes": ["sales", "inventory", "customers", "suppliers"]
+  }
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "sources": [
+      {
+        "id": "wanzo-mobile",
+        "name": "Wanzo Mobile",
+        "description": "Application tout-en-un pour la gestion",
+        "icon": "Smartphone",
+        "isConnected": true,
+        "isConfigurable": true,
+        "config": {
+          "syncFrequency": "hourly",
+          "dataTypes": ["sales", "inventory", "customers", "suppliers"]
+        },
+        "lastSyncDate": "2024-08-02T10:00:00Z",
+        "syncStatus": "active"
+      }
+    ]
+  },
+  "message": "Source de données mise à jour avec succès"
+}
+```
+
+### Statut des Intégrations
+
+Récupère le statut de toutes les intégrations configurées.
+
+**URL:** `/settings/integrations/status`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "integrations": [
+      {
+        "type": "data-sharing",
+        "name": "Partage de données",
+        "status": "active",
+        "lastActivity": "2024-08-02T09:30:00Z",
+        "errorCount": 0
+      },
+      {
+        "type": "wanzo-mobile",
+        "name": "Wanzo Mobile",
+        "status": "active",
+        "lastActivity": "2024-08-02T09:30:00Z",
+        "errorCount": 0
+      },
+      {
+        "type": "bank-integration",
+        "name": "Intégration bancaire",
+        "status": "disabled",
+        "lastActivity": null,
+        "errorCount": 0
+      },
+      {
+        "type": "e-invoicing",
+        "name": "Facturation électronique",
+        "status": "error",
+        "lastActivity": "2024-08-01T14:20:00Z",
+        "errorCount": 3
+      }
+    ]
+  }
+}
+```
+
+### Configuration Bancaire
+
+Récupère les configurations d'intégration bancaire.
+
+**URL:** `/settings/integrations/banks`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "provider": "trust_bank",
+      "enabled": true,
+      "syncFrequency": "daily",
+      "accountMappings": [
+        {
+          "bankAccountId": "TB001234567",
+          "accountingAccountId": "512100",
+          "description": "Compte principal Trust Bank"
+        }
+      ],
+      "lastSyncDate": "2024-08-02T06:00:00Z"
+    }
+  ]
+}
+```
+
+### Mettre à jour Configuration Bancaire
+
+Met à jour la configuration d'une intégration bancaire.
+
+**URL:** `/settings/integrations/banks/{bankId}`
+
+**Method:** `PUT`
+
+**Authentication Required:** Yes
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "apiKey": "new_api_key",
+  "syncFrequency": "hourly",
+  "accountMappings": [
+    {
+      "bankAccountId": "TB001234567",
+      "accountingAccountId": "512100",
+      "description": "Compte principal Trust Bank"
+    }
+  ]
 }
 ```
 
@@ -324,25 +677,211 @@ Retrieves all settings for the organization and the current user. The frontend c
       "user_mention": { "email": true, "browser": true }
   },
   "integrations": {
-    "googleDrive": {
+### Paramètres d'Intégration (`integrations`)
+
+```json
+{
+  "googleDrive": {
+    "enabled": false,
+    "linkedAccount": null
+  },
+  "ksPay": {
+    "enabled": true,
+    "apiKey": "ks_demo_key"
+  },
+  "slack": {
+    "enabled": false,
+    "webhookUrl": null
+  },
+  "dataSharing": {
+    "banks": false,
+    "microfinance": false,
+    "coopec": false,
+    "analysts": false,
+    "partners": false,
+    "consentGiven": false,
+    "consentDate": null,
+    "lastModified": "2024-08-02T10:00:00Z",
+    "modifiedBy": "admin@example.com"
+  },
+  "dataSources": {
+    "sources": [
+      {
+        "id": "wanzo-mobile",
+        "name": "Wanzo Mobile",
+        "description": "Application mobile de gestion",
+        "icon": "Smartphone",
+        "isConnected": false,
+        "isConfigurable": true,
+        "syncStatus": "disabled"
+      }
+    ]
+  },
+  "bankIntegrations": [
+    {
+      "provider": "trust_bank",
       "enabled": false,
-      "linkedAccount": null
-    },
-    "ksPay": {
-      "enabled": true,
-      "apiKey": "ks_..."
-    },
-    "slack": {
-        "enabled": false,
-        "webhookUrl": null
+      "syncFrequency": "daily",
+      "accountMappings": []
     }
+  ],
+  "eInvoicing": {
+    "provider": "dgi_congo",
+    "enabled": false,
+    "taxpayerNumber": "",
+    "autoSubmit": false,
+    "validateBeforeSubmit": true,
+    "syncInvoices": false
+  },
+  "taxIntegration": {
+    "dgiEnabled": false,
+    "taxpayerNumber": "",
+    "autoCalculateTax": true,
+    "taxRates": [
+      {
+        "type": "VAT",
+        "rate": 18,
+        "description": "TVA Standard",
+        "accountId": "445100"
+      }
+    ],
+    "declarationFrequency": "monthly"
+  },
+  "portfolioIntegration": {
+    "enabled": false,
+    "portfolioTypes": [],
+    "automaticValuation": false,
+    "valuationFrequency": "monthly",
+    "currencyConversion": true
   }
 }
 ```
 
-### Update Settings Category
+### DataSharingSettings
 
-Updates the settings for a specific category. The frontend should call the appropriate endpoint when the user saves changes in a specific tab.
+Structure pour la configuration du partage de données.
+
+```typescript
+interface DataSharingSettings {
+  banks: boolean;
+  microfinance: boolean;
+  coopec: boolean;
+  analysts: boolean;
+  partners: boolean;
+  consentGiven: boolean;
+  consentDate?: string;
+  lastModified?: string;
+  modifiedBy?: string;
+}
+```
+
+### DataSource
+
+Structure pour une source de données.
+
+```typescript
+interface DataSource {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // Icon name
+  isConnected: boolean;
+  isConfigurable?: boolean;
+  config?: Record<string, any>;
+  lastSyncDate?: string;
+  syncStatus?: 'active' | 'error' | 'disabled';
+  errorMessage?: string;
+}
+```
+
+### BankIntegrationConfig
+
+Configuration d'intégration bancaire.
+
+```typescript
+interface BankIntegrationConfig {
+  provider: 'trust_bank' | 'equity_bank' | 'rawbank' | 'other';
+  enabled: boolean;
+  apiKey?: string;
+  apiSecret?: string;
+  accountMappings?: Array<{
+    bankAccountId: string;
+    accountingAccountId: string;
+    description: string;
+  }>;
+  syncFrequency: 'realtime' | 'hourly' | 'daily' | 'manual';
+  lastSyncDate?: string;
+}
+```
+
+## Error Responses
+
+**Unauthorized (401):**
+```json
+{
+  "success": false,
+  "error": "Token d'authentification manquant ou invalide"
+}
+```
+
+**Forbidden (403):**
+```json
+{
+  "success": false,
+  "error": "Permissions insuffisantes pour accéder aux paramètres"
+}
+```
+
+**Bad Request (400):**
+```json
+{
+  "success": false,
+  "error": "Données de requête invalides",
+  "details": {
+    "field": "category",
+    "message": "Catégorie de paramètres non supportée"
+  }
+}
+```
+
+**Not Found (404):**
+```json
+{
+  "success": false,
+  "error": "Catégorie de paramètres non trouvée"
+}
+```
+
+**Internal Server Error (500):**
+```json
+{
+  "success": false,
+  "error": "Erreur interne du serveur lors de la sauvegarde"
+}
+```
+
+## Notes d'Implémentation
+
+### Sécurité
+- **Accès Admin** : Les paramètres de partage de données nécessitent des privilèges administrateur
+- **Validation** : Toutes les configurations sont validées côté serveur
+- **Audit** : Toutes les modifications sont loggées avec utilisateur et timestamp
+
+### Fallback
+- Le frontend utilise localStorage comme fallback si l'API n'est pas disponible
+- Les paramètres par défaut sont appliqués en cas d'échec de chargement
+- La synchronisation reprend automatiquement quand l'API redevient disponible
+
+### Intégrations Avancées
+- **Consentement requis** : Le partage de données nécessite un consentement explicite
+- **Configuration modulaire** : Chaque intégration peut être activée/désactivée indépendamment
+- **Statut temps réel** : Le statut des intégrations est mis à jour en temps réel
+- **Gestion d'erreurs** : Les erreurs d'intégration sont trackées et reportées
+
+### Conformité
+- **RGPD** : Respect des règles de protection des données
+- **Audit Trail** : Traçabilité complète des modifications de paramètres
+- **Permissions** : Contrôle d'accès granulaire par rôle utilisateur
 
 **URL**: `/settings/{category}`
 

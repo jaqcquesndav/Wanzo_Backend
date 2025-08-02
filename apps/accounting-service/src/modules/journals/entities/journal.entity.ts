@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { JournalLine } from './journal-line.entity';
+import { JournalAttachment } from './journal-attachment.entity';
 import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
 export { JournalLine }; // Re-export JournalLine
@@ -110,14 +111,10 @@ export class Journal {
   })
   lines!: JournalLine[];
 
-  @Column('jsonb', { nullable: true })
-  attachments?: Array<{
-    id: string;
-    name: string;
-    url?: string;
-    localUrl?: string;
-    status: 'pending' | 'uploading' | 'uploaded' | 'error';
-  }>;
+  @OneToMany(() => JournalAttachment, attachment => attachment.journal, {
+    cascade: true
+  })
+  attachments!: JournalAttachment[];
 
   @Column()
   fiscalYearId!: string;

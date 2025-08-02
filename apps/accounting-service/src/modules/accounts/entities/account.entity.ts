@@ -9,6 +9,11 @@ export enum AccountType {
   EXPENSE = 'expense'
 }
 
+export enum AccountingStandard {
+  SYSCOHADA = 'SYSCOHADA',
+  IFRS = 'IFRS'
+}
+
 @Entity('accounts')
 export class Account {
   @PrimaryGeneratedColumn('uuid')
@@ -25,6 +30,13 @@ export class Account {
     enum: AccountType,
   })
   type!: AccountType;
+
+  @Column({
+    type: 'enum',
+    enum: AccountingStandard,
+    default: AccountingStandard.SYSCOHADA
+  })
+  standard!: AccountingStandard;
 
   @Column({ length: 1 })
   class!: string;

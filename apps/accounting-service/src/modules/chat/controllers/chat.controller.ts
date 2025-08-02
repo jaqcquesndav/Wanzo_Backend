@@ -1,7 +1,16 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { ChatService } from '../services/chat.service';
-import { CreateChatDto, CreateMessageDto, ChatFilterDto, ChatRequestDto } from '../dtos/chat.dto';
+import { 
+  CreateChatDto, 
+  CreateMessageDto, 
+  ChatFilterDto, 
+  ChatRequestDto, 
+  SendMessageDto,
+  ChatResponseDto,
+  ConversationDto,
+  AiModelDto
+} from '../dtos/chat.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -72,33 +81,41 @@ export class ChatController {
       // Exemple d'écriture comptable (à remplacer par un vrai service d'IA comptable)
       aiMessageDto.metadata = {
         journalEntry: {
-          entryId: `agent-${Math.random().toString(36).substring(2, 11)}`,
+          id: `agent-${Math.random().toString(36).substring(2, 11)}`,
           date: new Date().toISOString().split('T')[0],
-          journalCode: 'ACH',
+          journalType: 'purchases',
           reference: `AUTO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
           description: `Écriture générée depuis le message: ${chatRequestDto.message.content.substring(0, 30)}...`,
+          status: 'draft',
+          source: 'agent',
+          agentId: chat.context?.modelId || 'adha-1',
+          validationStatus: 'pending',
           lines: [
             {
               accountCode: '626100',
               accountName: 'Frais de télécommunication',
               debit: 100.00,
-              credit: 0
+              credit: 0,
+              description: 'Frais de télécommunication HT'
             },
             {
               accountCode: '445660',
               accountName: 'TVA déductible sur autres biens et services',
               debit: 20.00,
-              credit: 0
+              credit: 0,
+              description: 'TVA déductible'
             },
             {
               accountCode: '401100',
               accountName: 'Fournisseurs - achats de biens ou prestations de services',
               debit: 0,
-              credit: 120.00
+              credit: 120.00,
+              description: 'Dette fournisseur'
             }
           ],
-          status: 'pending',
-          attachmentId: chatRequestDto.message.attachment ? `attach-${Math.random().toString(36).substring(2, 11)}` : undefined
+          totalDebit: 120.00,
+          totalCredit: 120.00,
+          totalVat: 20.00
         }
       };
     } else {
@@ -124,6 +141,88 @@ export class ChatController {
     return response;
   }
 
+  @Post('message')
+  @Roles('admin', 'accountant', 'user')
+  @ApiOperation({ summary: 'Send message to chat (API specification endpoint)' })
+  @ApiResponse({ status: 200, description: 'Message sent successfully', type: ChatResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async sendMessageToChat(@Body() sendMessageDto: SendMessageDto, @Req() req: any): Promise<ChatResponseDto> {
+    let conversationId = sendMessageDto.conversationId;
+    const userId = req.user.id;
+    const companyId = req.user.companyId;
+
+    // Si pas de conversationId, on crée une nouvelle conversation
+    if (!conversationId) {
+      const createChatDto = new CreateChatDto();
+      createChatDto.title = "Nouvelle conversation";
+      createChatDto.isActive = true;
+      createChatDto.context = {
+        modelId: sendMessageDto.modelId,
+        context: sendMessageDto.context || [],
+        writeMode: sendMessageDto.writeMode || false
+      };
+      
+      const newChat = await this.chatService.create(createChatDto, userId);
+      conversationId = newChat.id;
+    }
+
+    // Créer le message utilisateur
+    const messageDto = new CreateMessageDto();
+    messageDto.role = MessageRole.USER;
+    messageDto.content = sendMessageDto.message.content;
+    
+    // Traiter la pièce jointe si présente
+    if (sendMessageDto.message.attachment) {
+      messageDto.metadata = {
+        attachment: {
+          name: sendMessageDto.message.attachment.name,
+          type: sendMessageDto.message.attachment.type,
+          content: sendMessageDto.message.attachment.content
+        }
+      };
+    }
+
+    const userMessage = await this.chatService.addMessage(conversationId, messageDto, userId);
+    
+    // Générer une réponse de l'IA
+    const chat = await this.chatService.findById(conversationId);
+    const writeMode = sendMessageDto.writeMode || false;
+    
+    const aiResponse = await this.chatService.generateAIResponse(
+      sendMessageDto.message.content,
+      sendMessageDto.modelId,
+      writeMode,
+      sendMessageDto.context || []
+    );
+    
+    const aiMessageDto = new CreateMessageDto();
+    aiMessageDto.role = MessageRole.ASSISTANT;
+    aiMessageDto.content = aiResponse.content;
+    aiMessageDto.metadata = aiResponse.metadata;
+    
+    const aiMessage = await this.chatService.addMessage(conversationId, aiMessageDto, userId);
+    
+    // Format de la réponse conforme à la documentation
+    const response: ChatResponseDto = {
+      success: true,
+      data: {
+        message: {
+          id: aiMessage.id,
+          sender: 'bot',
+          content: aiMessage.content,
+          timestamp: aiMessage.timestamp.toISOString(),
+          likes: aiMessage.likes,
+          dislikes: aiMessage.dislikes
+        },
+        conversationId: conversationId,
+        ...(aiResponse.journalEntry ? { journalEntry: aiResponse.journalEntry } : {})
+      }
+    };
+    
+    return response;
+  }
+
   @Get('conversations')
   @Roles('admin', 'accountant', 'user')
   @ApiOperation({ summary: 'Get all chat conversations' })
@@ -138,6 +237,34 @@ export class ChatController {
 
     const result = await this.chatService.findAll(filters, 1, 100);
     
+    // Modèles disponibles (devrait être configuré via base de données)
+    const getModelInfo = (modelId: string) => {
+      const models = {
+        'adha-1': {
+          id: 'adha-1',
+          name: 'Adha 1',
+          description: 'Modèle de base pour la comptabilité générale',
+          capabilities: ['Comptabilité générale', 'Écritures simples', 'Rapprochements'],
+          contextLength: 4096
+        },
+        'adha-fisk': {
+          id: 'adha-fisk',
+          name: 'Adha Fisk',
+          description: 'Spécialisé en fiscalité et déclarations',
+          capabilities: ['Fiscalité', 'TVA', 'Déclarations fiscales', 'Optimisation fiscale'],
+          contextLength: 8192
+        },
+        'adha-o1': {
+          id: 'adha-o1',
+          name: 'Adha O1',
+          description: 'Version avancée pour l\'analyse financière',
+          capabilities: ['Analyse financière', 'Ratios', 'Prévisions', 'Tableaux de bord'],
+          contextLength: 16384
+        }
+      };
+      return models[modelId] || models['adha-1'];
+    };
+    
     // Format API attendu
     return {
       success: true,
@@ -146,20 +273,9 @@ export class ChatController {
         title: chat.title,
         timestamp: chat.updatedAt.toISOString(),
         isActive: chat.isActive,
-        model: {
-          id: chat.context?.modelId || 'adha-1',
-          name: chat.context?.modelId === 'adha-fisk' ? 'Adha Fisk' : 
-                chat.context?.modelId === 'adha-pro' ? 'Adha Pro' : 'Adha 1',
-          description: chat.context?.modelId === 'adha-fisk' ? 'Modèle spécialisé pour la fiscalité et l\'audit' :
-                      chat.context?.modelId === 'adha-pro' ? 'Modèle avancé pour toutes les opérations comptables' :
-                      'Modèle de base pour la comptabilité générale',
-          capabilities: chat.context?.modelId === 'adha-fisk' ? ['Fiscalité', 'Audit', 'Déclarations fiscales', 'Optimisation fiscale'] :
-                       chat.context?.modelId === 'adha-pro' ? ['Comptabilité avancée', 'Fiscalité', 'Audit', 'Prévisions financières', 'Analyses'] :
-                       ['Comptabilité générale', 'Écritures simples', 'Rapprochements'],
-          contextLength: chat.context?.modelId === 'adha-fisk' ? 8192 :
-                        chat.context?.modelId === 'adha-pro' ? 16384 : 4096
-        },
-        context: chat.context?.context || []
+        model: getModelInfo(chat.context?.modelId || 'adha-1'),
+        context: chat.context?.context || [],
+        messages: [] // Messages non inclus dans la liste, seulement dans le détail
       }))
     };
   }
@@ -170,11 +286,45 @@ export class ChatController {
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   @ApiResponse({ status: 200, description: 'Conversation history retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Conversation not found' })
-  async getConversationHistory(@Param('id') id: string) {
+  async getConversationHistory(@Param('id') id: string, @Req() req: any) {
     const chat = await this.chatService.findById(id);
+    
+    // Vérifier les droits d'accès
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      throw new Error('Access denied to this conversation');
+    }
+    
     const messages = await this.chatService.getHistory(id);
     
-    // Format API attendu
+    // Modèle info helper
+    const getModelInfo = (modelId: string) => {
+      const models = {
+        'adha-1': {
+          id: 'adha-1',
+          name: 'Adha 1',
+          description: 'Modèle de base pour la comptabilité générale',
+          capabilities: ['Comptabilité générale', 'Écritures simples', 'Rapprochements'],
+          contextLength: 4096
+        },
+        'adha-fisk': {
+          id: 'adha-fisk',
+          name: 'Adha Fisk',
+          description: 'Spécialisé en fiscalité et déclarations',
+          capabilities: ['Fiscalité', 'TVA', 'Déclarations fiscales', 'Optimisation fiscale'],
+          contextLength: 8192
+        },
+        'adha-o1': {
+          id: 'adha-o1',
+          name: 'Adha O1',
+          description: 'Version avancée pour l\'analyse financière',
+          capabilities: ['Analyse financière', 'Ratios', 'Prévisions', 'Tableaux de bord'],
+          contextLength: 16384
+        }
+      };
+      return models[modelId] || models['adha-1'];
+    };
+    
+    // Format API attendu conforme à la documentation
     return {
       success: true,
       data: {
@@ -182,28 +332,17 @@ export class ChatController {
         title: chat.title,
         timestamp: chat.updatedAt.toISOString(),
         isActive: chat.isActive,
-        model: {
-          id: chat.context?.modelId || 'adha-1',
-          name: chat.context?.modelId === 'adha-fisk' ? 'Adha Fisk' : 
-                chat.context?.modelId === 'adha-pro' ? 'Adha Pro' : 'Adha 1',
-          description: chat.context?.modelId === 'adha-fisk' ? 'Modèle spécialisé pour la fiscalité et l\'audit' :
-                      chat.context?.modelId === 'adha-pro' ? 'Modèle avancé pour toutes les opérations comptables' :
-                      'Modèle de base pour la comptabilité générale',
-          capabilities: chat.context?.modelId === 'adha-fisk' ? ['Fiscalité', 'Audit', 'Déclarations fiscales', 'Optimisation fiscale'] :
-                       chat.context?.modelId === 'adha-pro' ? ['Comptabilité avancée', 'Fiscalité', 'Audit', 'Prévisions financières', 'Analyses'] :
-                       ['Comptabilité générale', 'Écritures simples', 'Rapprochements'],
-          contextLength: chat.context?.modelId === 'adha-fisk' ? 8192 :
-                        chat.context?.modelId === 'adha-pro' ? 16384 : 4096
-        },
+        model: getModelInfo(chat.context?.modelId || 'adha-1'),
         context: chat.context?.context || [],
         messages: messages.map(msg => ({
           id: msg.id,
           sender: msg.role === MessageRole.USER ? 'user' : 'bot',
           content: msg.content,
           timestamp: msg.timestamp.toISOString(),
-          likes: msg.metadata?.likes || 0,
-          dislikes: msg.metadata?.dislikes || 0,
-          ...(msg.metadata?.journalEntry ? { journalEntry: msg.metadata.journalEntry } : {})
+          likes: msg.likes || 0,
+          dislikes: msg.dislikes || 0,
+          ...(msg.metadata?.journalEntry ? { journalEntry: msg.metadata.journalEntry } : {}),
+          ...(msg.attachment ? { attachment: msg.attachment } : {})
         }))
       }
     };
@@ -214,7 +353,7 @@ export class ChatController {
   @ApiOperation({ summary: 'Get available AI models' })
   @ApiResponse({ status: 200, description: 'AI models retrieved successfully' })
   async getModels() {
-    // Liste des modèles disponibles
+    // Liste des modèles conforme à la documentation
     return {
       success: true,
       data: [
@@ -228,15 +367,15 @@ export class ChatController {
         {
           id: 'adha-fisk',
           name: 'Adha Fisk',
-          description: 'Modèle spécialisé pour la fiscalité et l\'audit',
-          capabilities: ['Fiscalité', 'Audit', 'Déclarations fiscales', 'Optimisation fiscale'],
+          description: 'Spécialisé en fiscalité et déclarations',
+          capabilities: ['Fiscalité', 'TVA', 'Déclarations fiscales', 'Optimisation fiscale'],
           contextLength: 8192
         },
         {
-          id: 'adha-pro',
-          name: 'Adha Pro',
-          description: 'Modèle avancé pour toutes les opérations comptables',
-          capabilities: ['Comptabilité avancée', 'Fiscalité', 'Audit', 'Prévisions financières', 'Analyses'],
+          id: 'adha-o1',
+          name: 'Adha O1',
+          description: 'Version avancée pour l\'analyse financière',
+          capabilities: ['Analyse financière', 'Ratios', 'Prévisions', 'Tableaux de bord'],
           contextLength: 16384
         }
       ]

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Req, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JournalService } from '../services/journal.service';
-import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto } from '../dtos/journal.dto';
+import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto, UpdateJournalDto, ValidateJournalDto } from '../dtos/journal.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -157,6 +157,61 @@ export class JournalController {
       data: {
         balance,
       },
+    };
+  }
+
+  @Put(':id')
+  @Roles('admin', 'accountant')
+  @ApiOperation({ summary: 'Update journal entry' })
+  @ApiParam({ name: 'id', description: 'Journal ID' })
+  @ApiResponse({ status: 200, description: 'Journal entry updated successfully' })
+  @ApiResponse({ status: 404, description: 'Journal entry not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateJournalDto: UpdateJournalDto,
+    @Req() req: any
+  ) {
+    const journal = await this.journalService.update(id, updateJournalDto, req.user.id);
+    return {
+      success: true,
+      data: journal,
+    };
+  }
+
+  @Delete(':id')
+  @Roles('admin', 'accountant')
+  @ApiOperation({ summary: 'Delete journal entry' })
+  @ApiParam({ name: 'id', description: 'Journal ID' })
+  @ApiResponse({ status: 200, description: 'Journal entry deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Journal entry not found' })
+  async remove(@Param('id') id: string, @Req() req: any) {
+    await this.journalService.remove(id, req.user.id);
+    return {
+      success: true
+    };
+  }
+
+  @Patch(':id/validate')
+  @Roles('admin', 'accountant')
+  @ApiOperation({ summary: 'Validate or reject an AI-generated journal entry' })
+  @ApiParam({ name: 'id', description: 'Journal ID' })
+  @ApiResponse({ status: 200, description: 'Journal entry validation updated successfully' })
+  @ApiResponse({ status: 404, description: 'Journal entry not found' })
+  async validateEntry(
+    @Param('id') id: string,
+    @Body() validateDto: ValidateJournalDto,
+    @Req() req: any
+  ) {
+    const journal = await this.journalService.validateEntry(id, validateDto, req.user.id);
+    return {
+      success: true,
+      data: {
+        id: journal.id,
+        status: journal.status,
+        validationStatus: journal.validationStatus,
+        validatedBy: journal.validatedBy,
+        validatedAt: journal.validatedAt
+      }
     };
   }
 }

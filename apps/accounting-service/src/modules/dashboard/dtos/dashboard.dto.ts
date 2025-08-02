@@ -3,6 +3,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export enum PeriodType {
+  DAY = 'day',
+  WEEK = 'week',
   MONTH = 'month',
   QUARTER = 'quarter',
   YEAR = 'year',
@@ -17,6 +19,11 @@ export enum ComparisonType {
 }
 
 export class DashboardFilterDto {
+  @ApiPropertyOptional({ description: 'Time period: day, week, month, quarter, year', enum: PeriodType })
+  @IsOptional()
+  @IsEnum(PeriodType)
+  period?: PeriodType;
+
   @ApiPropertyOptional({ description: 'ID of the fiscal year (default: current fiscal year)' })
   @IsOptional()
   @IsString()

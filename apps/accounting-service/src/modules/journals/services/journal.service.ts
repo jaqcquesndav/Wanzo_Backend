@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Like, FindOptionsWhere } from 'typeorm';
-import { Journal, JournalStatus, JournalType, JournalSource } from '../entities/journal.entity';
+import { Journal, JournalStatus, JournalType, JournalSource, ValidationStatus } from '../entities/journal.entity';
 import { JournalLine } from '../entities/journal-line.entity';
-import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto } from '../dtos/journal.dto';
+import { CreateJournalDto, UpdateJournalStatusDto, JournalFilterDto, UpdateJournalDto, ValidateJournalDto } from '../dtos/journal.dto';
 import { AccountService } from '../../accounts/services/account.service';
 import { Account } from '../../accounts/entities/account.entity'; // Added import
 
@@ -402,5 +402,122 @@ export class JournalService {
     } catch (error: any) {
       throw new BadRequestException(`Erreur lors de la création de l'écriture comptable: ${error.message || 'Erreur inconnue'}`);
     }
+  }
+
+  /**
+   * Update a journal entry
+   */
+  async update(id: string, updateJournalDto: UpdateJournalDto, userId: string): Promise<Journal> {
+    const journal = await this.findById(id);
+
+    // Only draft or pending entries can be updated
+    if (journal.status === JournalStatus.POSTED) {
+      throw new BadRequestException('Cannot update posted journal entries');
+    }
+
+    // If updating lines, validate balance
+    if (updateJournalDto.lines) {
+      const totalDebit = updateJournalDto.lines.reduce((sum, line) => sum + line.debit, 0);
+      const totalCredit = updateJournalDto.lines.reduce((sum, line) => sum + line.credit, 0);
+
+      if (totalDebit !== totalCredit) {
+        throw new BadRequestException('Journal entry must be balanced (total debit = total credit)');
+      }
+
+      // Verify accounts exist
+      for (const line of updateJournalDto.lines) {
+        await this.accountService.findById(line.accountId);
+      }
+
+      // Update totals
+      journal.totalDebit = totalDebit;
+      journal.totalCredit = totalCredit;
+
+      // Remove existing lines and create new ones
+      await this.journalLineRepository.delete({ journalId: id });
+      
+      const newLines = updateJournalDto.lines.map(lineDto => {
+        const line = new JournalLine();
+        line.journalId = id;
+        line.accountId = lineDto.accountId;
+        line.debit = lineDto.debit;
+        line.credit = lineDto.credit;
+        line.description = lineDto.description;
+        // Store additional fields in metadata if needed
+        if (lineDto.originalDebit || lineDto.originalCredit || lineDto.currency || lineDto.exchangeRate) {
+          line.metadata = {
+            originalDebit: lineDto.originalDebit,
+            originalCredit: lineDto.originalCredit,
+            currency: lineDto.currency,
+            exchangeRate: lineDto.exchangeRate,
+            ...lineDto.metadata
+          };
+        } else if (lineDto.metadata) {
+          line.metadata = lineDto.metadata;
+        }
+        return line;
+      });
+
+      await this.journalLineRepository.save(newLines);
+    }
+
+    // Update journal fields
+    if (updateJournalDto.date) journal.date = updateJournalDto.date;
+    if (updateJournalDto.description) journal.description = updateJournalDto.description;
+    if (updateJournalDto.reference) journal.reference = updateJournalDto.reference;
+    if (updateJournalDto.journalType) journal.journalType = updateJournalDto.journalType;
+    if (updateJournalDto.status) journal.status = updateJournalDto.status;
+
+    const updatedJournal = await this.journalRepository.save(journal);
+    return this.findById(updatedJournal.id);
+  }
+
+  /**
+   * Delete a journal entry
+   */
+  async remove(id: string, userId: string): Promise<void> {
+    const journal = await this.findById(id);
+
+    // Only draft entries can be deleted
+    if (journal.status !== JournalStatus.DRAFT) {
+      throw new BadRequestException('Only draft journal entries can be deleted');
+    }
+
+    // Delete lines first due to foreign key constraint
+    await this.journalLineRepository.delete({ journalId: id });
+    
+    // Delete the journal
+    await this.journalRepository.delete(id);
+  }
+
+  /**
+   * Validate or reject an AI-generated journal entry
+   */
+  async validateEntry(id: string, validateDto: ValidateJournalDto, userId: string): Promise<Journal> {
+    const journal = await this.findById(id);
+
+    // Only agent-generated entries can be validated
+    if (journal.source !== JournalSource.AGENT) {
+      throw new BadRequestException('Only AI-generated journal entries can be validated');
+    }
+
+    // Update validation status
+    journal.validationStatus = validateDto.validationStatus === 'validated' 
+      ? ValidationStatus.VALIDATED 
+      : ValidationStatus.REJECTED;
+    journal.validatedBy = userId;
+    journal.validatedAt = new Date();
+
+    // If rejected, set rejection reason and keep status as draft
+    if (validateDto.validationStatus === 'rejected') {
+      journal.rejectionReason = validateDto.rejectionReason;
+      journal.status = JournalStatus.DRAFT;
+    } else {
+      // If validated, move to pending status for approval
+      journal.status = JournalStatus.PENDING;
+      journal.rejectionReason = undefined;
+    }
+
+    return this.journalRepository.save(journal);
   }
 }

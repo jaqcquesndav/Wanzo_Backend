@@ -3,11 +3,17 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 export enum DataSourceType {
   INTERNAL = 'internal',
   EXTERNAL = 'external',
+  API = 'api',
+  DATABASE = 'database',
+  FILE = 'file'
 }
 
 export enum DataSourceStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
+  CONNECTED = 'connected',
+  DISCONNECTED = 'disconnected',
+  ERROR = 'error'
 }
 
 @Entity('data_sources')
@@ -19,7 +25,13 @@ export class DataSource {
   companyId!: string;
 
   @Column()
+  sourceId!: string; // wanzo-mobile, web-scraping, external-db
+
+  @Column()
   name!: string;
+
+  @Column({ nullable: true })
+  description?: string;
 
   @Column({
     type: 'enum',
@@ -33,6 +45,12 @@ export class DataSource {
     default: DataSourceStatus.ACTIVE
   })
   status!: DataSourceStatus;
+
+  @Column('jsonb', { nullable: true })
+  metadata?: any; // For storing config, icon, etc.
+
+  @Column({ nullable: true })
+  lastSyncDate?: Date;
 
   @Column({ nullable: true })
   lastUpdated?: Date;

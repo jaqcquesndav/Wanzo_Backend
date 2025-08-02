@@ -14,6 +14,12 @@ export class Organization {
   name!: string;
 
   @Column({ nullable: true })
+  entrepreneurName?: string;
+
+  @Column({ nullable: true })
+  associates?: string;
+
+  @Column({ nullable: true })
   registrationNumber?: string;
 
   @Column({ nullable: true })
@@ -21,6 +27,15 @@ export class Organization {
 
   @Column({ nullable: true })
   vatNumber?: string;
+
+  @Column({ nullable: true })
+  cnssNumber?: string;
+
+  @Column({ nullable: true })
+  inppNumber?: string;
+
+  @Column({ nullable: true })
+  onemNumber?: string;
 
   @Column({ nullable: true })
   address?: string;
@@ -35,7 +50,13 @@ export class Organization {
   phone?: string;
 
   @Column({ nullable: true })
+  entrepreneurPhone?: string;
+
+  @Column({ nullable: true })
   email?: string;
+
+  @Column({ nullable: true })
+  entrepreneurEmail?: string;
 
   @Column({ nullable: true })
   website?: string;

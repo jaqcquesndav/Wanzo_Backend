@@ -1,7 +1,7 @@
-import { IsString, IsEnum, IsBoolean, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsEnum, IsBoolean, IsOptional, IsUUID, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AccountType } from '../entities/account.entity';
-import { AccountingStandard } from '../../../common/enums/accounting.enum';
+import { Transform } from 'class-transformer';
+import { AccountType, AccountingStandard } from '../entities/account.entity';
 
 export class CreateAccountDto {
   @ApiProperty({ description: 'Account code (e.g. 411000)' })
@@ -15,6 +15,11 @@ export class CreateAccountDto {
   @ApiProperty({ description: 'Account type', enum: AccountType })
   @IsEnum(AccountType)
   type!: AccountType;
+
+  @ApiPropertyOptional({ description: 'Accounting standard', enum: AccountingStandard })
+  @IsOptional()
+  @IsEnum(AccountingStandard)
+  standard?: AccountingStandard;
 
   @ApiPropertyOptional({ description: 'Parent account ID' })
   @IsOptional()
@@ -54,6 +59,11 @@ export class UpdateAccountDto {
   @IsOptional()
   @IsEnum(AccountType)
   type?: AccountType;
+
+  @ApiPropertyOptional({ description: 'Accounting standard', enum: AccountingStandard })
+  @IsOptional()
+  @IsEnum(AccountingStandard)
+  standard?: AccountingStandard;
 
   @ApiPropertyOptional({ description: 'Parent account ID' })
   @IsOptional()
@@ -117,7 +127,32 @@ export class AccountFilterDto {
   @ApiPropertyOptional({ description: 'Filter by accounting standard', enum: AccountingStandard })
   @IsOptional()
   @IsEnum(AccountingStandard)
-  accountingStandard?: AccountingStandard;
+  standard?: AccountingStandard;
+
+  @ApiPropertyOptional({ description: 'Sort field', enum: ['code', 'name', 'type'] })
+  @IsOptional()
+  @IsEnum(['code', 'name', 'type'])
+  sortBy?: string;
+
+  @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'] })
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  sortOrder?: string;
+
+  @ApiPropertyOptional({ description: 'Page number', default: 1 })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ description: 'Number of accounts per page', default: 20 })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number = 20;
 }
 
 export class JournalFilterDto {

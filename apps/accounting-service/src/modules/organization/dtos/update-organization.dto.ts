@@ -108,20 +108,75 @@ export class UpdateOrganizationDto {
   @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional({ description: "Adresse de l'entreprise" })
+  @ApiPropertyOptional({ description: "Nom de l'entrepreneur" })
   @IsString()
   @IsOptional()
-  address?: string;
+  entrepreneurName?: string;
+
+  @ApiPropertyOptional({ description: "Associés de l'entreprise" })
+  @IsString()
+  @IsOptional()
+  associates?: string;
+
+  @ApiPropertyOptional({ description: "Numéro d'enregistrement de l'entreprise" })
+  @IsString()
+  @IsOptional()
+  registrationNumber?: string;
 
   @ApiPropertyOptional({ description: "Numéro de TVA" })
   @IsString()
   @IsOptional()
   taxId?: string;
 
-  @ApiPropertyOptional({ description: "Numéro d'enregistrement de l'entreprise" })
+  @ApiPropertyOptional({ description: "Numéro CNSS" })
   @IsString()
   @IsOptional()
-  registrationNumber?: string;
+  cnssNumber?: string;
+
+  @ApiPropertyOptional({ description: "Numéro INPP" })
+  @IsString()
+  @IsOptional()
+  inppNumber?: string;
+
+  @ApiPropertyOptional({ description: "Numéro ONEM" })
+  @IsString()
+  @IsOptional()
+  onemNumber?: string;
+
+  @ApiPropertyOptional({ description: "Adresse de l'entreprise" })
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiPropertyOptional({ description: "Ville" })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({ description: "Pays" })
+  @IsString()
+  @IsOptional()
+  country?: string;
+
+  @ApiPropertyOptional({ description: "Téléphone de l'entreprise" })
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: "Téléphone de l'entrepreneur" })
+  @IsString()
+  @IsOptional()
+  entrepreneurPhone?: string;
+
+  @ApiPropertyOptional({ description: "Email de l'entreprise" })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiPropertyOptional({ description: "Email de l'entrepreneur" })
+  @IsEmail()
+  @IsOptional()
+  entrepreneurEmail?: string;
 
   @ApiPropertyOptional({ description: "Secteur d'activité" })
   @IsString()
