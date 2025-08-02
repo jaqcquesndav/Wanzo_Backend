@@ -1,6 +1,6 @@
 # Audit API Documentation
 
-This document describes the Audit API endpoints for the Wanzo Compta application.
+Ce document décrit les endpoints API d'Audit pour l'application Wanzo Compta. L'audit se concentre sur la validation des exercices comptables par des auditeurs certifiés.
 
 ## Base URL
 
@@ -20,104 +20,256 @@ Authorization: Bearer <token>
 X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
 ```
 
+## Workflow d'Audit
+
+L'audit d'un exercice comptable suit ce processus :
+
+1. **Demande de token** : L'auditeur demande un token en fournissant ses informations
+2. **Validation du token** : Le token reçu par email est validé  
+3. **Audit de l'exercice** : L'exercice comptable est marqué comme audité
+4. **Historique** : L'historique des audits est conservé
+
 ## Endpoints
 
-### Get Audit Logs
+### Demander un Token d'Audit
 
-Retrieves audit logs for the specified entity or for the entire system.
+Permet à un auditeur certifié de demander un token pour effectuer l'audit d'un exercice comptable.
 
-**URL:** `/audit`
+**URL:** `/audit/request-token`
+
+**Method:** `POST`
+
+**Authentication Required:** Yes
+
+**Request Body:**
+```json
+{
+  "name": "Jean Dupont",
+  "registrationNumber": "AUD-123456"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Token d'audit généré et envoyé par email"
+}
+```
+
+### Valider un Token d'Audit
+
+Valide un token d'audit avant de procéder à l'audit d'un exercice comptable.
+
+**URL:** `/audit/validate-token`
+
+**Method:** `POST`
+
+**Authentication Required:** Yes
+
+**Request Body:**
+```json
+{
+  "token": "audit-token-xyz123"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "valid": true,
+  "message": "Token valide"
+}
+```
+
+**Response:** `400 Bad Request`
+
+```json
+{
+  "valid": false,
+  "message": "Token invalide ou expiré"
+}
+```
+
+### Auditer un Exercice Comptable
+
+Marque un exercice comptable comme audité après validation du token.
+
+**URL:** `/audit/fiscal-year/{fiscalYearId}`
+
+**Method:** `POST`
+
+**Authentication Required:** Yes
+
+**Parameters:**
+- `fiscalYearId` (string, required): L'ID de l'exercice comptable à auditer
+
+**Request Body:**
+```json
+{
+  "auditorCredentials": {
+    "name": "Jean Dupont",
+    "registrationNumber": "AUD-123456",
+    "token": "audit-token-xyz123"
+  },
+  "comments": "Comptabilité conforme aux normes SYSCOHADA"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Exercice comptable audité avec succès",
+  "fiscalYear": {
+    "id": "fy_2024_001",
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
+    "status": "closed",
+    "code": "FY2024",
+    "auditStatus": {
+      "isAudited": true,
+      "auditor": {
+        "name": "Jean Dupont",
+        "registrationNumber": "AUD-123456"
+      },
+      "auditedAt": "2024-06-15T10:30:45Z",
+      "comments": "Comptabilité conforme aux normes SYSCOHADA"
+    }
+  }
+}
+```
+
+### Obtenir l'Historique d'Audit
+
+Récupère l'historique des audits pour un exercice comptable spécifique.
+
+**URL:** `/audit/history/{fiscalYearId}`
 
 **Method:** `GET`
 
 **Authentication Required:** Yes
 
-**Headers:**
+**Parameters:**
+- `fiscalYearId` (string, required): L'ID de l'exercice comptable
+
+**Response:** `200 OK`
+
+```json
+{
+  "fiscalYearId": "fy_2024_001",
+  "audits": [
+    {
+      "id": "audit-123",
+      "date": "2024-06-15T10:30:45Z",
+      "auditor": {
+        "name": "Jean Dupont",
+        "registrationNumber": "AUD-123456"
+      },
+      "status": "approved",
+      "comments": "Comptabilité conforme aux normes SYSCOHADA"
+    }
+  ]
+}
 ```
-Authorization: Bearer <token>
-```
+
+### Lister tous les Audits
+
+Récupère la liste de tous les audits effectués avec filtres optionnels.
+
+**URL:** `/audit/list`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
 
 **Query Parameters:**
-- `id` (optional) - Retrieve a specific audit log by its ID.
-- `entityType` (optional) - Type of entity to filter logs (e.g., 'journal-entry', 'account', 'fiscal-year')
-- `entityId` (optional) - ID of the specific entity to filter logs
-- `startDate` (optional) - Start date for the period (format: YYYY-MM-DD)
-- `endDate` (optional) - End date for the period (format: YYYY-MM-DD)
-- `userId` (optional) - Filter logs by user ID
-- `page` (optional) - Page number (default: 1)
-- `pageSize` (optional) - Number of logs per page (default: 20)
-- `export` (optional) - Export format ('csv', 'excel', 'pdf')
+- `startDate` (optional) - Date de début (YYYY-MM-DD)
+- `endDate` (optional) - Date de fin (YYYY-MM-DD)
+- `auditorId` (optional) - ID de l'auditeur
+- `status` (optional) - Statut ('pending', 'approved', 'rejected')
+- `page` (optional) - Numéro de page (défaut: 1)
+- `pageSize` (optional) - Taille de page (défaut: 20)
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
   "success": true,
   "data": {
-    "data": [
+    "audits": [
       {
-        "id": "audit-1",
-        "timestamp": "2024-06-15T10:30:45Z",
-        "action": "create",
-        "entityType": "journal-entry",
-        "entityId": "je-123",
-        "userId": "user-456",
-        "userName": "John Doe",
-        "userRole": "comptable",
-        "details": {
-          "description": "Created journal entry for Invoice #12345",
-          "changes": {
-            "status": ["draft", null],
-            "description": ["Invoice #12345", null],
-            "totalDebit": [1200.00, null]
-          }
-        }
-      },
-      {
-        "id": "audit-2",
-        "timestamp": "2024-06-15T14:20:15Z",
-        "action": "update",
-        "entityType": "journal-entry",
-        "entityId": "je-123",
-        "userId": "user-456",
-        "userName": "John Doe",
-        "userRole": "comptable",
-        "details": {
-          "description": "Updated journal entry status",
-          "changes": {
-            "status": ["approved", "draft"]
-          }
-        }
+        "id": "audit-123",
+        "fiscalYear": {
+          "id": "fy_2024_001",
+          "code": "FY2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-12-31"
+        },
+        "date": "2024-06-15T10:30:45Z",
+        "auditor": {
+          "name": "Jean Dupont",
+          "registrationNumber": "AUD-123456"
+        },
+        "status": "approved",
+        "comments": "Comptabilité conforme aux normes SYSCOHADA"
       }
     ],
-    "total": 150,
+    "total": 25,
     "page": 1,
     "pageSize": 20,
-    "totalPages": 8
+    "totalPages": 2
   }
 }
+```
 ```
 
 ## Data Structures
 
-### AuditLog
+### AuditorCredentials
 
 ```typescript
-interface AuditLog {
+interface AuditorCredentials {
+  name: string;
+  registrationNumber: string;
+  token?: string;
+}
+```
+
+### AuditValidation
+
+```typescript
+interface AuditValidation {
+  success: boolean;
+  message: string;
+  errors?: string[];
+}
+```
+
+### FiscalYearAudit
+
+```typescript
+interface FiscalYearAudit {
   id: string;
-  timestamp: string; // ISO 8601 format
-  action: 'create' | 'update' | 'delete';
-  entityType: string;
-  entityId: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  details: {
-    description: string;
-    changes: {
-      [fieldName: string]: [any, any]; // [newValue, oldValue]
-    };
+  date: string; // ISO 8601 format
+  auditor: {
+    name: string;
+    registrationNumber: string;
   };
+  status: 'pending' | 'approved' | 'rejected';
+  comments?: string;
+}
+```
+
+### AuditHistory
+
+```typescript
+interface AuditHistoryResponse {
+  fiscalYearId: string;
+  audits: FiscalYearAudit[];
 }
 ```
 
@@ -127,7 +279,7 @@ interface AuditLog {
 ```json
 {
   "success": false,
-  "error": "Session expirée"
+  "error": "Session expirée ou privilèges insuffisants"
 }
 ```
 
@@ -135,7 +287,7 @@ interface AuditLog {
 ```json
 {
   "success": false,
-  "error": "Invalid date range"
+  "error": "Token invalide ou données manquantes"
 }
 ```
 
@@ -143,7 +295,7 @@ interface AuditLog {
 ```json
 {
   "success": false,
-  "error": "Audit log not found"
+  "error": "Exercice comptable non trouvé"
 }
 ```
 
@@ -151,14 +303,32 @@ interface AuditLog {
 ```json
 {
   "success": false,
-  "error": "Insufficient permissions to access audit logs"
+  "error": "Seuls les auditeurs certifiés peuvent effectuer cette action"
 }
 ```
 
-**Other Errors:**
+**Conflict (409):**
 ```json
 {
   "success": false,
-  "error": "Error message description"
+  "error": "Cet exercice comptable a déjà été audité"
 }
 ```
+
+## Notes d'Implémentation
+
+### Sécurité
+- Les tokens d'audit ont une durée de vie limitée (24h)
+- Seuls les utilisateurs avec le rôle 'auditor' peuvent demander des tokens
+- La validation du numéro de matricule se fait auprès du registre des auditeurs
+
+### Workflow
+1. L'auditeur doit d'abord demander un token via `/audit/request-token`
+2. Le token est envoyé par email à l'adresse associée au matricule
+3. L'auditeur utilise ce token pour valider l'audit via `/audit/fiscal-year/{id}`
+4. Une fois audité, l'exercice comptable devient définitivement verrouillé
+
+### Contraintes
+- Un exercice comptable ne peut être audité que s'il est fermé (`status: 'closed'`)
+- Un exercice déjà audité ne peut pas être re-audité
+- Seul un auditeur certifié peut effectuer un audit

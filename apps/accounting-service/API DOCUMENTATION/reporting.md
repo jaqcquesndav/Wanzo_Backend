@@ -49,12 +49,16 @@ Generates a financial report based on the specified parameters. This is the prim
   "type": "balance",
   "format": "json",
   "date": "2023-12-31",
+  "startDate": "2023-01-01",
+  "endDate": "2023-12-31",
   "comparative": true,
   "currency": "CDF",
   "includeNotes": true,
   "filters": {
     "analytical_account_id": "12345",
-    "cost_center_id": "67890"
+    "cost_center_id": "67890",
+    "department_id": "dept-001",
+    "project_id": "proj-001"
   }
 }
 ```
@@ -63,8 +67,10 @@ Generates a financial report based on the specified parameters. This is the prim
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `type` | string | Yes | The type of financial statement to generate. See [Financial Statement Types](#financial-statement-types) for possible values. |
-| `format` | string | No | The desired format of the report data. Defaults to `json`. Can be `json` or `html`. |
-| `date` | string | Yes | The end date for the report period (YYYY-MM-DD). |
+| `format` | string | No | The desired format of the report data. Can be `json`, `pdf`, or `excel`. Defaults to `json`. |
+| `date` | string | No | The end date for the report period (YYYY-MM-DD). Required for balance sheet reports. |
+| `startDate` | string | No | The start date for the report period (YYYY-MM-DD). Required for income statement and cash flow reports. |
+| `endDate` | string | No | The end date for the report period (YYYY-MM-DD). Required for income statement and cash flow reports. |
 | `comparative` | boolean | No | Whether to include comparative data from the previous period. Defaults to `false`. |
 | `currency` | string | No | The currency code for the report (e.g., 'USD', 'CDF'). Defaults to the organization's base currency. |
 | `includeNotes` | boolean | No | Whether to include analytical notes in the report. Defaults to `false`. |
@@ -107,6 +113,151 @@ Exports a previously generated financial report to a specified format (PDF or Ex
 | `type` | string | Yes | The type of financial statement being exported. |
 | `format` | string | Yes | The export format. Can be `pdf` or `excel`. |
 | `data` | object | Yes | The JSON data of the report to be exported. This should be the output from the `/reports/generate` endpoint. |
+
+**Response**: File download (PDF or Excel file)
+
+---
+
+### Get Balance Sheet
+
+Retrieves detailed balance sheet data for a specific date.
+
+**URL**: `/reports/balance-sheet`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `date` (required) - Date for balance sheet (YYYY-MM-DD)
+- `comparative` (optional) - Include previous year data
+- `currency` (optional) - Currency code for conversion
+
+**Response**: `200 OK` - Returns BalanceSheetData structure
+
+---
+
+### Get Income Statement
+
+Retrieves income statement data for a specified period.
+
+**URL**: `/reports/income-statement`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `startDate` (required) - Period start date (YYYY-MM-DD)
+- `endDate` (required) - Period end date (YYYY-MM-DD)
+- `comparative` (optional) - Include previous period data
+- `currency` (optional) - Currency code for conversion
+
+**Response**: `200 OK` - Returns IncomeStatementData structure
+
+---
+
+### Get Cash Flow Statement
+
+Retrieves cash flow statement data for a specified period.
+
+**URL**: `/reports/cash-flow`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `startDate` (required) - Period start date (YYYY-MM-DD)
+- `endDate` (required) - Period end date (YYYY-MM-DD)
+- `comparative` (optional) - Include previous period data
+- `currency` (optional) - Currency code for conversion
+
+**Response**: `200 OK` - Returns CashFlowStatementData structure
+
+---
+
+### Get Equity Changes
+
+Retrieves statement of changes in equity for a specified period.
+
+**URL**: `/reports/equity-changes`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `startDate` (required) - Period start date (YYYY-MM-DD)
+- `endDate` (required) - Period end date (YYYY-MM-DD)
+- `currency` (optional) - Currency code for conversion
+
+**Response**: `200 OK` - Returns EquityChangesData structure
+
+---
+
+### Get Notes
+
+Retrieves notes to financial statements.
+
+**URL**: `/reports/notes`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `date` (required) - Date for notes (YYYY-MM-DD)
+- `type` (required) - Notes type: `balance`, `income`, or `all`
+
+**Response**: `200 OK` - Returns NotesData structure
+
+---
+
+### Search Reports
+
+Search through generated reports with filtering capabilities.
+
+**URL**: `/reports/search`
+
+**Method**: `GET`
+
+**Query Parameters**:
+- `query` (required) - Search term
+- `type` (optional) - Filter by report type
+- `startDate` (optional) - Filter by generation date range
+- `endDate` (optional) - Filter by generation date range
+- `page` (optional) - Page number for pagination
+- `pageSize` (optional) - Results per page
+
+**Response**: `200 OK` - Returns paginated search results
+
+---
+
+### Get Report Templates
+
+Retrieves available report templates.
+
+**URL**: `/reports/templates`
+
+**Method**: `GET`
+
+**Response**: `200 OK` - Returns array of report templates
+
+---
+
+### Save Report Template
+
+Saves a new report template configuration.
+
+**URL**: `/reports/templates`
+
+**Method**: `POST`
+
+**Body**:
+```json
+{
+  "name": "Monthly Balance Sheet Template",
+  "type": "balance",
+  "configuration": {
+    "comparative": true,
+    "includeNotes": false,
+    "format": "pdf"
+  }
+}
+```
+
+---
 | `title` | string | Yes | The title of the report. |
 | `organization` | object | Yes | Information about the organization. |
 | `generatedBy` | string | Yes | The name or email of the user who generated the report. |

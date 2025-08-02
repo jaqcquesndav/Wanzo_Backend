@@ -1,364 +1,288 @@
 # Fiscal Years API Documentation
 
-This document describes the Fiscal Years API endpoints for the Wanzo Compta application.
+## Overview
+The Fiscal Years API manages accounting periods within the Wanzo Compta system. It provides endpoints for creating, managing, and auditing fiscal years.
 
 ## Base URL
-
-Toutes les requêtes doivent passer par l'API Gateway.
-
 ```
-http://localhost:8000/accounting
-```
-
-## Authentication
-
-All endpoints require authentication with a Bearer token.
-
-**Headers:**
-```
-Authorization: Bearer <token>
-X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
+/api/fiscal-years
 ```
 
 ## Endpoints
 
 ### Get All Fiscal Years
+```http
+GET /api/fiscal-years
+```
 
-Retrieves all fiscal years for the organization.
-
-**URL:** `/fiscal-years`
-
-**Method:** `GET`
-
-**Query Parameters:**
-- `status` (optional) - Filter by status (`open`, `closed`, `audited`).
-
-**Response:** `200 OK`
-
+**Response:**
 ```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "fy-123",
-      "startDate": "2024-01-01",
-      "endDate": "2024-12-31",
-      "status": "open",
-      "code": "FY2024",
-      "auditStatus": {
-        "isAudited": false,
-        "auditor": {
-          "name": "",
-          "registrationNumber": ""
-        },
-        "auditedAt": ""
-      }
-    },
-    {
-      "id": "fy-124",
-      "startDate": "2023-01-01",
-      "endDate": "2023-12-31",
-      "status": "closed",
-      "code": "FY2023",
-      "auditStatus": {
-        "isAudited": true,
-        "auditor": {
-          "name": "John Auditor",
-          "registrationNumber": "AUD12345"
-        },
-        "auditedAt": "2024-01-15T10:30:00Z"
-      }
-    }
-  ]
-}
-```
-
-### Import Fiscal Year
-
-For details on importing a fiscal year, please see the [Data Import API Documentation](./data-import.md).
-
-### Get Fiscal Year by ID
-
-Retrieves a specific fiscal year by its ID.
-
-**URL:** `/fiscal-years/:id`
-
-**Method:** `GET`
-
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**URL Parameters:**
-- `id` - ID of the fiscal year to retrieve
-
-**Response:** `200 OK`
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "fy-123",
+[
+  {
+    "id": "fy_2024_001",
     "startDate": "2024-01-01",
     "endDate": "2024-12-31",
     "status": "open",
     "code": "FY2024",
     "auditStatus": {
       "isAudited": false,
-      "auditor": {
-        "name": "",
-        "registrationNumber": ""
-      },
-      "auditedAt": ""
+      "auditor": null,
+      "auditedAt": null
     }
+  }
+]
+```
+
+### Get Fiscal Year by ID
+```http
+GET /api/fiscal-years/:id
+```
+
+**Parameters:**
+- `id` (string, required): The fiscal year ID
+
+**Response:**
+```json
+{
+  "id": "fy_2024_001",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "status": "open",
+  "code": "FY2024",
+  "auditStatus": {
+    "isAudited": false,
+    "auditor": null,
+    "auditedAt": null
   }
 }
 ```
 
 ### Create Fiscal Year
-
-Creates a new fiscal year.
-
-**URL:** `/fiscal-years`
-
-**Method:** `POST`
-
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
+```http
+POST /api/fiscal-years
 ```
 
 **Request Body:**
 ```json
 {
-  "startDate": "2025-01-01",
-  "endDate": "2025-12-31",
-  "code": "FY2025"
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "code": "FY2024"
 }
 ```
 
-**Response:** `201 Created`
-
+**Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "fy-125",
-    "startDate": "2025-01-01",
-    "endDate": "2025-12-31",
-    "status": "open",
-    "code": "FY2025",
-    "auditStatus": {
-      "isAudited": false,
-      "auditor": {
-        "name": "",
-        "registrationNumber": ""
-      },
-      "auditedAt": ""
-    }
+  "id": "fy_2024_001",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "status": "open",
+  "code": "FY2024",
+  "auditStatus": {
+    "isAudited": false,
+    "auditor": null,
+    "auditedAt": null
   }
 }
 ```
 
-### Update Fiscal Year
-
-Updates a fiscal year's properties (e.g., code).
-
-**URL:** `/fiscal-years/{id}`
-
-**Method:** `PUT`
-
-**Request Body:**
-```json
-{
-  "code": "EX2024-NEW"
-}
-```
-
-**Response:** `200 OK`
-
 ### Close Fiscal Year
-
-Closes an open fiscal year.
-
-**URL:** `/fiscal-years/:id/close`
-
-**Method:** `POST`
-
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
+```http
+POST /api/fiscal-years/:id/close
 ```
 
-**URL Parameters:**
-- `id` - ID of the fiscal year to close
+**Parameters:**
+- `id` (string, required): The fiscal year ID
 
-**Request Body:**
+**Description:**
+Closes a fiscal year, making it read-only for journal entries.
+
+**Response:**
 ```json
 {
-  "force": false // Optional: set to true to bypass closing checks
-}
-```
-
-**Response:** `200 OK`
-
-```json
-{
-  "success": true,
-  "data": {
-    "checks": [
-      { "name": "balance", "passed": true, "message": "Balance équilibrée" },
-      { "name": "journals", "passed": true, "message": "Journaux validés" },
-      { "name": "reconciliation", "passed": true, "message": "Rapprochements effectués" }
-    ],
-    "message": "Exercice clôturé avec succès"
+  "id": "fy_2024_001",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "status": "closed",
+  "code": "FY2024",
+  "auditStatus": {
+    "isAudited": false,
+    "auditor": null,
+    "auditedAt": null
   }
 }
 ```
 
 ### Reopen Fiscal Year
-
-Reopens a closed fiscal year.
-
-**URL:** `/fiscal-years/:id/reopen`
-
-**Method:** `POST`
-
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
+```http
+POST /api/fiscal-years/:id/reopen
 ```
 
-**URL Parameters:**
-- `id` - ID of the fiscal year to reopen
+**Parameters:**
+- `id` (string, required): The fiscal year ID
 
-**Request Body:**
-```json
-{}
-```
+**Description:**
+Reopens a closed fiscal year, allowing journal entries to be modified again.
 
-**Response:** `200 OK`
-
+**Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "fy-123",
-    "startDate": "2024-01-01",
-    "endDate": "2024-12-31",
-    "status": "open",
-    "code": "FY2024",
-    "auditStatus": {
-      "isAudited": false,
-      "auditor": {
-        "name": "",
-        "registrationNumber": ""
-      },
-      "auditedAt": ""
-    }
+  "id": "fy_2024_001",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "status": "open",
+  "code": "FY2024",
+  "auditStatus": {
+    "isAudited": false,
+    "auditor": null,
+    "auditedAt": null
   }
 }
 ```
 
 ### Audit Fiscal Year
-
-Marks a fiscal year as audited by a certified auditor.
-
-**URL:** `/fiscal-years/:id/audit`
-
-**Method:** `POST`
-
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
+```http
+POST /api/fiscal-years/:id/audit
 ```
 
-**URL Parameters:**
-- `id` - ID of the fiscal year to audit
+**Parameters:**
+- `id` (string, required): The fiscal year ID
 
 **Request Body:**
 ```json
 {
-  "auditorToken": "123456"
+  "name": "Jean Dupont",
+  "registrationNumber": "12345-CAC",
+  "token": "audit_token_xyz"
 }
 ```
 
-**Response:** `200 OK`
-
+**Response:**
 ```json
 {
   "success": true,
-  "message": "Audit validé avec succès"
+  "message": "Fiscal year audited successfully",
+  "errors": []
 }
 ```
 
-## Data Structures
+### Import Fiscal Years
+```http
+POST /api/fiscal-years/import
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Body: File upload (CSV, Excel, or JSON format)
+
+**Response:**
+```json
+{
+  "imported": 3
+}
+```
+
+## Data Models
 
 ### FiscalYear
-
 ```typescript
 interface FiscalYear {
   id: string;
-  startDate: string; // Format: YYYY-MM-DD
-  endDate: string; // Format: YYYY-MM-DD
-  status: 'open' | 'closed' | 'audited';
-  code: string;
-  auditStatus: {
+  startDate: string;           // ISO date format
+  endDate: string;             // ISO date format
+  status: 'open' | 'closed';
+  code: string;                // Human-readable identifier
+  auditStatus?: {
     isAudited: boolean;
-    auditor?: {
+    auditor: {
       name: string;
       registrationNumber: string;
     };
-    auditedAt?: string; // ISO 8601 format
+    auditedAt: string;         // ISO date format
   };
 }
 ```
 
-## Error Responses
-
-**Unauthorized (401):**
-```json
-{
-  "success": false,
-  "error": "Session expirée"
+### AuditorCredentials
+```typescript
+interface AuditorCredentials {
+  name: string;
+  registrationNumber: string;
+  token?: string;              // Optional audit token
 }
 ```
 
-**Bad Request (400):**
-```json
-{
-  "success": false,
-  "error": "Invalid fiscal year date range"
+### AuditValidation
+```typescript
+interface AuditValidation {
+  success: boolean;
+  message: string;
+  errors?: string[];           // Array of validation errors
 }
 ```
 
-**Not Found (404):**
-```json
-{
-  "success": false,
-  "error": "Fiscal year not found"
-}
+## Status Codes
+
+| Code | Description |
+|------|-------------|
+| 200  | Success |
+| 201  | Created |
+| 400  | Bad Request |
+| 401  | Unauthorized |
+| 403  | Forbidden (e.g., trying to modify closed fiscal year) |
+| 404  | Fiscal Year not found |
+| 409  | Conflict (e.g., overlapping fiscal years) |
+| 500  | Internal Server Error |
+
+## Business Rules
+
+### Fiscal Year Creation
+- Start date must be before end date
+- Fiscal years cannot overlap
+- Code must be unique within the organization
+
+### Fiscal Year Closure
+- Only open fiscal years can be closed
+- All journal entries must be balanced before closure
+- Closed fiscal years become read-only
+
+### Fiscal Year Audit
+- Only closed fiscal years can be audited
+- Auditor must have valid credentials
+- Audit process validates all journal entries and balances
+
+### Import Rules
+- Imported fiscal years must not conflict with existing ones
+- File format must be valid (CSV, Excel, or JSON)
+- All required fields must be present
+
+## Examples
+
+### Creating a New Fiscal Year
+```javascript
+const newFiscalYear = await fiscalYearsApi.create({
+  startDate: '2024-01-01',
+  endDate: '2024-12-31',
+  code: 'FY2024'
+});
 ```
 
-**Other Errors:**
-```json
-{
-  "success": false,
-  "error": "Error message description"
-}
+### Closing a Fiscal Year
+```javascript
+const closedFiscalYear = await fiscalYearsApi.close('fy_2024_001');
 ```
+
+### Auditing a Fiscal Year
+```javascript
+const auditResult = await fiscalYearsApi.audit('fy_2024_001', {
+  name: 'Jean Dupont',
+  registrationNumber: '12345-CAC'
+});
+```
+
+## Related Documentation
+- [Audit API](./audit.md)
+- [Journals API](./journals.md)
+- [Ledger API](./ledger.md)
+- [Accounts API](./accounts.md)

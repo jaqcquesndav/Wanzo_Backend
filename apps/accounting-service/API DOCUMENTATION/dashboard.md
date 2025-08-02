@@ -4,8 +4,6 @@ This document describes the Dashboard API endpoints for the Wanzo Compta applica
 
 ## Base URL
 
-Toutes les requêtes doivent passer par l'API Gateway.
-
 ```
 http://localhost:8000/accounting
 ```
@@ -14,172 +12,436 @@ http://localhost:8000/accounting
 
 All endpoints require authentication with a Bearer token.
 
-**Headers:**
+**Required Headers:**
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <jwt_token>
 X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
+Content-Type: application/json
+```
+
+## Data Structures
+
+### DashboardData
+
+```typescript
+interface DashboardData {
+  quickStats: {
+    totalAssets: number;
+    revenue: number; // Chiffre d'affaires
+    netIncome: number; // Résultat Net
+    cashOnHand: number; // Trésorerie Nette Actuelle
+    trends: {
+      assets: { value: number; isPositive: boolean };
+      revenue: { value: number; isPositive: boolean };
+      netIncome: { value: number; isPositive: boolean };
+      cashOnHand: { value: number; isPositive: boolean };
+    };
+  };
+  financialRatios: {
+    grossProfitMargin: number; // Marge Brute en %
+    breakEvenPoint: number; // Seuil de Rentabilité en CDF
+    daysSalesOutstanding: number; // DSO en jours
+    daysPayableOutstanding: number; // DPO en jours
+    workingCapital: number; // Besoin en Fonds de Roulement (BFR) en CDF
+    currentRatio: number; // Ratio de Liquidité Générale
+  };
+  keyPerformanceIndicators: {
+    creditScore: number;
+    financialRating: string;
+  };
+  revenueData: Array<{
+    date: string;
+    revenue: number;
+  }>;
+  expensesData: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  recentTransactions: Array<{
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    type: 'credit' | 'debit';
+  }>;
+  alerts: Array<{
+    id: string;
+    type: 'warning' | 'error' | 'success';
+    message: string;
+  }>;
+}
 ```
 
 ## Endpoints
 
-### Get Dashboard Data
+### Get Complete Dashboard Data
 
-Retrieves all dashboard data including quick stats, financial ratios, KPIs, revenue data, expenses data, recent transactions, and alerts.
+Retrieves all dashboard data including quick stats, financial ratios, KPIs, charts data, and alerts.
 
 **URL:** `/dashboard`
 
 **Method:** `GET`
 
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
 **Query Parameters:**
+- `period` (optional) - Time period: 'day' | 'week' | 'month' | 'quarter' | 'year'
 - `fiscalYearId` (optional) - ID of the fiscal year (default: current fiscal year)
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
   "success": true,
   "data": {
     "quickStats": {
-      "totalAssets": 750000.00,
-      "revenue": 450000.00,
-      "netIncome": 125000.00,
-      "cashOnHand": 185000.00,
+      "totalAssets": 25000000,
+      "revenue": 15000000,
+      "netIncome": 5000000,
+      "cashOnHand": 7500000,
       "trends": {
-        "assets": { "value": 5.2, "isPositive": true },
-        "revenue": { "value": 7.8, "isPositive": true },
-        "netIncome": { "value": 3.1, "isPositive": true },
-        "cashOnHand": { "value": 2.5, "isPositive": true }
+        "assets": { "value": 15, "isPositive": true },
+        "revenue": { "value": 8, "isPositive": true },
+        "netIncome": { "value": 12, "isPositive": true },
+        "cashOnHand": { "value": 5, "isPositive": true }
       }
     },
     "financialRatios": {
-      "grossProfitMargin": 42.5,
-      "breakEvenPoint": 320000.00,
+      "grossProfitMargin": 65,
+      "breakEvenPoint": 7000000,
       "daysSalesOutstanding": 45,
       "daysPayableOutstanding": 30,
-      "workingCapital": 135000.00,
+      "workingCapital": 3000000,
       "currentRatio": 1.8
     },
     "keyPerformanceIndicators": {
-      "creditScore": 82,
-      "financialRating": "A-"
+      "creditScore": 750,
+      "financialRating": "AA-"
     },
     "revenueData": [
-      {
-        "date": "2024-01",
-        "revenue": 32000.00
-      },
-      {
-        "date": "2024-02",
-        "revenue": 35000.00
-      },
-      {
-        "date": "2024-03",
-        "revenue": 40000.00
-      },
-      {
-        "date": "2024-04",
-        "revenue": 38000.00
-      },
-      {
-        "date": "2024-05",
-        "revenue": 42000.00
-      },
-      {
-        "date": "2024-06",
-        "revenue": 45000.00
-      }
+      { "date": "2024-01", "revenue": 12000000 },
+      { "date": "2024-02", "revenue": 15000000 },
+      { "date": "2024-03", "revenue": 18000000 },
+      { "date": "2024-04", "revenue": 16000000 },
+      { "date": "2024-05", "revenue": 20000000 },
+      { "date": "2024-06", "revenue": 25000000 }
     ],
     "expensesData": [
-      {
-        "name": "Achats",
-        "value": 120000.00,
-        "color": "#FF6384"
-      },
-      {
-        "name": "Personnel",
-        "value": 85000.00,
-        "color": "#36A2EB"
-      },
-      {
-        "name": "Loyers",
-        "value": 35000.00,
-        "color": "#FFCE56"
-      },
-      {
-        "name": "Services Externes",
-        "value": 28000.00,
-        "color": "#4BC0C0"
-      },
-      {
-        "name": "Autres Charges",
-        "value": 22000.00,
-        "color": "#9966FF"
-      }
+      { "name": "Achats", "value": 8000000, "color": "#197ca8" },
+      { "name": "Personnel", "value": 5000000, "color": "#015730" },
+      { "name": "Services", "value": 3000000, "color": "#ee872b" },
+      { "name": "Autres", "value": 2000000, "color": "#64748b" }
     ],
     "recentTransactions": [
       {
-        "id": "trans-1",
-        "date": "2024-06-15",
-        "description": "Paiement client ABC",
-        "amount": 12500.00,
+        "id": "1",
+        "date": "2024-03-01",
+        "description": "Facture client ABC SARL",
+        "amount": 1180000,
         "type": "credit"
       },
       {
-        "id": "trans-2",
-        "date": "2024-06-14",
-        "description": "Facture fournisseur XYZ",
-        "amount": 4800.00,
-        "type": "debit"
-      },
-      {
-        "id": "trans-3",
-        "date": "2024-06-12",
-        "description": "Loyer mensuel",
-        "amount": 3500.00,
-        "type": "debit"
-      },
-      {
-        "id": "trans-4",
-        "date": "2024-06-10",
-        "description": "Paiement client DEF",
-        "amount": 8750.00,
-        "type": "credit"
-      },
-      {
-        "id": "trans-5",
-        "date": "2024-06-08",
-        "description": "Salaires",
-        "amount": 15000.00,
+        "id": "2",
+        "date": "2024-02-28",
+        "description": "Achat marchandises",
+        "amount": 850000,
         "type": "debit"
       }
     ],
     "alerts": [
       {
-        "id": "alert-1",
+        "id": "1",
         "type": "warning",
-        "message": "Créances clients dépassant 60 jours: 15000 €"
+        "message": "Déclaration TVA due dans 5 jours"
       },
       {
-        "id": "alert-2",
+        "id": "2",
         "type": "success",
-        "message": "Objectif de chiffre d'affaires mensuel atteint"
-      },
-      {
-        "id": "alert-3",
-        "type": "error",
-        "message": "TVA à déclarer avant le 30/06/2024"
+        "message": "Synchronisation des données terminée"
       }
     ]
   }
 }
 ```
+
+### Get Quick Stats
+
+Retrieves only the quick statistics data.
+
+**URL:** `/dashboard/quick-stats`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalAssets": 25000000,
+    "revenue": 15000000,
+    "netIncome": 5000000,
+    "cashOnHand": 7500000,
+    "trends": {
+      "assets": { "value": 15, "isPositive": true },
+      "revenue": { "value": 8, "isPositive": true },
+      "netIncome": { "value": 12, "isPositive": true },
+      "cashOnHand": { "value": 5, "isPositive": true }
+    }
+  }
+}
+```
+
+### Get Financial Ratios
+
+Retrieves financial ratios and metrics.
+
+**URL:** `/dashboard/financial-ratios`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "grossProfitMargin": 65,
+    "breakEvenPoint": 7000000,
+    "daysSalesOutstanding": 45,
+    "daysPayableOutstanding": 30,
+    "workingCapital": 3000000,
+    "currentRatio": 1.8
+  }
+}
+```
+
+### Get Key Performance Indicators
+
+Retrieves credit score and financial rating.
+
+**URL:** `/dashboard/key-performance-indicators`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "creditScore": 750,
+    "financialRating": "AA-"
+  }
+}
+```
+
+### Get Revenue Data
+
+Retrieves revenue data for charts.
+
+**URL:** `/dashboard/revenue`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `startDate` (optional) - Start date (ISO format)
+- `endDate` (optional) - End date (ISO format)
+- `period` (optional) - 'day' | 'week' | 'month'
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    { "date": "2024-01", "revenue": 12000000 },
+    { "date": "2024-02", "revenue": 15000000 },
+    { "date": "2024-03", "revenue": 18000000 }
+  ]
+}
+```
+
+### Get Expenses Data
+
+Retrieves expenses breakdown for charts.
+
+**URL:** `/dashboard/expenses`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `startDate` (optional) - Start date (ISO format)
+- `endDate` (optional) - End date (ISO format)
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    { "name": "Achats", "value": 8000000, "color": "#197ca8" },
+    { "name": "Personnel", "value": 5000000, "color": "#015730" },
+    { "name": "Services", "value": 3000000, "color": "#ee872b" },
+    { "name": "Autres", "value": 2000000, "color": "#64748b" }
+  ]
+}
+```
+
+### Get Recent Transactions
+
+Retrieves recent transactions.
+
+**URL:** `/dashboard/transactions`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `limit` (optional) - Number of transactions to return (default: 10)
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "date": "2024-03-01",
+      "description": "Facture client ABC SARL",
+      "amount": 1180000,
+      "type": "credit"
+    }
+  ]
+}
+```
+
+### Get Alerts
+
+Retrieves system alerts and notifications.
+
+**URL:** `/dashboard/alerts`
+
+**Method:** `GET`
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "type": "warning",
+      "message": "Déclaration TVA due dans 5 jours"
+    }
+  ]
+}
+```
+```
+
+### Get Quick Stats
+
+Retrieves quick statistics (KPIs) for the dashboard.
+
+**URL:** `/dashboard/quick-stats`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** QuickStats object
+
+### Get Financial Ratios
+
+Retrieves financial ratios for the dashboard.
+
+**URL:** `/dashboard/financial-ratios`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** FinancialRatios object
+
+### Get Key Performance Indicators
+
+Retrieves key performance indicators including credit score and financial rating.
+
+**URL:** `/dashboard/key-performance-indicators`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** KeyPerformanceIndicators object
+
+### Get Revenue Data
+
+Retrieves revenue data for charts.
+
+**URL:** `/dashboard/revenue`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `startDate` (optional) - Start date (YYYY-MM-DD)
+- `endDate` (optional) - End date (YYYY-MM-DD)
+- `period` (optional) - 'day' | 'week' | 'month'
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** Array of RevenueDataPoint
+
+### Get Expenses Data
+
+Retrieves expenses data for charts.
+
+**URL:** `/dashboard/expenses`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `startDate` (optional) - Start date (YYYY-MM-DD)
+- `endDate` (optional) - End date (YYYY-MM-DD)
+- `fiscalYearId` (optional) - ID of the fiscal year
+
+**Response:** Array of ExpensesDataPoint
+
+### Get Recent Transactions
+
+Retrieves recent transactions for the dashboard.
+
+**URL:** `/dashboard/transactions`
+
+**Method:** `GET`
+
+**Query Parameters:**
+- `limit` (optional) - Number of transactions to retrieve
+
+**Response:** Array of Transaction objects
+
+### Get Alerts
+
+Retrieves alerts for the dashboard.
+
+**URL:** `/dashboard/alerts`
+
+**Method:** `GET`
+
+**Response:** Array of Alert objects
 
 ## Data Structures
 

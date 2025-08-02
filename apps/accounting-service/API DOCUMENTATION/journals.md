@@ -4,8 +4,6 @@ This document describes the Journal Entries API endpoints for the Wanzo Compta a
 
 ## Base URL
 
-Toutes les requêtes doivent passer par l'API Gateway.
-
 ```
 http://localhost:8000/accounting
 ```
@@ -14,38 +12,77 @@ http://localhost:8000/accounting
 
 All endpoints require authentication with a Bearer token.
 
-**Headers:**
+**Required Headers:**
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <jwt_token>
 X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
+Content-Type: application/json
+```
+
+## Data Structures
+
+### JournalEntry
+
+```typescript
+interface JournalEntry {
+  id: string;
+  date: string; // ISO date format
+  journalType: 'sales' | 'purchases' | 'bank' | 'cash' | 'general';
+  description: string;
+  reference: string;
+  totalDebit: number;
+  totalCredit: number;
+  totalVat: number;
+  status: 'draft' | 'pending' | 'approved' | 'posted';
+  source?: 'manual' | 'agent'; // Source de l'entrée
+  agentId?: string; // ID de l'agent comptable qui a généré cette entrée
+  validationStatus?: 'pending' | 'validated' | 'rejected'; // Statut de validation pour les entrées provenant de l'agent
+  validatedBy?: string; // Utilisateur qui a validé l'entrée
+  validatedAt?: string; // Date de validation (ISO format)
+  lines: JournalLine[];
+  attachments?: JournalAttachment[];
+}
+
+interface JournalLine {
+  id: string;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  debit: number;
+  credit: number;
+  description: string;
+  vatCode?: string;
+  vatAmount?: number;
+  analyticCode?: string;
+}
+
+interface JournalAttachment {
+  id: string;
+  name: string;
+  url?: string;
+  localUrl?: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'error';
+}
 ```
 
 ## Endpoints
 
 ### Get All Journal Entries
 
-Retrieves all journal entries with pagination.
+Retrieves all journal entries with pagination and filtering.
 
 **URL:** `/journal-entries`
 
 **Method:** `GET`
 
-**Authentication Required:** Yes
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
 **Query Parameters:**
 - `page` (optional) - Page number (default: 1)
-- `pageSize` (optional) - Number of entries per page (default: 20)
-- `search` (optional) - Search term for description, reference, etc.
-- `journalType` (optional) - Filter by journal type (e.g., 'sales', 'purchases').
-- `startDate` (optional) - Start date for filtering (format: YYYY-MM-DD).
-- `endDate` (optional) - End date for filtering (format: YYYY-MM-DD).
-- `status` (optional) - Filter by status ('draft', 'pending', 'approved', 'posted').
-- `source` (optional) - Filter by source ('manual', 'agent').
+- `pageSize` (optional) - Number of entries per page (default: 20, max: 100)
+- `journalType` (optional) - Filter by journal type
+- `status` (optional) - Filter by status
+- `source` (optional) - Filter by source ('manual' | 'agent')
+- `startDate` (optional) - Filter by start date (ISO format)
+- `endDate` (optional) - Filter by end date (ISO format)
 
 **Response:** `200 OK`
 
@@ -56,56 +93,67 @@ Authorization: Bearer <token>
     "data": [
       {
         "id": "je-123",
-        "date": "2024-06-15",
+        "date": "2024-03-01T00:00:00Z",
         "journalType": "sales",
-        "description": "Invoice #12345",
-        "reference": "INV12345",
-        "totalDebit": 1200.00,
-        "totalCredit": 1200.00,
-        "totalVat": 200.00,
+        "description": "Facture client ABC SARL",
+        "reference": "FAC2024-001",
+        "totalDebit": 1180000,
+        "totalCredit": 1180000,
+        "totalVat": 180000,
         "status": "posted",
         "source": "manual",
         "lines": [
           {
             "id": "jl-1",
-            "accountId": "acc-411",
+            "accountId": "411000",
             "accountCode": "411000",
-            "accountName": "Client",
-            "debit": 1200.00,
+            "accountName": "Clients",
+            "debit": 1180000,
             "credit": 0,
-            "description": "Invoice #12345",
-            "vatCode": "TVA20",
-            "vatAmount": 200.00
+            "description": "Client ABC SARL",
+            "vatCode": "",
+            "vatAmount": 0
           },
           {
             "id": "jl-2",
-            "accountId": "acc-707",
+            "accountId": "707000",
             "accountCode": "707000",
-            "accountName": "Sales of Services",
+            "accountName": "Ventes de marchandises",
             "debit": 0,
-            "credit": 1000.00,
-            "description": "Invoice #12345"
+            "credit": 1000000,
+            "description": "Ventes de marchandises",
+            "vatCode": "",
+            "vatAmount": 0
           },
           {
             "id": "jl-3",
-            "accountId": "acc-445",
-            "accountCode": "445710",
-            "accountName": "TVA collected",
+            "accountId": "445700",
+            "accountCode": "445700",
+            "accountName": "État, TVA collectée",
             "debit": 0,
-            "credit": 200.00,
-            "description": "VAT on Invoice #12345"
+            "credit": 180000,
+            "description": "TVA sur ventes",
+            "vatCode": "TVA16",
+            "vatAmount": 180000
           }
         ],
         "attachments": [
           {
             "id": "att-1",
-            "name": "invoice-12345.pdf",
-            "url": "https://example.com/attachments/invoice-12345.pdf",
+            "name": "facture_abc_001.pdf",
+            "url": "/files/facture_abc_001.pdf",
             "status": "uploaded"
           }
         ]
-      },
-      {
+      }
+    ],
+    "total": 145,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 8
+  }
+}
+```
         "id": "je-124",
         "date": "2024-06-16",
         "journalType": "purchases",

@@ -1,10 +1,10 @@
-# Chat API Documentation
+# Chat ADHA API Documentation
 
-This document describes the Chat API endpoints for the Wanzo Compta application.
+Ce document décrit l'API Chat ADHA pour l'application Wanzo Compta. Le système de chat ADHA (Assistant Digital en Haut niveau d'Analyse) permet l'interaction avec l'assistant IA comptable.
+
+**⚠️ IMPORTANT**: Cette documentation décrit l'API cible pour une future implémentation backend. Actuellement, le chat fonctionne avec des données mock et du stockage local via Zustand et localStorage.
 
 ## Base URL
-
-Toutes les requêtes doivent passer par l'API Gateway.
 
 ```
 http://localhost:8000/accounting
@@ -14,64 +14,172 @@ http://localhost:8000/accounting
 
 All endpoints require authentication with a Bearer token.
 
-**Headers:**
+**Required Headers:**
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <jwt_token>
 X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
+Content-Type: application/json
 ```
 
-## Endpoints
+## État Actuel vs API Future
 
-### Chat Endpoint
+### État Actuel (Implémentation Frontend)
+- **Stockage**: localStorage + Zustand store
+- **IA**: Réponses simulées avec patterns de mots-clés
+- **Modèles**: 3 modèles prédéfinis (Adha 1, Adha Fisk, Adha O1)
+- **Mode Write**: Hook `useAdhaWriteMode` pour basculer entre modes
+- **Conversations**: Gestion locale avec `useChatStore`
 
-Handles all interactions with the chat, including sending messages, creating conversations, and retrieving history.
+### API Future (À Implémenter)
+L'API décrite ci-dessous devra être implémentée pour remplacer le système mock actuel.
 
-**URL:** `/chat`
+## Data Structures (Actuelles dans le Code)
+
+### Message
+
+```typescript
+interface Message {
+  id: string;
+  sender: 'user' | 'bot';
+  content: string;
+  timestamp: string; // ISO 8601 format
+  likes?: number;
+  dislikes?: number;
+  isEditing?: boolean;
+  attachment?: {
+    name: string;
+    type: string;
+    content: string; // base64
+  };
+}
+```
+
+### Conversation
+
+```typescript
+interface Conversation {
+  id: string;
+  title: string;
+  timestamp: string; // ISO 8601 format
+  messages: Message[];
+  isActive: boolean;
+  model: AIModel;
+  context: string[];
+}
+```
+
+### AIModel
+
+```typescript
+interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  contextLength: number;
+}
+
+// Modèles actuellement définis
+const AI_MODELS = [
+  {
+    id: 'adha-1',
+    name: 'Adha 1',
+    description: 'Modèle de base pour la comptabilité générale',
+    capabilities: ['Comptabilité générale', 'Écritures simples', 'Rapprochements'],
+    contextLength: 4096
+  },
+  {
+    id: 'adha-fisk',
+    name: 'Adha Fisk',
+    description: 'Spécialisé en fiscalité et déclarations',
+    capabilities: ['Fiscalité', 'TVA', 'Déclarations fiscales', 'Optimisation fiscale'],
+    contextLength: 8192
+  },
+  {
+    id: 'adha-o1',
+    name: 'Adha O1',
+    description: 'Version avancée pour l\'analyse financière',
+    capabilities: ['Analyse financière', 'Ratios', 'Prévisions', 'Tableaux de bord'],
+    contextLength: 16384
+  }
+];
+```
+
+## Implémentation Actuelle (Frontend Only)
+
+### Hooks Utilisés
+- `useChatStore`: Store Zustand pour gérer l'état global du chat
+- `useChat`: Hook simple pour une conversation unique
+- `useChatMode`: Gestion du mode floating/fullscreen
+- `useAdhaWriteMode`: Basculer entre mode chat normal et mode écriture comptable
+
+### Stockage Local
+- **localStorage**: Persistance des conversations (`chat_history`)
+- **Zustand persist**: State management avec persistance automatique
+
+### Simulation IA
+- **Mots-clés**: Système de détection de patterns dans `mockChatResponses.ts`
+- **Réponses**: Templates prédéfinis pour code Python, formules mathématiques, graphiques
+- **Délai**: Simulation de 2 secondes pour les réponses
+
+### Mode Écriture ADHA
+- **État**: Géré par `useAdhaWriteMode` hook
+- **Intégration**: Lié au système d'agent entries pour la génération d'écritures comptables
+- **UI**: Indicateur visuel du mode actif dans l'interface
+
+## API Future (À Implémenter Backend)
+
+### Send Message
+
+**URL:** `/chat/message`
 
 **Method:** `POST`
 
-**Authentication Required:** Yes
-
 **Request Body:**
-
 ```json
 {
-  "conversationId": "conv-123", // Optional, for existing conversations
+  "conversationId": "conv-123",
   "message": {
-    "content": "Comment calculer l'amortissement linéaire d'un bien de 10000 € sur 5 ans ?",
-    "attachment": { // Optional
-      "name": "exemple.pdf",
+    "content": "Comment calculer l'amortissement linéaire ?",
+    "attachment": {
+      "name": "facture.pdf",
       "type": "application/pdf",
       "content": "base64-encoded-content"
     }
   },
-  "modelId": "adha-1", // Optional, for new conversations
-  "context": ["fiscal-year-2024", "amortissements"] // Optional, for new conversations
+  "modelId": "adha-1",
+  "writeMode": false,
+  "context": ["fiscal-year-2024"]
 }
 ```
 
-**Response:** (Streams the bot's response)
-
+**Response:** `200 OK`
 ```json
 {
-  "id": "msg-6",
-  "sender": "bot",
-  "content": "Pour calculer l'amortissement...",
-  "timestamp": "2024-06-19T09:47:45Z",
-  "conversationId": "conv-123"
+  "success": true,
+  "data": {
+    "message": {
+      "id": "msg-6",
+      "sender": "bot",
+      "content": "Pour calculer l'amortissement linéaire...",
+      "timestamp": "2024-08-02T10:15:30Z",
+      "likes": 0,
+      "dislikes": 0
+    },
+    "conversationId": "conv-123",
+    "journalEntry": null
+  }
 }
+```
 ```
 
 ### Get Conversations
-
-Retrieves all chat conversations for the current user.
 
 **URL:** `/chat/conversations`
 
 **Method:** `GET`
 
-**Response:**
-
+**Response:** `200 OK`
 ```json
 {
   "success": true,
@@ -79,7 +187,7 @@ Retrieves all chat conversations for the current user.
     {
       "id": "conv-123",
       "title": "Assistance comptabilité SYSCOHADA",
-      "timestamp": "2024-06-15T10:30:45Z",
+      "timestamp": "2024-08-02T10:30:45Z",
       "isActive": true,
       "model": {
         "id": "adha-1",
@@ -88,21 +196,8 @@ Retrieves all chat conversations for the current user.
         "capabilities": ["Comptabilité générale", "Écritures simples", "Rapprochements"],
         "contextLength": 4096
       },
-      "context": ["fiscal-year-2024", "SYSCOHADA"]
-    },
-    {
-      "id": "conv-124",
-      "title": "Audit financier",
-      "timestamp": "2024-06-10T14:20:15Z",
-      "isActive": false,
-      "model": {
-        "id": "adha-fisk",
-        "name": "Adha Fisk",
-        "description": "Modèle spécialisé pour la fiscalité et l'audit",
-        "capabilities": ["Fiscalité", "Audit", "Déclarations fiscales", "Optimisation fiscale"],
-        "contextLength": 8192
-      },
-      "context": ["fiscal-year-2023", "audit"]
+      "context": ["fiscal-year-2024", "SYSCOHADA"],
+      "messages": []
     }
   ]
 }
@@ -110,21 +205,18 @@ Retrieves all chat conversations for the current user.
 
 ### Get Conversation History
 
-Retrieves the message history for a specific conversation.
-
-**URL:** `/chat/conversations/:id`
+**URL:** `/chat/conversations/{id}`
 
 **Method:** `GET`
 
-**Response:**
-
+**Response:** `200 OK`
 ```json
 {
   "success": true,
   "data": {
     "id": "conv-123",
     "title": "Assistance comptabilité SYSCOHADA",
-    "timestamp": "2024-06-15T10:30:45Z",
+    "timestamp": "2024-08-02T10:30:45Z",
     "isActive": true,
     "model": {
       "id": "adha-1",
@@ -139,25 +231,13 @@ Retrieves the message history for a specific conversation.
         "id": "msg-1",
         "sender": "user",
         "content": "Comment enregistrer une facture d'achat avec TVA ?",
-        "timestamp": "2024-06-15T10:30:45Z"
+        "timestamp": "2024-08-02T10:30:45Z"
       },
       {
         "id": "msg-2",
         "sender": "bot",
-        "content": "Pour enregistrer une facture d'achat avec TVA dans le système SYSCOHADA, vous devez créer une écriture de journal avec les comptes suivants :\n\n1. Débiter le compte de charge approprié (classe 6)\n2. Débiter le compte 4456 - TVA déductible\n3. Créditer le compte 401 - Fournisseurs\n\nExemple pour une facture de 1000 € HT avec TVA à 20% :\n- Débit 6xxxxx : 1000 €\n- Débit 4456 : 200 €\n- Crédit 401 : 1200 €",
-        "timestamp": "2024-06-15T10:31:30Z"
-      },
-      {
-        "id": "msg-3",
-        "sender": "user",
-        "content": "Merci, et pour une immobilisation ?",
-        "timestamp": "2024-06-15T10:32:15Z"
-      },
-      {
-        "id": "msg-4",
-        "sender": "bot",
-        "content": "Pour une immobilisation, le principe est similaire mais vous utilisez un compte de classe 2 au lieu d'un compte de charge :\n\n1. Débiter le compte d'immobilisation approprié (classe 2)\n2. Débiter le compte 4456 - TVA déductible\n3. Créditer le compte 404 - Fournisseurs d'immobilisations\n\nExemple pour un matériel de 5000 € HT avec TVA à 20% :\n- Débit 215xxx (Matériel) : 5000 €\n- Débit 4456 : 1000 €\n- Crédit 404 : 6000 €",
-        "timestamp": "2024-06-15T10:33:00Z",
+        "content": "Pour enregistrer une facture d'achat avec TVA dans le système SYSCOHADA...",
+        "timestamp": "2024-08-02T10:31:30Z",
         "likes": 1
       }
     ]
@@ -167,14 +247,11 @@ Retrieves the message history for a specific conversation.
 
 ### Get Available Models
 
-Retrieves all available AI models for chat.
-
 **URL:** `/chat/models`
 
 **Method:** `GET`
 
-**Response:**
-
+**Response:** `200 OK`
 ```json
 {
   "success": true,
@@ -189,15 +266,15 @@ Retrieves all available AI models for chat.
     {
       "id": "adha-fisk",
       "name": "Adha Fisk",
-      "description": "Modèle spécialisé pour la fiscalité et l'audit",
-      "capabilities": ["Fiscalité", "Audit", "Déclarations fiscales", "Optimisation fiscale"],
+      "description": "Spécialisé en fiscalité et déclarations",
+      "capabilities": ["Fiscalité", "TVA", "Déclarations fiscales", "Optimisation fiscale"],
       "contextLength": 8192
     },
     {
-      "id": "adha-pro",
-      "name": "Adha Pro",
-      "description": "Modèle avancé pour toutes les opérations comptables",
-      "capabilities": ["Comptabilité avancée", "Fiscalité", "Audit", "Prévisions financières", "Analyses"],
+      "id": "adha-o1",
+      "name": "Adha O1",
+      "description": "Version avancée pour l'analyse financière",
+      "capabilities": ["Analyse financière", "Ratios", "Prévisions", "Tableaux de bord"],
       "contextLength": 16384
     }
   ]
@@ -206,18 +283,22 @@ Retrieves all available AI models for chat.
 
 ## Mode d'Écriture ADHA
 
-En plus des fonctionnalités de chat standard, l'API prend en charge un mode spécial "Écriture ADHA" qui permet de transformer les messages et leurs pièces jointes en écritures comptables automatiques.
+### État Actuel
+Le mode d'écriture ADHA est géré côté frontend par le hook `useAdhaWriteMode` qui bascule entre :
+- **Mode Chat Normal**: Conversation standard avec l'assistant
+- **Mode Écriture**: Transformation des messages en propositions d'écritures comptables
 
-### Activation du Mode d'Écriture
+### Intégration avec Agent Entries
+Le mode écriture est lié au système `agentEntries` pour générer automatiquement des écritures comptables à partir des conversations.
 
-Lors de l'envoi d'un message au chat, le client peut spécifier si la conversation doit être traitée en mode chat standard ou en mode d'écriture comptable.
+### API Future pour Mode Écriture
 
-**Paramètre supplémentaire dans le corps de la requête :**
+**Paramètre `writeMode` dans les requêtes de message:**
 ```json
 {
-  "conversationId": "conv-123", 
+  "conversationId": "conv-123",
   "message": {
-    "content": "Facture de téléphone Orange pour 120€ dont 20€ de TVA",
+    "content": "Facture Orange 120€ TTC (100€ HT + 20€ TVA)",
     "attachment": {
       "name": "facture-orange.pdf",
       "type": "application/pdf",
@@ -225,132 +306,104 @@ Lors de l'envoi d'un message au chat, le client peut spécifier si la conversati
     }
   },
   "modelId": "adha-1",
-  "context": ["fiscal-year-2024"],
-  "writeMode": true // Active le mode d'écriture comptable ADHA
+  "writeMode": true,
+  "context": ["fiscal-year-2024"]
 }
 ```
 
-### Réponse en Mode d'Écriture
-
-Lorsque le mode d'écriture est activé, le bot génère une proposition d'écriture comptable basée sur le message de l'utilisateur et/ou les pièces jointes. La réponse inclut des champs supplémentaires liés à l'écriture comptable proposée.
-
-**Exemple de réponse en mode d'écriture :**
+**Réponse avec écriture proposée:**
 ```json
 {
-  "id": "msg-7",
-  "sender": "bot",
-  "content": "J'ai analysé votre facture de téléphone et je propose l'écriture comptable suivante :",
-  "timestamp": "2024-06-20T15:45:30Z",
-  "conversationId": "conv-123",
-  "journalEntry": {
-    "entryId": "agent-123",
-    "date": "2024-06-20",
-    "journalCode": "ACH",
-    "reference": "FACTURE-ORANGE-06-2024",
-    "description": "Facture téléphone Orange",
-    "lines": [
-      {
-        "accountCode": "626100",
-        "accountName": "Frais de télécommunication",
-        "debit": 100.00,
-        "credit": 0
-      },
-      {
-        "accountCode": "445660",
-        "accountName": "TVA déductible sur autres biens et services",
-        "debit": 20.00,
-        "credit": 0
-      },
-      {
-        "accountCode": "401100",
-        "accountName": "Fournisseurs - achats de biens ou prestations de services",
-        "debit": 0,
-        "credit": 120.00
-      }
-    ],
-    "status": "pending",
-    "attachmentId": "attach-123"
+  "success": true,
+  "data": {
+    "message": {
+      "id": "msg-7",
+      "sender": "bot",
+      "content": "J'ai analysé votre facture et propose cette écriture comptable :",
+      "timestamp": "2024-08-02T15:45:30Z"
+    },
+    "conversationId": "conv-123",
+    "journalEntry": {
+      "id": "agent-123",
+      "date": "2024-08-02",
+      "journalType": "purchases",
+      "reference": "FACTURE-ORANGE-08-2024",
+      "description": "Facture téléphone Orange",
+      "status": "draft",
+      "source": "agent",
+      "agentId": "adha-1",
+      "validationStatus": "pending",
+      "lines": [
+        {
+          "accountCode": "626100",
+          "accountName": "Frais de télécommunication",
+          "debit": 100,
+          "credit": 0,
+          "description": "Frais téléphone Orange HT"
+        },
+        {
+          "accountCode": "445660",
+          "accountName": "TVA déductible",
+          "debit": 20,
+          "credit": 0,
+          "description": "TVA sur frais téléphone"
+        },
+        {
+          "accountCode": "401100",
+          "accountName": "Fournisseurs",
+          "debit": 0,
+          "credit": 120,
+          "description": "Orange - Facture téléphone"
+        }
+      ],
+      "totalDebit": 120,
+      "totalCredit": 120,
+      "totalVat": 20
+    }
   }
 }
 ```
 
-### Validation d'une Écriture Proposée
+## Composants Frontend Existants
 
-Après avoir reçu une proposition d'écriture, le client peut la valider ou la modifier via l'API des entrées d'agent (`/agent-entries`).
+### Pages
+- `ChatPage`: Page plein écran pour le chat
+- Intégrée dans le router avec route `/chat`
 
-**URL pour la validation :** `/agent-entries/{entryId}/validate`
+### Composants
+- `ChatContainer`: Conteneur principal gérant les modes floating/fullscreen
+- `ChatWindow`: Fenêtre de chat avec liste des messages
+- `ChatMessage`: Composant pour afficher un message individuel
+- `ConversationList`: Liste des conversations sauvegardées
+- `ModelSelector`: Sélecteur de modèle IA
+- `MessageContent`: Rendu du contenu des messages avec support markdown/code
+- `EmojiPicker`: Sélecteur d'emojis pour les réactions
 
-**Méthode :** `PUT`
+### Hooks de Gestion d'État
+- `useChatStore`: Store Zustand principal avec persistance
+- `useChat`: Hook simple pour une conversation
+- `useChatMode`: Gestion des modes d'affichage
+- `useAdhaWriteMode`: Activation/désactivation du mode écriture
 
-**Corps de la requête (optionnel pour les modifications) :**
-```json
-{
-  "lines": [
-    {
-      "accountCode": "626100",
-      "debit": 100.00,
-      "credit": 0
-    },
-    {
-      "accountCode": "445660",
-      "debit": 20.00,
-      "credit": 0
-    },
-    {
-      "accountCode": "401100",
-      "debit": 0,
-      "credit": 120.00
-    }
-  ],
-  "description": "Facture téléphone Orange - Juin 2024"
-}
-```
+### Données Mock
+- `mockChatResponses.ts`: Système de réponses basé sur mots-clés
+- Patterns pour: code Python, formules mathématiques, graphiques, tableaux
+- Simulation de délai de réponse (2 secondes)
 
-## Data Structures
+## Prochaines Étapes
 
-### Conversation
+1. **Implémenter l'API Backend**: Remplacer le système mock par une vraie API
+2. **Intégration IA**: Connecter un vrai service d'IA (OpenAI, Claude, etc.)
+3. **Mode Écriture**: Implémenter la génération automatique d'écritures comptables
+4. **Persistance**: Migrer de localStorage vers base de données
+5. **Temps Réel**: Ajouter WebSocket pour les interactions temps réel
 
-```typescript
-interface Conversation {
-  id: string;
-  title: string;
-  timestamp: string; // ISO 8601 format
-  isActive: boolean;
-  model: AIModel;
-  context: string[];
-  messages: Message[];
-}
-```
+## Notes d'Implémentation
 
-### Message
-
-```typescript
-interface Message {
-  id: string;
-  sender: 'user' | 'bot';
-  content: string;
-  timestamp: string; // ISO 8601 format
-  attachment?: {
-    name: string;
-    type: string;
-    content: string; // base64
-  };
-  likes?: number;
-  dislikes?: number;
-}
-```
-
-### AIModel
-
-```typescript
-interface AIModel {
-  id: string;
-  name: string;
-  description: string;
-  capabilities: string[];
-  contextLength: number;
-}
-```
+- La structure des données frontend est prête pour l'API
+- Les hooks peuvent facilement être adaptés pour utiliser les vrais endpoints
+- Le système de persistance Zustand peut coexister avec l'API
+- Les composants UI sont découplés des sources de données
 
 ## Error Responses
 

@@ -22,9 +22,86 @@ X-Accounting-Client: Wanzo-Accounting-UI/1.0.0
 
 ## Endpoints
 
+### Get Account Balance
+
+Retrieves the current balance for a specific account with optional date and currency filters.
+
+**URL:** `/ledger/accounts/{accountId}/balance`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `date` (optional) - Date for balance calculation (YYYY-MM-DD format)
+- `currency` (optional) - Currency code for conversion (e.g., XOF, EUR, USD)
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "accountId": "acc-411",
+    "debit": 2500000.00,
+    "credit": 1375000.50,
+    "balance": 1124999.50,
+    "currency": "XOF"
+  }
+}
+```
+
+### Get Account Movements
+
+Retrieves all movements (transactions) for a specific account with comprehensive filtering and pagination.
+
+**URL:** `/ledger/accounts/{accountId}/movements`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `startDate` (optional) - Start date for filtering (YYYY-MM-DD format)
+- `endDate` (optional) - End date for filtering (YYYY-MM-DD format)
+- `journalType` (optional) - Filter by journal type: `sales`, `purchases`, `bank`, `cash`, `general`, `all`
+- `status` (optional) - Filter by status: `draft`, `pending`, `approved`, `posted`, `all`
+- `currency` (optional) - Currency code for conversion
+- `minAmount` (optional) - Minimum transaction amount filter
+- `maxAmount` (optional) - Maximum transaction amount filter
+- `sortBy` (optional) - Sort field: `date`, `amount`, `reference`
+- `sortOrder` (optional) - Sort order: `asc`, `desc`
+- `page` (optional) - Page number for pagination (default: 1)
+- `pageSize` (optional) - Number of entries per page (default: 50, max: 200)
+
+**Response:** `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "je-123",
+      "date": "2024-06-15",
+      "journalType": "sales",
+      "description": "Facture client ABC",
+      "reference": "VTE-001",
+      "totalDebit": 1200.00,
+      "totalCredit": 1200.00,
+      "totalVat": 200.00,
+      "status": "posted",
+      "lines": []
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 2
+}
+```
+
 ### Get Trial Balance
 
-Retrieves the trial balance, which lists all accounts and their debit/credit balances.
+Retrieves the trial balance with comprehensive filtering options, which lists all accounts and their debit/credit balances.
 
 **URL:** `/ledger/trial-balance`
 
@@ -33,10 +110,11 @@ Retrieves the trial balance, which lists all accounts and their debit/credit bal
 **Authentication Required:** Yes
 
 **Query Parameters:**
-- `fiscalYearId` (required) - The ID of the fiscal year.
-- `startDate` (optional) - Start date for a specific period.
-- `endDate` (optional) - End date for a specific period.
-- `includeEmptyAccounts` (optional, boolean) - Whether to include accounts with no movements.
+- `date` (optional) - Date for trial balance calculation (YYYY-MM-DD format)
+- `mode` (optional) - Accounting standard: `SYSCOHADA`, `IFRS` (default: SYSCOHADA)
+- `currency` (optional) - Currency code for conversion
+- `level` (optional) - Account detail level (number of digits to group by)
+- `includeZeroBalances` (optional) - Include accounts with zero balance: `true`, `false`
 
 **Response:** `200 OK`
 
@@ -48,6 +126,25 @@ Retrieves the trial balance, which lists all accounts and their debit/credit bal
       "account": {
         "id": "acc-101",
         "code": "101000",
+        "name": "Capital",
+        "type": "equity"
+      },
+      "debit": 0,
+      "credit": 500000.00,
+      "balance": -500000.00
+    },
+    {
+      "account": {
+        "id": "acc-411",
+        "code": "411000",
+        "name": "Clients",
+        "type": "asset"
+      },
+      "debit": 125000.00,
+      "credit": 25000.00,
+    "balance": 100000.00
+  }
+]
         "name": "Capital social",
         "type": "equity"
       },
@@ -204,6 +301,76 @@ interface Account {
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 }
 ```
+
+### Export Balance Sheet
+
+Export trial balance or balance sheet in various formats.
+
+**URL:** `/ledger/export-balance`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `format` (required) - Export format: `pdf`, `excel`, `csv`
+- `mode` (optional) - Accounting standard: `SYSCOHADA`, `IFRS`
+- `date` (optional) - Date for balance calculation (YYYY-MM-DD)
+- `currency` (optional) - Currency code
+- `includeDetails` (optional) - Include detailed account information: `true`, `false`
+
+**Response:** File download (Content-Type varies by format)
+
+### Alternative Account Movements Endpoint
+
+Alternative endpoint for retrieving account movements with different URL structure.
+
+**URL:** `/ledger/accounts/{accountId}`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:** Same as `/ledger/accounts/{accountId}/movements`
+
+### Export General Ledger
+
+Export comprehensive ledger data in various formats.
+
+**URL:** `/ledger/export`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `format` (required) - Export format: `pdf`, `excel`, `csv`
+- `accountIds` (optional) - Array of specific account IDs to export
+- `startDate` (optional) - Start date for export
+- `endDate` (optional) - End date for export
+- `mode` (optional) - Accounting standard: `SYSCOHADA`, `IFRS`
+- `currency` (optional) - Currency code
+- `includeDetails` (optional) - Include detailed transaction information
+
+### Search Ledger
+
+Search across all ledger entries with comprehensive filtering.
+
+**URL:** `/ledger/search`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `query` (required) - Search term for description, reference, or account
+- `startDate` (optional) - Start date filter
+- `endDate` (optional) - End date filter
+- `accountType` (optional) - Filter by account type
+- `journalType` (optional) - Filter by journal type
+- `status` (optional) - Filter by entry status
+- `page` (optional) - Page number for pagination
+- `pageSize` (optional) - Number of entries per page
 
 ## Error Responses
 
