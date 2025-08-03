@@ -1,14 +1,17 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserQueryDto, InviteUserDto } from '../dtos/user.dto';
+import { EventsService } from '../../events/events.service';
+import { UserEventTopics, EventUserType } from '../../../../../../packages/shared/events/kafka-config';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly eventsService: EventsService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -26,7 +29,25 @@ export class UserService {
       status: UserStatus.ACTIVE
     });
     
-    return await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    // Emit USER_CREATED event to notify customer-service
+    try {
+      await this.eventsService.publishUserCreated({
+        userId: savedUser.id,
+        email: savedUser.email,
+        name: `${savedUser.firstName} ${savedUser.lastName}`.trim(),
+        role: savedUser.role,
+        userType: EventUserType.SME_USER, // Assuming accounting users are SME users
+        customerAccountId: savedUser.organizationId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Log error but don't fail the user creation
+      console.error('Failed to emit USER_CREATED event:', error);
+    }
+    
+    return savedUser;
   }
 
   async findAll(organizationId: string, query: UserQueryDto) {
@@ -121,6 +142,21 @@ export class UserService {
     });
     
     const savedUser = await this.userRepository.save(user);
+
+    // Emit USER_CREATED event to notify customer-service
+    try {
+      await this.eventsService.publishUserCreated({
+        userId: savedUser.id,
+        email: savedUser.email,
+        name: `${savedUser.firstName} ${savedUser.lastName}`.trim(),
+        role: savedUser.role,
+        userType: EventUserType.SME_USER,
+        customerAccountId: savedUser.organizationId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Failed to emit USER_CREATED event for invited user:', error);
+    }
 
     // Here you would typically send an invitation email
     // await this.emailService.sendInvitation(savedUser);

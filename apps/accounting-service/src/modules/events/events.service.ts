@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ACCOUNTING_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
-import { UserEventTopics } from '../../../../../packages/shared/events/kafka-config';
+import { UserEventTopics, UserCreatedEvent } from '../../../../../packages/shared/events/kafka-config';
 
 // Define the DataSharingConsentChangedEventData interface locally since it's not exported from kafka-config
 interface DataSharingConsentChangedEventData {
@@ -27,6 +27,23 @@ export class EventsService {
       this.logger.log('Kafka client connected successfully for accounting-service producer.');
     } catch (error) {
       this.logger.error('Failed to connect Kafka client for accounting-service producer', error);
+    }
+  }
+
+  async publishUserCreated(eventData: UserCreatedEvent): Promise<void> {
+    try {
+      this.logger.log(
+        `Publishing ${UserEventTopics.USER_CREATED} event: ${JSON.stringify(eventData)}`,
+      );
+      await this.kafkaClient
+        .emit(UserEventTopics.USER_CREATED, JSON.stringify(eventData))
+        .toPromise();
+    } catch (error) {
+      this.logger.error(
+        `Failed to publish user created event for user ${eventData.userId}`,
+        error,
+      );
+      throw error;
     }
   }
 

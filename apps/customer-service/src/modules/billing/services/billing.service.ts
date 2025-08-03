@@ -115,7 +115,7 @@ export class BillingService {
     });
     
     if (!invoice) {
-      throw new Error(`Invoice with ID ${id} not found`);
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
     }
     
     return invoice;

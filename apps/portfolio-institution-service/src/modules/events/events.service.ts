@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nest
 import { ClientKafka } from '@nestjs/microservices';
 import { 
   UserEventTopics, 
+  UserCreatedEvent,
   UserStatusChangedEvent, 
   UserRoleChangedEvent
 } from '../../../../../packages/shared/events/kafka-config';
@@ -38,6 +39,11 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.eventsClient.close();
+  }
+
+  async publishUserCreated(event: UserCreatedEvent): Promise<void> {
+    this.logger.log(`Publishing user created event: ${JSON.stringify(event)}`);
+    this.eventsClient.emit(UserEventTopics.USER_CREATED, event);
   }
 
   async publishUserStatusChanged(event: UserStatusChangedEvent): Promise<void> {

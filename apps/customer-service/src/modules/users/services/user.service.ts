@@ -168,6 +168,16 @@ export class UserService {
   }
 
   /**
+   * Find user entity by Auth0 ID (returns the entity, not DTO)
+   */
+  async findUserEntityByAuth0Id(auth0Id: string): Promise<User | null> {
+    return await this.userRepository.findOne({ 
+      where: { auth0Id },
+      relations: ['customer']
+    });
+  }
+
+  /**
    * Change user type (SME, FINANCIAL_INSTITUTION)
    */
   async changeUserType(userId: string, newType: string): Promise<UserResponseDto> {
@@ -525,5 +535,68 @@ export class UserService {
       idStatus: IdStatus.PENDING,
       documentUrl: uploadResult.url
     };
+  }
+
+  /**
+   * Create user from external event (from other microservices)
+   */
+  async createFromExternalEvent(userData: {
+    name: string;
+    email: string;
+    auth0Id: string;
+    role: string;
+    userType: string;
+    customerId: string;
+    companyId: string;
+    isCompanyOwner: boolean;
+    status: string;
+    createdAt: Date;
+  }): Promise<User> {
+    const newUser = this.userRepository.create({
+      name: userData.name,
+      email: userData.email,
+      auth0Id: userData.auth0Id,
+      role: userData.role as UserRole,
+      userType: userData.userType as UserType,
+      customerId: userData.customerId,
+      companyId: userData.companyId,
+      status: userData.status as UserStatus,
+      isCompanyOwner: userData.isCompanyOwner,
+      createdAt: userData.createdAt,
+      updatedAt: new Date(),
+      lastLogin: undefined,
+    });
+
+    return await this.userRepository.save(newUser);
+  }
+
+  /**
+   * Update user status
+   */
+  async updateStatus(userId: string, newStatus: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.status = newStatus as UserStatus;
+    user.updatedAt = new Date();
+
+    return await this.userRepository.save(user);
+  }
+
+  /**
+   * Update user role
+   */
+  async updateRole(userId: string, newRole: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.role = newRole as UserRole;
+    user.updatedAt = new Date();
+
+    return await this.userRepository.save(user);
   }
 }

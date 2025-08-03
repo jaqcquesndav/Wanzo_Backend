@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { PrometheusController } from './monitoring/prometheus.controller';
@@ -38,6 +39,26 @@ async function bootstrap() {
   const register = new prometheus.Registry();
   prometheus.collectDefaultMetrics({ register });
   app.useGlobalInterceptors(PrometheusController.getPrometheusInterceptor(register));
+
+  // Configuration du microservice Kafka pour écouter les événements
+  const kafkaBrokers = configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId: 'customer-service-consumer',
+        brokers: kafkaBrokers,
+      },
+      consumer: {
+        groupId: 'customer-service-group',
+        allowAutoTopicCreation: true,
+      },
+    },
+  });
+
+  // Démarrer le microservice et le serveur HTTP
+  await app.startAllMicroservices();
+  console.log('Customer Service microservice started and listening for Kafka events');
   
   // Démarrer le serveur
   const port = configService.get<number>('PORT', 3011);

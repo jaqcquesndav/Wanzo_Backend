@@ -1,19 +1,17 @@
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
-  rootDir: 'src',
+  rootDir: '.',
+  roots: ['<rootDir>/src', '<rootDir>/test'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-    }],
+    '^.+\\.(t|j)s$': 'ts-jest',
   },
-  collectCoverageFrom: ['**/*.(t|j)s'],
-  coverageDirectory: '../coverage',
+  collectCoverageFrom: ['src/**/*.(t|j)s'],
+  coverageDirectory: './coverage',
   testEnvironment: 'node',
   setupFiles: ['dotenv/config'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@wanzo/shared/(.*)$': '<rootDir>/../../packages/shared/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
-  // Configuration pour isoler les tests et éviter les connexions réelles aux bases de données et Kafka
-  setupFilesAfterEnv: ['../test/setup-jest.ts'],
 };

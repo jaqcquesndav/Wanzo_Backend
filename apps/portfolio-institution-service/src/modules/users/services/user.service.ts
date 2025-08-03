@@ -13,6 +13,8 @@ import {
   ChangeUserStatusDto,
   UserPreferenceDto 
 } from '../dto/user.dto';
+import { EventsService } from '../../events/events.service';
+import { EventUserType } from '../../../../../../packages/shared/events/kafka-config';
 
 @Injectable()
 export class UserService {
@@ -25,6 +27,7 @@ export class UserService {
     private userPreferenceRepository: Repository<UserPreference>,
     @InjectRepository(UserSession)
     private userSessionRepository: Repository<UserSession>,
+    private eventsService: EventsService,
   ) {}
 
   async findAll(institutionId: string, filters?: UserSearchFilterDto): Promise<[User[], number]> {
@@ -103,7 +106,24 @@ export class UserService {
       status: createUserDto.status || UserStatus.PENDING
     });
 
-    return await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    // Emit USER_CREATED event to notify customer-service
+    try {
+      await this.eventsService.publishUserCreated({
+        userId: savedUser.id,
+        email: savedUser.email,
+        name: `${savedUser.firstName || ''} ${savedUser.lastName || ''}`.trim(),
+        role: savedUser.role,
+        userType: savedUser.role === UserRole.ADMIN ? EventUserType.INSTITUTION_ADMIN : EventUserType.INSTITUTION_USER,
+        customerAccountId: savedUser.institutionId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Failed to emit USER_CREATED event:', error);
+    }
+
+    return savedUser;
   }
 
   async update(institutionId: string, id: string, updateUserDto: UpdateUserDto, updatedBy: string): Promise<User> {

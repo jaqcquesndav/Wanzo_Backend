@@ -14,6 +14,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AiModule } from './modules/ai/ai.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { AiModule } from './modules/ai/ai.module';
     HealthModule,
     AuthModule,
     AiModule,
+    EventsModule,
   ],
 })
 export class AppModule {}
