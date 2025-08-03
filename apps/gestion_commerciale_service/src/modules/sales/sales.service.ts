@@ -247,6 +247,10 @@ export class SalesService {
         throw new BadRequestException('Sale is already cancelled');
       }
       
+      if (sale.status === SaleStatus.COMPLETED) {
+        throw new BadRequestException('Cannot cancel a completed sale');
+      }
+      
       // Return products to inventory
       for (const item of sale.items) {
         const product = await transactionalEntityManager.findOne(Product, { where: { id: item.productId } });

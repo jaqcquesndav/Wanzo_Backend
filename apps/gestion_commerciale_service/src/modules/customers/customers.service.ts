@@ -72,7 +72,7 @@ export class CustomersService {
   }
 
   async findOne(id: string): Promise<Customer> {
-    const customer = await this.customerRepository.findOneBy({ id });
+    const customer = await this.customerRepository.findOne({ where: { id } });
     if (!customer) {
       throw new NotFoundException(`Customer with ID "${id}" not found`);
     }
@@ -102,20 +102,20 @@ export class CustomersService {
       }
     }
     
-    // Précharger l'entité avec les modifications
-    const customer = await this.customerRepository.preload({
-      id: id,
-      ...updateCustomerDto,
-    });
+    // Find existing customer
+    const customer = await this.findOne(id);
     
-    if (!customer) {
-      throw new NotFoundException(`Customer with ID "${id}" not found during preload`);
-    }
+    // Use repository.update as expected by tests
+    await this.customerRepository.update(id, updateCustomerDto);
     
-    return this.customerRepository.save(customer);
+    // Return updated customer by fetching from database
+    return this.findOne(id);
   }
 
   async remove(id: string): Promise<void> {
+    // First check if customer exists
+    await this.findOne(id);
+    
     const result = await this.customerRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Customer with ID "${id}" not found`);

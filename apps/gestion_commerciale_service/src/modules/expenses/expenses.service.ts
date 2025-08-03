@@ -77,6 +77,11 @@ export class ExpensesService {
 
   // Expense CRUD
   async createExpense(createExpenseDto: CreateExpenseDto, userId: string): Promise<Expense> {
+    // Validate amount
+    if (createExpenseDto.amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+    
     // Créer la dépense directement avec le DTO
     const newExpense = this.expenseRepository.create({
       ...createExpenseDto,

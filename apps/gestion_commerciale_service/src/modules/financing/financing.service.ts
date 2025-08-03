@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, MoreThanOrEqual, LessThanOrEqual, ILike } from 'typeorm';
-import { FinancingRecord, FinancingRecordStatus, FinancingRecordType } from './entities/financing-record.entity';
-import { CreateFinancingRecordDto, RelatedDocumentDto } from './dto/create-financing-record.dto';
+import { FinancingRecord, FinancingRequestStatus, FinancingType } from './entities/financing-record.entity';
+import { CreateFinancingRecordDto } from './dto/create-financing-record.dto';
 import { UpdateFinancingRecordDto } from './dto/update-financing-record.dto';
 import { ListFinancingRecordsDto } from './dto/list-financing-records.dto';
 import { User } from '../auth/entities/user.entity';
@@ -17,9 +17,7 @@ export class FinancingService {
   async create(createFinancingRecordDto: CreateFinancingRecordDto, user: User): Promise<FinancingRecord> {
     const newRecord = this.financingRecordRepository.create({
       ...createFinancingRecordDto,
-      date: new Date(createFinancingRecordDto.date), // Convert ISO string to Date
       userId: user.id,
-      // relatedDocuments will be mapped directly if the structure matches
     });
     return this.financingRecordRepository.save(newRecord);
   }
@@ -35,20 +33,20 @@ export class FinancingService {
     queryBuilder.where('financing_record.userId = :userId', { userId: user.id });
 
     if (type) {
-      queryBuilder.andWhere('financing_record.type = :type', { type: type as FinancingRecordType });
+      queryBuilder.andWhere('financing_record.type = :type', { type: type as FinancingType });
     }
     if (status) {
-      queryBuilder.andWhere('financing_record.status = :status', { status: status as FinancingRecordStatus });
+      queryBuilder.andWhere('financing_record.status = :status', { status: status as FinancingRequestStatus });
     }
     if (dateFrom) {
-      queryBuilder.andWhere('financing_record.date >= :dateFrom', { dateFrom: new Date(dateFrom) });
+      queryBuilder.andWhere('financing_record.applicationDate >= :dateFrom', { dateFrom: new Date(dateFrom) });
     }
     if (dateTo) {
-      queryBuilder.andWhere('financing_record.date <= :dateTo', { dateTo: new Date(dateTo) });
+      queryBuilder.andWhere('financing_record.applicationDate <= :dateTo', { dateTo: new Date(dateTo) });
     }
 
     if (search) {
-      queryBuilder.andWhere('(financing_record.sourceOrPurpose ILIKE :search OR financing_record.terms ILIKE :search)', {
+      queryBuilder.andWhere('(financing_record.purpose ILIKE :search OR financing_record.notes ILIKE :search)', {
         search: `%${search}%`,
       });
     }
@@ -73,19 +71,60 @@ export class FinancingService {
   async update(id: string, updateFinancingRecordDto: UpdateFinancingRecordDto, user: User): Promise<FinancingRecord> {
     await this.findOne(id, user); // Ensures user owns the record and it exists
 
-    const { date, ...restOfDto } = updateFinancingRecordDto;
-    const updateData: Partial<FinancingRecord> = { ...restOfDto };
-
-    if (date) {
-      updateData.date = new Date(date);
+    const updateData: Partial<FinancingRecord> = {};
+    
+    // Handle simple fields
+    if (updateFinancingRecordDto.type !== undefined) {
+      updateData.type = updateFinancingRecordDto.type;
+    }
+    if (updateFinancingRecordDto.amount !== undefined) {
+      updateData.amount = updateFinancingRecordDto.amount;
+    }
+    if (updateFinancingRecordDto.currency !== undefined) {
+      updateData.currency = updateFinancingRecordDto.currency;
+    }
+    if (updateFinancingRecordDto.term !== undefined) {
+      updateData.term = updateFinancingRecordDto.term;
+    }
+    if (updateFinancingRecordDto.purpose !== undefined) {
+      updateData.purpose = updateFinancingRecordDto.purpose;
+    }
+    if (updateFinancingRecordDto.institutionId !== undefined) {
+      updateData.institutionId = updateFinancingRecordDto.institutionId;
+    }
+    if (updateFinancingRecordDto.productId !== undefined) {
+      updateData.productId = updateFinancingRecordDto.productId;
+    }
+    if (updateFinancingRecordDto.notes !== undefined) {
+      updateData.notes = updateFinancingRecordDto.notes;
+    }
+    if (updateFinancingRecordDto.status !== undefined) {
+      updateData.status = updateFinancingRecordDto.status;
     }
     
-    // Ensure relatedDocuments are handled correctly if they can be partially updated
-    // For simplicity, this example replaces them if provided.
-    // If relatedDocuments is not in restOfDto (because it was undefined in DTO), 
-    // it won't be part of updateData, thus won't be changed unless explicitly provided.
-    if (updateFinancingRecordDto.hasOwnProperty('relatedDocuments')) {
-        updateData.relatedDocuments = updateFinancingRecordDto.relatedDocuments;
+    // Handle date fields
+    if (updateFinancingRecordDto.applicationDate !== undefined) {
+      updateData.applicationDate = updateFinancingRecordDto.applicationDate;
+    }
+    if (updateFinancingRecordDto.lastStatusUpdateDate !== undefined) {
+      updateData.lastStatusUpdateDate = updateFinancingRecordDto.lastStatusUpdateDate;
+    }
+    if (updateFinancingRecordDto.approvalDate !== undefined) {
+      updateData.approvalDate = updateFinancingRecordDto.approvalDate;
+    }
+    if (updateFinancingRecordDto.disbursementDate !== undefined) {
+      updateData.disbursementDate = updateFinancingRecordDto.disbursementDate;
+    }
+
+    // Handle complex nested objects
+    if (updateFinancingRecordDto.businessInformation !== undefined) {
+      updateData.businessInformation = updateFinancingRecordDto.businessInformation as any;
+    }
+    if (updateFinancingRecordDto.financialInformation !== undefined) {
+      updateData.financialInformation = updateFinancingRecordDto.financialInformation as any;
+    }
+    if (updateFinancingRecordDto.documents !== undefined) {
+      updateData.documents = updateFinancingRecordDto.documents as any;
     }
 
     await this.financingRecordRepository.update(id, updateData);

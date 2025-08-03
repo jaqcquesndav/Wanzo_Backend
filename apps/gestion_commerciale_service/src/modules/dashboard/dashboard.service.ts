@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DashboardQueryDto } from './dto/dashboard-query.dto';
-import { DashboardData } from './interfaces/dashboard.interface';
+import { DashboardData, SalesToday, OperationJournalEntry, DashboardDataDetailed } from './interfaces/dashboard.interface';
+import { DateQueryDto } from './dto/date-query.dto';
+import { OperationsJournalQueryDto } from './dto/operations-journal-query.dto';
+import { ExportJournalQueryDto } from './dto/export-journal-query.dto';
 import { SalesSummaryQueryDto } from './dto/sales-summary-query.dto';
 import { CustomerStatsQueryDto } from './dto/customer-stats-query.dto';
 import { JournalQueryDto } from './dto/journal-query.dto';
@@ -13,6 +16,7 @@ import { Product } from '../inventory/entities/product.entity';
 import { StockTransaction } from '../inventory/entities/stock-transaction.entity';
 import { DashboardPeriod } from './enums/dashboard-period.enum';
 import { Currency } from './enums/currency.enum';
+import { OperationType } from './enums/operation-type.enum';
 import { addDays, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { SalesByDay, SalesByDayDetailed, SalesSummary, CustomerStats, TopSellingProduct, LowStockProduct, TopCustomer } from './interfaces/dashboard-types.interface';
@@ -33,9 +37,44 @@ export class DashboardService {
   ) {}
 
   /**
-   * Récupère toutes les données du dashboard
+   * Récupère toutes les données du dashboard selon la documentation
    */
   async getDashboardData(query: DashboardQueryDto): Promise<DashboardData> {
+    const date = query.date || new Date();
+    const timezone = query.timezone || 'Africa/Kinshasa';
+    const zonedDate = toZonedTime(date, timezone);
+
+    // Date ranges
+    const today = {
+      start: startOfDay(zonedDate),
+      end: endOfDay(zonedDate),
+    };
+
+    // Calculer les ventes du jour
+    const salesToday = await this.calculateSalesToday(today.start, today.end);
+    
+    // Calculer le nombre de clients servis aujourd'hui
+    const clientsServedToday = await this.calculateClientsServedToday(today.start, today.end);
+    
+    // Calculer les créances
+    const receivables = await this.calculateReceivables();
+    
+    // Calculer les dépenses du jour
+    const expenses = await this.calculateExpensesToday(today.start, today.end);
+
+    return {
+      salesTodayCdf: salesToday.cdf,
+      salesTodayUsd: salesToday.usd,
+      clientsServedToday,
+      receivables,
+      expenses
+    };
+  }
+
+  /**
+   * Récupère toutes les données détaillées du dashboard (version étendue)
+   */
+  async getDashboardDataDetailed(query: DashboardQueryDto): Promise<DashboardDataDetailed> {
     const date = query.date || new Date();
     const timezone = query.timezone || 'Africa/Kinshasa';
     const zonedDate = toZonedTime(date, timezone);
@@ -576,5 +615,270 @@ export class DashboardService {
     }
     
     return { start, end };
+  }
+
+  // ========== NOUVELLES MÉTHODES SELON LA DOCUMENTATION ==========
+
+  /**
+   * Calcule les ventes du jour en CDF et USD
+   */
+  private async calculateSalesToday(startDate: Date, endDate: Date): Promise<SalesToday> {
+    const sales = await this.saleRepository.find({
+      where: {
+        date: Between(startDate, endDate)
+      }
+    });
+
+    let cdf = 0;
+    let usd = 0;
+
+    for (const sale of sales) {
+      cdf += sale.totalAmountInCdf || 0;
+      usd += (sale.totalAmountInCdf / (sale.exchangeRate || 1)) || 0;
+    }
+
+    return { cdf, usd };
+  }
+
+  /**
+   * Calcule le nombre de clients uniques servis aujourd'hui
+   */
+  private async calculateClientsServedToday(startDate: Date, endDate: Date): Promise<number> {
+    const uniqueClients = await this.saleRepository
+      .createQueryBuilder('sale')
+      .select('DISTINCT sale.customerId')
+      .where('sale.date BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('sale.customerId IS NOT NULL')
+      .getCount();
+
+    return uniqueClients;
+  }
+
+  /**
+   * Calcule le montant total des créances (à recevoir)
+   */
+  private async calculateReceivables(): Promise<number> {
+    // Calculer les ventes à crédit non payées
+    const creditSales = await this.saleRepository
+      .createQueryBuilder('sale')
+      .where('sale.status = :status', { status: 'PENDING' })
+      .orWhere('sale.status = :status', { status: 'PARTIALLY_PAID' })
+      .getMany();
+
+    let totalReceivables = 0;
+    for (const sale of creditSales) {
+      totalReceivables += (sale.totalAmountInCdf - (sale.amountPaidInCdf || 0));
+    }
+
+    return totalReceivables;
+  }
+
+  /**
+   * Calcule les dépenses du jour
+   */
+  private async calculateExpensesToday(startDate: Date, endDate: Date): Promise<number> {
+    const expenses = await this.expenseRepository.find({
+      where: {
+        date: Between(startDate, endDate)
+      }
+    });
+
+    return expenses.reduce((total, expense) => total + (expense.amount || 0), 0);
+  }
+
+  /**
+   * Récupère uniquement les ventes du jour
+   */
+  async getSalesToday(query: DateQueryDto): Promise<SalesToday> {
+    const date = query.date || new Date();
+    const start = startOfDay(date);
+    const end = endOfDay(date);
+
+    return this.calculateSalesToday(start, end);
+  }
+
+  /**
+   * Récupère le nombre de clients servis aujourd'hui
+   */
+  async getClientsServedToday(query: DateQueryDto): Promise<number> {
+    const date = query.date || new Date();
+    const start = startOfDay(date);
+    const end = endOfDay(date);
+
+    return this.calculateClientsServedToday(start, end);
+  }
+
+  /**
+   * Récupère le total des montants à recevoir
+   */
+  async getReceivables(): Promise<number> {
+    return this.calculateReceivables();
+  }
+
+  /**
+   * Récupère les dépenses du jour
+   */
+  async getExpensesToday(query: DateQueryDto): Promise<number> {
+    const date = query.date || new Date();
+    const start = startOfDay(date);
+    const end = endOfDay(date);
+
+    return this.calculateExpensesToday(start, end);
+  }
+
+  /**
+   * Récupère les entrées du journal des opérations selon la documentation
+   */
+  async getOperationsJournal(query: OperationsJournalQueryDto): Promise<OperationJournalEntry[]> {
+    const { startDate, endDate, type, page = 1, limit = 10 } = query;
+    
+    // Date par défaut si non spécifiées
+    const start = startDate || subDays(new Date(), 30);
+    const end = endDate || new Date();
+
+    // Pour l'instant, nous retournons des données d'exemple
+    // Dans une implémentation réelle, vous devriez avoir une table journal_operations
+    const mockEntries: OperationJournalEntry[] = [
+      {
+        id: '1',
+        date: new Date().toISOString(),
+        description: 'Vente en espèces - Produit A',
+        type: OperationType.SALE_CASH,
+        amount: 150000.00,
+        currencyCode: 'CDF',
+        isDebit: false,
+        isCredit: true,
+        balanceAfter: 2150000.00,
+        relatedDocumentId: 'SALE-001',
+        quantity: 5.0,
+        productId: 'PROD-001',
+        productName: 'Produit A',
+        paymentMethod: 'Cash',
+        balancesByCurrency: {
+          'CDF': 2000000.00,
+          'USD': 1000.00
+        }
+      },
+      {
+        id: '2',
+        date: subDays(new Date(), 1).toISOString(),
+        description: 'Entrée de stock - Produit B',
+        type: OperationType.STOCK_IN,
+        amount: 300000.00,
+        currencyCode: 'CDF',
+        isDebit: true,
+        isCredit: false,
+        balanceAfter: 2000000.00,
+        relatedDocumentId: 'PO-001',
+        quantity: 10.0,
+        productId: 'PROD-002',
+        productName: 'Produit B'
+      }
+    ];
+
+    // Filtrer par type si spécifié
+    let filteredEntries = mockEntries;
+    if (type && type !== OperationType.OTHER) {
+      filteredEntries = mockEntries.filter(entry => entry.type === type);
+    }
+
+    // Appliquer la pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    
+    return filteredEntries.slice(startIndex, endIndex);
+  }
+
+  /**
+   * Exporte le journal des opérations en PDF ou CSV
+   */
+  async exportOperationsJournal(query: ExportJournalQueryDto): Promise<Buffer> {
+    const entries = await this.getOperationsJournal({
+      startDate: query.startDate,
+      endDate: query.endDate,
+      type: query.type,
+      page: 1,
+      limit: 1000 // Export plus d'entrées
+    });
+
+    if (query.format === 'csv') {
+      return this.generateCSV(entries);
+    } else {
+      return this.generatePDF(entries);
+    }
+  }
+
+  /**
+   * Génère un fichier CSV à partir des entrées du journal
+   */
+  private generateCSV(entries: OperationJournalEntry[]): Buffer {
+    const headers = [
+      'ID',
+      'Date',
+      'Description',
+      'Type',
+      'Montant',
+      'Devise',
+      'Débit',
+      'Crédit',
+      'Solde Après',
+      'Document Lié',
+      'Quantité',
+      'Produit',
+      'Méthode Paiement'
+    ];
+
+    let csvContent = headers.join(',') + '\n';
+
+    for (const entry of entries) {
+      const row = [
+        entry.id,
+        entry.date,
+        `"${entry.description}"`,
+        entry.type,
+        entry.amount,
+        entry.currencyCode,
+        entry.isDebit ? 'Oui' : 'Non',
+        entry.isCredit ? 'Oui' : 'Non',
+        entry.balanceAfter,
+        entry.relatedDocumentId || '',
+        entry.quantity || '',
+        `"${entry.productName || ''}"`,
+        entry.paymentMethod || ''
+      ];
+      csvContent += row.join(',') + '\n';
+    }
+
+    return Buffer.from(csvContent, 'utf-8');
+  }
+
+  /**
+   * Génère un fichier PDF à partir des entrées du journal
+   */
+  private generatePDF(entries: OperationJournalEntry[]): Buffer {
+    // Pour une implémentation réelle, vous devriez utiliser une bibliothèque comme PDFKit ou Puppeteer
+    // Ici, nous retournons un PDF simple avec du contenu texte
+    
+    const content = `
+JOURNAL DES OPÉRATIONS
+=====================
+
+Généré le: ${new Date().toLocaleDateString('fr-FR')}
+
+${entries.map(entry => `
+ID: ${entry.id}
+Date: ${new Date(entry.date).toLocaleDateString('fr-FR')}
+Description: ${entry.description}
+Type: ${entry.type}
+Montant: ${entry.amount} ${entry.currencyCode}
+Solde après: ${entry.balanceAfter} ${entry.currencyCode}
+${entry.productName ? `Produit: ${entry.productName}` : ''}
+${entry.paymentMethod ? `Méthode: ${entry.paymentMethod}` : ''}
+---
+`).join('')}
+    `;
+
+    // Pour un vrai PDF, utilisez une bibliothèque appropriée
+    return Buffer.from(content, 'utf-8');
   }
 }

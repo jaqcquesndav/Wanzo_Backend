@@ -1,7 +1,7 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+﻿import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max, IsEnum, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FinancingRecordType, FinancingRecordStatus } from '../entities/financing-record.entity';
+import { FinancingType, FinancingRequestStatus } from '../entities/financing-record.entity';
 
 export class ListFinancingRecordsDto {
   @ApiPropertyOptional({ description: 'Page number for pagination', default: 1, type: Number })
@@ -30,15 +30,15 @@ export class ListFinancingRecordsDto {
   @IsEnum(['ASC', 'DESC'])
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
 
-  @ApiPropertyOptional({ description: 'Filter by financing type', enum: FinancingRecordType })
+  @ApiPropertyOptional({ description: 'Filter by financing type', enum: FinancingType })
   @IsOptional()
-  @IsEnum(FinancingRecordType)
-  type?: FinancingRecordType;
+  @IsEnum(FinancingType)
+  type?: FinancingType;
 
-  @ApiPropertyOptional({ description: 'Filter by financing status', enum: FinancingRecordStatus })
+  @ApiPropertyOptional({ description: 'Filter by financing status', enum: FinancingRequestStatus })
   @IsOptional()
-  @IsEnum(FinancingRecordStatus)
-  status?: FinancingRecordStatus;
+  @IsEnum(FinancingRequestStatus)
+  status?: FinancingRequestStatus;
 
   @ApiPropertyOptional({ description: 'Filter records from this date (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
   @IsOptional()

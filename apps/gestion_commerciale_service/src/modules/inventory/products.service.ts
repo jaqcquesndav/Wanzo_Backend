@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -14,7 +14,14 @@ export class ProductsService {
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
     const newProduct = this.productRepository.create(createProductDto);
-    return this.productRepository.save(newProduct);
+    try {
+      return await this.productRepository.save(newProduct);
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+        throw new ConflictException('Product with this SKU already exists');
+      }
+      throw error;
+    }
   }
 
   async findAll(): Promise<Product[]> { // Basic find all, pagination/filtering can be added

@@ -7,6 +7,7 @@ import { CreateBusinessOperationDto } from '../../src/modules/operations/dto/cre
 import { UpdateBusinessOperationDto } from '../../src/modules/operations/dto/update-business-operation.dto';
 import { ListBusinessOperationsDto } from '../../src/modules/operations/dto/list-business-operations.dto';
 import { ExportOperationsDto } from '../../src/modules/operations/dto/export-operations.dto';
+import { EventsService } from '../../src/modules/events/events.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('BusinessOperationsService', () => {
@@ -24,6 +25,14 @@ describe('BusinessOperationsService', () => {
     remove: jest.fn(),
   };
 
+  const mockEventsService = {
+    emit: jest.fn(),
+    publishBusinessOperationEvent: jest.fn(),
+    publishBusinessOperationCreated: jest.fn(),
+    publishBusinessOperationUpdated: jest.fn(),
+    publishBusinessOperationDeleted: jest.fn(),
+  };
+
   beforeEach(async () => {
     // Réinitialisez les mocks avant chaque test
     jest.resetAllMocks();
@@ -34,6 +43,10 @@ describe('BusinessOperationsService', () => {
         {
           provide: getRepositoryToken(BusinessOperation),
           useValue: mockBusinessOperationRepository,
+        },
+        {
+          provide: EventsService,
+          useValue: mockEventsService,
         },
       ],
     }).compile();
