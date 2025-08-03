@@ -5,46 +5,42 @@
 Pour l'environnement de développement, toutes les requêtes API doivent être adressées à l'API Gateway sur le port 8000 avec le préfixe `land` :
 
 ```
-http://localhost:8000/land/
+http://localhost:8000/land/api/v1
 ```
 
-Pour l'environnement de production, l'URL de base est :
-
-```
-https://api.wanzo.tech/land/
-```
+*Configuration automatique dans le code source via `VITE_API_URL`*
 
 ## Headers obligatoires
 
-Toutes les requêtes doivent inclure les headers suivants :
+Toutes les requêtes incluent automatiquement les headers suivants via le service `ApiService` :
 
-| Header | Description | Exemple |
+| Header | Description | Gestion |
 |--------|-------------|---------|
-| `Authorization` | Token d'authentification au format Bearer | `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
-| `Content-Type` | Type de contenu de la requête | `application/json` |
-| `Accept` | Format de réponse accepté | `application/json` |
-| `X-Client-Version` | Version du client | `2.5.0` |
+| `Authorization` | Token d'authentification Bearer | Automatique via `getToken()` |
+| `Content-Type` | Type de contenu | `application/json` (sauf upload) |
+| `Accept` | Format de réponse | `application/json` |
 
-Pour les requêtes qui impliquent l'upload de fichiers (logo, CV, etc.), utilisez :
-```
-Content-Type: multipart/form-data
-```
+**Note importante** : L'authentification Bearer est automatiquement gérée par le service API. Tous les endpoints nécessitent une authentification valide.
+
+Pour les uploads de fichiers, le `Content-Type` est automatiquement défini à `multipart/form-data`.
 
 ## Format des réponses
 
-Toutes les réponses de l'API suivent la structure suivante :
+### Structure standard (basée sur `ApiResponse<T>`)
 
-### Réponse réussie
-
-```json
-{
-  "success": true,
-  "data": {
-    // Données de la réponse spécifiques à chaque endpoint
-  },
-  "meta": {
-    // Métadonnées (pagination, etc.) si applicable
-  }
+```typescript
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  meta?: {
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  };
+  message?: string;
 }
 ```
 

@@ -1,52 +1,168 @@
 # Erreurs et Dépannage
 
-## Codes d'erreur HTTP
+## Format des erreurs standardisé
 
-L'API KIOTA TECH utilise les codes d'erreur HTTP standard pour indiquer le statut des requêtes :
+Basé sur l'interface `ApiServiceError` (`src/services/api.ts`) et `ApiError` (`src/types/api.ts`) :
 
-| Code | Description | Utilisation |
-|------|-------------|------------|
-| 200 | OK | La requête a réussi |
-| 201 | Created | Une ressource a été créée avec succès |
-| 400 | Bad Request | La requête contient des données invalides ou manquantes |
-| 401 | Unauthorized | Authentification nécessaire ou échouée |
-| 403 | Forbidden | L'utilisateur n'a pas les permissions nécessaires |
-| 404 | Not Found | La ressource demandée n'existe pas |
-| 409 | Conflict | La requête ne peut être traitée en raison d'un conflit |
-| 422 | Unprocessable Entity | La requête est syntaxiquement correcte mais ne peut être traitée |
-| 429 | Too Many Requests | Limite de rate dépassée |
-| 500 | Internal Server Error | Erreur interne du serveur |
-| 503 | Service Unavailable | Service temporairement indisponible |
+### Structure d'erreur API
 
-## Format des erreurs
+```typescript
+interface ApiServiceError {
+  status: number;
+  message: string;
+  errors?: Record<string, string[]>;
+}
 
-Toutes les erreurs de l'API suivent le même format JSON :
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Description de l'erreur",
-    "details": {
-      // Détails spécifiques de l'erreur (facultatif)
-    }
-  }
+interface ApiError {
+  success: false;
+  message: string;
+  errors?: Record<string, string[]>;
+  code?: string;
 }
 ```
 
-## Codes d'erreur spécifiques
+### Gestion des erreurs dans le code
 
-L'API utilise des codes d'erreur spécifiques pour indiquer plus précisément la nature du problème :
+**Service** : `ApiService.handleResponse()`
 
-### Authentification et autorisation
+```typescript
+private async handleResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    let errorData: ApiServiceError;
+    try {
+      const res = await response.json();
+      errorData = {
+        status: response.status,
+        message: res.message || 'An unknown error occurred.',
+        errors: res.errors,
+      };
+    } catch (e) {
+      errorData = { 
+        status: response.status, 
+        message: response.statusText 
+      };
+    }
+    throw errorData;
+  }
+  // ...
+}
+```
 
-| Code | Description | Solution |
-|------|-------------|----------|
-| `AUTH_INVALID_TOKEN` | Token d'authentification invalide | Vérifiez que le token est valide et non expiré |
-| `AUTH_EXPIRED_TOKEN` | Token d'authentification expiré | Rafraîchissez le token ou reconnectez-vous |
-| `AUTH_MISSING_TOKEN` | Token d'authentification manquant | Incluez le token dans l'en-tête Authorization |
-| `AUTH_INSUFFICIENT_PERMISSIONS` | Permissions insuffisantes | L'utilisateur n'a pas les droits nécessaires pour cette action |
+## Codes d'erreur HTTP
+
+| Code | Description | Gestion dans l'app |
+|------|-------------|-------------------|
+| 200 | OK | Succès |
+| 201 | Created | Ressource créée |
+| 204 | No Content | Retourne objet vide `{}` |
+| 400 | Bad Request | Données invalides/manquantes |
+| 401 | Unauthorized | Redirection Auth0 |
+| 403 | Forbidden | Permissions insuffisantes |
+| 404 | Not Found | Ressource inexistante |
+| 422 | Unprocessable Entity | Erreurs de validation |
+| 429 | Too Many Requests | Rate limiting |
+| 500 | Internal Server Error | Erreur serveur |
+
+## Stratégies de récupération
+
+### 1. Gestion des timeouts
+
+**UserService** : Timeout 10s pour éviter de bloquer l'UI
+
+```typescript
+const API_TIMEOUT = 10000;
+
+// Timeout avec Promise.race
+const timeoutPromise = new Promise<never>((_, reject) => {
+  setTimeout(() => reject(new Error('Timeout')), API_TIMEOUT);
+});
+
+const backendUser = await Promise.race([
+  api.get<User>('/users/me'), 
+  timeoutPromise
+]);
+```
+
+### 2. Fallback Auth0
+
+En cas d'échec API, utilisation des données Auth0 :
+
+```typescript
+try {
+  const backendUser = await api.get<User>('/users/me');
+  return { ...baseUser, ...backendUser };
+} catch (error) {
+  console.warn('Backend unavailable, using Auth0 data only');
+  return baseUser; // Données Auth0 du localStorage
+}
+```
+
+### 3. Gestion des uploads
+
+**Upload de fichiers** : Gestion spéciale Content-Type
+
+```typescript
+// Automatic Content-Type pour multipart/form-data
+private getAuthHeaders(isFormData = false): HeadersInit {
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  // ...
+}
+```
+
+## Messages d'erreur courants
+
+### Authentification
+
+- **"Pas de token disponible"** : Token manquant → Connexion Auth0 requise
+- **"Backend user profile fetch failed"** : API indisponible → Utilisation données Auth0
+- **"Timeout"** : Délai dépassé → Fallback sur données locales
+
+### API
+
+- **"An unknown error occurred"** : Erreur non spécifiée du serveur
+- **"Erreur de l'API IA"** : Service IA indisponible
+- **"Erreur de transcription audio"** : Échec transcription audio
+
+### Upload de fichiers
+
+- **Échec upload logo** : Vérifier format et taille du fichier
+- **Échec upload CV** : Vérifier que le fichier est un PDF
+
+## Debugging
+
+### Logs de développement
+
+```typescript
+console.log('Profil enrichi depuis le backend:', backendUser);
+console.warn('Backend user profile fetch failed. Using Auth0 data only.', error);
+console.warn('URL de profil invalide dans les données backend', e);
+```
+
+### Vérification des tokens
+
+```typescript
+// Vérification centralisée des tokens
+const token = getToken();
+if (!token) {
+  console.log('Pas de token disponible, utilisation des données Auth0 uniquement');
+  return baseUser;
+}
+```
+
+### Détection des erreurs de stockage
+
+```typescript
+// Wrapper sécurisé avec gestion d'erreurs
+setItem(key: keyof typeof STORAGE_KEYS, value: string) {
+  try {
+    localStorage.setItem(STORAGE_KEYS[key], value);
+  } catch (error) {
+    console.error(`Error storing ${key}:`, error);
+  }
+}
+```
 
 ### Validation des données
 

@@ -1,103 +1,252 @@
 # Abonnements et Paiements
 
-## Structure des données d'abonnement
+## Structure des données
 
-Les abonnements dans le système KIOTA TECH sont représentés par la structure suivante :
+Basée sur les interfaces du code source (`src/types/api.ts`) et le service `SubscriptionApiService` (`src/services/subscriptionApi.ts`) :
 
-```json
-{
-  "id": "sub-123",
-  "userId": "usr_12345abcde",
-  "customerId": "cus_123456",
-  "plan": {
-    "id": "plan-business",
-    "name": "Business",
-    "description": "Pour les PME en croissance",
-    "price": 99.99,
-    "currency": "USD",
-    "billingFrequency": "monthly",
-    "features": [
-      "Accès complet à la plateforme",
-      "Support prioritaire",
-      "Rapports avancés",
-      "Intégration API"
-    ]
-  },
-  "status": "active",
-  "startDate": "2023-10-15T14:30:00Z",
-  "currentPeriodStart": "2023-11-15T14:30:00Z",
-  "currentPeriodEnd": "2023-12-15T14:30:00Z",
-  "cancelAtPeriodEnd": false,
-  "canceledAt": null,
-  "paymentMethod": {
-    "type": "card",
-    "lastFour": "4242",
-    "expiryMonth": 12,
-    "expiryYear": 2025,
-    "brand": "visa"
-  },
-  "metadata": {
-    "referredBy": "user_567890"
-  },
-  "createdAt": "2023-10-15T14:30:00Z",
-  "updatedAt": "2023-11-15T14:30:00Z"
+### Plans d'abonnement
+
+```typescript
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  billingFrequency: 'monthly' | 'yearly';
+  features: string[];
 }
 ```
 
-## Structure des données de token
+### Abonnement actif
 
-Les tokens (utilisés pour des fonctionnalités spécifiques) sont gérés par cette structure :
+```typescript
+interface Subscription {
+  id: string;
+  plan: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    currency: string;
+    billingFrequency: string;
+    features: string[];
+  };
+  status: 'active' | 'inactive' | 'pending' | 'expired' | 'cancelled';
+  startDate: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  paymentMethod: {
+    type: 'card' | 'mobile';
+    lastFour?: string;
+    brand?: string;
+    mobileMoneyProvider?: string;
+    mobileMoneyNumber?: string;
+  };
+}
+```
+
+### Solde de tokens
+
+```typescript
+interface TokenBalance {
+  balance: number;
+  totalPurchased: number;
+}
+```
+
+### Transaction de tokens
+
+```typescript
+interface TokenTransaction {
+  id: string;
+  type: 'purchase' | 'usage' | 'bonus';
+  amount: number;
+  price?: number;
+  currency?: string;
+  status: 'completed' | 'pending' | 'failed';
+  paymentMethod?: 'mobile' | 'card';
+  mobileMoneyProvider?: string;
+  mobileMoneyNumber?: string;
+  feature?: string;
+  resourceId?: string;
+  reason?: string;
+  promotionId?: string;
+  createdAt: string;
+}
+```
+
+## Endpoints API
+
+### Récupérer les plans d'abonnement
+
+```
+GET /subscription/plans
+```
+
+**Implémentation** : `SubscriptionApiService.getPlans()`
+
+#### Réponse
 
 ```json
 {
-  "id": "token-123",
-  "userId": "usr_12345abcde",
-  "balance": 150,
-  "totalPurchased": 500,
-  "transactions": [
+  "success": true,
+  "data": [
     {
-      "id": "trx-123",
-      "type": "purchase",
-      "amount": 100,
-      "price": 25.00,
+      "id": "plan-basic",
+      "name": "Basique", 
+      "description": "Pour les petites entreprises",
+      "price": 29.99,
       "currency": "USD",
-      "status": "completed",
-      "paymentMethod": "mobile",
-      "mobileMoneyProvider": "M-Pesa",
-      "mobileMoneyNumber": "+243820123456",
-      "createdAt": "2023-10-20T10:15:00Z"
-    },
-    {
-      "id": "trx-124",
-      "type": "usage",
-      "amount": -10,
-      "feature": "ai_analysis",
-      "resourceId": "report-567",
-      "createdAt": "2023-10-25T16:30:00Z"
-    },
-    {
-      "id": "trx-125",
-      "type": "bonus",
-      "amount": 50,
-      "reason": "promotional",
-      "promotionId": "promo-summer2023",
-      "createdAt": "2023-11-01T09:00:00Z"
+      "billingFrequency": "monthly",
+      "features": ["Accès de base", "Support email"]
     }
-  ],
-  "lastUpdated": "2023-11-01T09:00:00Z"
+  ]
 }
 ```
 
-## Structure des données de paiement
+### Créer un abonnement
 
-Les paiements et transactions financières sont représentés comme suit :
+```
+POST /subscriptions
+```
+
+**Implémentation** : `SubscriptionApiService.createSubscription(data)`
+
+#### Corps de la requête
 
 ```json
 {
-  "id": "pay-123",
-  "userId": "usr_12345abcde",
-  "subscriptionId": "sub-123",
-  "amount": 99.99,
+  "planId": "plan-business",
+  "paymentMethod": {
+    "type": "mobile",
+    "mobileMoneyProvider": "M-Pesa",
+    "mobileMoneyNumber": "+243820123456"
+  },
+  "billingDetails": {
+    "name": "Jean Mutombo",
+    "email": "jean@example.com",
+    "address": {
+      "line1": "123 Ave Libération", 
+      "city": "Kinshasa",
+      "postalCode": "12345",
+      "country": "CD"
+    }
+  }
+}
+```
+
+### Récupérer l'abonnement actuel
+
+```
+GET /subscriptions/current
+```
+
+**Implémentation** : `SubscriptionApiService.getCurrentSubscription()`
+
+### Annuler l'abonnement
+
+```
+POST /subscriptions/cancel
+```
+
+**Implémentation** : `SubscriptionApiService.cancelSubscription()`
+
+### Changer de plan
+
+```
+POST /subscriptions/change-plan
+```
+
+**Implémentation** : `SubscriptionApiService.changeSubscriptionPlan(data)`
+
+#### Corps de la requête
+
+```json
+{
+  "planId": "plan-premium",
+  "effectiveDate": "2024-01-01T00:00:00Z"
+}
+```
+
+## Gestion des tokens
+
+### Récupérer le solde de tokens
+
+```
+GET /tokens/balance
+```
+
+**Implémentation** : `SubscriptionApiService.getTokenBalance()`
+
+### Acheter des tokens
+
+```
+POST /tokens/purchase
+```
+
+**Implémentation** : `SubscriptionApiService.purchaseTokens(data)`
+
+#### Corps de la requête
+
+```json
+{
+  "amount": 100,
+  "paymentMethod": {
+    "type": "mobile",
+    "mobileMoneyProvider": "Orange Money",
+    "mobileMoneyNumber": "+243990123456"
+  }
+}
+```
+
+### Historique des transactions de tokens
+
+```
+GET /tokens/transactions?page=1&limit=10
+```
+
+**Implémentation** : `SubscriptionApiService.getTokenTransactions(params)`
+
+## Gestion des paiements
+
+### Historique des paiements
+
+```
+GET /payments?page=1&limit=10
+```
+
+**Implémentation** : `SubscriptionApiService.getPaymentHistory(params)`
+
+### Télécharger un reçu
+
+```
+GET /payments/{paymentId}/receipt
+```
+
+**Implémentation** : `SubscriptionApiService.downloadReceipt(paymentId)`
+- Retourne un fichier PDF
+- Headers : `Accept: application/pdf`
+
+### Upload de preuve de paiement manuel
+
+```
+POST /payments/manual-proof
+```
+
+**Implémentation** : `SubscriptionApiService.uploadManualPaymentProof(data)`
+
+#### Corps de la requête (multipart/form-data)
+
+```
+proofFile: [File]
+referenceNumber: "TX123456789"
+amount: 99.99
+paymentDate: "2024-01-15"
+planId: "plan-business" (optionnel)
+tokenAmount: 100 (optionnel)
+```
   "currency": "USD",
   "status": "paid",
   "paymentMethod": {

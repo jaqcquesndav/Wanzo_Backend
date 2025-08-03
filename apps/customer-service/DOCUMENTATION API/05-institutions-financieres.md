@@ -1,103 +1,184 @@
 # Gestion des Institutions Financières
 
-## Structure des données institution financière
+## Structure des données
 
-Les institutions financières dans le système KIOTA TECH sont représentées par la structure suivante :
+Basée sur les interfaces du code source (`src/types/financialInstitution.ts` et `src/types/api.ts`) et le service `financialInstitution.ts` :
+
+### Institution Financière
+
+```typescript
+interface FinancialInstitutionResponse {
+  id: string;
+  name: string;
+  type: 'bank' | 'microfinance' | 'cooperative';
+  category: 'commercial' | 'development' | 'investment';
+  approvalNumber?: string;
+  logo?: string;
+  address: {
+    street: string;
+    city: string;
+    province: string;
+    country: string;
+  };
+  contacts: {
+    email: string;
+    phone: string;
+    website?: string;
+  };
+  ceoPhoto?: string;
+  branches?: Array<{
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+    manager?: string;
+  }>;
+  managementTeam?: Array<{
+    id: string;
+    name: string;
+    position: string;
+    photo?: string;
+    bio?: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## Endpoints API
+
+### Récupérer une institution financière
+
+```
+GET /financial-institutions/{institutionId}
+```
+
+**Implémentation** : `getFinancialInstitution(institutionId)`
+
+#### Réponse
 
 ```json
 {
   "id": "fin-123",
   "name": "Banque Congolaise du Commerce",
-  "logo": "https://cdn.example.com/logos/bcc.png",
-  "description": "Établissement financier de premier plan offrant des services bancaires aux entreprises et aux particuliers en RDC.",
   "type": "bank",
-  "category": "commercial",
-  "licenseNumber": "BCC/2015/123",
-  "establishedDate": "2015-03-12",
-  "website": "https://www.bcc-bank.cd",
-  "facebookPage": "https://facebook.com/bccbank",
-  "linkedinPage": "https://linkedin.com/company/bcc-bank",
+  "category": "commercial", 
+  "approvalNumber": "BCC/2015/123",
+  "logo": "https://cdn.example.com/logos/bcc.png",
   "address": {
-    "headquarters": {
-      "street": "789, Boulevard du 30 Juin",
-      "commune": "Gombe",
-      "city": "Kinshasa",
-      "province": "Kinshasa",
-      "country": "République Démocratique du Congo"
-    }
+    "street": "789, Boulevard du 30 Juin",
+    "city": "Kinshasa",
+    "province": "Kinshasa",
+    "country": "République Démocratique du Congo"
   },
+  "contacts": {
+    "email": "info@bcc-bank.cd",
+    "phone": "+243 850 123 456",
+    "website": "https://www.bcc-bank.cd"
+  },
+  "ceoPhoto": "https://cdn.example.com/photos/ceo.jpg",
   "branches": [
     {
       "id": "branch-123",
       "name": "Agence Gombe",
-      "address": {
-        "street": "789, Boulevard du 30 Juin",
-        "commune": "Gombe",
-        "city": "Kinshasa",
-        "province": "Kinshasa",
-        "country": "République Démocratique du Congo"
-      },
-      "coordinates": {
-        "lat": -4.316,
-        "lng": 15.298
-      },
-      "manager": "Alice Nzinga",
+      "address": "789, Boulevard du 30 Juin, Gombe",
       "phone": "+243 854 321 987",
-      "email": "gombe@bcc-bank.cd",
-      "openingHours": "Lun-Ven: 8h-16h, Sam: 9h-12h"
-    },
-    {
-      "id": "branch-456",
-      "name": "Agence Limete",
-      "address": {
-        "street": "456, Avenue des Poids Lourds",
-        "commune": "Limete",
-        "city": "Kinshasa",
-        "province": "Kinshasa",
-        "country": "République Démocratique du Congo"
-      },
-      "coordinates": {
-        "lat": -4.342,
-        "lng": 15.353
-      },
-      "manager": "Robert Kimbembe",
-      "phone": "+243 854 321 988",
-      "email": "limete@bcc-bank.cd",
-      "openingHours": "Lun-Ven: 8h-16h"
+      "manager": "Alice Nzinga"
     }
   ],
-  "contacts": {
-    "general": {
-      "email": "info@bcc-bank.cd",
-      "phone": "+243 850 123 456"
-    },
-    "customerService": {
-      "email": "service@bcc-bank.cd",
-      "phone": "+243 850 123 457",
-      "whatsapp": "+243 850 123 458"
-    },
-    "investorRelations": {
-      "email": "investors@bcc-bank.cd",
-      "phone": "+243 850 123 459"
+  "managementTeam": [
+    {
+      "id": "mgmt-123",
+      "name": "Marie Kabongo",
+      "position": "Directrice Générale Adjointe",
+      "photo": "https://cdn.example.com/photos/marie.jpg",
+      "bio": "15 ans d'expérience dans la finance"
     }
+  ],
+  "createdAt": "2015-03-12T00:00:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+### Créer une institution financière
+
+```
+POST /financial-institutions
+```
+
+**Implémentation** : `createFinancialInstitution(institutionData)`
+
+#### Corps de la requête
+
+```json
+{
+  "name": "Nouvelle Banque",
+  "type": "bank",
+  "category": "commercial",
+  "approvalNumber": "NBK/2024/001",
+  "address": {
+    "street": "123 Avenue Commerce",
+    "city": "Kinshasa", 
+    "province": "Kinshasa",
+    "country": "RDC"
   },
-  "leadership": {
-    "ceo": {
-      "id": "usr_12345abcde",
-      "name": "Pierre Mukendi",
-      "gender": "male",
-      "title": "Directeur Général",
-      "bio": "Plus de 20 ans d'expérience dans le secteur bancaire",
-      "email": "p.mukendi@bcc-bank.cd",
-      "phone": "+243 850 123 460",
-      "linkedin": "https://linkedin.com/in/pierremukendi",
-      "photo": "https://cdn.example.com/photos/pierre-mukendi.jpg"
-    },
-    "executiveTeam": [
-      {
-        "id": "usr_abcde12345",
-        "name": "Marie Kabongo",
-        "gender": "female",
+  "contacts": {
+    "email": "info@nouvellebanque.cd",
+    "phone": "+243 890 123 456",
+    "website": "https://www.nouvellebanque.cd"
+  }
+}
+```
+
+### Mettre à jour une institution financière  
+
+```
+PATCH /financial-institutions/{institutionId}
+```
+
+**Implémentation** : `updateFinancialInstitution(institutionId, updates)`
+
+#### Corps de la requête
+
+```json
+{
+  "name": "Nouveau Nom de la Banque",
+  "contacts": {
+    "phone": "+243 890 999 888"
+  }
+}
+```
+
+### Supprimer une institution financière
+
+```
+DELETE /financial-institutions/{institutionId}
+```
+
+**Implémentation** : `deleteFinancialInstitution(institutionId)`
+
+### Upload du logo
+
+```
+POST /financial-institutions/logo/upload
+```
+
+**Implémentation** : `uploadInstitutionLogo(institutionId, logoFile)`
+
+#### Corps de la requête (multipart/form-data)
+
+```
+file: [File - Image du logo]
+institutionId: "fin-123"
+```
+
+#### Réponse
+
+```json
+{
+  "url": "https://cdn.example.com/logos/fin-123-logo.png"
+}
+```
         "title": "Directrice Financière",
         "department": "Finance",
         "email": "m.kabongo@bcc-bank.cd",
@@ -570,88 +651,6 @@ GET /land/api/v1/financial-institutions?page=1&limit=10
       "total": 25,
       "pages": 3
     }
-  }
-}
-```
-
-## Endpoints de Validation et Gestion de Statut
-
-### Valider une institution financière
-
-```
-PATCH /land/api/v1/financial-institutions/:institutionId/validate
-```
-
-#### Corps de la requête
-
-```json
-{
-  "validatedBy": "admin-123"
-}
-```
-
-#### Réponse
-
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Institution financière validée avec succès"
-  }
-}
-```
-
-### Suspendre une institution financière
-
-```
-PATCH /land/api/v1/financial-institutions/:institutionId/suspend
-```
-
-#### Corps de la requête
-
-```json
-{
-  "suspendedBy": "admin-123",
-  "reason": "Non-conformité aux régulations bancaires"
-}
-```
-
-#### Réponse
-
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Institution financière suspendue avec succès"
-  }
-}
-```
-
-### Rejeter une institution financière
-
-```
-PATCH /land/api/v1/financial-institutions/:institutionId/reject
-```
-
-#### Corps de la requête
-
-```json
-{
-  "rejectedBy": "admin-123",
-  "reason": "Documents falsifiés"
-}
-```
-
-#### Réponse
-
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Institution financière rejetée avec succès"
-  }
-}
-    "message": "Institution financière rejetée avec succès"
   }
 }
 ```

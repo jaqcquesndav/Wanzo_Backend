@@ -2,54 +2,38 @@
 
 ## Structure des données utilisateur
 
-Les utilisateurs dans le système Wanzo sont représentés par la structure suivante :
+Basée sur l'interface `User` du code source (`src/types/user.ts`) et le service `UserService` (`src/services/user.ts`) :
 
-```json
-{
-  "id": "usr_12345abcde",
-  "email": "user@example.com",
-  "emailVerified": true,
-  "name": "Jean Mutombo",
-  "givenName": "Jean",
-  "familyName": "Mutombo",
-  "picture": "https://cdn.example.com/avatars/jean.jpg",
-  "phone": "+243810987654",
-  "phoneVerified": false,
-  "address": "123, Avenue de la Libération, Kinshasa",
-  "idNumber": "RDC123456789",
-  "idType": "national_id",
-  "idStatus": "verified",
-  "role": "admin",
-  "birthdate": "1985-06-15",
-  "bio": "Entrepreneur et consultant en développement des affaires",
-  "userType": "sme",
-  "companyId": "comp-123",
-  "financialInstitutionId": null,
-  "isCompanyOwner": true,
-  "createdAt": "2023-10-15T14:30:00Z",
-  "updatedAt": "2023-11-20T09:45:00Z",
-  "settings": {
-    "notifications": {
-      "email": true,
-      "sms": true,
-      "push": false
-    },
-    "security": {
-      "twoFactorEnabled": false,
-      "twoFactorMethod": null,
-      "lastPasswordChange": "2023-10-15T14:30:00Z"
-    },
-    "preferences": {
-      "theme": "light",
-      "language": "fr",
-      "currency": "USD"
-    }
-  },
-  "language": "fr",
-  "permissions": ["admin:company", "view:reports", "edit:profile"],
-  "plan": "Business",
-  "tokenBalance": 150,
-  "tokenTotal": 500
+```typescript
+interface User {
+  id: string;
+  email: string;
+  emailVerified?: boolean;
+  name?: string;
+  givenName?: string;
+  familyName?: string;
+  picture?: string;
+  phone?: string;
+  phoneVerified?: boolean;
+  address?: string;
+  idNumber?: string;
+  idType?: 'passport' | 'national_id' | 'driver_license' | 'other';
+  idStatus?: 'pending' | 'verified' | 'rejected';
+  role?: string;
+  birthdate?: string;
+  bio?: string;
+  userType?: 'sme' | 'financial_institution';
+  companyId?: string;
+  financialInstitutionId?: string;
+  isCompanyOwner?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  settings?: UserSettings;
+  language?: 'fr' | 'en';
+  permissions?: string[];
+  plan?: string;
+  tokenBalance?: number;
+  tokenTotal?: number;
 }
 ```
 
@@ -58,46 +42,50 @@ Les utilisateurs dans le système Wanzo sont représentés par la structure suiv
 ### Récupérer le profil utilisateur courant
 
 ```
-GET /land/api/v1/users/me
+GET /users/me
 ```
 
-#### Exemple de réponse
+**Implémentation** : `UserService.getProfile()`
+- Combine les données Auth0 (localStorage) avec les données backend
+- Fallback sur Auth0 si le backend n'est pas disponible
+- Gestion automatique des timeouts (10s)
+
+#### Réponse
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "usr_12345abcde",
-    "email": "user@example.com",
-    "name": "Jean Mutombo",
-    "userType": "sme",
-    "companyId": "comp-123",
-    // ... autres champs de l'utilisateur
-  }
+  "id": "usr_12345",
+  "email": "user@example.com", 
+  "name": "Jean Mutombo",
+  "picture": "https://ui-avatars.com/api/?name=Jean%20Mutombo",
+  "phone": "+243810987654",
+  "address": "Kinshasa, RDC",
+  "role": "admin",
+  "idNumber": "RDC123456789",
+  "idStatus": "verified",
+  "createdAt": "2023-10-15T14:30:00Z"
 }
 ```
 
-### Mettre à jour le profil utilisateur
+### Mettre à jour le profil utilisateur  
 
 ```
-PATCH /land/api/v1/users/me
+PATCH /users/me
 ```
+
+**Implémentation** : `UserService.updateProfile(data)`
+- Sauvegarde locale dans localStorage
+- Tentative de synchronisation avec le backend si connecté
 
 #### Corps de la requête
 
 ```json
 {
   "name": "Jean Luc Mutombo",
-  "phone": "+243820123456",
+  "phone": "+243820123456", 
   "address": "456, Boulevard du 30 Juin, Kinshasa",
-  "language": "fr",
-  "settings": {
-    "notifications": {
-      "sms": false
-    },
-    "preferences": {
-      "theme": "dark"
-    }
+  "language": "fr"
+}
   }
 }
 ```

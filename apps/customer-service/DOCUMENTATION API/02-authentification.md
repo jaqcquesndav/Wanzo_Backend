@@ -2,101 +2,285 @@
 
 ## Vue d'ensemble
 
-L'authentification dans l'application Wanzo est gérée via Auth0. Ce service sécurisé fournit des tokens JWT qui doivent être inclus dans toutes les requêtes API.
+L'authentification dans l'application Wanzo est gérée via **Auth0 avec le protocole PKCE** et stockage sécurisé local. Tous les appels API incluent automatiquement le Bearer token.
 
-## Flux d'authentification
+## Implémentation actuelle
 
-### 1. Inscription et connexion via Auth0
+### Stockage sécurisé
 
-L'application front-end utilise la bibliothèque Auth0 PKCE pour gérer l'authentification. Voici le flux d'authentification typique :
+**Service** : `utils/storage.ts`
 
-1. L'utilisateur clique sur "Se connecter" ou "S'inscrire"
-2. Il est redirigé vers la page de connexion/inscription Auth0
-3. Après une authentification réussie, Auth0 redirige l'utilisateur vers l'application avec un code d'autorisation
-4. L'application échange ce code contre des tokens d'accès et de rafraîchissement
-5. Ces tokens sont stockés en sécurité dans le localStorage
+```typescript
+// Clés de stockage centralisées
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token', 
+  USER: 'cached_user',
+  STATE: 'auth_state',
+  CODE_VERIFIER: 'code_verifier',
+  USER_TYPE: 'auth_user_type',
+  APP_ID: 'auth_app_id',
+  RETURN_TO: 'auth_return_to',
+} as const;
 
-```javascript
-// Exemple d'initialisation d'Auth0 dans le front-end (utilisation de auth0pkce.ts)
-const auth0Client = await createAuth0Client({
-  domain: 'wanzo.auth0.com',
-  clientId: 'YOUR_CLIENT_ID',
-  audience: 'https://api.wanzo.tech',
-  redirectUri: window.location.origin,
-  useRefreshTokens: true,
-  cacheLocation: 'localstorage'
-});
+// Fonction d'accès centralisée avec priorité Auth0
+export function getToken(): string | null {
+  // Priorité aux tokens Auth0 stockés par le callback
+  const auth0Token = localStorage.getItem('auth0_token');
+  if (auth0Token) {
+    return auth0Token;
+  }
+  
+  // Fallback vers l'ancien système si nécessaire
+  return secureStorage.getItem('ACCESS_TOKEN');
+}
 ```
 
-### 2. Tokens JWT
+### Configuration Auth0 centralisée
 
-Chaque requête à l'API doit inclure un token d'accès JWT dans l'en-tête Authorization :
+**Service** : `config/auth0.ts`
 
+```typescript
+// Configuration Auth0 centralisée via variables d'environnement
+export const AUTH0_DOMAIN = import.meta.env.VITE_AUTH0_DOMAIN;
+export const AUTH0_CLIENT_ID = import.meta.env.VITE_AUTH0_CLIENT_ID;
+export const AUTH0_CALLBACK_URL = import.meta.env.VITE_AUTH0_CALLBACK_URL;
+export const AUTH0_LOGOUT_URL = import.meta.env.VITE_AUTH0_LOGOUT_URL || 'http://localhost:5173';
+```
+
+### Injection automatique des tokens
+
+**Service** : `ApiService.getAuthHeaders()`
+
+```typescript
+private getAuthHeaders(isFormData = false): HeadersInit {
+  const token = getToken();
+  const headers: HeadersInit = {};
+  
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  headers['Accept'] = 'application/json';
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+}
+```
+
+**Résultat** : Toutes les requêtes API incluent automatiquement :
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-Le token contient des informations importantes :
-- `sub` : Identifiant unique de l'utilisateur
-- `email` : Email de l'utilisateur
-- `permissions` : Autorisations accordées à l'utilisateur
-- `exp` : Date d'expiration du token
+## Flux d'authentification
 
-### 3. Gestion des tokens
+### 1. Auth0 PKCE Flow
 
-#### Structure du token stocké
+**Configuration Auth0** : `config/auth0.ts`
+- Domain : Configuration via `VITE_AUTH0_DOMAIN`
+- Client ID : Configuration via `VITE_AUTH0_CLIENT_ID`
+- Callback URL : Configuration via `VITE_AUTH0_CALLBACK_URL`
+- Logout URL : Configuration via `VITE_AUTH0_LOGOUT_URL`
+- PKCE Flow pour sécurité renforcée (Code Challenge + Code Verifier)
 
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "idToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "v1.1ref2342BZSFSD...",
-  "expiresAt": 1625097600000
+**Démarrage de l'authentification** : `utils/auth0pkce.ts`
+
+```typescript
+// Génération sécurisée du code verifier et challenge
+export async function startAuth0PKCE(mode: 'login' | 'signup', domain: string, clientId: string, callbackUrl: string) {
+  const codeVerifier = base64UrlEncode(window.crypto.getRandomValues(new Uint8Array(32)));
+  const codeChallenge = await sha256(codeVerifier);
+  const state = base64UrlEncode(window.crypto.getRandomValues(new Uint8Array(16)));
+  
+  // Stockage sécurisé en session
+  sessionStorage.setItem('auth0_code_verifier', codeVerifier);
+  sessionStorage.setItem('auth0_state', state);
+  
+  // Redirection vers Auth0 avec paramètres PKCE
+  window.location.href = `https://${domain}/authorize?${params.toString()}`;
 }
 ```
 
-#### Vérification de l'expiration
+**Callback et échange de tokens** : `pages/auth/Callback.tsx`
 
-Avant chaque requête API, l'application vérifie si le token d'accès est expiré :
-
-```javascript
-// Vérification de la validité du token
-const isTokenValid = () => {
-  const expiresAt = localStorage.getItem('expiresAt');
-  return Date.now() < parseInt(expiresAt);
-};
+```typescript
+// Échange du code d'autorisation contre les tokens
+fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    grant_type: 'authorization_code',
+    client_id: AUTH0_CLIENT_ID,
+    code_verifier: codeVerifier, // PKCE
+    code,
+    redirect_uri: AUTH0_CALLBACK_URL,
+  })
+})
 ```
 
-### 4. Rafraîchissement des tokens
+### 2. Gestion des utilisateurs avec hook useUser
 
-Lorsque le token d'accès expire, l'application utilise le token de rafraîchissement pour obtenir un nouveau token d'accès sans que l'utilisateur n'ait à se reconnecter :
+**Hook** : `hooks/useUser.ts`
 
-```javascript
-// Exemple de rafraîchissement du token
-const refreshToken = async () => {
-  try {
-    await auth0Client.checkSession();
-    const token = await auth0Client.getTokenSilently();
-    localStorage.setItem('accessToken', token);
-    const expiresIn = 86400; // 24 heures
-    const expiresAt = Date.now() + expiresIn * 1000;
-    localStorage.setItem('expiresAt', expiresAt.toString());
-    return token;
-  } catch (error) {
-    console.error('Erreur lors du rafraîchissement du token', error);
-    // Rediriger vers la page de connexion
-    window.location.href = '/login';
+Le hook `useUser` gère automatiquement :
+- ✅ Initialisation immédiate avec données Auth0
+- ✅ Enrichissement en arrière-plan via l'API backend
+- ✅ Synchronisation après connexion
+- ✅ Gestion des erreurs et retry automatique
+- ✅ Nettoyage lors de la déconnexion
+
+```typescript
+export function useUser() {
+  // États de l'utilisateur
+  const [user, setUser] = useState<User | null>(null);
+  const [isEnrichingData, setIsEnrichingData] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  // Initialisation immédiate depuis Auth0
+  const initializeUserFromAuth0 = useCallback(() => {
+    const token = getToken();
+    const auth0UserData = localStorage.getItem('auth0_user');
+    
+    if (auth0UserData && token) {
+      const auth0User = JSON.parse(auth0UserData);
+      const userWithDefaults = {
+        ...auth0User,
+        id: auth0User.sub || auth0User.id || '',
+        name: auth0User.name || auth0User.nickname || auth0User.email || 'Utilisateur',
+        email: auth0User.email || 'N/A',
+        picture: auth0User.picture || generateAvatarUrl(auth0User.name || auth0User.email)
+      };
+      setUser(userWithDefaults);
+      setIsAuthenticated(true);
+      return userWithDefaults;
+    }
+    
+    setUser(null);
+    setIsAuthenticated(false);
+    return null;
+  }, []);
+  
+  // Synchronisation après connexion Auth0
+  const syncProfileAfterLogin = useCallback(async () => {
+    const auth0User = initializeUserFromAuth0();
+    if (auth0User) {
+      notifyAuthChange();
+      // Enrichissement en arrière-plan
+      setTimeout(async () => {
+        try {
+          await loadUserProfile();
+        } catch (error) {
+          console.warn('Enrichissement échoué, conservation des données Auth0');
+        }
+      }, 500);
+    }
+  }, [initializeUserFromAuth0]);
+}
+```
+
+### 3. Stratégie de fallback et UserService
+
+**Service** : `services/user.ts`
+
+```typescript
+async getProfile(): Promise<User> {
+  // 1. Récupération immédiate des données Auth0 (localStorage)
+  const storedAuth0User = localStorage.getItem('auth0_user');
+  const auth0User = storedAuth0User ? JSON.parse(storedAuth0User) : {};
+  
+  // 2. Construction utilisateur de base
+  const baseUser: User = {
+    id: auth0User.sub || auth0User.id || `local-${Date.now()}`,
+    email: auth0User.email || 'N/A',
+    name: auth0User.name || auth0User.nickname || auth0User.email || 'Utilisateur',
+    picture: auth0User.picture || generateAvatarUrl(auth0User.name || auth0User.email),
+    phone: auth0User.phone || 'N/A',
+    address: auth0User.address || 'N/A',
+    role: auth0User.roles?.[0] || auth0User['https://ksuit.app/roles']?.[0] || '',
+    idNumber: auth0User.idNumber || 'N/A',
+    idStatus: auth0User.idStatus || undefined,
+    createdAt: auth0User.updated_at || new Date().toISOString(),
+  };
+  
+  // 3. Tentative d'enrichissement backend (avec timeout 10s)
+  const token = getToken();
+  if (!token) {
+    return baseUser;
   }
-};
+  
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 10000);
+    });
+    
+    const backendUserPromise = api.get<User>('/users/me');
+    const backendUser = await Promise.race([backendUserPromise, timeoutPromise]);
+    
+    // Fusion des données avec validation
+    const mergedUser = { 
+      ...baseUser, 
+      ...backendUser,
+      id: backendUser.id || baseUser.id,
+      name: backendUser.name || baseUser.name,
+      email: backendUser.email || baseUser.email,
+      picture: backendUser.picture || baseUser.picture,
+      role: backendUser.role || baseUser.role
+    };
+    
+    // Mise à jour du cache localStorage
+    localStorage.setItem('auth0_user', JSON.stringify(mergedUser));
+    return mergedUser;
+    
+  } catch (error) {
+    console.warn('Backend user profile fetch failed. Using Auth0 data only.', error);
+    return baseUser;
+  }
+}
 ```
 
-## Création de compte et gestion des profils
+**Architecture de fallback** :
+- **Priorité 1** : Données Auth0 (localStorage) - Toujours disponibles immédiatement
+- **Priorité 2** : Enrichissement backend - Si API disponible (timeout 10s)
+- **Fallback** : Retour aux données Auth0 si backend indisponible
+- **Cache** : Mise à jour du localStorage avec les données fusionnées
 
-### Création automatique du profil
+## Sécurité
 
-Lors de la première connexion d'un utilisateur, un profil utilisateur est automatiquement créé dans la base de données. Le token contient les informations de base de l'utilisateur (email, nom, etc.).
+### Headers automatiques
 
-### Utilisateur administrateur
+Tous les endpoints incluent automatiquement :
+- `Authorization: Bearer ${token}`
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+### Gestion d'erreurs
+
+- **401 Unauthorized** : Redirection vers Auth0
+- **403 Forbidden** : Permissions insuffisantes
+- **Token expiré** : Refresh automatique via Auth0
+
+### Stockage sécurisé
+
+**Fonctionnalités** :
+- Wrapper sécurisé pour localStorage/sessionStorage
+- Gestion centralisée des clés de stockage
+- Nettoyage automatique lors de la déconnexion
+- Protection contre les erreurs de stockage
+
+## Endpoints protégés
+
+**Tous les endpoints API nécessitent une authentification** :
+- `/users/*` - Gestion des utilisateurs
+- `/companies/*` - Gestion des entreprises  
+- `/financial-institutions/*` - Institutions financières
+- `/subscriptions/*` - Abonnements
+- `/tokens/*` - Gestion des tokens
+- `/payments/*` - Paiements
+
+**Configuration automatique** : Aucune configuration manuelle nécessaire, l'authentification est gérée automatiquement par `ApiService`.
 
 L'utilisateur qui crée le compte est automatiquement désigné comme administrateur de l'entreprise ou de l'institution financière.
 
@@ -120,27 +304,133 @@ Ce type est enregistré dans le profil utilisateur via le champ `userType` qui p
 
 ## Déconnexion
 
-La déconnexion implique plusieurs étapes :
-1. Suppression des tokens du localStorage
-2. Redirection vers l'URL de déconnexion d'Auth0
-3. Redirection vers la page d'accueil de l'application
+La déconnexion est gérée automatiquement via le Header et implique plusieurs étapes sécurisées :
 
-```javascript
-// Exemple de déconnexion
-const logout = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('idToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('expiresAt');
+**Implémentation** : `components/layout/Header.tsx`
+
+```typescript
+function handleLogout() {
+  console.log('🔓 Déconnexion en cours...');
   
-  window.location.href = `https://wanzo.auth0.com/v2/logout?client_id=YOUR_CLIENT_ID&returnTo=${window.location.origin}`;
-};
+  // 1. Nettoyer tous les tokens Auth0 du localStorage
+  localStorage.removeItem('auth0_user');
+  localStorage.removeItem('auth0_token');
+  localStorage.removeItem('auth0_id_token');
+  localStorage.removeItem('auth0_refresh_token');
+  localStorage.removeItem('auth0_expires_in');
+  localStorage.removeItem('auth0_token_type');
+  localStorage.removeItem('auth0_error');
+  
+  // 2. Nettoyer la session
+  sessionStorage.removeItem('auth0_code_verifier');
+  sessionStorage.removeItem('auth0_state');
+  sessionStorage.removeItem('auth0_just_logged_in');
+  sessionStorage.removeItem('auth0_redirect_after_login');
+  
+  // 3. Fermer les menus ouverts
+  setProfileMenuOpen(false);
+  setAppsOpen(false);
+  
+  // 4. Déclencher l'événement de changement d'authentification
+  window.dispatchEvent(new CustomEvent(AUTH_EVENT));
+  
+  // 5. Redirection vers le logout Auth0 global
+  const domain = AUTH0_DOMAIN;
+  const clientId = AUTH0_CLIENT_ID;
+  const returnTo = AUTH0_LOGOUT_URL;
+  
+  window.location.href = `https://${domain}/v2/logout?client_id=${clientId}&returnTo=${encodeURIComponent(returnTo)}`;
+}
 ```
+
+**Nettoyage automatique dans useUser** :
+- Écoute des événements de déconnexion
+- Réinitialisation complète de l'état utilisateur
+- Arrêt des processus d'enrichissement en cours
+
+## Intégration UI automatique
+
+### Header intelligent
+
+**Composant** : `components/layout/Header.tsx`
+
+Le Header utilise le hook `useUser` pour :
+- ✅ Afficher automatiquement le profil utilisateur connecté
+- ✅ Gérer l'état de chargement pendant l'enrichissement des données
+- ✅ Afficher un menu déroulant avec les options de profil
+- ✅ Gérer la déconnexion sécurisée
+- ✅ Se mettre à jour automatiquement après connexion/déconnexion
+
+```typescript
+export function Header() {
+  const { user, isEnrichingData, isAuthenticated, syncProfileAfterLogin } = useUser();
+  
+  // Fusion des données Auth0 avec celles du backend
+  const displayUser = React.useMemo(() => {
+    const stored = localStorage.getItem('auth0_user');
+    const auth0User = stored ? JSON.parse(stored) : null;
+    
+    // Le hook useUser retourne déjà les données fusionnées optimales
+    return user || auth0User;
+  }, [user]);
+  
+  // Écoute des événements d'authentification pour mise à jour immédiate
+  useEffect(() => {
+    const handleAuthEvent = () => {
+      const storedUser = localStorage.getItem('auth0_user');
+      if (storedUser) {
+        syncProfileAfterLogin();
+      }
+    };
+    
+    window.addEventListener(AUTH_EVENT, handleAuthEvent);
+    return () => window.removeEventListener(AUTH_EVENT, handleAuthEvent);
+  }, [syncProfileAfterLogin]);
+  
+  return (
+    // UI qui s'adapte automatiquement à l'état d'authentification
+    {isAuthenticated ? (
+      <UserProfileMenu user={displayUser} isEnriching={isEnrichingData} />
+    ) : (
+      <AuthButtons />
+    )}
+  );
+}
+```
+
+### Événements d'authentification
+
+**Système d'événements** : `hooks/useUser.ts`
+
+```typescript
+// Événement personnalisé pour synchronisation globale
+export const AUTH_EVENT = 'auth_state_changed';
+
+export function notifyAuthChange() {
+  const event = new CustomEvent(AUTH_EVENT);
+  window.dispatchEvent(event);
+}
+```
+
+Les composants peuvent écouter `AUTH_EVENT` pour réagir aux changements d'authentification automatiquement.
 
 ## Sécurité et bonnes pratiques
 
-- Tous les tokens sont stockés dans le localStorage mais pourraient être migrés vers des cookies HttpOnly pour une meilleure sécurité
-- Les tokens ont une durée de vie limitée (généralement 24h)
-- Les tokens de rafraîchissement permettent une expérience utilisateur fluide
-- Toutes les communications utilisent HTTPS
-- Les permissions sont vérifiées côté serveur pour chaque requête
+### Protection PKCE
+- ✅ Code Verifier généré aléatoirement (32 bytes)
+- ✅ Code Challenge basé sur SHA256
+- ✅ State parameter pour protection CSRF
+- ✅ Stockage sécurisé en sessionStorage (temporaire)
+
+### Gestion des tokens
+- ✅ Tokens stockés dans localStorage (migration vers cookies HttpOnly recommandée)
+- ✅ Tokens avec durée de vie limitée 
+- ✅ Refresh tokens pour expérience utilisateur fluide
+- ✅ Nettoyage automatique lors de la déconnexion
+
+### Robustesse
+- ✅ Timeout automatique (10s) pour les requêtes backend
+- ✅ Retry automatique en cas d'échec (max 2 tentatives)
+- ✅ Fallback immédiat vers les données Auth0
+- ✅ Gestion des erreurs sans blocage de l'UI
+- ✅ Protection contre les boucles infinies dans les useEffect
