@@ -190,4 +190,101 @@ export class TokenService {
       total: Number(row.total) || 0
     }));
   }
+
+  /**
+   * Récupère le solde de tokens d'un utilisateur par son Auth0 ID
+   */
+  async getTokenBalanceByAuth0Id(auth0Id: string): Promise<{ balance: number, totalPurchased: number }> {
+    // Trouver l'utilisateur par son Auth0 ID
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const totalPurchased = await this.getTotalPurchasedTokens(user.customerId);
+    const totalUsage = await this.getTotalTokenUsage(user.customerId);
+    const balance = totalPurchased - totalUsage;
+
+    return {
+      balance,
+      totalPurchased
+    };
+  }
+
+  /**
+   * Récupère les transactions de tokens d'un utilisateur par son Auth0 ID
+   */
+  async getTokenTransactionsByAuth0Id(
+    auth0Id: string, 
+    page: number = 1, 
+    limit: number = 20
+  ): Promise<{ 
+    transactions: Array<{
+      id: string;
+      type: 'purchase' | 'usage';
+      amount: number;
+      price?: number;
+      currency?: string;
+      status: string;
+      paymentMethod?: string;
+      feature?: string;
+      createdAt: string;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    // Trouver l'utilisateur par son Auth0 ID
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    // Récupérer les achats de tokens
+    const [purchases, purchaseCount] = await this.tokenPurchaseRepository.findAndCount({
+      where: { customerId: user.customerId },
+      order: { purchaseDate: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Récupérer les utilisations de tokens
+    const [usages, usageCount] = await this.tokenUsageRepository.findAndCount({
+      where: { customerId: user.customerId },
+      order: { timestamp: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Combiner et formater les transactions
+    const transactions = [
+      ...purchases.map(purchase => ({
+        id: purchase.id,
+        type: 'purchase' as const,
+        amount: purchase.amount,
+        price: purchase.price,
+        currency: purchase.currency,
+        status: 'completed', // Statut par défaut pour les achats
+        paymentMethod: purchase.metadata?.paymentMethod || 'unknown',
+        createdAt: purchase.purchaseDate.toISOString(),
+      })),
+      ...usages.map(usage => ({
+        id: usage.id,
+        type: 'usage' as const,
+        amount: -usage.amount, // Négatif pour l'utilisation
+        status: 'completed',
+        feature: usage.serviceType,
+        createdAt: usage.timestamp.toISOString(),
+      }))
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return {
+      transactions: transactions.slice(0, limit),
+      total: purchaseCount + usageCount,
+      page,
+      limit
+    };
+  }
 }

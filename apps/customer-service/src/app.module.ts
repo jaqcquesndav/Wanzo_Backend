@@ -13,6 +13,7 @@ import { KafkaModule } from './modules/kafka/kafka.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AuthModule } from './modules/auth/auth.module';
     MonitoringModule,
     HealthModule,
     AuthModule,
+    AiModule,
   ],
 })
 export class AppModule {}

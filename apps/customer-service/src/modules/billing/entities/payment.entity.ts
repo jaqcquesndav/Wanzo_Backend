@@ -8,6 +8,7 @@ export enum PaymentMethod {
   PAYPAL = 'paypal',
   MOBILE_MONEY = 'mobile_money',
   CRYPTO = 'crypto',
+  MANUAL = 'manual',
   OTHER = 'other'
 }
 

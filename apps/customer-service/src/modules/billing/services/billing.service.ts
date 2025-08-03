@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Like, LessThan } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
+import { User } from '../../users/entities/user.entity';
 
 interface CreateInvoiceDto {
   customerId: string;
@@ -44,6 +45,8 @@ export class BillingService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly customerEventsProducer: CustomerEventsProducer,
   ) {}
 
@@ -241,5 +244,121 @@ export class BillingService {
     );
     
     return result.affected || 0;
+  }
+
+  /**
+   * Récupère les paiements d'un utilisateur par son Auth0 ID
+   */
+  async getPaymentsByAuth0Id(
+    auth0Id: string, 
+    page: number = 1, 
+    limit: number = 20
+  ): Promise<{ payments: Payment[], total: number, page: number, limit: number }> {
+    // Trouver l'utilisateur par son Auth0 ID
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    // Récupérer les paiements du customer lié à cet utilisateur
+    const [payments, total] = await this.paymentRepository.findAndCount({
+      where: { customerId: user.customerId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['invoice'],
+    });
+
+    return {
+      payments,
+      total,
+      page,
+      limit
+    };
+  }
+
+  /**
+   * Génère un reçu PDF pour un paiement
+   */
+  async generatePaymentReceiptPdf(paymentId: string, auth0Id: string): Promise<Buffer> {
+    // Vérifier que l'utilisateur a accès à ce paiement
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const payment = await this.paymentRepository.findOne({
+      where: { 
+        id: paymentId,
+        customerId: user.customerId 
+      },
+      relations: ['invoice']
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Paiement non trouvé ou non autorisé');
+    }
+
+    // TODO: Implémenter la génération de PDF
+    // Pour l'instant, on retourne un buffer simulé
+    const receiptContent = `
+      REÇU DE PAIEMENT
+      
+      ID du paiement: ${payment.id}
+      Montant: ${payment.amount} ${payment.currency}
+      Date: ${payment.createdAt.toLocaleDateString()}
+      Méthode: ${payment.paymentMethod}
+      ${payment.transactionId ? `Transaction ID: ${payment.transactionId}` : ''}
+      
+      Merci pour votre paiement !
+    `;
+
+    // Simuler un buffer PDF (à remplacer par une vraie génération PDF)
+    return Buffer.from(receiptContent, 'utf-8');
+  }
+
+  /**
+   * Upload une preuve de paiement manuelle
+   */
+  async uploadManualPaymentProof(
+    proofData: {
+      paymentId: string;
+      proofUrl: string;
+      description?: string;
+      amount: number;
+      currency: string;
+    },
+    auth0Id: string
+  ): Promise<void> {
+    // Vérifier l'utilisateur
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    // Créer un enregistrement de paiement manuel
+    const manualPayment = this.paymentRepository.create({
+      customerId: user.customerId,
+      amount: proofData.amount,
+      currency: proofData.currency,
+      paymentMethod: PaymentMethod.MANUAL,
+      status: PaymentStatus.PENDING, // En attente de validation
+      notes: proofData.description,
+      metadata: {
+        proofUrl: proofData.proofUrl,
+        manualSubmission: true,
+        submittedAt: new Date(),
+        submittedBy: auth0Id
+      }
+    });
+
+    await this.paymentRepository.save(manualPayment);
+
+    // Log de l'événement pour les administrateurs
+    // TODO: Implémenter un système de notification pour les preuves de paiement manuelles
+    console.log(`Preuve de paiement manuelle téléchargée - Payment ID: ${manualPayment.id}, User: ${auth0Id}, Amount: ${proofData.amount} ${proofData.currency}`);
   }
 }

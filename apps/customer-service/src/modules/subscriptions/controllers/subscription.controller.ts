@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubscriptionService } from '../services/subscription.service';
 import { Subscription, SubscriptionStatus } from '../entities/subscription.entity';
 import { SubscriptionPlan } from '../entities/subscription.entity';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 class CreateSubscriptionDto {
   customerId!: string;
@@ -27,7 +28,7 @@ class UpdateSubscriptionDto {
 
 @ApiTags('subscriptions')
 @ApiBearerAuth()
-@Controller('subscriptions')
+@Controller('land/api/v1')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
@@ -45,7 +46,7 @@ export class SubscriptionController {
     return this.subscriptionService.findByCustomer(customerId);
   }
 
-  @Get('plans')
+  @Get('subscription/plans')
   @ApiOperation({ summary: 'Récupérer tous les plans d\'abonnement disponibles' })
   @ApiResponse({ status: 200, description: 'Liste des plans récupérée' })
   async getPlans(): Promise<SubscriptionPlan[]> {
@@ -104,5 +105,50 @@ export class SubscriptionController {
   @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée' })
   async getExpiredSubscriptions(): Promise<Subscription[]> {
     return this.subscriptionService.findExpiredSubscriptions();
+  }
+
+  @Get('subscriptions/current')
+  @ApiOperation({ summary: 'Récupérer l\'abonnement actuel de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Abonnement actuel récupéré' })
+  @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
+  @UseGuards(JwtAuthGuard)
+  async getCurrentSubscription(@Req() req: any): Promise<Subscription | null> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return this.subscriptionService.getCurrentSubscriptionByAuth0Id(auth0Id);
+  }
+
+  @Post('subscriptions/cancel')
+  @ApiOperation({ summary: 'Annuler l\'abonnement actuel de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Abonnement annulé avec succès' })
+  @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
+  @UseGuards(JwtAuthGuard)
+  async cancelCurrentSubscription(
+    @Req() req: any,
+    @Body('reason') reason?: string
+  ): Promise<Subscription> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return this.subscriptionService.cancelCurrentSubscriptionByAuth0Id(auth0Id, reason);
+  }
+
+  @Post('subscriptions/change-plan')
+  @ApiOperation({ summary: 'Changer le plan d\'abonnement de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Plan changé avec succès' })
+  @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
+  @UseGuards(JwtAuthGuard)
+  async changePlan(
+    @Body('planId') planId: string,
+    @Req() req: any
+  ): Promise<Subscription> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return this.subscriptionService.changePlanByAuth0Id(auth0Id, planId);
   }
 }

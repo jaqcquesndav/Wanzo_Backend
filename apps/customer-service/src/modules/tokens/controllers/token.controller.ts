@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TokenService } from '../services/token.service';
 import { TokenUsage, TokenServiceType } from '../entities/token-usage.entity';
@@ -18,7 +18,7 @@ class RecordTokenUsageDto {
 @ApiTags('tokens')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('tokens')
+@Controller('land/api/v1/tokens')
 export class TokenController {
   constructor(private readonly tokenService: TokenService) {}
 
@@ -35,6 +35,38 @@ export class TokenController {
   async getTokenBalance(@Param('customerId') customerId: string) {
     const balance = await this.tokenService.getTokenBalance(customerId);
     return { balance };
+  }
+
+  @Get('balance')
+  @ApiOperation({ summary: 'Récupérer le solde de tokens de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Solde de tokens récupéré avec succès' })
+  async getCurrentUserTokenBalance(@Req() req: any) {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    const balance = await this.tokenService.getTokenBalanceByAuth0Id(auth0Id);
+    return { 
+      balance: balance.balance,
+      totalPurchased: balance.totalPurchased
+    };
+  }
+
+  @Get('transactions')
+  @ApiOperation({ summary: 'Récupérer l\'historique des transactions de tokens de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Historique des transactions récupéré' })
+  async getCurrentUserTransactions(
+    @Req() req: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20
+  ) {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    return this.tokenService.getTokenTransactionsByAuth0Id(auth0Id, +page, +limit);
   }
 
   @Post('usage')

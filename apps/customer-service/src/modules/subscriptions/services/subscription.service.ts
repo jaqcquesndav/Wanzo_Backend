@@ -172,4 +172,72 @@ export class SubscriptionService {
       order: { priceUSD: 'ASC' },
     });
   }
+
+  /**
+   * Récupère l'abonnement actuel d'un utilisateur par son Auth0 ID
+   */
+  async getCurrentSubscriptionByAuth0Id(auth0Id: string): Promise<Subscription | null> {
+    // D'abord, trouver l'utilisateur par son Auth0 ID
+    const userRepository = this.subscriptionRepository.manager.getRepository('User');
+    const user = await userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      return null;
+    }
+
+    // Ensuite, trouver l'abonnement actuel du customer lié à cet utilisateur
+    return this.subscriptionRepository.findOne({
+      where: {
+        customerId: user.customerId,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      relations: ['customer', 'plan'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Annule l'abonnement actuel d'un utilisateur par son Auth0 ID
+   */
+  async cancelCurrentSubscriptionByAuth0Id(auth0Id: string, reason?: string): Promise<Subscription> {
+    const subscription = await this.getCurrentSubscriptionByAuth0Id(auth0Id);
+    
+    if (!subscription) {
+      throw new Error('Aucun abonnement actuel trouvé pour cet utilisateur');
+    }
+
+    return this.cancel(subscription.id, reason);
+  }
+
+  /**
+   * Change le plan d'abonnement d'un utilisateur par son Auth0 ID
+   */
+  async changePlanByAuth0Id(auth0Id: string, planId: string): Promise<Subscription> {
+    const currentSubscription = await this.getCurrentSubscriptionByAuth0Id(auth0Id);
+    
+    if (!currentSubscription) {
+      throw new Error('Aucun abonnement actuel trouvé pour cet utilisateur');
+    }
+
+    // Vérifier si le nouveau plan existe
+    const newPlan = await this.planRepository.findOne({ where: { id: planId } });
+    if (!newPlan) {
+      throw new Error(`Plan avec l'ID ${planId} non trouvé`);
+    }
+
+    // Mettre à jour l'abonnement actuel
+    const updatedSubscription = await this.update(currentSubscription.id, { planId });
+
+    // Publier un événement de changement de plan
+    await this.customerEventsProducer.emitSubscriptionEvent({
+      type: 'subscription.plan_changed',
+      subscriptionId: updatedSubscription.id,
+      customerId: updatedSubscription.customerId,
+      oldPlanId: currentSubscription.planId,
+      newPlanId: planId,
+      timestamp: new Date(),
+    });
+
+    return updatedSubscription;
+  }
 }

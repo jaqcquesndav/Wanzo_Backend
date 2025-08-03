@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req, UnauthorizedException, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BillingService } from '../services/billing.service';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment } from '../entities/payment.entity';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 class CreateInvoiceDto {
   customerId!: string;
@@ -36,9 +37,9 @@ class CreatePaymentDto {
   metadata?: Record<string, any>;
 }
 
-@ApiTags('billing')
+@ApiTags('payments')
 @ApiBearerAuth()
-@Controller('billing')
+@Controller('land/api/v1')
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
@@ -129,5 +130,76 @@ export class BillingController {
   async markOverdueInvoices(): Promise<{ affected: number }> {
     const affected = await this.billingService.markOverdueInvoices();
     return { affected };
+  }
+
+  // Endpoints selon la documentation frontend
+
+  @Get('payments')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer l\'historique des paiements de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Historique des paiements récupéré' })
+  async getCurrentUserPayments(
+    @Req() req: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20
+  ): Promise<{ payments: Payment[], total: number, page: number, limit: number }> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    return this.billingService.getPaymentsByAuth0Id(auth0Id, +page, +limit);
+  }
+
+  @Get('payments/:id/receipt')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Télécharger le reçu d\'un paiement (PDF)' })
+  @ApiResponse({ status: 200, description: 'Reçu téléchargé avec succès' })
+  async downloadReceipt(
+    @Param('id') paymentId: string,
+    @Req() req: any,
+    @Res() res: any
+  ): Promise<void> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    const receiptBuffer = await this.billingService.generatePaymentReceiptPdf(paymentId, auth0Id);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="receipt-${paymentId}.pdf"`,
+      'Content-Length': receiptBuffer.length,
+    });
+    
+    res.send(receiptBuffer);
+  }
+
+  @Post('payments/manual-proof')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Télécharger une preuve de paiement manuelle' })
+  @ApiResponse({ status: 200, description: 'Preuve de paiement téléchargée avec succès' })
+  async uploadManualProof(
+    @Body() proofData: { 
+      paymentId: string; 
+      proofUrl: string; 
+      description?: string;
+      amount: number;
+      currency: string;
+    },
+    @Req() req: any
+  ): Promise<{ success: boolean; message: string }> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    await this.billingService.uploadManualPaymentProof(proofData, auth0Id);
+    
+    return {
+      success: true,
+      message: 'Preuve de paiement téléchargée avec succès'
+    };
   }
 }

@@ -583,6 +583,34 @@ export class CustomerEventsProducer {
   }
 
   /**
+   * Publie un événement générique de souscription
+   */
+  async emitSubscriptionEvent(event: {
+    type: string;
+    subscriptionId: string;
+    customerId: string;
+    planId?: string;
+    oldPlanId?: string;
+    newPlanId?: string;
+    timestamp: Date;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    try {
+      const eventData = {
+        ...event,
+        timestamp: event.timestamp.toISOString(),
+      };
+
+      await this.kafkaClient.emit('subscription.event', eventData);
+      this.logger.log(`Event subscription.event (${event.type}) published for customer ${event.customerId}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to publish subscription.event: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+
+  /**
    * Centralisation des événements pour communication inter-services
    * 
    * Les autres microservices pourront:
