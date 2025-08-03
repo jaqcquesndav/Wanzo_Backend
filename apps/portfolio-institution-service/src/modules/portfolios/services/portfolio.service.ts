@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Between } from 'typeorm';
-import { Portfolio } from '../entities/portfolio.entity';
+import { Portfolio, PortfolioStatus } from '../entities/portfolio.entity';
 import { FinancialProduct, ProductStatus } from '../entities/financial-product.entity';
-import { FundingRequest } from '../entities/funding-request.entity';
-import { Contract } from '../entities/contract.entity';
+import { FundingRequest, FundingRequestStatus } from '../entities/funding-request.entity';
+import { Contract, ContractStatus } from '../entities/contract.entity';
 import { CreatePortfolioDto, UpdatePortfolioDto, PortfolioFilterDto } from '../dtos/portfolio.dto';
 
 @Injectable()
@@ -27,7 +27,7 @@ export class PortfolioService {
     const portfolio = this.portfolioRepository.create({
       ...createPortfolioDto,
       reference,
-      status: 'active',
+      status: PortfolioStatus.ACTIVE,
       createdBy: userId,
     });
 
@@ -123,7 +123,7 @@ export class PortfolioService {
     }
 
     // Change status to closed instead of deleting
-    portfolio.status = 'closed';
+    portfolio.status = PortfolioStatus.CLOSED;
     await this.portfolioRepository.save(portfolio);
 
     return {
@@ -145,5 +145,31 @@ export class PortfolioService {
       portfolio,
       products,
     };
+  }
+
+  async close(id: string, closeData: { closureReason?: string; closureNotes?: string }): Promise<Portfolio> {
+    const portfolio = await this.findById(id);
+
+    if (portfolio.status === PortfolioStatus.CLOSED) {
+      throw new BadRequestException('Portfolio is already closed');
+    }
+
+    // Check if there are active contracts or funding requests
+    const activeContracts = await this.contractRepository.count({
+      where: { portfolio_id: id, status: ContractStatus.ACTIVE }
+    });
+
+    const activeFundingRequests = await this.fundingRequestRepository.count({
+      where: { portfolio_id: id, status: FundingRequestStatus.APPROVED }
+    });
+
+    if (activeContracts > 0 || activeFundingRequests > 0) {
+      throw new BadRequestException('Cannot close portfolio with active contracts or funding requests');
+    }
+
+    portfolio.status = PortfolioStatus.CLOSED;
+    portfolio.updated_at = new Date();
+
+    return await this.portfolioRepository.save(portfolio);
   }
 }

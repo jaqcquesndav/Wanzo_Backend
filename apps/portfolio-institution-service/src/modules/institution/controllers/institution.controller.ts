@@ -24,6 +24,18 @@ export class InstitutionController {
     };
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get institution information' })
+  @ApiResponse({ status: 200, description: 'Institution information retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Institution not found' })
+  async getInstitution(@Req() req: any) {
+    const institution = await this.institutionService.findById(req.user.institutionId);
+    return {
+      success: true,
+      data: institution,
+    };
+  }
+
   @Get('profile')
   @ApiOperation({ summary: 'Get institution profile' })
   @ApiResponse({ status: 200, description: 'Institution profile retrieved successfully' })

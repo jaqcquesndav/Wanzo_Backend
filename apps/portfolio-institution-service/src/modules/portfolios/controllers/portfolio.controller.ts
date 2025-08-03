@@ -7,7 +7,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 
 @ApiTags('portfolios')
-@Controller('portfolio_inst/portfolios/traditional')
+@Controller('portfolios/traditional')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class PortfolioController {
@@ -111,6 +111,21 @@ export class PortfolioController {
     return {
       success: true,
       message: result.message,
+    };
+  }
+
+  @Post(':id/close')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Close traditional portfolio' })
+  @ApiParam({ name: 'id', description: 'Portfolio ID' })
+  @ApiResponse({ status: 200, description: 'Portfolio closed successfully' })
+  @ApiResponse({ status: 404, description: 'Portfolio not found' })
+  @ApiResponse({ status: 400, description: 'Portfolio cannot be closed' })
+  async close(@Param('id') id: string, @Body() closeData: { closureReason?: string; closureNotes?: string }) {
+    const result = await this.portfolioService.close(id, closeData);
+    return {
+      success: true,
+      data: result,
     };
   }
 }

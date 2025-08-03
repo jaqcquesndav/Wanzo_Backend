@@ -3,8 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Portfolio } from './entities/portfolio.entity';
 import { FinancialProduct } from './entities/financial-product.entity';
 import { FundingRequest } from './entities/funding-request.entity';
+import { CreditRequest } from './entities/credit-request.entity';
 import { Contract } from './entities/contract.entity';
 import { Disbursement } from './entities/disbursement.entity';
+import { TraditionalDisbursement } from './entities/traditional-disbursement.entity';
 import { Repayment } from './entities/repayment.entity';
 import { Guarantee } from './entities/guarantee.entity';
 import { PaymentSchedule } from './entities/payment-schedule.entity';
@@ -12,6 +14,7 @@ import { Document } from './entities/document.entity';
 import { PortfolioService } from './services/portfolio.service';
 import { FinancialProductService } from './services/financial-product.service';
 import { FundingRequestService } from './services/funding-request.service';
+import { CreditRequestService } from './services/credit-request.service';
 import { ContractService } from './services/contract.service';
 import { DisbursementService } from './services/disbursement.service';
 import { RepaymentService } from './services/repayment.service';
@@ -20,6 +23,7 @@ import { DocumentService } from './services/document.service';
 import { PortfolioController } from './controllers/portfolio.controller';
 import { FinancialProductController } from './controllers/financial-product.controller';
 import { FundingRequestController } from './controllers/funding-request.controller';
+import { CreditRequestController } from './controllers/credit-request.controller';
 import { ContractController } from './controllers/contract.controller';
 import { DisbursementController } from './controllers/disbursement.controller';
 import { RepaymentController } from './controllers/repayment.controller';
@@ -33,9 +37,11 @@ import { MulterModule } from '@nestjs/platform-express';
     TypeOrmModule.forFeature([
       Portfolio, 
       FinancialProduct, 
-      FundingRequest, 
+      FundingRequest,
+      CreditRequest,
       Contract, 
-      Disbursement, 
+      Disbursement,
+      TraditionalDisbursement,
       Repayment, 
       Guarantee,
       PaymentSchedule,
@@ -50,6 +56,7 @@ import { MulterModule } from '@nestjs/platform-express';
     PortfolioService,
     FinancialProductService,
     FundingRequestService,
+    CreditRequestService,
     ContractService,
     DisbursementService,
     RepaymentService,
@@ -60,6 +67,7 @@ import { MulterModule } from '@nestjs/platform-express';
     PortfolioController,
     FinancialProductController,
     FundingRequestController,
+    CreditRequestController,
     ContractController,
     DisbursementController,
     RepaymentController,
@@ -70,6 +78,7 @@ import { MulterModule } from '@nestjs/platform-express';
     PortfolioService,
     FinancialProductService,
     FundingRequestService,
+    CreditRequestService,
     ContractService,
     DisbursementService,
     RepaymentService,

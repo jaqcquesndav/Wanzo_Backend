@@ -17,85 +17,85 @@ Les portefeuilles traditionnels sont organisés en plusieurs modules :
 
 Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
 
-**Endpoint** : `GET /portfolio_inst/portfolios/traditional`
+**Endpoint** : `GET /portfolios/traditional`
 
 **Paramètres de requête** :
-- `page` (optionnel) : Numéro de la page (défaut : 1)
-- `limit` (optionnel) : Nombre de portefeuilles par page (défaut : 10, max : 100)
-- `status` (optionnel) : Filtre par statut (active, closed, suspended)
-- `manager` (optionnel) : Filtre par gestionnaire
-- `client` (optionnel) : Filtre par client
-- `dateFrom` (optionnel) : Filtre par date de création (début)
-- `dateTo` (optionnel) : Filtre par date de création (fin)
-- `search` (optionnel) : Recherche textuelle (nom, référence)
-- `sortBy` (optionnel) : Trier par (createdAt, name, totalAmount)
-- `sortOrder` (optionnel) : Ordre de tri (asc, desc)
+- `status` (optionnel) : Filtre par statut (active, inactive, pending, archived)
+- `riskProfile` (optionnel) : Filtre par profil de risque (conservative, moderate, aggressive)
+- `minAmount` (optionnel) : Filtre par montant minimum cible
+- `sector` (optionnel) : Filtre par secteur cible
 
 **Réponse réussie** (200 OK) :
 
 ```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "portfolio123",
-      "reference": "TRP-2025-001",
-      "name": "Portefeuille PME 2025",
-      "description": "Portefeuille de crédits pour PME",
-      "status": "active",
-      "totalAmount": 5000000.00,
-      "currency": "CDF",
-      "clientCount": 25,
-      "riskScore": 3.2,
-      "manager": {
-        "id": "user123",
-        "name": "Jean Dupont"
+[
+  {
+    "id": "trad-1",
+    "name": "Portefeuille PME Nord-Kivu",
+    "description": "Portefeuille de crédits pour PME",
+    "manager_id": "mgr-123",
+    "institution_id": "inst-456",
+    "type": "traditional",
+    "status": "active",
+    "target_amount": 500000000,
+    "target_return": 12,
+    "target_sectors": ["Commerce", "Services", "Agriculture"],
+    "risk_profile": "moderate",
+    "products": [],
+    "metrics": {
+      "net_value": 450000000,
+      "average_return": 10.5,
+      "risk_portfolio": 8,
+      "sharpe_ratio": 1.8,
+      "volatility": 12,
+      "alpha": 2.5,
+      "beta": 0.85,
+      "asset_allocation": [
+        { "type": "Crédit PME", "percentage": 45 },
+        { "type": "Microfinance", "percentage": 30 },
+        { "type": "Trésorerie", "percentage": 25 }
+      ],
+      "performance_curve": [100, 110, 120, 115, 130, 128, 140],
+      "balance_AGE": {
+        "total": 120000000,
+        "echeance_0_30": 70000000,
+        "echeance_31_60": 30000000,
+        "echeance_61_90": 15000000,
+        "echeance_91_plus": 5000000
       },
-      "client": {
-        "id": "client456",
-        "name": "Banque Commerciale"
-      },
-      "createdAt": "2025-01-15T08:00:00.000Z",
-      "updatedAt": "2025-07-20T10:30:00.000Z"
+      "taux_impayes": 2.1,
+      "taux_couverture": 98.5
     },
-    // ... autres portefeuilles
-  ],
-  "meta": {
-    "total": 45,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 5
+    "manager": {
+      "id": "mgr-123",
+      "name": "Jean Dupont",
+      "email": "jean.dupont@exemple.com",
+      "phone": "+243810123456"
+    },
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "updated_at": "2024-03-15T00:00:00.000Z"
   }
-}
+]
 ```
 
 ## Création d'un portefeuille traditionnel
 
 Crée un nouveau portefeuille traditionnel.
 
-**Endpoint** : `POST /portfolio_inst/portfolios/traditional`
+**Endpoint** : `POST /portfolios/traditional`
 
 **Corps de la requête** :
 
 ```json
 {
   "name": "Nouveau Portefeuille PME",
-  "description": "Portefeuille destiné aux petites et moyennes entreprises",
-  "currency": "CDF",
-  "managerId": "user123",
-  "clientId": "client456",
-  "settings": {
-    "maxLoanAmount": 50000.00,
-    "interestRateRange": {
-      "min": 5.0,
-      "max": 15.0
-    },
-    "loanTermRange": {
-      "min": 3,
-      "max": 36
-    },
-    "riskToleranceLevel": "medium"
-  }
+  "description": "Portefeuille de crédits pour PME",
+  "manager_id": "mgr-123",
+  "institution_id": "inst-456",
+  "target_amount": 200000000,
+  "target_return": 15,
+  "target_sectors": ["Commerce", "Artisanat", "Agriculture"],
+  "risk_profile": "moderate"
 }
 ```
 
@@ -103,40 +103,30 @@ Crée un nouveau portefeuille traditionnel.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "portfolio789",
-    "reference": "TRP-2025-045",
-    "name": "Nouveau Portefeuille PME",
-    "description": "Portefeuille destiné aux petites et moyennes entreprises",
-    "status": "active",
-    "totalAmount": 0.00,
-    "currency": "CDF",
-    "clientCount": 0,
-    "riskScore": 0.0,
-    "manager": {
-      "id": "user123",
-      "name": "Jean Dupont"
-    },
-    "client": {
-      "id": "client456",
-      "name": "Banque Commerciale"
-    },
-    "settings": {
-      "maxLoanAmount": 50000.00,
-      "interestRateRange": {
-        "min": 5.0,
-        "max": 15.0
-      },
-      "loanTermRange": {
-        "min": 3,
-        "max": 36
-      },
-      "riskToleranceLevel": "medium"
-    },
-    "createdAt": "2025-07-24T14:00:00.000Z",
-    "updatedAt": "2025-07-24T14:00:00.000Z"
-  }
+  "id": "trad-3",
+  "name": "Nouveau Portefeuille PME",
+  "description": "Portefeuille de crédits pour PME",
+  "manager_id": "mgr-123",
+  "institution_id": "inst-456",
+  "type": "traditional",
+  "status": "active",
+  "target_amount": 200000000,
+  "target_return": 15,
+  "target_sectors": ["Commerce", "Artisanat", "Agriculture"],
+  "risk_profile": "moderate",
+  "products": [],
+  "metrics": {
+    "net_value": 0,
+    "average_return": 0,
+    "risk_portfolio": 0,
+    "sharpe_ratio": 0,
+    "volatility": 0,
+    "alpha": 0,
+    "beta": 0,
+    "asset_allocation": []
+  },
+  "created_at": "2025-08-03T15:30:00.000Z",
+  "updated_at": "2025-08-03T15:30:00.000Z"
 }
 ```
 
@@ -144,7 +134,7 @@ Crée un nouveau portefeuille traditionnel.
 
 Récupère les détails complets d'un portefeuille traditionnel spécifique.
 
-**Endpoint** : `GET /portfolio_inst/portfolios/traditional/{id}`
+**Endpoint** : `GET /portfolios/traditional/{id}`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du portefeuille
@@ -153,58 +143,50 @@ Récupère les détails complets d'un portefeuille traditionnel spécifique.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "portfolio123",
-    "reference": "TRP-2025-001",
-    "name": "Portefeuille PME 2025",
-    "description": "Portefeuille de crédits pour PME",
-    "status": "active",
-    "totalAmount": 5000000.00,
-    "disbursedAmount": 4500000.00,
-    "outstandingAmount": 3800000.00,
-    "currency": "CDF",
-    "clientCount": 25,
-    "riskScore": 3.2,
-    "delinquencyRate": 1.8,
-    "manager": {
-      "id": "user123",
-      "name": "Jean Dupont",
-      "email": "jean.dupont@exemple.com",
-      "phone": "+243810123456"
+  "id": "trad-1",
+  "name": "Portefeuille PME Nord-Kivu",
+  "description": "Portefeuille de crédits pour PME",
+  "manager_id": "mgr-123",
+  "institution_id": "inst-456",
+  "type": "traditional",
+  "status": "active",
+  "target_amount": 500000000,
+  "target_return": 12,
+  "target_sectors": ["Commerce", "Services", "Agriculture"],
+  "risk_profile": "moderate",
+  "products": [],
+  "metrics": {
+    "net_value": 450000000,
+    "average_return": 10.5,
+    "risk_portfolio": 8,
+    "sharpe_ratio": 1.8,
+    "volatility": 12,
+    "alpha": 2.5,
+    "beta": 0.85,
+    "asset_allocation": [
+      { "type": "Crédit PME", "percentage": 45 },
+      { "type": "Microfinance", "percentage": 30 },
+      { "type": "Trésorerie", "percentage": 25 }
+    ],
+    "performance_curve": [100, 110, 120, 115, 130, 128, 140],
+    "balance_AGE": {
+      "total": 120000000,
+      "echeance_0_30": 70000000,
+      "echeance_31_60": 30000000,
+      "echeance_61_90": 15000000,
+      "echeance_91_plus": 5000000
     },
-    "client": {
-      "id": "client456",
-      "name": "Banque Commerciale",
-      "contact": {
-        "name": "Marie Martin",
-        "email": "marie.martin@banquecommerciale.com",
-        "phone": "+243820123456"
-      }
-    },
-    "settings": {
-      "maxLoanAmount": 500000.00,
-      "interestRateRange": {
-        "min": 5.0,
-        "max": 15.0
-      },
-      "loanTermRange": {
-        "min": 3,
-        "max": 36
-      },
-      "riskToleranceLevel": "medium"
-    },
-    "kpis": {
-      "totalLoans": 30,
-      "activeLoans": 25,
-      "completedLoans": 5,
-      "averageLoanAmount": 200000.00,
-      "averageInterestRate": 10.5,
-      "averageLoanTerm": 18
-    },
-    "createdAt": "2025-01-15T08:00:00.000Z",
-    "updatedAt": "2025-07-20T10:30:00.000Z"
-  }
+    "taux_impayes": 2.1,
+    "taux_couverture": 98.5
+  },
+  "manager": {
+    "id": "mgr-123",
+    "name": "Jean Dupont",
+    "email": "jean.dupont@exemple.com",
+    "phone": "+243810123456"
+  },
+  "created_at": "2024-01-01T00:00:00.000Z",
+  "updated_at": "2024-03-15T00:00:00.000Z"
 }
 ```
 
@@ -212,7 +194,7 @@ Récupère les détails complets d'un portefeuille traditionnel spécifique.
 
 Met à jour les informations d'un portefeuille traditionnel existant.
 
-**Endpoint** : `PUT /portfolio_inst/portfolios/traditional/{id}`
+**Endpoint** : `PUT /portfolios/traditional/{id}`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du portefeuille

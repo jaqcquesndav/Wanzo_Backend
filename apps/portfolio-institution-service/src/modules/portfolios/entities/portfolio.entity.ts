@@ -7,10 +7,61 @@ export enum RiskToleranceLevel {
 }
 
 export enum PortfolioType {
+  TRADITIONAL = 'traditional',
   CREDIT = 'credit',
   SAVINGS = 'savings',
   MICROFINANCE = 'microfinance',
   TREASURY = 'treasury'
+}
+
+export enum PortfolioStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive', 
+  PENDING = 'pending',
+  ARCHIVED = 'archived',
+  CLOSED = 'closed',
+  SUSPENDED = 'suspended'
+}
+
+export enum RiskProfile {
+  CONSERVATIVE = 'conservative',
+  MODERATE = 'moderate', 
+  AGGRESSIVE = 'aggressive'
+}
+
+interface AssetAllocation {
+  type: string;
+  percentage: number;
+}
+
+interface BalanceAGE {
+  total: number;
+  echeance_0_30: number;
+  echeance_31_60: number;
+  echeance_61_90: number;
+  echeance_91_plus: number;
+}
+
+interface PortfolioMetrics {
+  net_value: number;
+  average_return: number;
+  risk_portfolio: number;
+  sharpe_ratio: number;
+  volatility: number;
+  alpha: number;
+  beta: number;
+  asset_allocation: AssetAllocation[];
+  performance_curve: number[];
+  balance_AGE: BalanceAGE;
+  taux_impayes: number;
+  taux_couverture: number;
+}
+
+interface ManagerInfo {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
 }
 
 @Entity('portfolios')
@@ -27,28 +78,50 @@ export class Portfolio {
   @Column({ nullable: true })
   description?: string;
 
-  @Column({
-    default: 'active',
-    enum: ['active', 'closed', 'suspended'],
-    type: 'enum'
-  })
-  status!: string;
-  
+  @Column()
+  manager_id!: string;
+
+  @Column()
+  institution_id!: string;
+
   @Column({
     type: 'enum',
     enum: PortfolioType,
-    default: PortfolioType.CREDIT
+    default: PortfolioType.TRADITIONAL
   })
   type!: PortfolioType;
-  
+
   @Column({
-    nullable: true,
-    default: RiskToleranceLevel.MEDIUM
+    type: 'enum',
+    enum: PortfolioStatus,
+    default: PortfolioStatus.ACTIVE
   })
-  riskProfile?: string;
+  status!: PortfolioStatus;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  totalAmount!: number;
+  target_amount!: number;
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  target_return?: number;
+
+  @Column('simple-array', { nullable: true })
+  target_sectors?: string[];
+
+  @Column({
+    type: 'enum',
+    enum: RiskProfile,
+    default: RiskProfile.MODERATE
+  })
+  risk_profile!: RiskProfile;
+
+  @Column('simple-array', { default: [] })
+  products!: string[];
+
+  @Column('jsonb', { nullable: true })
+  metrics?: PortfolioMetrics;
+
+  @Column('jsonb', { nullable: true })
+  manager?: ManagerInfo;
 
   @Column({ default: 'XOF' })
   currency!: string;
@@ -58,9 +131,6 @@ export class Portfolio {
 
   @Column('decimal', { precision: 5, scale: 2, nullable: true })
   riskScore?: number;
-
-  @Column({ nullable: true })
-  managerId?: string;
 
   @Column({ nullable: true })
   clientId?: string;
@@ -83,8 +153,8 @@ export class Portfolio {
   createdBy?: string;
 
   @CreateDateColumn()
-  createdAt!: Date;
+  created_at!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updated_at!: Date;
 }

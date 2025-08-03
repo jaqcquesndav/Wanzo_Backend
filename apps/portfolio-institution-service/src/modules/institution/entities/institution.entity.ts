@@ -10,22 +10,29 @@ export enum InstitutionType {
   // ... other types
 }
 
-// Export enums for backward compatibility
-export { SubscriptionPlanType as SubscriptionPlan };
-export { SubscriptionStatusType as SubscriptionStatus };
+export enum LicenseType {
+  UNIVERSAL_BANKING = 'universal_banking',
+  COMMERCIAL_BANKING = 'commercial_banking',
+  MICROFINANCE = 'microfinance',
+  FINANCIAL_SERVICES = 'financial_services',
+  INVESTMENT_BANKING = 'investment_banking',
+  PROVISIONAL = 'provisional',
+  RESTRICTED = 'restricted',
+  NATIONAL = 'national'
+}
+
 export enum RegulatoryStatus {
+  REGULATED = 'regulated',
+  NON_REGULATED = 'non_regulated',
   APPROVED = 'approved',
   PENDING = 'pending',
   REJECTED = 'rejected',
   COMPLIANT = 'compliant'
 }
 
-export enum LicenseType {
-  FULL = 'full',
-  PROVISIONAL = 'provisional',
-  RESTRICTED = 'restricted',
-  NATIONAL = 'national'
-}
+// Export enums for backward compatibility
+export { SubscriptionPlanType as SubscriptionPlan };
+export { SubscriptionStatusType as SubscriptionStatus };
 
 @Entity('institutions')
 export class Institution {
@@ -44,27 +51,62 @@ export class Institution {
   })
   type!: InstitutionType;
 
-  @Column('jsonb')
-  metadata!: Record<string, any>; // Store additional details like address, contact, etc.
-
-  @Column({ default: true })
-  active!: boolean;
-
   @Column({
     type: 'enum',
     enum: InstitutionStatusType,
-    default: InstitutionStatusType.PENDING_VERIFICATION, // Set a default status
+    default: InstitutionStatusType.PENDING_VERIFICATION,
   })
   status!: InstitutionStatusType;
+
+  @Column({ nullable: true })
+  license_number?: string;
+
+  @Column({
+    type: 'enum',
+    enum: LicenseType,
+    nullable: true
+  })
+  license_type?: LicenseType;
+
+  @Column({ nullable: true })
+  address?: string;
+
+  @Column({ nullable: true })
+  phone?: string;
+
+  @Column({ nullable: true })
+  email?: string;
+
+  @Column({ nullable: true })
+  website?: string;
+
+  @Column({ nullable: true })
+  legal_representative?: string;
+
+  @Column({ nullable: true })
+  tax_id?: string;
+
+  @Column({
+    type: 'enum',
+    enum: RegulatoryStatus,
+    default: RegulatoryStatus.PENDING
+  })
+  regulatory_status!: RegulatoryStatus;
+
+  @Column('jsonb', { default: {} })
+  metadata!: Record<string, any>; // Store additional details
+
+  @Column({ default: true })
+  active!: boolean;
 
   @Column({ nullable: true })
   createdBy?: string; // User ID of the creator
 
   @CreateDateColumn()
-  createdAt!: Date;
+  created_at!: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updated_at!: Date;
 
   @OneToMany(() => InstitutionDocument, document => document.institution)
   documents!: InstitutionDocument[];
@@ -111,12 +153,4 @@ export class Institution {
     operation: string;
     balance: number;
   }>;
-  
-  // Regulatory fields
-  @Column({
-    type: 'enum',
-    enum: RegulatoryStatus,
-    nullable: true
-  })
-  regulatoryStatus?: RegulatoryStatus;
 }

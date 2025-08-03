@@ -1,24 +1,24 @@
-# API des Demandes de Financement - Portefeuille Traditionnel
+# API des Demandes de Crédit - Portefeuille Traditionnel
 
-Cette API permet de gérer les demandes de financement dans le cadre des portefeuilles traditionnels, incluant la création, la consultation, l'analyse, l'approbation ou le rejet des demandes de crédit.
+Cette API permet de gérer les demandes de crédit dans le cadre des portefeuilles traditionnels, incluant la création, la consultation, l'analyse, l'approbation ou le rejet des demandes de crédit.
 
 ## Points d'accès
 
-### Liste des demandes de financement
+### Liste des demandes de crédit
 
-Récupère la liste des demandes de financement pour un portefeuille traditionnel spécifique.
+Récupère la liste des demandes de crédit pour un portefeuille traditionnel spécifique.
 
-**Endpoint** : `GET /portfolios/traditional/funding-requests`
+**Endpoint** : `GET /portfolios/traditional/credit-requests`
 
 **Paramètres de requête** :
 - `portfolioId` (optionnel) : Identifiant unique du portefeuille traditionnel
-- `status` (optionnel) : Filtre par statut (pending, under_review, approved, rejected, canceled, disbursed)
-- `clientId` (optionnel) : Filtre par identifiant du client
-- `productType` (optionnel) : Filtre par type de produit
+- `status` (optionnel) : Filtre par statut (draft, submitted, under_review, pending, analysis, approved, rejected, canceled, disbursed, active, closed, defaulted, restructured, consolidated, in_litigation)
+- `clientId` (optionnel) : Filtre par identifiant du membre (memberId)
+- `productType` (optionnel) : Filtre par type de produit (productId)
 - `dateFrom` (optionnel) : Filtre par date de création (début)
 - `dateTo` (optionnel) : Filtre par date de création (fin)
-- `search` (optionnel) : Recherche textuelle (numéro de demande, nom du client)
-- `sortBy` (optionnel) : Trier par (created_at, amount, client_name)
+- `search` (optionnel) : Recherche textuelle
+- `sortBy` (optionnel) : Trier par (createdAt, requestAmount, memberId)
 - `sortOrder` (optionnel) : Ordre de tri (asc, desc)
 
 **Réponse réussie** (200 OK) :
@@ -26,165 +26,103 @@ Récupère la liste des demandes de financement pour un portefeuille traditionne
 ```json
 [
   {
-    "id": "FR-00001",
-    "portfolio_id": "TP-00001",
-    "request_number": "REQ-2025-001",
-    "client_id": "CL-00001",
-    "company_name": "Entreprise ABC",
-    "product_type": "Crédit PME",
-    "amount": 50000.00,
-    "currency": "XOF",
-    "status": "approved",
-    "created_at": "2025-01-05T08:00:00.000Z",
-    "updated_at": "2025-01-08T14:30:00.000Z",
-    "assigned_to": "USER-00001",
-    "contract_id": "CC-00001"
+    "id": "req-001",
+    "memberId": "mem-001",
+    "productId": "prod-001",
+    "receptionDate": "2023-07-15",
+    "requestAmount": 50000,
+    "periodicity": "monthly",
+    "interestRate": 8.5,
+    "reason": "Expansion des activités commerciales et ouverture d'une nouvelle boutique",
+    "scheduleType": "constant",
+    "schedulesCount": 12,
+    "deferredPaymentsCount": 0,
+    "financingPurpose": "Achat de stocks et aménagement de local",
+    "creditManagerId": "mgr-001",
+    "isGroup": false,
+    "status": "pending",
+    "createdAt": "2023-07-15T09:30:45Z",
+    "updatedAt": "2023-07-15T09:30:45Z"
   },
   {
-    "id": "FR-00002",
-    "portfolio_id": "TP-00001",
-    "request_number": "REQ-2025-002",
-    "client_id": "CL-00002",
-    "company_name": "Société XYZ",
-    "product_type": "Crédit Investissement",
-    "amount": 75000.00,
-    "currency": "XOF",
-    "status": "under_review",
-    "created_at": "2025-01-12T10:15:00.000Z",
-    "updated_at": "2025-01-14T09:20:00.000Z",
-    "assigned_to": "USER-00002",
-    "contract_id": null
+    "id": "req-002",
+    "memberId": "mem-002",
+    "productId": "prod-002",
+    "receptionDate": "2023-06-22",
+    "requestAmount": 75000,
+    "periodicity": "monthly",
+    "interestRate": 7.25,
+    "reason": "Acquisition d'équipements de construction pour de nouveaux contrats",
+    "scheduleType": "constant",
+    "schedulesCount": 24,
+    "deferredPaymentsCount": 0,
+    "financingPurpose": "Achat d'équipements de construction",
+    "creditManagerId": "mgr-002",
+    "isGroup": false,
+    "status": "analysis",
+    "createdAt": "2023-06-22T14:15:30Z",
+    "updatedAt": "2023-07-01T10:25:15Z"
   }
 ]
 ```
 
-### Détails d'une demande de financement
+### Détails d'une demande de crédit
 
-Récupère les détails complets d'une demande de financement spécifique.
+Récupère les détails complets d'une demande de crédit spécifique.
 
-**Endpoint** : `GET /portfolios/traditional/funding-requests/{id}`
+**Endpoint** : `GET /portfolios/traditional/credit-requests/{id}`
 
 **Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
+- `id` : Identifiant unique de la demande de crédit
 
 **Réponse réussie** (200 OK) :
 
 ```json
 {
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "client_id": "CL-00001",
-  "company_name": "Entreprise ABC",
-  "product_type": "Crédit PME",
-  "amount": 50000.00,
-  "currency": "XOF",
-  "purpose": "Achat de matériel et extension d'activité",
-  "duration": 12,
-  "duration_unit": "months",
-  "proposed_start_date": "2025-01-15T00:00:00.000Z",
+  "id": "req-003",
+  "memberId": "mem-003",
+  "productId": "prod-003",
+  "receptionDate": "2023-05-10",
+  "requestAmount": 120000,
+  "periodicity": "monthly",
+  "interestRate": 6.75,
+  "reason": "Développement d'un nouveau produit technologique",
+  "scheduleType": "degressive",
+  "schedulesCount": 36,
+  "deferredPaymentsCount": 3,
+  "gracePeriod": 2,
+  "financingPurpose": "R&D et prototypage",
+  "creditManagerId": "mgr-003",
+  "isGroup": false,
   "status": "approved",
-  "status_date": "2025-01-08T14:30:00.000Z",
-  "assigned_to": "USER-00001",
-  "financial_data": {
-    "annual_revenue": 250000.00,
-    "net_profit": 75000.00,
-    "existing_debts": 30000.00,
-    "cash_flow": 8000.00,
-    "assets": 180000.00,
-    "liabilities": 60000.00
-  },
-  "proposed_guarantees": [
-    {
-      "type": "real_estate",
-      "description": "Terrain situé à Cocody, parcelle 123",
-      "estimated_value": 80000.00,
-      "currency": "XOF"
-    },
-    {
-      "type": "equipment",
-      "description": "Matériel industriel",
-      "estimated_value": 25000.00,
-      "currency": "XOF"
-    }
-  ],
-  "documents": [
-    {
-      "id": "DOC-00001",
-      "name": "Business Plan",
-      "type": "business_plan",
-      "url": "https://example.com/documents/business-plan-abc.pdf",
-      "created_at": "2025-01-05T08:05:00.000Z"
-    },
-    {
-      "id": "DOC-00002",
-      "name": "États financiers",
-      "type": "financial_statements",
-      "url": "https://example.com/documents/etats-financiers-abc.pdf",
-      "created_at": "2025-01-05T08:10:00.000Z"
-    }
-  ],
-  "risk_analysis": {
-    "credit_score": 85,
-    "risk_level": "low",
-    "debt_service_ratio": 0.30,
-    "analysis_date": "2025-01-07T11:20:00.000Z",
-    "analyst_id": "USER-00001",
-    "recommended_action": "approve",
-    "recommended_amount": 50000.00,
-    "recommended_duration": 12,
-    "recommended_rate": 12.5,
-    "comments": "Client avec un historique de crédit solide et une bonne gestion financière."
-  },
-  "approval_details": {
-    "approved_by": "USER-00003",
-    "approval_date": "2025-01-08T14:30:00.000Z",
-    "approved_amount": 50000.00,
-    "approved_duration": 12,
-    "approved_rate": 12.5,
-    "conditions": "Déblocage après validation des garanties."
-  },
-  "contract_id": "CC-00001",
-  "created_at": "2025-01-05T08:00:00.000Z",
-  "updated_at": "2025-01-08T14:30:00.000Z"
-}
+  "createdAt": "2023-05-10T11:20:05Z",
+  "updatedAt": "2023-06-15T16:45:30Z"
 ```
 
-### Création d'une demande de financement
+### Création d'une demande de crédit
 
-Crée une nouvelle demande de financement.
+Crée une nouvelle demande de crédit.
 
-**Endpoint** : `POST /portfolios/traditional/funding-requests`
+**Endpoint** : `POST /portfolios/traditional/credit-requests`
 
 **Corps de la requête** :
 
 ```json
 {
-  "portfolio_id": "TP-00001",
-  "client_id": "CL-00001",
-  "product_type": "Crédit PME",
-  "amount": 50000.00,
-  "currency": "XOF",
-  "purpose": "Achat de matériel et extension d'activité",
-  "duration": 12,
-  "duration_unit": "months",
-  "proposed_start_date": "2025-01-15",
-  "financial_data": {
-    "annual_revenue": 250000.00,
-    "net_profit": 75000.00,
-    "existing_debts": 30000.00,
-    "cash_flow": 8000.00,
-    "assets": 180000.00,
-    "liabilities": 60000.00
-  },
-  "proposed_guarantees": [
-    {
-      "type": "real_estate",
-      "description": "Terrain situé à Cocody, parcelle 123",
-      "estimated_value": 80000.00,
-      "currency": "XOF"
-    }
-  ]
+  "memberId": "mem-004",
+  "productId": "prod-001",
+  "receptionDate": "2025-08-03",
+  "requestAmount": 50000,
+  "periodicity": "monthly",
+  "interestRate": 8.5,
+  "reason": "Expansion des activités commerciales",
+  "scheduleType": "constant",
+  "schedulesCount": 12,
+  "deferredPaymentsCount": 0,
+  "financingPurpose": "Achat de stocks et aménagement de local",
+  "creditManagerId": "mgr-001",
+  "isGroup": false,
+  "gracePeriod": 0
 }
 ```
 
@@ -192,12 +130,23 @@ Crée une nouvelle demande de financement.
 
 ```json
 {
-  "id": "FR-00003",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-003",
-  "client_id": "CL-00001",
-  "company_name": "Entreprise ABC",
-  "product_type": "Crédit PME",
+  "id": "req-006",
+  "memberId": "mem-004",
+  "productId": "prod-001",
+  "receptionDate": "2025-08-03",
+  "requestAmount": 50000,
+  "periodicity": "monthly",
+  "interestRate": 8.5,
+  "reason": "Expansion des activités commerciales",
+  "scheduleType": "constant",
+  "schedulesCount": 12,
+  "deferredPaymentsCount": 0,
+  "financingPurpose": "Achat de stocks et aménagement de local",
+  "creditManagerId": "mgr-001",
+  "isGroup": false,
+  "status": "pending",
+  "createdAt": "2025-08-03T10:30:00.000Z"
+}
   "amount": 50000.00,
   "currency": "XOF",
   "status": "pending",
@@ -228,77 +177,108 @@ Met à jour les informations d'une demande de financement existante.
     "net_profit": 78000.00
   }
 }
+### Mise à jour d'une demande de crédit
+
+Met à jour les informations d'une demande de crédit existante.
+
+**Endpoint** : `PATCH /portfolios/traditional/credit-requests/{id}`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique de la demande de crédit
+
+**Corps de la requête** (champs optionnels) :
+
+```json
+{
+  "requestAmount": 55000,
+  "periodicity": "monthly",
+  "interestRate": 8.0,
+  "reason": "Expansion des activités commerciales et recrutement",
+  "schedulesCount": 15,
+  "financingPurpose": "Achat de matériel, extension d'activité et recrutement"
+}
 ```
 
 **Réponse réussie** (200 OK) :
 
 ```json
 {
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "client_id": "CL-00001",
-  "company_name": "Entreprise ABC",
-  "product_type": "Crédit PME",
-  "amount": 55000.00,
-  "currency": "XOF",
-  "purpose": "Achat de matériel, extension d'activité et recrutement",
-  "duration": 15,
-  "duration_unit": "months",
+  "id": "req-001",
+  "memberId": "mem-001",
+  "productId": "prod-001",
+  "receptionDate": "2023-07-15",
+  "requestAmount": 55000,
+  "periodicity": "monthly",
+  "interestRate": 8.0,
+  "reason": "Expansion des activités commerciales et recrutement",
+  "scheduleType": "constant",
+  "schedulesCount": 15,
+  "deferredPaymentsCount": 0,
+  "financingPurpose": "Achat de matériel, extension d'activité et recrutement",
+  "creditManagerId": "mgr-001",
+  "isGroup": false,
   "status": "pending",
-  "updated_at": "2025-07-25T12:15:00.000Z"
+  "createdAt": "2023-07-15T09:30:45Z",
+  "updatedAt": "2025-08-03T12:15:00.000Z"
 }
 ```
 
-### Assigner une demande pour analyse
+### Changement de statut d'une demande
 
-Assigne une demande de financement à un analyste pour évaluation.
+Met à jour le statut d'une demande de crédit.
 
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/assign`
+**Endpoint** : `PATCH /portfolios/traditional/credit-requests/{id}/status`
 
 **Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
+- `id` : Identifiant unique de la demande de crédit
 
 **Corps de la requête** :
 
 ```json
 {
-  "assigned_to": "USER-00001",
-  "comment": "Merci d'analyser cette demande prioritairement"
+  "status": "approved"
 }
 ```
+
+**Statuts valides** :
+- `draft` : Brouillon
+- `submitted` : Soumise
+- `under_review` : En revue
+- `pending` : En attente
+- `analysis` : En analyse
+- `approved` : Approuvée
+- `rejected` : Rejetée
+- `canceled` : Annulée
+- `disbursed` : Décaissée
+- `active` : Active
+- `closed` : Fermée
+- `defaulted` : En défaut
+- `restructured` : Restructurée
+- `consolidated` : Consolidée
+- `in_litigation` : En litige
 
 **Réponse réussie** (200 OK) :
 
 ```json
 {
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "status": "under_review",
-  "assigned_to": "USER-00001",
-  "updated_at": "2025-07-25T12:30:00.000Z"
+  "id": "req-001",
+  "memberId": "mem-001",
+  "productId": "prod-001",
+  "receptionDate": "2023-07-15",
+  "requestAmount": 50000,
+  "periodicity": "monthly",
+  "interestRate": 8.5,
+  "reason": "Expansion des activités commerciales et ouverture d'une nouvelle boutique",
+  "scheduleType": "constant",
+  "schedulesCount": 12,
+  "deferredPaymentsCount": 0,
+  "financingPurpose": "Achat de stocks et aménagement de local",
+  "creditManagerId": "mgr-001",
+  "isGroup": false,
+  "status": "approved",
+  "createdAt": "2023-07-15T09:30:45Z",
+  "updatedAt": "2025-08-03T14:30:00.000Z"
 }
-```
-
-### Soumettre une analyse de risque
-
-Soumet l'analyse de risque pour une demande de financement.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/risk-analysis`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "credit_score": 85,
-  "risk_level": "low",
-  "debt_service_ratio": 0.30,
-  "recommended_action": "approve",
-  "recommended_amount": 55000.00,
   "recommended_duration": 15,
   "recommended_rate": 12.5,
   "comments": "Client avec un historique de crédit solide et une bonne gestion financière."
@@ -338,35 +318,131 @@ Approuve une demande de financement après analyse.
 **Paramètres de chemin** :
 - `id` : Identifiant unique de la demande de financement
 
-**Corps de la requête** :
+```
+
+### Suppression d'une demande de crédit
+
+Supprime définitivement une demande de crédit.
+
+**Endpoint** : `DELETE /portfolios/traditional/credit-requests/{id}`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique de la demande de crédit
+
+**Réponse réussie** (204 No Content) : Corps vide
+
+**Réponse d'erreur** (404 Not Found) :
 
 ```json
 {
-  "approved_amount": 55000.00,
-  "approved_duration": 15,
-  "approved_rate": 12.5,
-  "conditions": "Déblocage après validation des garanties.",
-  "comments": "Demande approuvée selon les recommandations de l'analyste."
+  "error": "Credit request not found",
+  "message": "La demande de crédit avec l'ID spécifié n'existe pas",
+  "code": "CREDIT_REQUEST_NOT_FOUND"
 }
 ```
+
+### Réinitialisation des données (développement/test)
+
+Remet les demandes de crédit aux données d'exemple initiales.
+
+**Endpoint** : `POST /portfolios/traditional/credit-requests/reset`
 
 **Réponse réussie** (200 OK) :
 
 ```json
+[
+  {
+    "id": "req-001",
+    "memberId": "mem-001",
+    "productId": "prod-001",
+    "receptionDate": "2023-07-15",
+    "requestAmount": 50000,
+    "periodicity": "monthly",
+    "interestRate": 8.5,
+    "reason": "Expansion des activités commerciales et ouverture d'une nouvelle boutique",
+    "scheduleType": "constant",
+    "schedulesCount": 12,
+    "deferredPaymentsCount": 0,
+    "financingPurpose": "Achat de stocks et aménagement de local",
+    "creditManagerId": "mgr-001",
+    "isGroup": false,
+    "status": "pending",
+    "createdAt": "2023-07-15T09:30:45Z",
+    "updatedAt": "2023-07-15T09:30:45Z"
+  }
+  // ... autres demandes d'exemple
+]
+```
+
+## Structure de données complète
+
+### Objet CreditRequest
+
+```typescript
+interface CreditRequest {
+  id: string;
+  memberId: string;
+  productId: string;
+  receptionDate: string;
+  requestAmount: number;
+  periodicity: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+  interestRate: number;
+  reason: string;
+  scheduleType: 'constant' | 'degressive';
+  schedulesCount: number;
+  deferredPaymentsCount: number;
+  gracePeriod?: number;
+  financingPurpose: string;
+  creditManagerId: string;
+  status: CreditRequestStatus;
+  isGroup: boolean;
+  groupId?: string;
+  distributions?: CreditDistribution[];
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CreditDistribution {
+  id: string;
+  creditRequestId: string;
+  memberId: string;
+  amount: number;
+  createdAt: string;
+}
+```
+
+### Types de statut
+
+```typescript
+type CreditRequestStatus = 
+  | 'draft'           // Brouillon
+  | 'submitted'       // Soumise
+  | 'under_review'    // En revue
+  | 'pending'         // En attente
+  | 'analysis'        // En analyse
+  | 'approved'        // Approuvée
+  | 'rejected'        // Rejetée
+  | 'canceled'        // Annulée
+  | 'disbursed'       // Décaissée
+  | 'active'          // Active
+  | 'closed'          // Fermée
+  | 'defaulted'       // En défaut
+  | 'restructured'    // Restructurée
+  | 'consolidated'    // Consolidée
+  | 'in_litigation';  // En litige
+```
+
+## Gestion des erreurs
+
+Toutes les réponses d'erreur suivent le format standard :
+
+```json
 {
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "status": "approved",
-  "approval_details": {
-    "approved_by": "USER-00003",
-    "approval_date": "2025-07-25T13:30:00.000Z",
-    "approved_amount": 55000.00,
-    "approved_duration": 15,
-    "approved_rate": 12.5,
-    "conditions": "Déblocage après validation des garanties."
-  },
-  "updated_at": "2025-07-25T13:30:00.000Z"
+  "error": "Error type",
+  "message": "Description de l'erreur en français",
+  "code": "ERROR_CODE",
+  "details": {}  // Optionnel, détails supplémentaires
 }
 ```
 

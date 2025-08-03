@@ -1,7 +1,7 @@
-import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RiskToleranceLevel } from '../entities/portfolio.entity';
+import { RiskToleranceLevel, PortfolioStatus, RiskProfile } from '../entities/portfolio.entity';
 
 class PortfolioSettingsDto {
   @ApiProperty({ description: 'Maximum loan amount' })
@@ -37,19 +37,37 @@ export class CreatePortfolioDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Portfolio total amount' })
+  @ApiProperty({ description: 'Manager ID' })
+  @IsUUID()
+  manager_id!: string;
+
+  @ApiProperty({ description: 'Institution ID' })
+  @IsUUID()
+  institution_id!: string;
+
+  @ApiProperty({ description: 'Target amount' })
   @IsNumber()
-  totalAmount!: number;
+  target_amount!: number;
+
+  @ApiPropertyOptional({ description: 'Target return percentage' })
+  @IsOptional()
+  @IsNumber()
+  target_return?: number;
+
+  @ApiPropertyOptional({ description: 'Target sectors', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  target_sectors?: string[];
+
+  @ApiProperty({ description: 'Risk profile', enum: RiskProfile })
+  @IsEnum(RiskProfile)
+  risk_profile!: RiskProfile;
 
   @ApiPropertyOptional({ description: 'Currency code', default: 'XOF' })
   @IsOptional()
   @IsString()
   currency?: string;
-
-  @ApiPropertyOptional({ description: 'Manager ID' })
-  @IsOptional()
-  @IsUUID()
-  managerId?: string;
 
   @ApiPropertyOptional({ description: 'Client ID' })
   @IsOptional()
@@ -74,25 +92,41 @@ export class UpdatePortfolioDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Portfolio status', enum: ['active', 'closed', 'suspended'] })
+  @ApiPropertyOptional({ description: 'Portfolio status', enum: PortfolioStatus })
   @IsOptional()
-  @IsEnum(['active', 'closed', 'suspended'])
-  status?: string;
+  @IsEnum(PortfolioStatus)
+  status?: PortfolioStatus;
 
-  @ApiPropertyOptional({ description: 'Portfolio total amount' })
+  @ApiPropertyOptional({ description: 'Manager ID' })
+  @IsOptional()
+  @IsUUID()
+  manager_id?: string;
+
+  @ApiPropertyOptional({ description: 'Target amount' })
   @IsOptional()
   @IsNumber()
-  totalAmount?: number;
+  target_amount?: number;
+
+  @ApiPropertyOptional({ description: 'Target return percentage' })
+  @IsOptional()
+  @IsNumber()
+  target_return?: number;
+
+  @ApiPropertyOptional({ description: 'Target sectors', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  target_sectors?: string[];
+
+  @ApiPropertyOptional({ description: 'Risk profile', enum: RiskProfile })
+  @IsOptional()
+  @IsEnum(RiskProfile)
+  risk_profile?: RiskProfile;
 
   @ApiPropertyOptional({ description: 'Currency code' })
   @IsOptional()
   @IsString()
   currency?: string;
-
-  @ApiPropertyOptional({ description: 'Manager ID' })
-  @IsOptional()
-  @IsUUID()
-  managerId?: string;
 
   @ApiPropertyOptional({ description: 'Client ID' })
   @IsOptional()
@@ -107,10 +141,25 @@ export class UpdatePortfolioDto {
 }
 
 export class PortfolioFilterDto {
-  @ApiPropertyOptional({ description: 'Filter by status', enum: ['active', 'closed', 'suspended'] })
+  @ApiPropertyOptional({ description: 'Filter by status', enum: PortfolioStatus })
   @IsOptional()
-  @IsEnum(['active', 'closed', 'suspended'])
-  status?: string;
+  @IsEnum(PortfolioStatus)
+  status?: PortfolioStatus;
+
+  @ApiPropertyOptional({ description: 'Filter by risk profile', enum: RiskProfile })
+  @IsOptional()
+  @IsEnum(RiskProfile)
+  riskProfile?: RiskProfile;
+
+  @ApiPropertyOptional({ description: 'Filter by minimum target amount' })
+  @IsOptional()
+  @IsNumber()
+  minAmount?: number;
+
+  @ApiPropertyOptional({ description: 'Filter by sector' })
+  @IsOptional()
+  @IsString()
+  sector?: string;
 
   @ApiPropertyOptional({ description: 'Filter by manager ID' })
   @IsOptional()
@@ -142,9 +191,9 @@ export class PortfolioFilterDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Sort by field', enum: ['createdAt', 'name', 'totalAmount'] })
+  @ApiPropertyOptional({ description: 'Sort by field', enum: ['created_at', 'name', 'target_amount'] })
   @IsOptional()
-  @IsEnum(['createdAt', 'name', 'totalAmount'])
+  @IsEnum(['created_at', 'name', 'target_amount'])
   sortBy?: string;
 
   @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'] })

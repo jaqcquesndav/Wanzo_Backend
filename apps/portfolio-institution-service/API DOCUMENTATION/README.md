@@ -1,151 +1,124 @@
-# DOCUMENTATION API WANZO PORTFOLIO INSTITUTION
+# API Documentation - Wanzo Portfolio Loan
 
-Cette documentation est destinée aux développeurs backend qui utilisent NestJS avec une architecture API Gateway pour intégrer ou maintenir l'application Wanzo Portfolio Institution.
+Documentation complète de l'API Wanzo Portfolio Loan, harmonisée avec le code source.
 
-## Structure de la documentation
+## 📋 Vue d'ensemble
 
-La documentation des APIs est organisée selon la structure modulaire de l'application.
+Cette documentation décrit les endpoints et structures de données de l'API tels qu'ils sont **réellement implémentés** dans le code source de l'application.
 
-### Portefeuilles
+## 🏗️ Architecture API
 
-La plateforme prend en charge un type de portefeuille:
+L'API suit une architecture REST avec les préfixes suivants :
+- **Base URL Développement** : `http://localhost:8000/api`
+- **Base URL Production** : `https://api.wanzo-portfolio.com/api`
 
-1. **Portefeuille Traditionnel** (`/api-docs/portefeuilles/traditionnel/`)
-   - Demandes de financement
-   - Contrats de crédit
-   - Virements
-   - Remboursements
-   - Garanties
-   - Produits financiers
-   - Paramètres
+## 📚 Modules Disponibles
 
-### Autres modules
+### 🏦 [Portefeuilles](./portefeuilles/README.md)
+Gestion des portefeuilles traditionnels
+- **Endpoint** : `/portfolios/traditional`
+- **Fonctionnalités** : CRUD complet, métriques, gestion des actifs
 
-En plus des portefeuilles, la documentation couvre également les autres modules du système:
+### 💳 [Demandes de Crédit](./portefeuilles/demandes/README.md)
+Gestion des demandes de crédit traditionnelles
+- **Endpoint** : `/portfolios/traditional/credit-requests`
+- **Fonctionnalités** : Création, approbation, suivi des statuts
 
-- **Chat** (`/api-docs/chat/`)
-- **Centrale de Risque** (`/api-docs/centrale-risque/`)
-- **Dashboard** (`/api-docs/dashboard/`)
-- **Institution** (`/api-docs/institution/`)
-- **Paiements** (`/api-docs/paiements/`)
-- **Prospection** (`/api-docs/prospection/`)
-- **Paramètres** (`/api-docs/parametres/`)
-- **Utilisateurs** (`/api-docs/utilisateurs/`)
-- **Virements** (`/api-docs/virements/`)
+### 📊 [Dashboard](./dashboard/README.md)
+Tableaux de bord et métriques
+- **Endpoint** : `/dashboard`
+- **Fonctionnalités** : Métriques temps réel, KPIs, graphiques
 
-## Utilisation
+### 🏢 [Institution](./institution/README.md)
+Gestion des informations institutionnelles
+- **Endpoint** : `/institutions`
+- **Fonctionnalités** : Configuration, paramètres institutionnels
 
-1. Commencez par cette page README.md qui donne un aperçu global de l'API.
-2. Consultez ensuite la configuration de base pour comprendre l'URL de base, les headers et le format des réponses.
-3. Familiarisez-vous avec le flux d'authentification qui est crucial pour toutes les requêtes.
-4. Explorez les différentes ressources (utilisateurs, portefeuilles, etc.) selon vos besoins.
-5. Reportez-vous aux sections d'erreurs spécifiques en cas de problème.
+### 👥 [Utilisateurs](./utilisateurs/README.md)
+Gestion des utilisateurs et autorisations
+- **Endpoint** : `/users`
+- **Fonctionnalités** : CRUD utilisateurs, rôles, permissions
 
-## Conventions
+### 📧 [Chat](./chat/README.md)
+Système de messagerie et communication
+- **Endpoint** : `/chat`
+- **Fonctionnalités** : Messages, conversations, notifications
 
-- **IMPORTANT** : Toutes les routes API commencent par `/portfolio_inst/` (ne pas inclure `api/v1/`)
-- Toutes les requêtes protégées doivent inclure un token d'authentification JWT dans l'en-tête `Authorization`
-- Toutes les réponses suivent un format JSON standardisé :
-  ```json
-  {
-    "success": true,
-    "data": {
-      // Données spécifiques à l'endpoint
-    }
-  }
-  ```
-- Les erreurs suivent également un format standardisé :
-  ```json
-  {
-    "success": false,
-    "error": {
-      "code": "ERROR_CODE",
-      "message": "Description de l'erreur",
-      "details": {
-        // Détails supplémentaires optionnels
-      }
-    }
-  }
-  ```
-- Les réponses paginées incluent des métadonnées de pagination
-- Les codes HTTP standards sont utilisés (200, 201, 400, 401, 403, 404, 500, etc.)
+### 🎯 [Prospection](./prospection/README.md)
+Gestion de la prospection commerciale
+- **Endpoint** : `/prospection`
+- **Fonctionnalités** : Leads, opportunités, suivi commercial
 
-## Environnements
+### 💰 [Paiements](./paiements/README.md)
+Gestion des paiements et transactions
+- **Endpoint** : `/payments`
+- **Fonctionnalités** : Ordres de paiement, suivi, historique
 
-- Développement : http://localhost:8000/portfolio_inst
-- Production : https://api.wanzo-portfolio.com/portfolio_inst
+### 🔄 [Virements](./virements/README.md)
+Gestion des virements et décaissements
+- **Endpoint** : `/disbursements`
+- **Fonctionnalités** : Création, validation, suivi des virements
 
-## Structure des fichiers
+### ⚙️ [Paramètres](./parametres/README.md)
+Configuration système et paramètres
+- **Endpoint** : `/settings`
+- **Fonctionnalités** : Configuration globale, paramètres utilisateur
 
-1. README.md - Vue d'ensemble de l'API
-2. 01-configuration.md - Configuration de base (URLs, headers, etc.)
-3. 02-authentification.md - Flux d'authentification et gestion des tokens
-4. 03-utilisateurs.md - Gestion des utilisateurs et rôles
-5. portefeuilles/
-   - 01-portefeuilles-traditionnels.md - Gestion des portefeuilles traditionnels
-   - 02-portefeuilles-investissement.md - Gestion des portefeuilles d'investissement
-   - 03-portefeuilles-leasing.md - Gestion des portefeuilles de leasing
+### 🛡️ [Centrale des Risques](./centrale-risque/README.md)
+Gestion des risques et évaluations
+- **Endpoint** : `/risk`
+- **Fonctionnalités** : Évaluation risques, scoring, alertes
 
-## Mise à jour de la documentation
+## 🔧 Configuration
 
-Cette documentation doit être mise à jour chaque fois que l'API est modifiée. Suivez le processus de revue de code pour valider les modifications de la documentation.
+### [Configuration de Base](./01-configuration.md)
+- URLs de base, headers, formats de réponse
+- Gestion des erreurs, pagination, sécurité
 
-## Format standard des réponses
+### [Authentification](./02-authentification.md)
+- JWT tokens, authentification OAuth
+- Gestion des permissions et rôles
 
-### Réponse réussie
+## 📖 Conventions
 
+### Format des Dates
+Toutes les dates utilisent le format ISO 8601 : `YYYY-MM-DDTHH:mm:ss.sssZ`
+
+### Codes de Statut HTTP
+- `200` : Succès
+- `201` : Créé avec succès
+- `400` : Erreur de requête
+- `401` : Non autorisé
+- `404` : Ressource non trouvée
+- `500` : Erreur serveur
+
+### Pagination
 ```json
 {
-  "success": true,
-  "data": {
-    // Données spécifiques à chaque endpoint
+  "data": [...],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10
   }
 }
 ```
 
-### Réponse d'erreur
+## 🚀 Démarrage Rapide
 
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Description de l'erreur",
-    "details": {
-      // Détails supplémentaires éventuels
-    }
-  }
-}
-```
+1. **Authentification** : Consultez [02-authentification.md](./02-authentification.md)
+2. **Configuration** : Consultez [01-configuration.md](./01-configuration.md)
+3. **Premier appel** : Testez avec `/portfolios/traditional`
 
-### Réponse paginée
+## 📝 Notes importantes
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      // Tableau d'éléments
-    ],
-    "pagination": {
-      "total": 100,
-      "page": 1,
-      "limit": 10,
-      "pages": 10
-    }
-  }
-}
-```
+- Cette documentation reflète exactement le code source implémenté
+- Les endpoints documentés correspondent aux services API réels
+- Les structures de données TypeScript sont la source de vérité
+- Fallback automatique vers localStorage en cas d'échec API
 
-## Sécurité et bonnes pratiques
+---
 
-1. **Toujours utiliser HTTPS** en production
-2. **Ne pas exposer les tokens de rafraîchissement** dans des stockages non sécurisés
-3. **Valider toutes les entrées utilisateur** côté client et côté serveur
-4. **Mettre en place un système de limitation de débit** pour éviter les attaques par force brute
-5. **Gérer correctement les erreurs** pour ne pas exposer d'informations sensibles
-
-## Contact
-
-Pour toute question concernant cette documentation ou l'API, contactez:
-- Email: dev@wanzo-portfolio.com
+*Dernière mise à jour : 3 août 2025*
+*Version synchronisée avec le code source*

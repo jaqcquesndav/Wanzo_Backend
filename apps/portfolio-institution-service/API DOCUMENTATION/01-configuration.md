@@ -6,8 +6,8 @@ Ce document décrit la configuration de base de l'API Wanzo Portfolio Institutio
 
 Toutes les requêtes API doivent être préfixées par l'URL de base correspondant à l'environnement utilisé :
 
-- **Développement** : `http://localhost:8000/portfolio_inst`
-- **Production** : `https://api.wanzo-portfolio.com/portfolio_inst`
+- **Développement** : `http://localhost:8000/api`
+- **Production** : `https://api.wanzo-portfolio.com/api`
 
 **IMPORTANT** : Ne pas inclure `api/v1/` dans les chemins d'accès. L'API Gateway s'occupe de la gestion des versions.
 
@@ -105,7 +105,7 @@ Pour les endpoints qui supportent la pagination, vous pouvez utiliser les param�
 - `page` : Numéro de la page (défaut : 1)
 - `limit` : Nombre d'éléments par page (défaut : 10, max : 100)
 
-Exemple : `/portfolio_inst/users?page=2&limit=20`
+Exemple : `/api/users?page=2&limit=20`
 
 ### Filtrage
 
@@ -116,7 +116,7 @@ De nombreux endpoints supportent le filtrage avec les paramètres suivants :
 - `order` : Ordre de tri (`asc` ou `desc`)
 - Filtres spécifiques selon les endpoints
 
-Exemple : `/portfolio_inst/companies?search=tech&sort=name&order=asc`
+Exemple : `/api/companies?search=tech&sort=name&order=asc`
 
 ### Inclusions
 
@@ -124,7 +124,7 @@ Certains endpoints permettent d'inclure des ressources associées :
 
 - `include` : Liste de ressources à inclure, séparées par des virgules
 
-Exemple : `/portfolio_inst/portfolios/traditional/123?include=contracts,client`
+Exemple : `/api/portfolios/traditional/123?include=contracts,client`
 
 ## Formats de date
 
