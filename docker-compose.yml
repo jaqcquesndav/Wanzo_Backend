@@ -257,7 +257,7 @@ services:
     container_name: kiota-adha-ai-service
     ports:
       - "8002:8002"
-      - "9470:9464" # Port Prometheus (mapping différent)
+      - "9464:9464" # Port Prometheus standardisé
     environment:
       - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
       - PORT=8002

@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
 import { Invoice } from './invoice.entity';
+import { EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
 
 export enum PaymentMethod {
   CREDIT_CARD = 'credit_card',
@@ -74,10 +75,18 @@ export class Payment {
   @Column({ type: 'text', nullable: true })
   notes!: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ 
+    type: 'jsonb', 
+    nullable: true,
+    transformer: new EncryptedJsonTransformer()
+  })
   gatewayResponse!: Record<string, any>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ 
+    type: 'jsonb', 
+    nullable: true,
+    transformer: new EncryptedJsonTransformer()
+  })
   metadata!: Record<string, any>;
 
   @CreateDateColumn()

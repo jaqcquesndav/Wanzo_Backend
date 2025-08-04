@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { EncryptedJsonTransformer, EncryptionService } from '@wanzo/shared/security';
 
 export enum DisbursementStatus {
   PENDING = 'en attente',
@@ -54,7 +55,9 @@ export class Disbursement {
   @Column({ type: 'timestamp', nullable: true })
   executionDate?: Date;
 
-  @Column('jsonb')
+  @Column('jsonb', { 
+    transformer: new EncryptedJsonTransformer()
+  })
   debitAccount!: {
     accountNumber: string;
     accountName: string;
@@ -63,7 +66,9 @@ export class Disbursement {
     branchCode?: string;
   };
 
-  @Column('jsonb')
+  @Column('jsonb', { 
+    transformer: new EncryptedJsonTransformer()
+  })
   beneficiary!: {
     accountNumber: string;
     accountName: string;

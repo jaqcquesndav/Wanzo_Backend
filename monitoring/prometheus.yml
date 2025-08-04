@@ -49,6 +49,13 @@ scrape_configs:
     static_configs:
       - targets: ['customer-service:9464']
     metrics_path: '/metrics'
+
+  - job_name: 'adha-ai-service'
+    static_configs:
+      - targets: ['adha-ai-service:9464']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
       
   - job_name: 'node-exporter'
     static_configs:

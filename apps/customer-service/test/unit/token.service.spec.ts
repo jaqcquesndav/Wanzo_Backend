@@ -172,7 +172,16 @@ describe('TokenService', () => {
 
       const result = await service.recordTokenUsage(usageDto);
 
-      expect(tokenUsageRepository.create).toHaveBeenCalledWith(usageDto);
+      expect(tokenUsageRepository.create).toHaveBeenCalledWith({
+        customerId: 'customer-123',
+        userId: 'user-123',
+        amount: 10,
+        serviceType: TokenServiceType.CHATBOT,
+        requestId: 'req-123',
+        context: {},
+        metadata: {},
+        timestamp: expect.any(Date),
+      });
       expect(tokenUsageRepository.save).toHaveBeenCalled();
       expect(result).toEqual(mockTokenUsage);
     });
@@ -249,8 +258,8 @@ describe('TokenService', () => {
 
       const result = await service.getTotalPurchasedTokens('customer-123');
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('purchase.customerId = :customerId', { customerId: 'customer-123' });
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith('SUM(purchase.amount)', 'total');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('token_purchase.customerId = :customerId', { customerId: 'customer-123' });
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('SUM(token_purchase.amount)', 'total');
       expect(result).toBe(100);
     });
 

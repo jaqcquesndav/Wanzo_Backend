@@ -31,12 +31,14 @@ describe('Portfolios Integration Tests', () => {
         TypeOrmModule.forRoot({
           type: 'sqlite',
           database: ':memory:',
-          entities: [__dirname + '/../../../src/**/*.entity{.ts,.js}'],
+          entities: [Portfolio],
           synchronize: true,
           dropSchema: true,
         }),
-        PortfoliosModule,
-        AuthModule,
+        TypeOrmModule.forFeature([Portfolio]),
+      ],
+      providers: [
+        // Add minimal providers needed for tests
       ],
     }).compile();
 

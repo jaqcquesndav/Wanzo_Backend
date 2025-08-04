@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
 
 // Interface types for better type safety
 export interface DataSharingSettings {
@@ -49,13 +50,22 @@ export class IntegrationsSettings {
   @Column({ unique: true })
   companyId!: string;
 
-  @Column('jsonb', { default: { enabled: false, linkedAccount: null } })
+  @Column('jsonb', { 
+    default: { enabled: false, linkedAccount: null },
+    transformer: new EncryptedJsonTransformer()
+  })
   googleDrive!: object;
 
-  @Column('jsonb', { default: { enabled: false, apiKey: null } })
+  @Column('jsonb', { 
+    default: { enabled: false, apiKey: null },
+    transformer: new EncryptedJsonTransformer()
+  })
   ksPay!: object;
 
-  @Column('jsonb', { default: { enabled: false, webhookUrl: null } })
+  @Column('jsonb', { 
+    default: { enabled: false, webhookUrl: null },
+    transformer: new EncryptedJsonTransformer()
+  })
   slack!: object;
 
   // New integrations from documentation

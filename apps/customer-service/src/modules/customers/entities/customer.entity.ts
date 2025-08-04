@@ -7,6 +7,7 @@ import { FinancialInstitutionSpecificData } from './financial-institution-specif
 import { User } from '../../users/entities/user.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { TokenUsage } from '../../tokens/entities/token-usage.entity';
+import { EncryptedColumnTransformer, EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
 
 export enum CustomerType {
   SME = 'sme',
@@ -56,7 +57,9 @@ export class Customer {
   @Column({ unique: true })
   email!: string;
 
-  @Column()
+  @Column({ 
+    transformer: new EncryptedColumnTransformer()
+  })
   phone!: string;
 
   @Column('jsonb', { nullable: true })
@@ -80,7 +83,10 @@ export class Customer {
     };
   }>;
 
-  @Column('jsonb', { nullable: true })
+  @Column('jsonb', { 
+    nullable: true,
+    transformer: new EncryptedJsonTransformer()
+  })
   contacts?: {
     email?: string;
     phone?: string;
