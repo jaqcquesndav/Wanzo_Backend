@@ -6,7 +6,7 @@ import { TokenPurchase } from '../entities/token-purchase.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 import { PurchaseTokenDto } from '../dto/purchase-token.dto';
 import { Customer } from '../../customers/entities/customer.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 
 interface RecordTokenUsageDto {
   customerId: string;

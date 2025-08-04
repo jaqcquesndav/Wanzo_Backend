@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ExternalUserEventsConsumer } from './consumers/external-user-events.consumer';
-import { UsersModule } from '../users/users.module';
+import { SystemUsersModule } from '../system-users/system-users.module';
 import { CustomersModule } from '../customers/customers.module';
 
 @Module({
@@ -23,7 +23,7 @@ import { CustomersModule } from '../customers/customers.module';
       },
     ]),
     // Import modules for dependency injection
-    UsersModule,
+    SystemUsersModule,
     CustomersModule,
   ],
   providers: [

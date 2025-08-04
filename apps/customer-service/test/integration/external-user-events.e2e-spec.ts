@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AppModule } from '../../src/app.module';
 import { ExternalUserEventsConsumer } from '../../src/modules/events/consumers/external-user-events.consumer';
-import { UserService } from '../../src/modules/users/services/user.service';
+import { UserService } from '../../src/modules/system-users/services/user.service';
 import { CustomerService } from '../../src/modules/customers/services/customer.service';
 import { 
   UserCreatedEvent, 

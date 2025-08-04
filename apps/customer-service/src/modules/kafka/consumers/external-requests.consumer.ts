@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { OnEvent } from '../decorators/on-event.decorator';
 import { ClientKafka } from '@nestjs/microservices';
 import { CustomerService } from '../../customers/services/customer.service';
-import { UserService } from '../../users/services/user.service';
+import { UserService } from '../../system-users/services/user.service';
 import { SubscriptionService } from '../../subscriptions/services/subscription.service';
 import { TokenService } from '../../tokens/services/token.service';
 
@@ -388,7 +388,7 @@ export class ExternalRequestsConsumer {
       
       // Récupérer les données demandées selon le type
       let data: any = null;
-      let error = null;
+      let error: string | null = null;
       
       try {
         switch (payload.requestType) {

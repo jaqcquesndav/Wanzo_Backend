@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
-import { UserService } from '../../users/services/user.service';
+import { UserService } from '../../system-users/services/user.service';
 import { CustomerService } from '../../customers/services/customer.service';
 import { 
   UserEventTopics, 

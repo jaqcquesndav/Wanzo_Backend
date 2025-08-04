@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { Customer, CustomerStatus, CustomerType } from '../entities/customer.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 
 describe('CustomerService', () => {

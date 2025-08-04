@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { User, UserRole, UserType } from '../../users/entities/user.entity';
+import { User, UserRole, UserType } from '../../system-users/entities/user.entity';
 import { Customer, CustomerType } from '../../customers/entities/customer.entity';
 import { TokenPurchase } from '../../tokens/entities/token-purchase.entity';
 

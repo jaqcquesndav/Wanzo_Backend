@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 
 export enum TokenType {
   PURCHASED = 'purchased',
@@ -38,40 +38,40 @@ export class TokenPackage {
   id!: string;
 
   @Column()
+  configId!: string; // ID depuis la configuration
+
+  @Column()
   name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column()
+  @Column('bigint')
   tokenAmount!: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
   priceUSD!: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  priceLocal?: number;
+  @Column('decimal', { precision: 10, scale: 2 })
+  pricePerMillionTokens!: number;
 
-  @Column({ nullable: true })
-  localCurrency?: string;
-
-  @Column({ default: false })
-  isPopular?: boolean;
-
-  @Column()
-  validityDays!: number;
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  bonusPercentage!: number;
 
   @Column('simple-array')
-  targetCustomerTypes!: string[];
+  customerTypes!: string[]; // ['sme', 'financial_institution']
+
+  @Column('boolean', { default: true })
+  isVisible!: boolean;
+
+  @Column('boolean', { default: true })
+  isActive!: boolean;
+
+  @Column('int', { default: 0 })
+  sortOrder!: number;
 
   @Column('jsonb', { nullable: true })
-  customerTypeSpecific?: any[];
-
-  @Column({ nullable: true })
-  minimumPurchase?: number;
-
-  @Column('jsonb', { nullable: true })
-  discountPercentages?: any;
+  metadata?: Record<string, any>;
 
   @CreateDateColumn()
   createdAt!: Date;

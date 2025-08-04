@@ -4,7 +4,7 @@ import { Repository, Between, Like, LessThan } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 
 interface CreateInvoiceDto {
   customerId: string;

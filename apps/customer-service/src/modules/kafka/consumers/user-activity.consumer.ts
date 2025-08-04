@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { UserService } from '../../users/services/user.service';
+import { UserService } from '../../system-users/services/user.service';
 
 @Injectable()
 export class UserActivityConsumer implements OnModuleInit {

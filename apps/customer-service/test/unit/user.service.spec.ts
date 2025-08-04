@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Connection } from 'typeorm';
-import { UserService } from '../../src/modules/users/services/user.service';
-import { User, UserRole, UserStatus, UserType } from '../../src/modules/users/entities/user.entity';
-import { UserActivity } from '../../src/modules/users/entities/user-activity.entity';
+import { UserService } from '../../src/modules/system-users/services/user.service';
+import { User, UserRole, UserStatus, UserType } from '../../src/modules/system-users/entities/user.entity';
+import { UserActivity } from '../../src/modules/system-users/entities/user-activity.entity';
 import { Customer } from '../../src/modules/customers/entities/customer.entity';
 import { Sme } from '../../src/modules/customers/entities/sme.entity';
 import { SmeSpecificData } from '../../src/modules/customers/entities/sme-specific-data.entity';
 import { CustomerEventsProducer } from '../../src/modules/kafka/producers/customer-events.producer';
 import { CloudinaryService } from '../../src/modules/cloudinary/cloudinary.service';
-import { SyncUserDto } from '../../src/modules/users/dto/sync-user.dto';
-import { UpdateUserDto } from '../../src/modules/users/dto/user.dto';
+import { SyncUserDto } from '../../src/modules/system-users/dto/sync-user.dto';
+import { UpdateUserDto } from '../../src/modules/system-users/dto/user.dto';
 
 describe('UserService', () => {
   let service: UserService;

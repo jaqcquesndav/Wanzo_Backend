@@ -5,7 +5,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 import { Customer } from '../../customers/entities/customer.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 

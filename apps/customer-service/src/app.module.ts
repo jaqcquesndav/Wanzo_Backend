@@ -5,7 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CustomersModule } from './modules/customers/customers.module';
-import { UsersModule } from './modules/users/users.module';
+import { SystemUsersModule } from './modules/system-users/system-users.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { TokensModule } from './modules/tokens/tokens.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -13,7 +13,6 @@ import { KafkaModule } from './modules/kafka/kafka.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { AiModule } from './modules/ai/ai.module';
 import { EventsModule } from './modules/events/events.module';
 
 @Module({
@@ -58,7 +57,7 @@ import { EventsModule } from './modules/events/events.module';
       },
     ]),
     CustomersModule,
-    UsersModule,
+    SystemUsersModule,
     SubscriptionsModule,
     TokensModule,
     BillingModule,
@@ -66,7 +65,6 @@ import { EventsModule } from './modules/events/events.module';
     MonitoringModule,
     HealthModule,
     AuthModule,
-    AiModule,
     EventsModule,
   ],
 })

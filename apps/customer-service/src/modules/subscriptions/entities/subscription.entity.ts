@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
 
 export enum SubscriptionStatus {
@@ -21,15 +21,22 @@ export enum SubscriptionPlanType {
  * Entité SubscriptionPlan - Représente un plan d'abonnement disponible
  */
 @Entity('subscription_plans')
+@Index(['customerType', 'isActive'])
 export class SubscriptionPlan {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column()
+  configId!: string; // ID depuis la configuration
 
   @Column()
   name!: string;
 
   @Column()
   description!: string;
+
+  @Column()
+  customerType!: string; // 'sme' | 'financial_institution'
 
   @Column({
     type: 'enum',
@@ -50,14 +57,33 @@ export class SubscriptionPlan {
   @Column('int')
   durationDays!: number;
 
-  @Column('int')
+  @Column('bigint')
   includedTokens!: number;
 
   @Column('jsonb')
   features!: Record<string, any>;
 
+  @Column('jsonb', { nullable: true })
+  tokenAllocation!: {
+    monthlyTokens: number;
+    tokenRollover: boolean;
+    maxRolloverMonths: number;
+  };
+
   @Column('boolean', { default: false })
   isPopular!: boolean;
+
+  @Column('boolean', { default: true })
+  isActive!: boolean;
+
+  @Column('boolean', { default: true })
+  isVisible!: boolean;
+
+  @Column('int', { default: 0 })
+  sortOrder!: number;
+
+  @Column('simple-array', { nullable: true })
+  tags!: string[];
 
   @Column('jsonb', { nullable: true })
   discounts!: Array<{
@@ -65,6 +91,9 @@ export class SubscriptionPlan {
     percentage: number;
     validUntil: Date;
   }>;
+
+  @Column('jsonb', { nullable: true })
+  metadata!: Record<string, any>;
 
   @CreateDateColumn()
   createdAt!: Date;

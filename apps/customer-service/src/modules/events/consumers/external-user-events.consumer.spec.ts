@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExternalUserEventsConsumer } from './external-user-events.consumer';
-import { UserService } from '../../users/services/user.service';
+import { UserService } from '../../system-users/services/user.service';
 import { CustomerService } from '../../customers/services/customer.service';
 import { Logger } from '@nestjs/common';
 import { 

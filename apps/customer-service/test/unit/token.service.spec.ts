@@ -6,7 +6,7 @@ import { TokenService } from '../../src/modules/tokens/services/token.service';
 import { TokenUsage, TokenServiceType } from '../../src/modules/tokens/entities/token-usage.entity';
 import { TokenPurchase } from '../../src/modules/tokens/entities/token-purchase.entity';
 import { Customer } from '../../src/modules/customers/entities/customer.entity';
-import { User } from '../../src/modules/users/entities/user.entity';
+import { User } from '../../src/modules/system-users/entities/user.entity';
 import { CustomerEventsProducer } from '../../src/modules/kafka/producers/customer-events.producer';
 import { PurchaseTokenDto } from '../../src/modules/tokens/dto/purchase-token.dto';
 

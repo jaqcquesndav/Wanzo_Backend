@@ -4,7 +4,7 @@ import { CustomerActivity } from './customer-activity.entity';
 import { ValidationProcess } from './validation-process.entity';
 import { SmeSpecificData } from './sme-specific-data.entity';
 import { FinancialInstitutionSpecificData } from './financial-institution-specific-data.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../system-users/entities/user.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { TokenUsage } from '../../tokens/entities/token-usage.entity';
 import { EncryptedColumnTransformer, EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
