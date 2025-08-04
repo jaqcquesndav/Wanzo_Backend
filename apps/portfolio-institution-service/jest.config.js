@@ -98,7 +98,7 @@ module.exports = {
       testMatch: ['<rootDir>/test/integration/**/*.spec.ts'],
       setupFilesAfterEnv: ['<rootDir>/test/integration-setup.ts'],
       testEnvironment: 'node',
-      testTimeout: 60000,
+      timeout: 60000,
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest',
       },

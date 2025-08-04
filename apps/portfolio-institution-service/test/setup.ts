@@ -6,6 +6,7 @@ beforeAll(() => {
   process.env.NODE_ENV = 'test';
   process.env.JWT_SECRET = 'test-jwt-secret';
   process.env.DATABASE_URL = 'sqlite::memory:';
+  process.env.ENCRYPTION_SECRET_KEY = 'test-encryption-secret-key-32-bytes';
 });
 
 // Global test setup
