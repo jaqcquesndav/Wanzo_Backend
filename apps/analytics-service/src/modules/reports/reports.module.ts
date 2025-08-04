@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AnalyticsController } from './analytics.controller';
+import { ReportsController } from './reports.controller';
 import { DataCollectionModule } from '../data-collection/data-collection.module';
 
 @Module({
   imports: [DataCollectionModule],
-  controllers: [AnalyticsController],
+  controllers: [ReportsController],
   providers: [],
 })
-export class AnalyticsModule {}
+export class ReportsModule {}

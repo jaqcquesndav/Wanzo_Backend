@@ -6,6 +6,7 @@ import { FraudDetectionService } from '../../fraud-detection/services/fraud-dete
 import { GeographicAnalysisService } from '../../geographic-analysis/services/geographic-analysis.service';
 import { FinancialRiskGraphService } from '../../graph/services/financial-risk-graph.service';
 import { TimeseriesRiskService } from '../../timeseries/services/timeseries-risk.service';
+import { MicroserviceIntegrationService } from '../../integration/services/microservice-integration.service';
 
 export interface TransactionEvent {
   id: string;
@@ -80,7 +81,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private configService: ConfigService,
     private riskCalculationService: RiskCalculationService,
     private fraudDetectionService: FraudDetectionService,
-    private geographicAnalysisService: GeographicAnalysisService
+    private geographicAnalysisService: GeographicAnalysisService,
+    private microserviceIntegrationService: MicroserviceIntegrationService
   ) {
     // Configuration Kafka
     this.kafka = new Kafka({
@@ -117,32 +119,44 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async setupConsumers() {
-    // Consumer pour les événements de transaction
+    // Consumer pour les événements d'opérations commerciales (gestion_commerciale_service)
     await this.createConsumer(
-      'transaction-events',
-      'analytics-transactions-group',
-      this.handleTransactionEvent.bind(this)
+      'commerce.operation.created',
+      'analytics-commerce-group',
+      this.handleBusinessOperationEvent.bind(this)
     );
 
-    // Consumer pour les événements de crédit
+    // Consumer pour les événements utilisateur (customer-service)
     await this.createConsumer(
-      'credit-events',
-      'analytics-credits-group',
-      this.handleCreditEvent.bind(this)
+      'user.created',
+      'analytics-users-group',
+      this.handleUserEvent.bind(this)
     );
 
-    // Consumer pour les événements comptables
     await this.createConsumer(
-      'accounting-events',
-      'analytics-accounting-group',
-      this.handleAccountingEvent.bind(this)
+      'user.updated',
+      'analytics-users-group',
+      this.handleUserEvent.bind(this)
     );
 
-    // Consumer pour les événements de portfolio
+    // Consumer pour les événements de portfolio (portfolio-service)
     await this.createConsumer(
-      'portfolio-events',
+      'portfolio.funding-request.status-changed',
       'analytics-portfolio-group',
       this.handlePortfolioEvent.bind(this)
+    );
+
+    await this.createConsumer(
+      'portfolio.contract.created',
+      'analytics-portfolio-group',
+      this.handlePortfolioEvent.bind(this)
+    );
+
+    // Consumer pour les événements de tokens (customer-service)
+    await this.createConsumer(
+      'token.purchase.created',
+      'analytics-tokens-group',
+      this.handleTokenEvent.bind(this)
     );
   }
 
@@ -179,32 +193,84 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Traitement des événements de transaction
+   * Traitement des événements d'opérations commerciales (BusinessOperationCreatedEvent)
    */
-  private async handleTransactionEvent(message: KafkaMessage): Promise<void> {
+  private async handleBusinessOperationEvent(message: KafkaMessage): Promise<void> {
     try {
       if (!message.value) return;
 
-      const event: TransactionEvent = JSON.parse(message.value.toString());
-      this.logger.debug(`Processing transaction event: ${event.type} for ${event.data.transactionId}`);
+      const event = JSON.parse(message.value.toString());
+      this.logger.debug(`Processing business operation event: ${event.type} for operation ${event.id}`);
 
-      switch (event.type) {
-        case 'TRANSACTION_CREATED':
-        case 'TRANSACTION_UPDATED':
-          await this.processTransactionForRiskAnalysis(event);
-          await this.processTransactionForFraudDetection(event);
-          break;
+      // Conversion vers format transaction pour l'analyse de risque
+      const transactionData = {
+        id: event.id,
+        entityId: event.clientId,
+        entityType: 'SME' as const,
+        amount: event.amountCdf,
+        timestamp: new Date(event.createdAt),
+        paymentMethod: 'UNKNOWN',
+        location: undefined,
+        counterpart: undefined
+      };
 
-        case 'TRANSACTION_CANCELLED':
-          await this.processTransactionCancellation(event);
-          break;
-
-        default:
-          this.logger.warn(`Unknown transaction event type: ${event.type}`);
+      // Analyse de fraude et calcul de risque
+      await this.fraudDetectionService.analyzeTransaction(transactionData);
+      
+      // Récupération des données SME réelles pour recalcul du risque
+      const smeData = await this.microserviceIntegrationService.getRealSMEData(event.clientId);
+      if (smeData) {
+        await this.riskCalculationService.calculateSMERisk(event.clientId, smeData);
       }
 
     } catch (error) {
-      this.logger.error('Error handling transaction event:', error);
+      this.logger.error('Error handling business operation event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Traitement des événements utilisateur (user.created, user.updated)
+   */
+  private async handleUserEvent(message: KafkaMessage): Promise<void> {
+    try {
+      if (!message.value) return;
+
+      const event = JSON.parse(message.value.toString());
+      this.logger.debug(`Processing user event for user ${event.userId}`);
+
+      // Mise à jour du cache des données utilisateur
+      if (event.customerId && event.role === 'SME') {
+        // Invalider le cache des données SME pour forcer une mise à jour
+        await this.microserviceIntegrationService.getRealSMEData(event.customerId);
+      }
+
+    } catch (error) {
+      this.logger.error('Error handling user event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Traitement des événements de tokens
+   */
+  private async handleTokenEvent(message: KafkaMessage): Promise<void> {
+    try {
+      if (!message.value) return;
+
+      const event = JSON.parse(message.value.toString());
+      this.logger.debug(`Processing token event for customer ${event.customerId}`);
+
+      // Analyse de l'impact sur le profil de risque
+      if (event.customerId) {
+        const smeData = await this.microserviceIntegrationService.getRealSMEData(event.customerId);
+        if (smeData) {
+          await this.riskCalculationService.calculateSMERisk(event.customerId, smeData);
+        }
+      }
+
+    } catch (error) {
+      this.logger.error('Error handling token event:', error);
       throw error;
     }
   }
@@ -281,17 +347,27 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Traitement des événements de portfolio
+   * Traitement des événements de portfolio (portfolio.funding-request.status-changed, portfolio.contract.created)
    */
   private async handlePortfolioEvent(message: KafkaMessage): Promise<void> {
     try {
       if (!message.value) return;
 
       const event = JSON.parse(message.value.toString());
-      this.logger.debug(`Processing portfolio event: ${event.type}`);
+      this.logger.debug(`Processing portfolio event: ${event.type || 'unknown'}`);
 
-      // Traitement des événements de portfolio (à définir selon les besoins)
-      await this.processPortfolioUpdate(event);
+      // Traitement selon le type d'événement portfolio
+      if (event.clientId) {
+        const smeData = await this.microserviceIntegrationService.getRealSMEData(event.clientId);
+        if (smeData) {
+          await this.riskCalculationService.calculateSMERisk(event.clientId, smeData);
+        }
+      }
+
+      // Mise à jour des métriques de portfolio si données disponibles
+      if (event.portfolioId) {
+        this.logger.debug(`Portfolio ${event.portfolioId} metrics update triggered`);
+      }
 
     } catch (error) {
       this.logger.error('Error handling portfolio event:', error);
@@ -305,9 +381,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     try {
       // Recalcul du risque pour l'entité concernée
       if (event.data.entityType === 'SME') {
-        const smeData = this.extractSMEDataFromTransaction(event);
-        await this.riskCalculationService.calculateSMERisk(event.data.entityId, smeData);
-        this.logger.debug(`Risk recalculated for SME: ${event.data.entityId}`);
+        const smeData = await this.extractSMEDataFromTransaction(event);
+        if (smeData) {
+          await this.riskCalculationService.calculateSMERisk(event.data.entityId, smeData);
+          this.logger.debug(`Risk recalculated for SME: ${event.data.entityId}`);
+        } else {
+          this.logger.warn(`Could not get SME data for risk calculation: ${event.data.entityId}`);
+        }
       }
 
       // Mise à jour des métriques géographiques si localisation disponible
@@ -362,10 +442,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processCreditApplication(event: CreditEvent): Promise<void> {
     try {
       // Évaluation du risque pour nouvelle demande de crédit
-      const smeData = this.extractSMEDataFromCredit(event);
-      await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
-      
-      this.logger.debug(`Risk assessment completed for credit application: ${event.data.creditId}`);
+      const smeData = await this.extractSMEDataFromCredit(event);
+      if (smeData) {
+        await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
+        this.logger.debug(`Risk assessment completed for credit application: ${event.data.creditId}`);
+      } else {
+        this.logger.warn(`Could not get SME data for credit application: ${event.data.smeId}`);
+      }
 
     } catch (error) {
       this.logger.error('Error processing credit application:', error);
@@ -375,10 +458,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processCreditActivation(event: CreditEvent): Promise<void> {
     try {
       // Mise à jour du profil de risque suite à activation de crédit
-      const smeData = this.extractSMEDataFromCredit(event);
-      await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
-      
-      this.logger.debug(`Risk profile updated for credit activation: ${event.data.creditId}`);
+      const smeData = await this.extractSMEDataFromCredit(event);
+      if (smeData) {
+        await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
+        this.logger.debug(`Risk profile updated for credit activation: ${event.data.creditId}`);
+      } else {
+        this.logger.warn(`Could not get SME data for credit activation: ${event.data.smeId}`);
+      }
 
     } catch (error) {
       this.logger.error('Error processing credit activation:', error);
@@ -388,10 +474,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processCreditPayment(event: CreditEvent): Promise<void> {
     try {
       // Mise à jour du comportement de paiement
-      const smeData = this.extractSMEDataFromCredit(event);
-      await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
-      
-      this.logger.debug(`Payment behavior updated for credit: ${event.data.creditId}`);
+      const smeData = await this.extractSMEDataFromCredit(event);
+      if (smeData) {
+        await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
+        this.logger.debug(`Payment behavior updated for credit: ${event.data.creditId}`);
+      } else {
+        this.logger.warn(`Could not get SME data for credit payment: ${event.data.smeId}`);
+      }
 
     } catch (error) {
       this.logger.error('Error processing credit payment:', error);
@@ -401,11 +490,15 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processCreditDefault(event: CreditEvent): Promise<void> {
     try {
       // Traitement spécial pour les défauts
-      const smeData = this.extractSMEDataFromCredit(event);
-      await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
-      
-      // Possibilité de déclencher des alertes spéciales
-      this.logger.warn(`Default detected for credit: ${event.data.creditId}, SME: ${event.data.smeId}`);
+      const smeData = await this.extractSMEDataFromCredit(event);
+      if (smeData) {
+        await this.riskCalculationService.calculateSMERisk(event.data.smeId, smeData);
+        
+        // Possibilité de déclencher des alertes spéciales
+        this.logger.warn(`Default detected for credit: ${event.data.creditId}, SME: ${event.data.smeId}`);
+      } else {
+        this.logger.warn(`Could not get SME data for credit default: ${event.data.smeId}`);
+      }
 
     } catch (error) {
       this.logger.error('Error processing credit default:', error);
@@ -516,45 +609,79 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Helper method to extract SME data from transaction events
+   * Helper method to extract SME data from transaction events using real microservice data
    */
-  private extractSMEDataFromTransaction(event: TransactionEvent): SMEData {
-    return {
-      id: event.data.entityId,
-      location: event.data.location ? {
-        province: event.data.location.province,
-        city: event.data.location.city
-      } : undefined,
-      business: {
-        sector: 'UNKNOWN', // Default sector as we don't have this in transaction events
-        yearsInBusiness: 1, // Default value
-        employeeCount: 1, // Default value
-        monthlyRevenue: event.data.amount || 0
+  private async extractSMEDataFromTransaction(event: TransactionEvent): Promise<SMEData | null> {
+    try {
+      // Utilisation du service d'intégration pour récupérer les vraies données
+      const realSMEData = await this.microserviceIntegrationService.getRealSMEData(
+        event.data.entityId
+      );
+
+      if (!realSMEData) {
+        this.logger.debug(`No SME data found for entity ${event.data.entityId}`);
+        return null;
       }
-    };
+
+      // Enrichissement avec les données de l'événement transaction
+      if (event.data.location) {
+        realSMEData.location = {
+          province: event.data.location.province,
+          city: event.data.location.city
+        };
+      }
+
+      // Mise à jour du chiffre d'affaires mensuel avec la transaction courante
+      if (event.data.amount > 0 && realSMEData.business) {
+        realSMEData.business.monthlyRevenue = Math.max(
+          realSMEData.business.monthlyRevenue,
+          event.data.amount
+        );
+      }
+
+      return realSMEData;
+    } catch (error) {
+      this.logger.error(`Error extracting real SME data from transaction:`, error);
+      return null;
+    }
   }
 
   /**
-   * Helper method to extract SME data from credit events
+   * Helper method to extract SME data from credit events using real microservice data
    */
-  private extractSMEDataFromCredit(event: CreditEvent): SMEData {
-    return {
-      id: event.data.smeId,
-      business: {
-        sector: 'UNKNOWN', // Default sector
-        yearsInBusiness: 1, // Default value
-        employeeCount: 1, // Default value
-        monthlyRevenue: event.data.amount || 0
-      },
-      history: {
-        payments: [],
-        creditHistory: [{
-          amount: event.data.amount,
-          status: event.data.status,
-          performance: event.type === 'DEFAULT_DETECTED' ? 'poor' : 'good'
-        }]
+  private async extractSMEDataFromCredit(event: CreditEvent): Promise<SMEData | null> {
+    try {
+      // Utilisation du service d'intégration pour récupérer les vraies données
+      const realSMEData = await this.microserviceIntegrationService.getRealSMEData(
+        event.data.smeId
+      );
+
+      if (!realSMEData) {
+        this.logger.debug(`No SME data found for credit event: ${event.data.smeId}`);
+        return null;
       }
-    };
+
+      // Enrichissement avec les données de l'événement crédit
+      if (!realSMEData.history) {
+        realSMEData.history = {
+          payments: [],
+          creditHistory: []
+        };
+      }
+
+      // Ajout de l'historique de crédit actuel
+      realSMEData.history.creditHistory = realSMEData.history.creditHistory || [];
+      realSMEData.history.creditHistory.push({
+        amount: event.data.amount,
+        status: event.data.status,
+        performance: event.type === 'DEFAULT_DETECTED' ? 'poor' : 'good'
+      });
+
+      return realSMEData;
+    } catch (error) {
+      this.logger.error(`Error extracting real SME data from credit event:`, error);
+      return null;
+    }
   }
 
   /**

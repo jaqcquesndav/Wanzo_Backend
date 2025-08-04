@@ -40,8 +40,8 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root123
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha_ai_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -261,13 +261,18 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
       - PORT=8002
-      - KAFKA_BROKER_URL=kafka:29092
+      - KAFKA_ENV=docker
+      - KAFKA_BROKER_INTERNAL=kafka:29092
+      - KAFKA_BROKER_EXTERNAL=localhost:9092
       - PROMETHEUS_PORT=9464
       - POSTGRES_DB=adha_ai_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
+      - DLQ_ENABLED=true
+      - DLQ_MAX_RETRIES=3
+      - DLQ_RETRY_DELAY_MS=5000
     env_file:
       - ./apps/Adha-ai-service/.env
     volumes:

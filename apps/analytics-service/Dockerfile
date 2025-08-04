@@ -1,9 +1,11 @@
-﻿FROM node:20-alpine AS builder
+﻿FROM node:20.17.0-bookworm-slim AS builder
 
-# Update Alpine packages and install security updates
-RUN apk update && apk upgrade && \
-    # Install common security related packages
-    apk add --no-cache ca-certificates dumb-init
+# Install security updates and required packages
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -28,38 +30,24 @@ RUN rm -rf apps/analytics-service/tsconfig.tsbuildinfo || true
 # Build the application
 RUN npm run build --prefix apps/analytics-service
 
-# Production stage
-FROM node:20-alpine AS production
-
-# Install security packages
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates dumb-init
+# Production stage - Using distroless for better security
+FROM gcr.io/distroless/nodejs20-debian12:nonroot AS production
 
 # Set working directory
 WORKDIR /app
 
-# Copy only the built application from the builder stage
-COPY --from=builder /app/apps/analytics-service/dist /app/apps/analytics-service/dist
-COPY --from=builder /app/apps/analytics-service/package.json /app/apps/analytics-service/package.json
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/package-lock.json /app/package-lock.json
+# Copy built application and dependencies from builder
+COPY --from=builder --chown=nonroot:nonroot /app/apps/analytics-service/dist /app/apps/analytics-service/dist
+COPY --from=builder --chown=nonroot:nonroot /app/apps/analytics-service/package.json /app/apps/analytics-service/package.json
+COPY --from=builder --chown=nonroot:nonroot /app/package.json /app/package.json
+COPY --from=builder --chown=nonroot:nonroot /app/node_modules /app/node_modules
 
-# Install only production dependencies (using install instead of ci for monorepo structure)
-RUN npm install --omit=dev --legacy-peer-deps --prefix apps/analytics-service
+# Expose port
+EXPOSE 3004
 
-# Set non-root user for better security
-USER node
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3004
 
-# Use dumb-init as PID 1 to handle signals properly
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-
-# Start the service with conditional check
-CMD ["sh", "-c", "if [ -f 'apps/analytics-service/dist/src/main.js' ]; then \
-    node apps/analytics-service/dist/src/main.js; \
-    elif [ -f 'apps/analytics-service/dist/main.js' ]; then \
-    node apps/analytics-service/dist/main.js; \
-    elif [ -f 'apps/analytics-service/dist/apps/analytics-service/src/main.js' ]; then \
-    node apps/analytics-service/dist/apps/analytics-service/src/main.js; \
-    else \
-    echo 'Could not find main.js file to execute' && ls -R apps/analytics-service/dist && exit 1; \
-    fi"]
+# Start the application directly with Node.js
+CMD ["node", "apps/analytics-service/dist/src/main.js"]

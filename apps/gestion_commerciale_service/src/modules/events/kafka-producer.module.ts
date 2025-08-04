@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { ClientsModule } from '@nestjs/microservices';
+import { getUnifiedKafkaConfig } from '@wanzo/shared/events/unified-kafka-config';
 
 // Define a unique injection token for the Kafka producer client in this service
 export const GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE = 'GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE';
@@ -9,6 +9,7 @@ export const GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE = 'GESTION_COMMERCIALE_K
 /**
  * This module is solely responsible for providing Kafka client to avoid circular dependencies.
  * It contains no business logic and depends only on ConfigModule.
+ * Uses unified Kafka configuration for consistency across services.
  */
 @Module({
   imports: [
@@ -17,22 +18,8 @@ export const GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE = 'GESTION_COMMERCIALE_K
         name: GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE,
         imports: [ConfigModule],
         useFactory: (configService: ConfigService) => {
-          // Get the base Kafka configuration
-          const baseKafkaConfig = getKafkaConfig(configService) as KafkaOptions;
-
-          // Override the clientId for this specific producer
-          const producerSpecificOptions: KafkaOptions = {
-            ...baseKafkaConfig,
-            options: {
-              ...baseKafkaConfig.options,
-              client: {
-                ...(baseKafkaConfig.options?.client || {}),
-                clientId: 'gestion-commerciale-service-producer',
-                brokers: baseKafkaConfig.options?.client?.brokers || [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
-              },
-            },
-          };
-          return producerSpecificOptions;
+          // Use the unified Kafka configuration
+          return getUnifiedKafkaConfig(configService, 'gestion-commerciale-service-producer');
         },
         inject: [ConfigService],
       },

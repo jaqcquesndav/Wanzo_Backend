@@ -7,11 +7,15 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { PrometheusMiddleware } from './monitoring/prometheus.middleware';
 import { DataCollectionModule } from './modules/data-collection/data-collection.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { EventProcessingModule } from './modules/event-processing/event-processing.module';
 import { FraudDetectionModule } from './modules/fraud-detection/fraud-detection.module';
 import { FinancialDataConfigModule } from './modules/financial-data-config/financial-data-config.module';
+import { RiskAnalysisModule } from './modules/risk-analysis/risk-analysis.module';
+import { GeographicAnalysisModule } from './modules/geographic-analysis/geographic-analysis.module';
+import { KafkaConsumerModule } from './modules/kafka-consumer/kafka-consumer.module';
+import { IntegrationModule } from './modules/integration/integration.module';
+import { CacheModule } from './modules/cache/cache.module';
 import neo4jConfig from './config/neo4j.config';
 import timeseriesConfig from './config/timeseries.config';
 import databaseConfig from './config/database.config';
@@ -37,17 +41,26 @@ import { AnalyticsConfig } from './entities';
       }),
       inject: [ConfigService],
     }),
-    // Modules existants fonctionnels
-    GraphModule,
-    TimeseriesModule,
-    IngestionModule,
-    DataCollectionModule,
-    AnalyticsModule,
-    AuthModule,
-    MonitoringModule,
-    // Modules d'analyse de risque et fraude
-    EventProcessingModule,
-    FraudDetectionModule,
+    // Modules Core
+    CacheModule,            // Cache global intelligent
+    IntegrationModule,      // Intégration microservices
+    AuthModule,            // Authentification
+    MonitoringModule,      // Monitoring Prometheus
+    
+    // Modules Data
+    IngestionModule,       // Ingestion données
+    DataCollectionModule,  // Collection données
+    TimeseriesModule,      // Métriques temporelles
+    
+    // Modules Analysis
+    RiskAnalysisModule,    // Analyse de risque
+    FraudDetectionModule,  // Détection fraude
+    GeographicAnalysisModule, // Analyse géographique
+    GraphModule,           // Analyse graphes + real-data
+    
+    // Modules Processing
+    KafkaConsumerModule,   // Consommation événements Kafka
+    ReportsModule,         // Reports and data exposition
   ],
 })
 export class AppModule implements NestModule {

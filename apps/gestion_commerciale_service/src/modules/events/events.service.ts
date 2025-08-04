@@ -99,12 +99,30 @@ export class EventsService {
     })}`);
     
     try {
-      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_CREATED, event);
+      // Create standardized message with proper metadata
+      const standardMessage = {
+        eventType: 'commerce.operation.created',
+        data: event,
+        metadata: {
+          source: 'gestion_commerciale',
+          correlationId: this.generateCorrelationId(),
+          timestamp: new Date().toISOString(),
+          version: '1.0.0'
+        }
+      };
+
+      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_CREATED, standardMessage);
+      this.logger.log(`Successfully published ${BusinessOperationEventTopics.OPERATION_CREATED} event`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error publishing ${BusinessOperationEventTopics.OPERATION_CREATED}: ${errorMessage}`, 
         error instanceof Error ? error.stack : undefined);
+      throw error;
     }
+  }
+
+  private generateCorrelationId(): string {
+    return `gc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**

@@ -2,10 +2,10 @@ import { Controller, Get, Param, Query, Logger, HttpException, HttpStatus } from
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { DataCollectionService } from '../data-collection/data-collection.service';
 
-@ApiTags('analytics')
-@Controller('analytics')
-export class AnalyticsController {
-  private readonly logger = new Logger(AnalyticsController.name);
+@ApiTags('reports')
+@Controller('reports')
+export class ReportsController {
+  private readonly logger = new Logger(ReportsController.name);
   
   constructor(private readonly dataCollectionService: DataCollectionService) {}
 

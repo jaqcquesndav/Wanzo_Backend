@@ -1,0 +1,213 @@
+version: '3.8'
+
+services:
+  analytics-service:
+    build:
+      context: .
+      dockerfile: apps/analytics-service/Dockerfile
+      target: production
+    container_name: wanzo-analytics-service-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+    env_file:
+      - apps/analytics-service/.env.production
+    ports:
+      - "3004:3004"
+      - "9090:9090"  # Metrics port
+    volumes:
+      - analytics-logs:/var/log/analytics-service
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - wanzo-network
+      - kafka-network
+      - postgres-network
+    depends_on:
+      postgres-analytics:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+      portfolio-service:
+        condition: service_started
+      commerce-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run:noexec,nosuid,size=50m
+
+  postgres-analytics:
+    image: postgres:15-alpine
+    container_name: wanzo-postgres-analytics-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=wanzo_analytics_prod
+      - POSTGRES_USER=analytics_user
+      - POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres-analytics-data:/var/lib/postgresql/data
+      - ./scripts/init-analytics-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - postgres-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d wanzo_analytics_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  neo4j:
+    image: neo4j:5-enterprise
+    container_name: wanzo-neo4j-prod
+    restart: unless-stopped
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_dbms_memory_heap_initial__size=2G
+      - NEO4J_dbms_memory_heap_max__size=4G
+      - NEO4J_dbms_memory_pagecache_size=2G
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,algo.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*,algo.*
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+      - neo4j-import:/var/lib/neo4j/import
+      - neo4j-plugins:/plugins
+    networks:
+      - wanzo-network
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: wanzo-timescaledb-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=wanzo_timeseries_prod
+      - POSTGRES_USER=timeseries_user
+      - POSTGRES_PASSWORD=${TIMESCALEDB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./scripts/init-timescaledb.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - wanzo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timeseries_user -d wanzo_timeseries_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: wanzo-kafka-1-prod
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+    volumes:
+      - kafka-1-data:/var/lib/kafka/data
+    networks:
+      - kafka-network
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server=localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: wanzo-zookeeper-prod
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 5
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - kafka-network
+
+volumes:
+  analytics-logs:
+    driver: local
+  postgres-analytics-data:
+    driver: local
+  neo4j-data:
+    driver: local
+  neo4j-logs:
+    driver: local
+  neo4j-import:
+    driver: local
+  neo4j-plugins:
+    driver: local
+  timescaledb-data:
+    driver: local
+  kafka-1-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+
+networks:
+  wanzo-network:
+    driver: bridge
+    name: wanzo-network
+  kafka-network:
+    driver: bridge
+    name: kafka-network
+  postgres-network:
+    driver: bridge
+    name: postgres-network
