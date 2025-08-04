@@ -1,108 +1,143 @@
-# Documentation de l'API Wanzo
+# Documentation de l'API Customer Service - Wanzo
 
-Cette documentation détaille l'API utilisée par l'application Wanzo pour la gestion des profils d'entreprise (PME) et des institutions financières.
+Cette documentation détaille l'API du microservice Customer Service pour la gestion des clients (PME et institutions financières), des abonnements, des tokens et de la facturation.
 
 ## Architecture API actuelle
 
-**Base URL** : `http://localhost:8000/land/api/v1` (développement)
-**Authentification** : Bearer token automatique via Auth0
-**Pattern** : UI > Types > Hooks > Services
+**Base URL** : `http://customer-service:3000/` (interne) ou via API Gateway  
+**Authentification** : JWT avec extraction du client (middleware `CustomerExtractorMiddleware`)  
+**Pattern** : NestJS avec TypeORM
+
+## Mise à jour majeure - Août 2025
+
+La documentation a été mise à jour pour refléter la nouvelle architecture modulaire et le système centralisé de tarification:
+
+- Structure des modules clarifiée (SystemUsers, Customers, Subscriptions)
+- Système centralisé de configuration des prix dans `subscription-pricing.config.ts`
+- Nouveau système de tokens avec contrôle d'accès par fonctionnalité via `@RequireFeature` et `FeatureAccessGuard`
+- Interfaces utilisateur recommandées pour la présentation des abonnements et tokens
 
 ## Table des matières
 
 1. [Configuration de base](./01-configuration.md)
    - URL de base et API Gateway
-   - Headers automatiques (Bearer token)
+   - Headers et authentification
    - Format des réponses standardisé
 
 2. [Authentification](./02-authentification.md)
-   - Flux Auth0 avec PKCE
-   - Gestion hybride (Auth0 + Backend)
-   - Stockage sécurisé et fallback
+   - Flux JWT avec extraction du client
+   - Gestion des permissions et rôles
+   - Sécurité et middleware
 
-3. [Utilisateurs](./03-utilisateurs.md)
-   - Structure User basée sur `src/types/user.ts`
-   - Service UserService avec timeout et fallback
-   - Endpoints `/users/me`
+3. [Utilisateurs Système](./03-utilisateurs.md)
+   - Structure User (employés et admins)
+   - Service UserService et types
+   - Endpoints de gestion des utilisateurs
 
-4. [Entreprises (PME)](./04-entreprises.md)
-   - Structure Company basée sur code source
-   - Service CompanyService (localStorage actuel)
+4. [Entreprises (PME)](./04-company.md)
+   - Structure Customer type SME
+   - Gestion des profils entreprise
    - Données test KIOTA TECH
 
 5. [Institutions financières](./05-institutions-financieres.md)
-   - Structure FinancialInstitution
-   - CRUD complet + upload logo
-   - Endpoints `/financial-institutions/*`
+   - Structure Customer type FINANCIAL_INSTITUTION
+   - API spécifique aux institutions
+   - Fonctionnalités dédiées
 
-6. [Abonnements et paiements](./06-abonnements.md)
-   - Plans, souscriptions, tokens
-   - Service SubscriptionApiService
-   - Endpoints `/subscriptions/*`, `/tokens/*`, `/payments/*`
+6. [Abonnements et plans](./06-abonnements.md)
+   - Structure des plans d'abonnement
+   - API de pricing et souscription
+   - Gestion des fonctionnalités par plan
 
-7. [Erreurs et dépannage](./07-erreurs.md)
-   - Gestion ApiServiceError
-   - Stratégies de récupération et timeouts
-   - Messages d'erreur standardisés
+7. [Système de tokens](./07-tokens.md)
+   - Structure du système de tokens
+   - API de gestion des tokens
+   - Consommation automatique et tracking
+
+8. [Système de tarification](./08-pricing-system.md)
+   - Configuration centralisée des prix
+   - Services de synchronisation
+   - Contrôle d'accès aux fonctionnalités
+
+9. [Guide des interfaces UI](./09-ui-interfaces-guide.md)
+   - Présentation des plans d'abonnement
+   - Gestion des tokens
+   - Composants recommandés
+
+10. [Erreurs et dépannage](./07-erreurs.md)
+    - Codes d'erreur standardisés
+    - Exceptions et gestion des erreurs
+    - Messages d'erreur standardisés
 
 ## Résumé des endpoints implémentés
 
-### Utilisateurs
-- `GET /users/me` - Profil utilisateur (avec fallback Auth0)
-- `PATCH /users/me` - Mise à jour profil
+### Utilisateurs Système
+- `GET /system-users/me` - Profil utilisateur système
+- `PATCH /system-users/me` - Mise à jour profil
+- `GET /system-users/{id}` - Récupérer utilisateur par ID
+- `POST /admin/system-users` - Créer utilisateur (admin)
 
-### Institutions financières
-- `GET /financial-institutions/{id}` - Récupérer institution
-- `POST /financial-institutions` - Créer institution  
-- `PATCH /financial-institutions/{id}` - Mettre à jour
-- `DELETE /financial-institutions/{id}` - Supprimer
-- `POST /financial-institutions/logo/upload` - Upload logo
+### Clients (PME et Institutions)
+- `GET /customers/{id}` - Récupérer client
+- `POST /customers` - Créer client 
+- `PATCH /customers/{id}` - Mettre à jour
+- `GET /customers/search` - Rechercher clients
 
-### Abonnements et paiements
-- `GET /subscription/plans` - Liste des plans
-- `POST /subscriptions` - Créer abonnement
+### Pricing et Plans
+- `GET /pricing/plans` - Liste des plans d'abonnement
+- `GET /pricing/plans/:planId` - Détails d'un plan
+- `POST /pricing/calculate` - Calculer prix personnalisé
+- `GET /pricing/tokens/packages` - Packages de tokens
+- `GET /pricing/features` - Fonctionnalités disponibles
+
+### Abonnements
 - `GET /subscriptions/current` - Abonnement actuel
+- `POST /subscriptions` - Créer abonnement
+- `PATCH /subscriptions/{id}` - Modifier abonnement
 - `POST /subscriptions/cancel` - Annuler abonnement
-- `POST /subscriptions/change-plan` - Changer de plan
 
 ### Tokens
-- `GET /tokens/balance` - Solde de tokens
+- `GET /tokens/balance/:customerId` - Solde de tokens
 - `POST /tokens/purchase` - Acheter tokens
-- `GET /tokens/transactions` - Historique transactions
+- `GET /tokens/history/:customerId` - Historique transactions
+- `POST /tokens/usage` - Enregistrer utilisation
 
-### Paiements
-- `GET /payments` - Historique paiements
-- `GET /payments/{id}/receipt` - Télécharger reçu (PDF)
-- `POST /payments/manual-proof` - Upload preuve paiement
-
-### IA (Services additionnels)
-- `POST /ai/chat` - Chat avec IA
-- `POST /ai/transcribe` - Transcription audio
+### Administration
+- `POST /admin/pricing/sync/plans` - Synchroniser plans
+- `POST /admin/pricing/sync/tokens` - Synchroniser packages
+- `POST /admin/pricing/sync/all` - Synchroniser toute la config
+- `GET /admin/pricing/status` - État de synchronisation
 
 ## Caractéristiques techniques
 
-### Authentification automatique
-- Bearer token sur toutes les requêtes
-- Gestion centralisée via `getToken()`
-- Headers automatiques dans `ApiService`
+### Architecture modulaire
+- Structure en modules clairement définis
+- Responsabilités séparées (voir [MODULES_RESPONSIBILITIES.md](../MODULES_RESPONSIBILITIES.md))
+- Injection de dépendances NestJS
 
-### Gestion des erreurs
-- Timeout 10s sur requêtes critiques
-- Fallback Auth0 si backend indisponible
-- Format d'erreur standardisé `ApiServiceError`
+### Configuration centralisée
+- Fichier `subscription-pricing.config.ts` pour tous les plans et prix
+- Service `PricingConfigService` pour accès à la configuration
+- Synchronisation avec la base de données via `PricingDataSyncService`
+
+### Système de contrôle d'accès
+- Décorateur `@RequireFeature()` pour protéger les endpoints
+- Guard `FeatureAccessGuard` pour vérifier l'accès
+- Middleware `CustomerExtractorMiddleware` pour identifier le client
+- Consommation automatique de tokens
 
 ### Types TypeScript
-- Interfaces complètes dans `src/types/api.ts`
-- Validation avec schémas Zod
-- Types conformes au code source
+- Types et interfaces complets 
+- Utilisation d'enums pour les valeurs constantes
+- TypeORM avec entités fortement typées
 
 ## État de l'implémentation
 
-✅ **Complet** : Authentification, Types, Gestion d'erreurs
-✅ **Implémenté** : Users, Financial Institutions, Subscriptions, Payments, Tokens
-🚧 **En cours** : Companies (localStorage → API backend)
-🚧 **À implémenter** : Endpoints manquants selon besoins métier
-- Paramètres URL: camelCase
+✅ **Complet** : Système de pricing, Plans d'abonnement, Tokens, Feature Access
+✅ **Implémenté** : API publique, API admin, Contrôle d'accès
+✅ **Optimisé** : Structure des modules clarifiée (SystemUsers, Customer, etc.)
+✅ **Documenté** : Documentation API, Guide d'interfaces utilisateur
+🚧 **En cours** : Initialisation des données de prix dans la base
 - Champs JSON: camelCase
 
 ## Notes importantes

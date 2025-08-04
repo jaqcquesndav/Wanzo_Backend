@@ -2,7 +2,50 @@
 
 ## Structure des données
 
-Basée sur les interfaces du code source (`src/types/api.ts`) et le service `SubscriptionApiService` (`src/services/subscriptionApi.ts`) :
+Basée sur la configuration centralisée (`src/config/subscription-pricing.config.ts`) :
+
+### Types de clients
+
+```typescript
+enum CustomerType {
+  SME = 'sme',
+  FINANCIAL_INSTITUTION = 'financial_institution'
+}
+```
+
+### Périodes de facturation
+
+```typescript
+enum BillingPeriod {
+  MONTHLY = 'monthly',
+  ANNUAL = 'annual'
+}
+```
+
+### Codes des fonctionnalités
+
+```typescript
+enum FeatureCode {
+  // Gestion commerciale
+  COMMERCIAL_MANAGEMENT = 'commercial_management',
+  CUSTOMER_MANAGEMENT = 'customer_management',
+  SALES_TRACKING = 'sales_tracking',
+  INVENTORY_MANAGEMENT = 'inventory_management',
+  
+  // Comptabilité
+  ACCOUNTING_BASIC = 'accounting_basic',
+  ACCOUNTING_ADVANCED = 'accounting_advanced',
+  FINANCIAL_REPORTS = 'financial_reports',
+  TAX_MANAGEMENT = 'tax_management',
+  
+  // IA et tokens
+  AI_CHAT_ASSISTANCE = 'ai_chat_assistance',
+  DOCUMENT_ANALYSIS = 'document_analysis',
+  PREDICTIVE_ANALYTICS = 'predictive_analytics',
+  
+  // ... autres fonctionnalités
+}
+```
 
 ### Plans d'abonnement
 
@@ -11,96 +54,117 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   description: string;
-  price: number;
-  currency: string;
-  billingFrequency: 'monthly' | 'yearly';
-  features: string[];
+  customerType: CustomerType;
+  billingPeriod: BillingPeriod;
+  
+  // Tarification
+  monthlyPriceUSD: number;
+  annualPriceUSD: number;
+  annualDiscountPercentage: number; // Réduction appliquée sur le prix annuel
+  
+  // Allocation de tokens
+  tokenAllocation: TokenAllocation;
+  
+  // Fonctionnalités incluses
+  features: PlanFeatures;
+  
+  // Métadonnées
+  isPopular: boolean;
+  isVisible: boolean; // Pour désactiver temporairement un plan
+  sortOrder: number;
+  tags: string[];
 }
 ```
 
-### Abonnement actif
+### Packages d'achat de tokens
 
 ```typescript
-interface Subscription {
+interface TokenPurchasePackage {
   id: string;
-  plan: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    currency: string;
-    billingFrequency: string;
-    features: string[];
-  };
-  status: 'active' | 'inactive' | 'pending' | 'expired' | 'cancelled';
-  startDate: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  paymentMethod: {
-    type: 'card' | 'mobile';
-    lastFour?: string;
-    brand?: string;
-    mobileMoneyProvider?: string;
-    mobileMoneyNumber?: string;
-  };
+  name: string;
+  description: string;
+  tokenAmount: number;
+  priceUSD: number;
+  pricePerMillionTokens: number; // Calculé automatiquement
+  bonusPercentage: number; // Tokens bonus offerts
+  customerTypes: CustomerType[]; // Quels types de clients peuvent acheter ce package
+  isVisible: boolean;
+  sortOrder: number;
 }
 ```
 
-### Solde de tokens
+### États des abonnements
 
 ```typescript
-interface TokenBalance {
-  balance: number;
-  totalPurchased: number;
-}
-```
-
-### Transaction de tokens
-
-```typescript
-interface TokenTransaction {
-  id: string;
-  type: 'purchase' | 'usage' | 'bonus';
-  amount: number;
-  price?: number;
-  currency?: string;
-  status: 'completed' | 'pending' | 'failed';
-  paymentMethod?: 'mobile' | 'card';
-  mobileMoneyProvider?: string;
-  mobileMoneyNumber?: string;
-  feature?: string;
-  resourceId?: string;
-  reason?: string;
-  promotionId?: string;
-  createdAt: string;
+enum SubscriptionStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  CANCELED = 'canceled',
+  EXPIRED = 'expired',
+  TRIAL = 'trial',
+  PAST_DUE = 'past_due'
 }
 ```
 
 ## Endpoints API
 
-### Récupérer les plans d'abonnement
+### Pricing
+
+#### Récupérer tous les plans d'abonnement
 
 ```
-GET /subscription/plans
+GET /pricing/plans
 ```
 
-**Implémentation** : `SubscriptionApiService.getPlans()`
+**Paramètres de requête (optionnels)**:
+- `customerType` : 'sme' | 'financial_institution'
+- `billingPeriod` : 'monthly' | 'annual'
+
+**Implémentation** : `PricingController.getSubscriptionPlans()`
 
 #### Réponse
 
 ```json
 {
-  "success": true,
-  "data": [
+  "plans": [
     {
-      "id": "plan-basic",
-      "name": "Basique", 
-      "description": "Pour les petites entreprises",
-      "price": 29.99,
-      "currency": "USD",
-      "billingFrequency": "monthly",
-      "features": ["Accès de base", "Support email"]
+      "id": "sme-freemium",
+      "name": "PME Freemium",
+      "description": "Accès gratuit avec limitations pour découvrir la plateforme",
+      "customerType": "sme",
+      "billingPeriod": "monthly",
+      "monthlyPriceUSD": 0,
+      "annualPriceUSD": 0,
+      "annualDiscountPercentage": 0,
+      "tokenAllocation": {
+        "monthlyTokens": 100000,
+        "tokenRollover": false,
+        "maxRolloverMonths": 0
+      },
+      "features": {
+        "commercial_management": {
+          "enabled": true,
+          "limit": 50,
+          "description": "50 clients max"
+        },
+        // ... autres fonctionnalités
+      },
+      "isPopular": false,
+      "isVisible": true,
+      "sortOrder": 1,
+      "tags": ["gratuit", "débutant", "limitation"]
+    },
+    {
+      "id": "sme-standard",
+      "name": "PME Standard",
+      "description": "Plan complet pour PME avec accès aux demandes de financement",
+      "customerType": "sme",
+      "billingPeriod": "monthly",
+      "monthlyPriceUSD": 20,
+      "annualPriceUSD": 200,
+      "annualDiscountPercentage": 16.67,
+      "isPopular": true,
+      // ... autres détails
     }
   ]
 }

@@ -388,7 +388,7 @@ export class ExternalRequestsConsumer {
       
       // Récupérer les données demandées selon le type
       let data: any = null;
-      let error: string | null = null;
+      let error: string | undefined = undefined;
       
       try {
         switch (payload.requestType) {
