@@ -1,4 +1,4 @@
-# Django & REST Framework
+# Django & REST Framework (légers)
 django>=4.2,<4.3
 djangorestframework>=3.14.0
 drf-yasg>=1.21.7
@@ -6,34 +6,37 @@ djangorestframework-simplejwt>=5.3.0
 python-dotenv>=1.0.0
 psycopg2-binary>=2.9.9  # PostgreSQL adapter for Python
 
-# Data processing
-numpy>=1.24.0
-pandas>=2.0.0
+# Data processing - versions optimisées (évite les conflits avec PyTorch)
+numpy>=1.24.0,<1.26.0  # Compatible avec PyTorch 2.2.0
+pandas>=2.0.0,<2.2.0   # Éviter les versions trop récentes gourmandes
 pyyaml>=6.0.1
 python-dateutil>=2.8.2
 
-# Document processing
-pymupdf>=1.23.0  # For PDF processing
-opencv-python>=4.8.0  # For image processing
-pytesseract>=0.3.10  # For OCR
-pillow>=10.0.0  # For image handling
+# Document processing - versions optimisées
+pymupdf>=1.23.0  # Plus léger que PyPDF2
+opencv-python-headless>=4.8.0  # Version sans GUI (30% plus léger qu'opencv-python)
+pytesseract>=0.3.10  # OCR
+pillow>=10.0.0,<10.2.0  # Image handling avec version contrainte
 
-# AI & Machine Learning
-openai>=1.0.0
-tiktoken>=0.5.0
-sentence-transformers>=2.2.2
-chromadb>=0.4.22
-langchain>=0.1.0
+# AI & Machine Learning - optimisé pour PyTorch existant
+openai>=1.0.0,<1.15.0  # API OpenAI avec version contrainte
+tiktoken>=0.5.0,<0.7.0  # Tokenizer optimisé
+sentence-transformers>=2.2.2,<2.3.0  # Compatible PyTorch 2.2.0
+chromadb>=0.4.22,<0.5.0  # Vector database léger
+langchain>=0.1.0,<0.2.0  # LLM framework optimisé
 
-# Utilities
+# Utilities (légers)
 psutil>=5.9.0
-kafka-python
+kafka-python>=2.0.0
 
-# Monitoring
-prometheus_client>=0.17.0
+# Monitoring (léger)
+prometheus_client>=0.17.0,<0.20.0
 
-# Testing
+# Testing (optimisé pour CI/CD)
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.1
 pytest-cov>=4.1.0
+
+# REMARQUE: torch, torchvision, torchaudio sont EXCLUS
+# car ils sont déjà présents dans l'image pytorch/pytorch:2.2.0-cpu
