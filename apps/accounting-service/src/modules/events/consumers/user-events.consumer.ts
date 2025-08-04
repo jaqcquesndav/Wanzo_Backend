@@ -54,6 +54,44 @@ export class UserEventsConsumer {
     }
   }
 
+  @MessagePattern('user.login')
+  async handleUserLogin(@Payload() event: any): Promise<void> {
+    this.logger.log(`Received user.login event: ${JSON.stringify(event)}`);
+    
+    // Vérifier si l'utilisateur a accès au accounting-service
+    const hasAccess = event.accessibleApps?.includes('accounting-service');
+    
+    if (hasAccess && (event.userType === 'FINANCIAL_INSTITUTION' || event.role === 'ADMIN' || event.role === 'SUPERADMIN')) {
+      try {
+        // Vérifier si l'organisation de l'utilisateur existe dans le service comptable
+        if (event.financialInstitutionId || event.companyId) {
+          const organizationId = event.financialInstitutionId || event.companyId;
+          const organization = await this.organizationService.findById(organizationId);
+          
+          if (organization) {
+            // Mettre à jour la dernière activité de l'organisation
+            await this.organizationService.updateLastActivity(organizationId, new Date(event.loginTime));
+            this.logger.log(`Updated last activity for organization ${organizationId} due to user login`);
+            
+            // Si c'est la première connexion, initialiser les comptes par défaut si nécessaire
+            if (event.isFirstLogin) {
+              await this.accountService.initializeDefaultAccountsForOrganization(organizationId);
+              this.logger.log(`Initialized default accounts for new organization ${organizationId}`);
+            }
+          } else {
+            this.logger.warn(`Organization ${organizationId} not found in accounting service`);
+          }
+        }
+        
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Error processing user.login for accounting service user ${event.userId}: ${errorMessage}`);
+      }
+    } else {
+      this.logger.log(`Skipping user.login event for user ${event.userId} - no access to accounting-service`);
+    }
+  }
+
   @MessagePattern(SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED)
   async handleSubscriptionChanged(@Payload() event: SubscriptionChangedEvent): Promise<void> {
     this.logger.log(`Received ${SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED} event: ${JSON.stringify(event)}`);

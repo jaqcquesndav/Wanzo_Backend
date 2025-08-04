@@ -3,12 +3,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ADMIN_KAFKA_PRODUCER_SERVICE, KafkaProducerModule } from './kafka-producer.module';
 import { EventsService } from './events.service';
 import { MockEventsService } from './mock-events-service';
+import { UserEventsConsumer } from './consumers/user-events.consumer';
+import { UsersModule } from '../users/users.module';
+import { CompanyModule } from '../company/company.module';
 
 @Module({
   imports: [
     ConfigModule,
     KafkaProducerModule,
+    UsersModule,
+    CompanyModule,
   ],
+  controllers: [UserEventsConsumer],
   providers: [
     {
       provide: EventsService,

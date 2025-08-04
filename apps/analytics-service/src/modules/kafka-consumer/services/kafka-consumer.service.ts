@@ -230,7 +230,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Traitement des événements utilisateur (user.created, user.updated)
+   * Traitement des événements utilisateur (user.created, user.updated, user.login)
    */
   private async handleUserEvent(message: KafkaMessage): Promise<void> {
     try {
@@ -238,6 +238,11 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       const event = JSON.parse(message.value.toString());
       this.logger.debug(`Processing user event for user ${event.userId}`);
+
+      // Gérer les événements de connexion utilisateur
+      if (event.eventType === 'user.login') {
+        await this.handleUserLoginEvent(event);
+      }
 
       // Mise à jour du cache des données utilisateur
       if (event.customerId && event.role === 'SME') {
@@ -249,6 +254,77 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Error handling user event:', error);
       throw error;
     }
+  }
+
+  /**
+   * Traitement spécifique des événements de connexion utilisateur
+   */
+  private async handleUserLoginEvent(event: any): Promise<void> {
+    try {
+      this.logger.log(`Processing login event for user ${event.userId}`);
+      
+      // Enregistrer l'événement de login pour l'analytique
+      const loginData = {
+        userId: event.userId,
+        userType: event.userType,
+        role: event.role,
+        loginTime: new Date(event.loginTime),
+        platform: event.platform || 'web',
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+        financialInstitutionId: event.financialInstitutionId,
+        companyId: event.companyId,
+        isFirstLogin: event.isFirstLogin,
+        accessibleApps: event.accessibleApps || []
+      };
+
+      // Enregistrer les métriques de connexion
+      await this.recordLoginMetrics(loginData);
+      
+      // Si c'est une première connexion, enregistrer l'événement d'onboarding
+      if (event.isFirstLogin) {
+        await this.recordOnboardingMetrics({
+          userId: event.userId,
+          userType: event.userType,
+          organizationId: event.financialInstitutionId || event.companyId,
+          timestamp: new Date(event.loginTime)
+        });
+      }
+      
+      this.logger.log(`Login analytics recorded for user ${event.userId}`);
+      
+    } catch (error) {
+      this.logger.error(`Error processing user login event for user ${event.userId}:`, error);
+    }
+  }
+
+  /**
+   * Enregistrer les métriques de connexion
+   */
+  private async recordLoginMetrics(loginData: any): Promise<void> {
+    // Ici on peut implémenter l'enregistrement des métriques dans une base de données
+    // ou un système de métriques comme InfluxDB, Prometheus, etc.
+    this.logger.debug(`Recording login metrics for user ${loginData.userId}`, {
+      userType: loginData.userType,
+      platform: loginData.platform,
+      isFirstLogin: loginData.isFirstLogin
+    });
+    
+    // TODO: Implémenter l'enregistrement dans la base de données analytics
+    // await this.analyticsRepository.recordLogin(loginData);
+  }
+
+  /**
+   * Enregistrer les métriques d'onboarding
+   */
+  private async recordOnboardingMetrics(onboardingData: any): Promise<void> {
+    this.logger.debug(`Recording onboarding metrics for user ${onboardingData.userId}`, {
+      userType: onboardingData.userType,
+      organizationId: onboardingData.organizationId
+    });
+    
+    // TODO: Implémenter l'enregistrement dans la base de données analytics
+    // await this.analyticsRepository.recordOnboarding(onboardingData);
   }
 
   /**

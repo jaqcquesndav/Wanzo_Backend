@@ -359,4 +359,11 @@ export class AccountService {
     // This is a placeholder implementation
     throw new Error('Export functionality not yet implemented');
   }
+
+  /**
+   * Alias pour setupDefaultChartOfAccounts pour les événements d'authentification
+   */
+  async initializeDefaultAccountsForOrganization(organizationId: string, userId?: string): Promise<void> {
+    return this.setupDefaultChartOfAccounts(organizationId, userId || 'system');
+  }
 }

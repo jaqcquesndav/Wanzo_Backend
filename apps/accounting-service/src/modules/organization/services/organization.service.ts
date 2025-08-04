@@ -60,4 +60,12 @@ export class OrganizationService {
     
     return await this.organizationRepository.save(organization);
   }
+
+  async updateLastActivity(id: string, lastActivityDate: Date): Promise<void> {
+    const organization = await this.findById(id);
+    if (organization) {
+      organization.lastActivityAt = lastActivityDate;
+      await this.organizationRepository.save(organization);
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { User } from '../../users/entities/user.entity';
+import { User, UserRole, UserType } from '../../users/entities/user.entity';
 import { Customer, CustomerType } from '../../customers/entities/customer.entity';
 import { TokenPurchase } from '../../tokens/entities/token-purchase.entity';
 
@@ -79,6 +79,112 @@ export class CustomerEventsProducer {
       this.logger.error(`Failed to publish user.status.changed event: ${err.message}`, err.stack);
       throw error;
     }
+  }
+
+  /**
+   * Publie un événement user.login
+   */
+  async emitUserLogin(user: User, metadata?: { 
+    ipAddress?: string; 
+    userAgent?: string; 
+    deviceInfo?: any;
+    isFirstLogin?: boolean;
+    accessibleApps?: string[];
+  }): Promise<void> {
+    try {
+      const eventData = {
+        userId: user.id,
+        auth0Id: user.auth0Id,
+        customerId: user.customerId,
+        companyId: user.companyId,
+        financialInstitutionId: user.financialInstitutionId,
+        email: user.email,
+        role: user.role,
+        userType: user.userType,
+        loginTime: new Date().toISOString(),
+        isFirstLogin: metadata?.isFirstLogin || false,
+        ipAddress: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+        deviceInfo: metadata?.deviceInfo,
+        accessibleApps: metadata?.accessibleApps || this.getAccessibleApps(user),
+      };
+      
+      await this.kafkaClient.emit('user.login', eventData);
+      this.logger.log(`Event user.login published for user ${user.id} with accessible apps: ${eventData.accessibleApps?.join(', ')}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to publish user.login event: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Publie un événement user.logout
+   */
+  async emitUserLogout(user: User, metadata?: { 
+    ipAddress?: string; 
+    sessionDuration?: number; 
+  }): Promise<void> {
+    try {
+      const eventData = {
+        userId: user.id,
+        auth0Id: user.auth0Id,
+        customerId: user.customerId,
+        email: user.email,
+        logoutTime: new Date().toISOString(),
+        sessionDuration: metadata?.sessionDuration,
+        ipAddress: metadata?.ipAddress,
+      };
+      
+      await this.kafkaClient.emit('user.logout', eventData);
+      this.logger.log(`Event user.logout published for user ${user.id}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to publish user.logout event: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Détermine les applications accessibles pour un utilisateur basé sur son rôle et type
+   */
+  private getAccessibleApps(user: User): string[] {
+    const apps: string[] = [];
+    
+    // Apps de base pour tous les utilisateurs authentifiés
+    apps.push('customer-service');
+    
+    // Apps basées sur le type d'utilisateur
+    switch (user.userType) {
+      case UserType.SME:
+        apps.push('gestion_commerciale_service');
+        if (user.role === UserRole.CUSTOMER_ADMIN) {
+          apps.push('analytics-service');
+        }
+        break;
+        
+      case UserType.FINANCIAL_INSTITUTION:
+        apps.push('portfolio-institution-service');
+        apps.push('analytics-service');
+        apps.push('accounting-service');
+        if (user.role === UserRole.ADMIN) {
+          apps.push('admin-service');
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    // Apps basées sur le rôle
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+      apps.push('admin-service', 'analytics-service', 'accounting-service', 'portfolio-institution-service');
+    }
+    
+    // App IA accessible à tous
+    apps.push('adha-ai-service');
+    
+    return [...new Set(apps)]; // Éliminer les doublons
   }
 
   /**

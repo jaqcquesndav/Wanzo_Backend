@@ -59,7 +59,19 @@ export class UserService {
       user.updatedAt = new Date();
       
       const updatedUser = await this.userRepository.save(user);
+      
+      // Emit events for existing user login
       await this.customerEventsProducer.emitUserUpdated(updatedUser);
+      await this.customerEventsProducer.emitUserLogin(updatedUser, { 
+        isFirstLogin: false 
+      });
+      
+      // Record login activity
+      await this.recordUserActivity({
+        userId: updatedUser.id,
+        activityType: ActivityType.LOGIN,
+        details: { source: 'auth0_sync', isFirstLogin: false },
+      });
       
       return this.mapUserToResponseDto(updatedUser);
     }
@@ -134,13 +146,23 @@ export class UserService {
       // Commit transaction
       await queryRunner.commitTransaction();
       
-      // Emit events
+      // Emit events for new user creation and first login
       await this.customerEventsProducer.emitSmeCreated({
         customer: savedCustomer,
         sme,
       });
       
       await this.customerEventsProducer.emitUserCreated(savedUser);
+      await this.customerEventsProducer.emitUserLogin(savedUser, { 
+        isFirstLogin: true 
+      });
+      
+      // Record first login activity
+      await this.recordUserActivity({
+        userId: savedUser.id,
+        activityType: ActivityType.LOGIN,
+        details: { source: 'auth0_sync', isFirstLogin: true, accountCreated: true },
+      });
       
       return this.mapUserToResponseDto(savedUser);
     } catch (error) {

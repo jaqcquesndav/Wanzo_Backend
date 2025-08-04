@@ -140,4 +140,7 @@ export class Organization {
 
   @Column({ type: 'timestamp with time zone', nullable: true })
   subscriptionStartedAt?: Date;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  lastActivityAt?: Date;
 }

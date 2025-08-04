@@ -50,6 +50,36 @@ export class UserEventsConsumer implements OnModuleInit {
     }
   }
 
+  @EventPattern('user.login')
+  async handleUserLogin(@Payload() event: any): Promise<void> {
+    this.logger.log(`Processing user.login event: ${JSON.stringify(event)}`);
+    
+    // Vérifier si l'utilisateur a accès au portfolio-institution-service
+    const hasAccess = event.accessibleApps?.includes('portfolio-institution-service');
+    
+    if (hasAccess && (event.userType === 'FINANCIAL_INSTITUTION' || event.role === 'ADMIN' || event.role === 'SUPERADMIN')) {
+      try {
+        // TODO: Implémenter handleUserLogin dans InstitutionService
+        // Créer/mettre à jour le profil utilisateur local si nécessaire
+        // await this.institutionService.handleUserLogin({
+        //   userId: event.userId,
+        //   auth0Id: event.auth0Id,
+        //   email: event.email,
+        //   financialInstitutionId: event.financialInstitutionId,
+        //   loginTime: event.loginTime,
+        //   isFirstLogin: event.isFirstLogin,
+        // });
+        
+        this.logger.log(`User login processed for institutional user ${event.userId} - method not implemented yet`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.stack : String(error);
+        this.logger.error(`Error processing user.login for user ${event.userId}: ${errorMessage}`);
+      }
+    } else {
+      this.logger.log(`Skipping user.login event for user ${event.userId} - no access to portfolio-institution-service`);
+    }
+  }
+
   @EventPattern(UserEventTopics.USER_STATUS_CHANGED)
   async handleUserStatusChanged(@Payload() event: UserStatusChangedEvent): Promise<void> {
     this.logger.log(`Processing ${UserEventTopics.USER_STATUS_CHANGED} event: ${JSON.stringify(event)}`);
