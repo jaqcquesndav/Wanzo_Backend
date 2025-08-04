@@ -1,4 +1,4 @@
-﻿FROM node:18-alpine AS builder
+﻿FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -19,9 +19,9 @@ RUN echo 'module.exports = {};' > ./packages/shared/src/index.js && \
     echo 'module.exports = {};' > ./packages/customer-sync/src/index.js
 
 # Create TypeScript config files
-RUN echo '{"":"https://json.schemastore.org/tsconfig","display":"Default","compilerOptions":{"composite":false,"declaration":true,"declarationMap":true,"esModuleInterop":true,"forceConsistentCasingInFileNames":true,"inlineSources":false,"isolatedModules":true,"moduleResolution":"node","preserveWatchOutput":true,"skipLibCheck":true,"strict":true,"strictNullChecks":true,"strictPropertyInitialization":false,"useDefineForClassFields":false,"noImplicitAny":false},"exclude":["node_modules"]}' > ./packages/tsconfig/base.json
+RUN echo '{"$schema":"https://json.schemastore.org/tsconfig","display":"Default","compilerOptions":{"composite":false,"declaration":true,"declarationMap":true,"esModuleInterop":true,"forceConsistentCasingInFileNames":true,"inlineSources":false,"isolatedModules":true,"moduleResolution":"node","preserveWatchOutput":true,"skipLibCheck":true,"strict":true,"strictNullChecks":true,"strictPropertyInitialization":false,"useDefineForClassFields":false,"noImplicitAny":false},"exclude":["node_modules"]}' > ./packages/tsconfig/base.json
 
-RUN echo '{"":"https://json.schemastore.org/tsconfig","display":"NestJS","extends":"./base.json","compilerOptions":{"module":"commonjs","removeComments":true,"emitDecoratorMetadata":true,"experimentalDecorators":true,"useDefineForClassFields":false,"skipLibCheck":true,"allowSyntheticDefaultImports":true,"target":"ES2021","sourceMap":true,"outDir":"./dist","baseUrl":"./","incremental":true,"strictPropertyInitialization":false,"strictBindCallApply":false,"noImplicitAny":false,"noFallthroughCasesInSwitch":true}}' > ./packages/tsconfig/nestjs.json
+RUN echo '{"$schema":"https://json.schemastore.org/tsconfig","display":"NestJS","extends":"./base.json","compilerOptions":{"module":"commonjs","removeComments":true,"emitDecoratorMetadata":true,"experimentalDecorators":true,"useDefineForClassFields":false,"skipLibCheck":true,"allowSyntheticDefaultImports":true,"target":"ES2021","sourceMap":true,"outDir":"./dist","baseUrl":"./","incremental":true,"strictPropertyInitialization":false,"strictBindCallApply":false,"noImplicitAny":false,"noFallthroughCasesInSwitch":true}}' > ./packages/tsconfig/nestjs.json
 
 # Copy service package.json
 COPY apps/customer-service/package.json ./apps/customer-service/
@@ -43,7 +43,7 @@ RUN echo 'const express = require("express");\nconst app = express();\nconst por
 RUN mkdir -p ./apps/customer-service/dist/src
 RUN cp ./apps/customer-service/mock-service.js ./apps/customer-service/dist/src/main.js
 
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -72,6 +72,4 @@ USER node
 
 # Start the service
 CMD ["node", "apps/customer-service/dist/src/main.js"]
-
-CMD ["node", "dist/main"]
 

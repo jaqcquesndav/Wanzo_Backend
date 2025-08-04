@@ -1,4 +1,4 @@
-﻿FROM node:18-alpine AS builder
+﻿FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -43,7 +43,7 @@ RUN echo 'const express = require("express");\nconst app = express();\nconst por
 RUN cp ./apps/accounting-service/mock-service.js ./apps/accounting-service/dist/src/main.js
 
 # Production stage - using a smaller image for runtime
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -65,7 +65,7 @@ ENV PORT=3003
 ENV DB_HOST=postgres
 ENV DB_PORT=5432
 ENV DB_USERNAME=postgres
-ENV DB_PASSWORD=root123
+ENV DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
 ENV DB_DATABASE=accounting-service
 
 # Expose service port

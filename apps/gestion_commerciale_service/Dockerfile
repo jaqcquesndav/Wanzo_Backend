@@ -1,8 +1,7 @@
-﻿# NOTE: There's a known vulnerability in the Node.js image. In production,
-# this should be addressed by using a custom hardened image or by accepting
-# the risk after proper security assessment. For development purposes, 
-# we're using the standard image.
-FROM node:18-alpine AS builder
+﻿# NOTE: Updated to Node.js 20-alpine to address security vulnerabilities.
+# This version provides better security and performance compared to Node.js 18.
+# For production, consider using a custom hardened image or additional security measures.
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app

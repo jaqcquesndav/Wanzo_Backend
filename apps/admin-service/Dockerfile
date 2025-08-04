@@ -1,4 +1,4 @@
-﻿FROM node:18-alpine AS builder
+﻿FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -44,7 +44,7 @@ RUN mkdir -p ./apps/admin-service/dist/src
 RUN cp ./apps/admin-service/mock-service.js ./apps/admin-service/dist/src/main.js
 
 # Production stage - minimal runtime image
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -66,7 +66,7 @@ ENV PORT=3001
 ENV DB_HOST=postgres
 ENV DB_PORT=5432
 ENV DB_USERNAME=postgres
-ENV DB_PASSWORD=root123
+ENV DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
 ENV DB_DATABASE=admin-service
 
 # Expose service port

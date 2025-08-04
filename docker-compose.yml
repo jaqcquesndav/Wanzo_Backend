@@ -40,7 +40,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
       POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha_ai_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -66,7 +66,7 @@ services:
       - NODE_ENV=production
       - AUTH_SERVICE_URL=http://admin-service:3001
       - ADMIN_SERVICE_URL=http://admin-service:3001
-      - ANALYTICS_SERVICE_URL=http://analytics-service:3010
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3002
       - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
@@ -102,12 +102,15 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=admin-service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=admin-service
       - KAFKA_GROUP_ID=admin-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
     env_file:
       - ./apps/admin-service/.env
     volumes:
@@ -134,12 +137,15 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=accounting-service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -158,7 +164,7 @@ services:
       dockerfile: ./apps/analytics-service/Dockerfile
     container_name: kiota-analytics-service
     ports:
-      - "3010:3002"
+      - "3002:3002"
       - "9466:9464" # Port Prometheus (mapping différent)
     environment:
       - NODE_ENV=production
@@ -166,7 +172,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=analytics-service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=analytics-service
@@ -200,12 +206,15 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=portfolio-institution-service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=portfolio-institution-service
       - KAFKA_GROUP_ID=portfolio-institution-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
     env_file:
       - ./apps/portfolio-institution-service/.env
     volumes:
@@ -232,12 +241,15 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=gestion_commerciale_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=gestion-commerciale-service
       - KAFKA_GROUP_ID=gestion-commerciale-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
     env_file:
       - ./apps/gestion_commerciale_service/.env
     volumes:
@@ -267,7 +279,7 @@ services:
       - PROMETHEUS_PORT=9464
       - POSTGRES_DB=adha_ai_db
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - DLQ_ENABLED=true
@@ -301,12 +313,15 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
-      - DB_PASSWORD=root123
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=customer-service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=customer-service
       - KAFKA_GROUP_ID=customer-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
     volumes:
       - customer-service-logs:/app/apps/customer-service/logs
     depends_on:
