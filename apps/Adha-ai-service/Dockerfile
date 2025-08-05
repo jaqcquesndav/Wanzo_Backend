@@ -2,7 +2,7 @@
 # Utilise l'image PyTorch officielle CPU-only pour éviter la compilation des packages lourds
 
 # === ÉTAPE 1: IMAGE DE BASE OPTIMISÉE ===
-FROM pytorch/pytorch:2.1.0-cpu AS base
+FROM pytorch/pytorch:1.13.1-cpu-py3.10-ubuntu20.04 AS base
 
 # Variables d'environnement pour optimisation Python et PyTorch
 ENV PYTHONUNBUFFERED=1 \
@@ -99,5 +99,5 @@ CMD []
 LABEL maintainer="Wanzo Backend Team"
 LABEL version="1.0"
 LABEL description="Adha AI Service - Optimisé pour production"
-LABEL pytorch.version="2.1.0-cpu"
+LABEL pytorch.version="1.13.1"
 LABEL optimization.level="high"
