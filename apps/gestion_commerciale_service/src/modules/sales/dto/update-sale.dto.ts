@@ -1,68 +1,124 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateSaleDto } from './create-sale.dto';
-import { IsOptional, IsArray, ValidateNested, ArrayMinSize, IsString, IsUUID, IsNotEmpty, IsNumber, Min, IsPositive } from 'class-validator'; // Added IsNumber, Min, IsPositive
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString, IsNumber, Min, ValidateNested, IsArray, ArrayMinSize, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateSaleItemDto } from './create-sale-item.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { UpdateSaleItemDto } from './update-sale-item.dto';
+import { SaleStatus } from '../entities/sale.entity';
 
-export class UpdateSaleItemDto extends PartialType(CreateSaleItemDto) {
-    @ApiProperty({
-        description: 'Identifiant unique de l\'article de vente (pour mise à jour)',
-        example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        required: false
-    })
-    @IsOptional()
-    @IsString()
-    id?: string; // ID of the existing sale item to update
+/**
+ * DTO pour la mise à jour d'une vente
+ * Basé sur la documentation API (API_DOCUMENTATION/Sales/README.md)
+ * 
+ * Note: Nous n'utilisons pas PartialType(CreateSaleDto) car cela crée des
+ * incompatibilités de type avec UpdateSaleItemDto
+ */
+export class UpdateSaleDto {
+  @ApiProperty({
+    description: 'Date de la vente',
+    example: '2023-08-01T12:30:00.000Z',
+    format: 'date-time',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  date?: string;
 
-    // Make properties that are required in CreateSaleItemDto also required here
-    // to ensure UpdateSaleItemDto is assignable to CreateSaleItemDto.
-    @ApiProperty({
-        description: 'Identifiant unique du produit',
-        example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
-        format: 'uuid',
-        required: true
-    })
-    @IsUUID()
-    @IsNotEmpty()
-    productId: string;
+  @ApiProperty({
+    description: 'Date d\'échéance',
+    example: '2023-08-15T12:30:00.000Z',
+    format: 'date-time',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
 
-    @ApiProperty({
-        description: 'Quantité du produit vendu',
-        example: 2,
-        minimum: 1,
-        required: true
-    })
-    @IsNumber()
-    @IsPositive()
-    @Min(1)
-    quantity: number;    @ApiProperty({
-        description: 'Prix unitaire au moment de la vente',
-        example: 750.00,
-        minimum: 0,
-        required: true
-    })
-    @IsNumber()
-    @Min(0)
-    unitPrice: number;
-}
+  @ApiProperty({
+    description: 'Identifiant du client',
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    format: 'uuid',
+    required: false
+  })
+  @IsUUID()
+  @IsOptional()
+  customerId?: string;
 
-export class UpdateSaleDto extends PartialType(CreateSaleDto) {
-    @ApiProperty({
-        description: 'Articles de la vente à mettre à jour',
-        type: [UpdateSaleItemDto],
-        required: false
-    })
-    @IsOptional()
-    @IsArray()
-    @ValidateNested({ each: true })
-    @ArrayMinSize(1)
-    @Type(() => UpdateSaleItemDto)
-    items?: UpdateSaleItemDto[];
+  @ApiProperty({
+    description: 'Nom du client',
+    example: 'Jean Dupont',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  customerName?: string;
 
-    // Note: Handling updates to line items in a sale can be complex.
-    // You might need specific logic in the service to:
-    // - Identify new items to add.
-    // - Identify existing items to update (using the 'id' in UpdateSaleItemDto).
-    // - Identify items to remove (e.g., by omitting them from the updated items array).
+  @ApiProperty({
+    description: 'Articles de la vente à mettre à jour',
+    type: [UpdateSaleItemDto],
+    required: false
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @ArrayMinSize(1)
+  @Type(() => UpdateSaleItemDto)
+  items?: UpdateSaleItemDto[];
+
+  @ApiProperty({
+    description: 'Méthode de paiement',
+    example: 'cash',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  paymentMethod?: string;
+
+  @ApiProperty({
+    description: 'Référence de paiement',
+    example: 'TRANS-123456',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  paymentReference?: string;
+
+  @ApiProperty({
+    description: 'Notes sur la vente',
+    example: 'Livraison à domicile prévue',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Taux de change',
+    example: 2000.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  exchangeRate?: number;
+  
+  @ApiProperty({
+    description: 'Statut de la vente',
+    enum: SaleStatus,
+    example: 'completed',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  status?: SaleStatus;
+
+  @ApiProperty({
+    description: 'Montant payé en francs congolais',
+    example: 50000.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  amountPaidInCdf?: number;
 }

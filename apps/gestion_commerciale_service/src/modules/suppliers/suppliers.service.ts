@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Supplier, SupplierCategory } from './entities/supplier.entity';
+import { Supplier } from './entities/supplier.entity';
+import { SupplierCategory } from './enums/supplier-category.enum';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 

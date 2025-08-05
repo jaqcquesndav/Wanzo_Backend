@@ -4,7 +4,8 @@ import { DataSource, Repository, DeepPartial, FindOptionsWhere, Between, LessTha
 import { Sale, SaleStatus } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
-import { UpdateSaleDto, UpdateSaleItemDto } from './dto/update-sale.dto';
+import { UpdateSaleDto } from './dto/update-sale.dto';
+import { UpdateSaleItemDto } from './dto/update-sale-item.dto';
 import { CompleteSaleDto } from './dto/complete-sale.dto';
 import { CancelSaleDto } from './dto/cancel-sale.dto';
 import { Product } from '../inventory/entities/product.entity';
@@ -348,10 +349,12 @@ export class SalesService {
               if (!newProductForItem) {
                 throw new NotFoundException(`Product with ID "${itemUpdateDto.productId}" for item update not found.`);
               }
-              if (newProductForItem.stockQuantity < itemUpdateDto.quantity) {
-                throw new BadRequestException(`Not enough stock for new product "${newProductForItem.name}". Requested: ${itemUpdateDto.quantity}, Available: ${newProductForItem.stockQuantity}`);
+              // Vérifie si la quantité est définie et gère le cas où elle ne l'est pas
+              const quantity = itemUpdateDto.quantity || originalItemQuantity;
+              if (newProductForItem.stockQuantity < quantity) {
+                throw new BadRequestException(`Not enough stock for new product "${newProductForItem.name}". Requested: ${quantity}, Available: ${newProductForItem.stockQuantity}`);
               }
-              newProductForItem.stockQuantity -= itemUpdateDto.quantity;
+              newProductForItem.stockQuantity -= quantity;
               await transactionalEntityManager.save(Product, newProductForItem);
               
               existingItem.product = newProductForItem;
@@ -359,16 +362,31 @@ export class SalesService {
             } else {
               // Product is the same, quantity might change
               if (!originalItemProduct) throw new Error(`Consistency error: Product not found for existing item ${existingItem.id}`);
-              const quantityChange = itemUpdateDto.quantity - originalItemQuantity;
-              if (originalItemProduct.stockQuantity < quantityChange) {
-                throw new BadRequestException(`Not enough stock for product "${originalItemProduct.name}". Additional needed: ${quantityChange}, Available: ${originalItemProduct.stockQuantity}`);
+              
+              // Vérifier si une nouvelle quantité est spécifiée
+              if (typeof itemUpdateDto.quantity === 'number') {
+                const quantityChange = itemUpdateDto.quantity - originalItemQuantity;
+                if (quantityChange > 0) {
+                  // Si on augmente la quantité, vérifier le stock disponible
+                  if (originalItemProduct.stockQuantity < quantityChange) {
+                    throw new BadRequestException(`Not enough stock for product "${originalItemProduct.name}". Additional needed: ${quantityChange}, Available: ${originalItemProduct.stockQuantity}`);
+                  }
+                  originalItemProduct.stockQuantity -= quantityChange;
+                } else if (quantityChange < 0) {
+                  // Si on diminue la quantité, restituer le stock
+                  originalItemProduct.stockQuantity += Math.abs(quantityChange);
+                }
+                await transactionalEntityManager.save(Product, originalItemProduct);
               }
-              originalItemProduct.stockQuantity -= quantityChange;
-              await transactionalEntityManager.save(Product, originalItemProduct);
             }
 
-            existingItem.quantity = itemUpdateDto.quantity;
-            existingItem.unitPrice = itemUpdateDto.unitPrice;
+            // Mettre à jour les propriétés avec des valeurs par défaut si non définies
+            if (typeof itemUpdateDto.quantity === 'number') {
+              existingItem.quantity = itemUpdateDto.quantity;
+            }
+            if (typeof itemUpdateDto.unitPrice === 'number') {
+              existingItem.unitPrice = itemUpdateDto.unitPrice;
+            }
             existingItem.totalPrice = existingItem.quantity * existingItem.unitPrice;
             
             finalSaleItems.push(existingItem);
@@ -376,23 +394,33 @@ export class SalesService {
           } 
           // Case 2: New item to add
           else {
+            // Vérifier que les champs obligatoires pour les nouveaux articles sont définis
+            if (!itemUpdateDto.productId || !itemUpdateDto.quantity || !itemUpdateDto.unitPrice) {
+              throw new BadRequestException('New sale items must have productId, quantity, and unitPrice defined');
+            }
+            
             const product = await transactionalEntityManager.findOneBy(Product, { id: itemUpdateDto.productId });
             if (!product) {
               throw new NotFoundException(`Product with ID "${itemUpdateDto.productId}" for new item not found.`);
             }
-            if (product.stockQuantity < itemUpdateDto.quantity) {
-              throw new BadRequestException(`Not enough stock for product "${product.name}". Requested: ${itemUpdateDto.quantity}, Available: ${product.stockQuantity}`);
+            
+            // Maintenant on sait que quantity est défini
+            const quantity = itemUpdateDto.quantity;
+            const unitPrice = itemUpdateDto.unitPrice;
+            
+            if (product.stockQuantity < quantity) {
+              throw new BadRequestException(`Not enough stock for product "${product.name}". Requested: ${quantity}, Available: ${product.stockQuantity}`);
             }
-            product.stockQuantity -= itemUpdateDto.quantity;
+            product.stockQuantity -= quantity;
             await transactionalEntityManager.save(Product, product);
 
             const newSaleItem = transactionalEntityManager.create(SaleItem, {
               // sale: saleToUpdate, // Link established by TypeORM cascade on Sale save
               productId: product.id,
               product: product,
-              quantity: itemUpdateDto.quantity,
-              unitPrice: itemUpdateDto.unitPrice,
-              totalPrice: itemUpdateDto.quantity * itemUpdateDto.unitPrice,
+              quantity: quantity,
+              unitPrice: unitPrice,
+              totalPrice: quantity * unitPrice,
             });
             finalSaleItems.push(newSaleItem);
           }
