@@ -69,7 +69,7 @@ export class SubscriptionEventsConsumer {
       institution.subscriptionPlan = planMapping[event.newPlan as SubscriptionPlanType] || SubscriptionPlan.BASIC;
       institution.subscriptionStatus = statusMapping[event.newStatus as SubscriptionStatusType] || SubscriptionStatus.ACTIVE;
       institution.subscriptionExpiresAt = new Date(event.endDate);
-      institution.updatedAt = new Date(event.timestamp);
+      institution.updated_at = new Date(event.timestamp);
       
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully updated subscription for institution ${event.entityId}`);
@@ -101,7 +101,7 @@ export class SubscriptionEventsConsumer {
 
       // Mark subscription as expired
       institution.subscriptionStatus = SubscriptionStatus.EXPIRED;
-      institution.updatedAt = new Date(event.timestamp);
+      institution.updated_at = new Date(event.timestamp);
       
       await this.institutionRepository.save(institution);
       this.logger.log(`Successfully marked subscription as expired for institution ${event.entityId}`);

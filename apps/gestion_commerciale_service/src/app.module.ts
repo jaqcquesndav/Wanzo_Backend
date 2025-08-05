@@ -10,7 +10,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ProductsModule } from './modules/inventory/products.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
-// import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'; // Temporairement désactivé
+// Souscriptions gérées exclusivement par customer-service
 import { AuthModule as ExistingAuthModule } from './modules/auth/auth.module';
 // import { CompanyModule } from './modules/company/company.module'; // Temporairement désactivé
 import { SuppliersModule } from './modules/suppliers/suppliers.module';

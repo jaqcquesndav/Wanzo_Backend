@@ -7,7 +7,6 @@ import { HttpModule } from '@nestjs/axios';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
-import { SubscriptionService } from '../common/services/subscription.service';
 
 @Module({
   imports: [
@@ -27,13 +26,11 @@ import { SubscriptionService } from '../common/services/subscription.service';
   providers: [
     JwtStrategy,
     JwtAuthGuard,
-    RolesGuard,
-    SubscriptionService
+    RolesGuard
   ],
   exports: [
     JwtAuthGuard,
-    RolesGuard,
-    SubscriptionService
+    RolesGuard
   ]
 })
 export class AuthModule {}

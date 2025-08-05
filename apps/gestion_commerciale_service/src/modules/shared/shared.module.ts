@@ -2,11 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
 import { Company } from '../company/entities/company.entity';
-import { UserSubscription } from '../subscriptions/entities/user-subscription.entity';
-import { SubscriptionTier } from '../subscriptions/entities/subscription-tier.entity';
-import { Invoice } from '../subscriptions/entities/invoice.entity';
-import { PaymentMethod } from '../subscriptions/entities/payment-method.entity';
-import { PaymentProof } from '../subscriptions/entities/payment-proof.entity';
 import { EntitiesModule } from './entities.module';
 
 /**
@@ -17,11 +12,8 @@ import { EntitiesModule } from './entities.module';
   imports: [
     EntitiesModule,
     TypeOrmModule.forFeature([
-      UserSubscription,
-      SubscriptionTier,
-      Invoice,
-      PaymentMethod,
-      PaymentProof,
+      User,
+      Company
     ]),
   ],
   exports: [EntitiesModule, TypeOrmModule],

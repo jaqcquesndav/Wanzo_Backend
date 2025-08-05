@@ -80,7 +80,7 @@ export class TraditionalDashboardService {
     portfolios: Portfolio[],
     products: FinancialProduct[],
   ): TraditionalAssetMetrics {
-    const totalValue = portfolios.reduce((sum, p) => sum + Number(p.totalAmount), 0);
+    const totalValue = portfolios.reduce((sum, p) => sum + Number(p.total_amount), 0);
     const totalCount = portfolios.length;
     
     // Calculate credit distribution - simplified with savings property to match interface

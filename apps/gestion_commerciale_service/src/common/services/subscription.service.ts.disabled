@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+// Ce service est désactivé car la gestion des abonnements est centralisée dans customer-service
+// Fichier conservé pour référence uniquement
+
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 
-// Interface conservée pour la compatibilité du code existant
 export interface SubscriptionValidationResult {
   hasAccess: boolean;
   subscription?: {
@@ -23,20 +27,20 @@ export interface SubscriptionValidationResult {
   error?: string;
 }
 
-/**
- * Ce service est désactivé car la gestion des abonnements est centralisée dans customer-service
- * Il est conservé comme stub pour maintenir la compatibilité avec le code existant
- */
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
+  private readonly customerServiceUrl: string;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
+    this.customerServiceUrl = this.configService.get<string>('CUSTOMER_SERVICE_URL') || 'http://localhost:3002';
     this.logger.warn('SubscriptionService est désactivé - la gestion est centralisée dans customer-service');
   }
+
+  // Les méthodes sont remplacées par des versions désactivées qui renvoient des valeurs par défaut
 
   /**
    * Valide si un client de la plateforme a accès au service de gestion commerciale

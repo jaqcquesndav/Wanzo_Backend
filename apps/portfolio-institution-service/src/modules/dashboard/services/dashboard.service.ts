@@ -65,7 +65,7 @@ export class DashboardService {
     return {
       name: institution.name,
       type: institution.type.toString(),
-      regulatoryStatus: institution.regulatoryStatus ? institution.regulatoryStatus.toString() : 'unknown',
+      regulatoryStatus: institution.regulatory_status ? institution.regulatory_status.toString() : 'unknown',
       metrics: {
         totalUsers: institution.users.length,
         totalPortfolios: 0, // Will be updated
@@ -82,7 +82,7 @@ export class DashboardService {
     
     return {
       totalPortfolios: portfoliosResult.length,
-      totalValue: portfoliosResult.reduce((sum, p) => sum + Number(p.totalAmount), 0),
+      totalValue: portfoliosResult.reduce((sum, p) => sum + Number(p.total_amount), 0),
       averageReturn: 0.08, // Mock value - 8% average return
       byType: portfoliosResult.reduce((acc: Record<string, number>, portfolio) => {
         const type = portfolio.status;
@@ -94,7 +94,7 @@ export class DashboardService {
         .map(p => ({
           id: p.id,
           name: p.name,
-          totalAmount: p.totalAmount,
+          totalAmount: p.total_amount,
           performance: Math.random() * 0.15 // Mock performance between 0-15%
         })),
     };

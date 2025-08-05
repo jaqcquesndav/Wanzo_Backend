@@ -3,12 +3,9 @@ import { Supplier } from './modules/suppliers/entities/supplier.entity';
 import { Company } from './modules/company/entities/company.entity';
 import { Product } from './modules/inventory/entities/product.entity';
 import { User } from './modules/auth/entities/user.entity';
-import { UserSubscription } from './modules/subscriptions/entities/user-subscription.entity';
-import { SubscriptionTier } from './modules/subscriptions/entities/subscription-tier.entity';
 import { Sale } from './modules/sales/entities/sale.entity';
 import { SaleItem } from './modules/sales/entities/sale-item.entity';
 import { Customer } from './modules/customers/entities/customer.entity';
-import { OperationJournalEntry } from './modules/operations/entities/operation-journal-entry.entity';
 import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 
@@ -24,7 +21,7 @@ async function resetDatabase() {
     username: configService.get<string>('DATABASE_USER', 'postgres'),
     password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
     database: configService.get<string>('DATABASE_NAME', 'wanzo_gestion_commerciale_db'),
-    entities: [Supplier, Company, Product, User, UserSubscription, SubscriptionTier, Sale, SaleItem, Customer, OperationJournalEntry],
+    entities: [Supplier, Company, Product, User, Sale, SaleItem, Customer],
     synchronize: false,
   });
 
@@ -34,13 +31,10 @@ async function resetDatabase() {
     console.log('Dropping tables with potential circular dependencies...');    await dataSource.query('DROP TABLE IF EXISTS suppliers CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS companies CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS products CASCADE');
-    await dataSource.query('DROP TABLE IF EXISTS user_subscriptions CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS users CASCADE');
-    await dataSource.query('DROP TABLE IF EXISTS subscription_tiers CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS sales CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS sale_items CASCADE');
     await dataSource.query('DROP TABLE IF EXISTS customers CASCADE');
-    await dataSource.query('DROP TABLE IF EXISTS operation_journal_entries CASCADE');
     
     // Re-create all tables
     console.log('Synchronizing database schema...');

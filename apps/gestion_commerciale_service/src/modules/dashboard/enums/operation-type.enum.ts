@@ -14,5 +14,6 @@ export enum OperationType {
   FINANCING_REQUEST = 'financingRequest',
   FINANCING_APPROVED = 'financingApproved',
   FINANCING_REPAYMENT = 'financingRepayment',
-  OTHER = 'other'
+  OTHER = 'other',
+  ALL = 'all' // Ajout pour support du filtrage
 }

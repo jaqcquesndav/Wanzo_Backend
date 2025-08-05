@@ -100,6 +100,9 @@ export class Portfolio {
 
   @Column('decimal', { precision: 15, scale: 2 })
   target_amount!: number;
+  
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  total_amount!: number;
 
   @Column('decimal', { precision: 5, scale: 2, nullable: true })
   target_return?: number;

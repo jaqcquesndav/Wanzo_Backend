@@ -9,7 +9,6 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
 import { HttpModule } from '@nestjs/axios';
-import { CompanyModule } from '../company/company.module';
 import { SharedModule } from '../shared/shared.module';
 import { EventsModule } from '../events/events.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -29,7 +28,6 @@ import { User, TokenBlacklist } from './entities';
       inject: [ConfigService],
     }),
     ConfigModule,
-    forwardRef(() => CompanyModule),
     HttpModule.register({
       timeout: 5000,
       maxRedirects: 5,

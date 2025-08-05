@@ -219,7 +219,7 @@ export class ChatService {
           id: p.id,
           name: p.name,
           type: p.type,
-          riskProfile: p.riskProfile,
+          riskProfile: p.risk_profile,
         })),
         total: portfolioData.total,
       },
