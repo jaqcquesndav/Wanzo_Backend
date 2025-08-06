@@ -1,8 +1,8 @@
-import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit, forwardRef } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { v4 as uuidv4 } from 'uuid';
 import { lastValueFrom } from 'rxjs';
-import { ADHA_AI_KAFKA_SERVICE } from './adha-ai-integration.module';
+import { ADHA_AI_KAFKA_SERVICE } from '../shared/shared-services.module';
 
 // Portfolio AI Event Topics
 export enum PortfolioAIEventTopics {
@@ -60,16 +60,29 @@ export class AdhaAIIntegrationService implements OnModuleInit {
   
   async onModuleInit() {
     try {
-      await this.kafkaClient.connect();
-      this.logger.log('Connected to Kafka broker for Adha AI integration');
+      // Trying to connect with timeout to avoid blocking app startup
+      const connectPromise = this.kafkaClient.connect();
       
-      // S'assurer que tous les topics sont enregistrés
-      Object.values(PortfolioAIEventTopics).forEach(topic => {
-        this.kafkaClient.subscribeToResponseOf(topic);
-      });
+      // Set a timeout for the Kafka connection to not block service startup
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Kafka connection timeout')), 5000)
+      );
       
+      await Promise.race([connectPromise, timeout])
+        .then(() => {
+          this.logger.log('Connected to Kafka broker for Adha AI integration');
+          
+          // S'assurer que tous les topics sont enregistrés
+          Object.values(PortfolioAIEventTopics).forEach(topic => {
+            this.kafkaClient.subscribeToResponseOf(topic);
+          });
+        })
+        .catch((err) => {
+          throw err;
+        });
     } catch (error: any) {
-      this.logger.error(`Failed to connect to Kafka: ${error.message || 'Unknown error'}`, error.stack || 'No stack trace');
+      this.logger.warn(`Failed to connect to Kafka: ${error.message || 'Unknown error'}. Service will continue without Kafka integration.`);
+      // Don't rethrow the error - allow the service to start even without Kafka
     }
   }
 

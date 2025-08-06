@@ -2,6 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { InstitutionModule } from './modules/institution/institution.module';
@@ -34,7 +35,9 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     // 1) Configuration globale
     ConfigModule.forRoot({
       isGlobal: true,
-    }),    // 2) Connexion TypeORM asynchrone
+    }),
+    // Event Emitter for real-time events
+    EventEmitterModule.forRoot(),    // 2) Connexion TypeORM asynchrone
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Chat } from '../entities/chat.entity';
@@ -20,6 +20,7 @@ export class ChatService {
     private messageRepository: Repository<ChatMessage>,
     private portfolioService: PortfolioService,
     private prospectService: ProspectService,
+    @Inject(forwardRef(() => AdhaAIIntegrationService))
     private adhaAIService: AdhaAIIntegrationService,
     private eventEmitter: EventEmitter2,
   ) {

@@ -1,7 +1,9 @@
 // Ensure environment variables are loaded first, before any other imports
 import './env-loader';
 // Then other imports
-import './tracing';
+// Temporarily disable tracing to debug startup issues
+// import './tracing';
+console.log('OpenTelemetry tracing disabled temporarily for debugging');
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -9,7 +11,9 @@ import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { ConfigService } from '@nestjs/config';
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+// Use local Kafka config instead of shared module to avoid dependency issues
+// import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { getLocalKafkaConfig } from './config/kafka-config';
 import { setupSwagger } from './swagger.config';
 
 async function bootstrap() {
@@ -47,9 +51,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger });
   const configService = app.get(ConfigService);
 
-  // Kafka microservice connection
-  const kafkaConfig = getKafkaConfig(configService);
-  app.connectMicroservice(kafkaConfig);
+  // Kafka microservice connection - try but don't block startup if it fails
+  try {
+    const kafkaConfig = getLocalKafkaConfig(configService);
+    app.connectMicroservice(kafkaConfig);
+    logger.log('Connected Kafka microservice');
+  } catch (error: any) {
+    logger.warn('Failed to connect to Kafka, continuing without it: ' + (error.message || 'Unknown error'));
+  }
   
   // 2) Enable versioning
   app.enableVersioning({

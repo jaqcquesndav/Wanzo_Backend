@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ClientKafka } from '@nestjs/microservices';
 import { ConfigModule } from '@nestjs/config';
 import { AdhaAIIntegrationService } from './adha-ai-integration.service';
-import { ADHA_AI_KAFKA_SERVICE } from './adha-ai-integration.module';
+import { ADHA_AI_KAFKA_SERVICE } from '../shared/shared-services.module';
 
 // Mock du client Kafka pour les tests
 const mockClientKafka = {

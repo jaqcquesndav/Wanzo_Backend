@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
-import { ADHA_AI_KAFKA_SERVICE } from './adha-ai-integration.module';
+import { ADHA_AI_KAFKA_SERVICE } from '../shared/shared-services.module';
 
 /**
  * Service de gestion des messages en échec pour les envoyer vers une DLQ
