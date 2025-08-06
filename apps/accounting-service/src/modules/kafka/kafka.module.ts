@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KafkaConsumerService } from './kafka-consumer.service';
 import { KafkaProducerService } from '../kafka/kafka-producer.service'; 
 import { ExternalAIModule } from '../external-ai/external-ai.module'; 
-import { CompanyModule } from '../company/company.module';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { CompanyModule } from '../company/company.module';
       },
     ]),
     ExternalAIModule, 
-    CompanyModule,    
+    OrganizationModule,    
   ],
   providers: [KafkaConsumerService, KafkaProducerService, Logger],
   exports: [KafkaProducerService], 

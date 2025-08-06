@@ -1,14 +1,12 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { 
-  ValidateTokenResponseDto, 
-  UpdateProfileDto, 
-  UserProfileDto,
-  UserRole,
-  UserType
-} from '../dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { User, UserRole } from '../entities/user.entity';
+import { TokenBlacklist } from '../entities/token-blacklist.entity';
 
 @Injectable()
 export class AuthService {
@@ -17,68 +15,124 @@ export class AuthService {
   constructor(
     private configService: ConfigService,
     private httpService: HttpService,
+    private jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(TokenBlacklist)
+    private readonly tokenBlacklistRepository: Repository<TokenBlacklist>,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
-    // TODO: Implement proper user validation with Auth0 or database
-    // This is a placeholder implementation for development
-    if (email === 'admin@example.com' && password === 'password') {
-      return {
-        id: 'mock-user-id',
-        name: 'Admin User',
-        email: email,
-        role: UserRole.COMPANY_ADMIN,
-        userType: UserType.INTERNAL
-      };
-    }
-    return null;
+  async validateUserById(userId: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId }
+    });
+    return user;
   }
 
-  async validateToken(token: string): Promise<ValidateTokenResponseDto> {
-    // TODO: Implement proper JWT verification using Auth0 JWKS
-    
+  async getUserByAuth0Id(auth0Id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { auth0Id }
+    });
+  }
+  
+  async validateToken(token: string): Promise<any> {
     try {
-      // This is a placeholder implementation
-      // In a real implementation, you would decode and verify the JWT token
-      // and then fetch the user profile from your database or Auth0
+      // Vérifier si le token est dans la liste noire
+      const blacklistedToken = await this.tokenBlacklistRepository.findOne({
+        where: { token }
+      });
       
-      // For now, return a mock response with a valid user
+      if (blacklistedToken) {
+        this.logger.warn('Tentative d\'utilisation d\'un token révoqué');
+        return { isValid: false, error: 'Token révoqué' };
+      }
+
+      // Vérifier la validité du token avec Auth0
+      const jwksUri = `${this.configService.get('AUTH0_DOMAIN')}/.well-known/jwks.json`;
+      const audience = this.configService.get('AUTH0_AUDIENCE');
+      const issuer = `${this.configService.get('AUTH0_DOMAIN')}/`;
+      
+      const payload = this.jwtService.verify(token, {
+        secret: jwksUri,
+        audience,
+        issuer
+      });
+
+      const auth0Id = payload.sub;
+      let user = await this.getUserByAuth0Id(auth0Id);
+      
+      if (!user) {
+        this.logger.warn(`L'utilisateur avec Auth0 ID ${auth0Id} n'a pas été trouvé`);
+        return { isValid: false, error: 'Utilisateur non trouvé' };
+      }
+
       return {
         isValid: true,
         user: {
-          id: 'mock-user-id',
-          name: 'Test User',
-          email: 'testuser@example.com',
-          role: UserRole.COMPANY_USER,
-          type: UserType.EXTERNAL,
-          createdAt: new Date().toISOString(),
-          picture: 'https://example.com/avatar.jpg',
-          phoneNumber: '+243123456789',
-          status: 'active'
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          organizationId: user.organizationId
         }
       };
     } catch (error) {
-      return {
-        isValid: false,
-        error: 'Invalid token'
-      };
+      this.logger.error('Erreur lors de la validation du token', error);
+      return { isValid: false, error: 'Token invalide' };
     }
   }
 
-  async getUserProfile(userId: string): Promise<UserProfileDto> {
-    // TODO: Implement logic
-    console.log(userId);
-    return new UserProfileDto();
+  async getUserProfile(userId: string): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+    
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      profilePicture: user.profilePicture,
+      organizationId: user.organizationId,
+      permissions: user.permissions || [],
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
   }
 
-  async updateUserProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserProfileDto> {
-    // TODO: Implement logic
-    console.log(userId, updateProfileDto);
-    return new UserProfileDto();
+  async updateUserProfile(userId: string, updateData: Partial<User>): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+    
+    // Mettre à jour uniquement les champs autorisés
+    if (updateData.firstName) user.firstName = updateData.firstName;
+    if (updateData.lastName) user.lastName = updateData.lastName;
+    if (updateData.phoneNumber) user.phoneNumber = updateData.phoneNumber;
+    if (updateData.language) user.language = updateData.language;
+    if (updateData.timezone) user.timezone = updateData.timezone;
+    if (updateData.preferences) user.preferences = updateData.preferences;
+    
+    await this.userRepository.save(user);
+    
+    return this.getUserProfile(userId);
   }
 
   async invalidateSession(token: string): Promise<void> {
-    // TODO: Implement logic
-    console.log(token);
+    // Ajouter le token à la liste noire
+    const blacklistEntry = this.tokenBlacklistRepository.create({
+      token,
+      invalidatedAt: new Date()
+    });
+    
+    await this.tokenBlacklistRepository.save(blacklistEntry);
+    this.logger.log(`Token invalidé avec succès`);
   }
 }

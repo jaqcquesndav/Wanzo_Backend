@@ -51,15 +51,15 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Get all documents with pagination and filtering' })
   @ApiResponse({ status: 200, description: 'Returns a list of documents with pagination info' })
   async findAll(@Query() queryParams: DocumentQueryParamsDto): Promise<DocumentsListResponseDto> {
-    const { documents, total, page, limit, pages } = await this.documentsService.findAll(queryParams);
+    const { items, totalCount, page, totalPages } = await this.documentsService.findAll(queryParams);
     
     return {
-      data: documents,
+      data: items,
       pagination: {
         currentPage: page,
-        totalPages: pages,
-        totalItems: total,
-        itemsPerPage: limit
+        totalPages: totalPages,
+        totalItems: totalCount,
+        itemsPerPage: queryParams.limit || 10
       }
     };
   }
@@ -83,9 +83,9 @@ export class DocumentsController {
     @Param('companyId', ParseUUIDPipe) companyId: string,
     @Query() queryParams: DocumentQueryParamsDto
   ): Promise<DocumentDto[]> {
-    const { documents } = await this.documentsService.findByCompany(companyId, queryParams);
+    const { items } = await this.documentsService.findByCompany(companyId, queryParams);
     // Return just the array of documents as per API documentation
-    return documents;
+    return items;
   }
 
   // Match API documentation URL structure for upload

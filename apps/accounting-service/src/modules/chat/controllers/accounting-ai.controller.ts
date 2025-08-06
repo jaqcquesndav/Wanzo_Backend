@@ -9,6 +9,7 @@ import { ChatService } from '../services/chat.service';
 import { ChatAttachmentService } from '../services/chat-attachment.service';
 import { CreateMessageDto } from '../dtos/chat.dto';
 import { MessageRole, ChatMessage } from '../entities/chat-message.entity';
+import { AISingleAttachmentDto } from '../../external-ai/dtos/ai-accounting.dto';
 
 @ApiTags('accounting-ai')
 @Controller('accounting-ai')
@@ -61,7 +62,7 @@ export class AccountingAIController {  constructor(
     const savedMessage = await this.chatService.addMessage(chatId, messageDto, req.user.id);
     
     // Save attachments if any
-    const attachments = [];
+    const attachments: AISingleAttachmentDto[] = [];
     if (files && files.length > 0) {
       for (const file of files) {
         const attachment = await this.chatAttachmentService.saveAttachment(
@@ -107,7 +108,7 @@ export class AccountingAIController {  constructor(
     
     const aiMessage = await this.chatService.addMessage(chatId, aiMessageDto, req.user.id);
       // Create journal entries if suggested and confidence is high
-    const createdJournals = [];
+    const createdJournals: any[] = [];
     if (
       aiResponse.suggestions && // Changed to suggestions
       aiResponse.suggestions.length > 0 && // Changed to suggestions

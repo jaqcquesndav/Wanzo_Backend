@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FiscalYearsService } from '../../fiscal-years/services/fiscal-years.service';
+import { FiscalYearsService } from '../../fiscal-years/services/fiscal-year.service';
 
 @Injectable()
 export class AuditService {

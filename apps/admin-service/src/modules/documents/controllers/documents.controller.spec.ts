@@ -67,7 +67,7 @@ describe('DocumentsController', () => {
         data: [] as DocumentDto[], 
         pagination: { currentPage: 1, totalPages: 0, totalItems: 0, itemsPerPage: 10 } 
       };
-      mockDocumentsService.findAll.mockResolvedValue({ documents: [], total: 0, page: 1, limit: 10, pages: 0 });
+      mockDocumentsService.findAll.mockResolvedValue({ items: [], totalCount: 0, page: 1, totalPages: 0 });
 
       const result = await controller.findAll(queryParams);
 
@@ -119,6 +119,45 @@ describe('DocumentsController', () => {
         expect.any(String),
         file.mimetype
       );
+    });
+  });
+
+  describe('findByCompany', () => {
+    it('should return documents for a company', async () => {
+      const companyId = 'company-id-123';
+      const queryParams: DocumentQueryParamsDto = { page: 1, limit: 10 };
+      const mockDocuments = [
+        { 
+          id: 'doc-1', 
+          companyId, 
+          type: DocumentType.RCCM, 
+          fileName: 'test1.pdf',
+          fileUrl: 'https://example.com/test1.pdf',
+          status: DocumentStatus.PENDING,
+          uploadedAt: new Date()
+        },
+        { 
+          id: 'doc-2', 
+          companyId, 
+          type: DocumentType.NATIONAL_ID, 
+          fileName: 'test2.pdf',
+          fileUrl: 'https://example.com/test2.pdf',
+          status: DocumentStatus.VERIFIED,
+          uploadedAt: new Date()
+        }
+      ];
+
+      mockDocumentsService.findByCompany.mockResolvedValue({ 
+        items: mockDocuments,
+        totalCount: 2,
+        page: 1, 
+        totalPages: 1 
+      });
+
+      const result = await controller.findByCompany(companyId, queryParams);
+
+      expect(result).toEqual(mockDocuments);
+      expect(service.findByCompany).toHaveBeenCalledWith(companyId, queryParams);
     });
   });
 

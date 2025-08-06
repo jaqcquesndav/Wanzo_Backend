@@ -1,15 +1,23 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { UserRole, UserType } from '../dto/user-profile.dto';
 
-export { UserRole, UserType };
+export enum UserRole {
+  ADMIN = 'admin',           // Administrateur complet
+  ACCOUNTANT = 'accountant', // Comptable avec accès complet
+  MANAGER = 'manager',       // Gérant avec accès complet sans suppression
+  ANALYST = 'analyst',       // Peut voir toutes les données et générer des rapports
+  VIEWER = 'viewer'          // Accès en lecture seule
+}
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  name!: string;
+  @Column({ nullable: true })
+  firstName!: string;
+
+  @Column({ nullable: true })
+  lastName?: string;
 
   @Column({ unique: true })
   email!: string;
@@ -17,31 +25,21 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.COMPANY_USER
+    default: UserRole.VIEWER
   })
   role!: UserRole;
 
-  @Column({
-    type: 'enum',
-    enum: UserType,
-    default: UserType.EXTERNAL
-  })
-  userType!: UserType;
+  @Column({ nullable: true })
+  profilePicture?: string;
 
   @Column({ nullable: true })
-  picture?: string;
+  organizationId?: string;
 
-  @Column({ nullable: true, name: 'customer_account_id' })
-  customerAccountId?: string;
-
-  @Column({ nullable: true, name: 'phone_number' })
+  @Column({ nullable: true })
   phoneNumber?: string;
 
-  @Column({ nullable: true, name: 'id_agent' })
-  idAgent?: string;
-
-  @Column({ nullable: true, name: 'validity_end' })
-  validityEnd?: Date;
+  @Column({ nullable: true })
+  position?: string;
 
   @Column({ nullable: true })
   language?: string;
@@ -52,26 +50,22 @@ export class User {
   @Column({ type: 'simple-json', nullable: true })
   permissions?: string[];
 
-  @Column({ type: 'simple-json', nullable: true })
-  kyc?: {
-    status: 'pending' | 'verified' | 'rejected';
-    verifiedAt?: string;
-    documents?: Array<{
-      type: string;
-      verified: boolean;
-      uploadedAt: string;
-    }>;
-  };
+  @Column({ nullable: true })
+  lastLoginAt?: Date;
 
-  @Column({ nullable: true, name: 'last_login' })
-  lastLogin?: Date;
-
-  @Column({ nullable: true, name: 'auth0_id' })
+  @Column({ nullable: true })
   auth0Id?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ type: 'simple-json', nullable: true })
+  preferences?: {
+    theme?: string;
+    notifications?: boolean;
+    dashboardLayout?: string;
+  };
+
+  @CreateDateColumn()
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt!: Date;
 }

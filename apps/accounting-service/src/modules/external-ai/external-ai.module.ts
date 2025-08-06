@@ -8,8 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AccountingAIService } from './accounting-ai.service';
 import { ChatModule } from '../chat/chat.module';
 import { JournalsModule } from '../journals/journals.module';
-// import { FilesModule } from '../files/files.module'; // Commented out as file does not exist
-import { CompanyModule } from '../company/company.module'; // Added CompanyModule import
+import { FilesModule } from '../files/files.module'; // Now file exists
+import { OrganizationModule } from '../organization/organization.module'; // Using OrganizationModule instead of CompanyModule
 
 @Module({
   imports: [
@@ -29,8 +29,8 @@ import { CompanyModule } from '../company/company.module'; // Added CompanyModul
     }),
     ChatModule,
     JournalsModule,
-    // FilesModule, // Commented out
-    CompanyModule, // Added CompanyModule to imports
+    FilesModule,
+    OrganizationModule // Using OrganizationModule instead of CompanyModule
   ],
   providers: [AccountingAIService],
   exports: [AccountingAIService],

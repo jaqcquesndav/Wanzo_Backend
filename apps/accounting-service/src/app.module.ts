@@ -8,12 +8,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { JournalsModule } from './modules/journals/journals.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { TreasuryModule } from './modules/treasury/treasury.module';
-import { TaxesModule } from './modules/taxes/taxes.module';
 import { ChatModule } from './modules/chat/chat.module';
-import { DataImportModule } from './modules/data-import/data-import.module';
 import { CreditScoreModule } from './modules/credit-score/credit-score.module';
-import { ActivitiesModule } from './modules/activities/activities.module';
 import { HealthModule } from './modules/health/health.module';
 import { FiscalYearsModule } from './modules/fiscal-years/fiscal-years.module';
 import { OrganizationModule } from './modules/organization/organization.module';
@@ -21,7 +17,6 @@ import { SyncModule } from './modules/sync/sync.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { KafkaModule } from './modules/kafka/kafka.module';
-import { ReportingModule } from './modules/reporting/reporting.module'; // Added import
 import { EventsModule } from './modules/events/events.module'; // Import the new EventsModule
 import { LedgerModule } from './modules/ledger/ledger.module'; // Import LedgerModule
 import { NotificationModule } from './modules/notifications/notifications.module'; // Import NotificationModule
@@ -67,18 +62,15 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     AccountsModule,
     JournalsModule,
     ReportsModule,
-    TreasuryModule,
-    TaxesModule,
     ChatModule,
     CreditScoreModule,
-    ActivitiesModule,    DataImportModule,
-    HealthModule,    FiscalYearsModule,
+    HealthModule,    
+    FiscalYearsModule,
     OrganizationModule,
     SyncModule,
     SettingsModule,
     AuditModule,
     KafkaModule,
-    ReportingModule, // Added ReportingModule
     EventsModule, // Add EventsModule to imports
     LedgerModule, // Add LedgerModule to imports
     NotificationModule, // Add NotificationModule to imports

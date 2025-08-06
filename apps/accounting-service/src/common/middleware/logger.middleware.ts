@@ -1,6 +1,5 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { ActivityService } from '../../modules/activities/services/activity.service';
 
 interface AuthenticatedUser {
   id: string;
@@ -13,7 +12,7 @@ interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  constructor(private activityService: ActivityService) {}
+  private readonly logger = new Logger(LoggerMiddleware.name);
 
   async use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const startTime = Date.now();
@@ -23,19 +22,9 @@ export class LoggerMiddleware implements NestMiddleware {
       const { method, originalUrl, ip } = req;
 
       if (req.user?.id) {
-        this.activityService.logActivity(
-          req.user.id,
-          'API_REQUEST',
-          'API', // entityType
-          originalUrl, // entityId
-          `${method} ${originalUrl}`, // description
-          {
-            duration,
-            statusCode: res.statusCode,
-            userAgent: req.get('user-agent'),
-          },
-          ip,
-          req.get('user-agent'),
+        // Log to console instead of activity service
+        this.logger.log(
+          `${req.user.id} - ${method} ${originalUrl} - ${res.statusCode} - ${duration}ms`
         );
       }
     });

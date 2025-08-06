@@ -1,3 +1,4 @@
+import './env-loader'; // Charger les variables d'environnement en premier
 import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';

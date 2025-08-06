@@ -201,7 +201,7 @@ export class CreditScoreService {
     const regularityScores = Object.values(patterns).map((p) => {
       if (p.count < 2) return 0;
 
-      const intervals = [];
+      const intervals: number[] = [];
       for (let i = 1; i < p.dates.length; i++) {
         intervals.push(p.dates[i].getTime() - p.dates[i - 1].getTime());
       }

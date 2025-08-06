@@ -6,7 +6,7 @@ import { passportJwtSecret } from 'jwks-rsa';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, TokenBlacklist } from '../entities';
-import { UserRole, UserType } from '../dto';
+import { UserRole } from '../entities/user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -58,46 +58,43 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       this.logger.log(`User with Auth0 ID ${auth0Id} not found. Creating new user.`);
       
-      const customerAccountId = payload['https://wanzo.com/customer_account_id'];
-      const customerType = payload['https://wanzo.com/customer_type'];
+      const companyId = payload['https://wanzo.com/company_id'];
+      const userType = payload['https://wanzo.com/user_type'];
 
-      if (!customerAccountId || customerType !== 'PME') {
-        this.logger.warn(`Unauthorized access attempt by non-PME user: ${auth0Id}`);
+      if (!companyId || !userType) {
+        this.logger.warn(`Unauthorized access attempt: missing company_id or user_type for user: ${auth0Id}`);
         throw new UnauthorizedException('User is not authorized for this service.');
       }
 
-      const existingUsers = await this.userRepository.count({ where: { customerAccountId } });
+      const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
 
       user = this.userRepository.create({
         auth0Id,
         email: payload.email,
-        name: payload.name,
-        picture: payload.picture,
-        role: existingUsers === 0 ? UserRole.COMPANY_ADMIN : UserRole.COMPANY_USER,
-        customerAccountId: customerAccountId,
-        userType: UserType.EXTERNAL,
+        firstName: payload.given_name || 'User',
+        lastName: payload.family_name || '',
+        profilePicture: payload.picture,
+        role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
+        organizationId: companyId,
       });
       await this.userRepository.save(user);
-      this.logger.log(`Created new user ${user.id} for customer ${customerAccountId}`);
+      this.logger.log(`Created new user ${user.id} for organization ${companyId}`);
     }
     
-    user.lastLogin = new Date();
+    user.lastLoginAt = new Date();
     await this.userRepository.save(user);
 
-    let permissions: string[] = [];
-    if (user.customerAccountId) {
-        permissions = ['read:accounting', 'write:accounting', 'read:portfolio-sme', 'read:mobile-app'];
-    }
+    const permissions = payload.permissions || [];
 
     return {
       id: user.id,
       auth0Id: payload.sub,
       email: user.email,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
-      userType: user.userType,
       permissions: permissions,
-      customerAccountId: user.customerAccountId,
+      organizationId: user.organizationId,
     };
   }
 }

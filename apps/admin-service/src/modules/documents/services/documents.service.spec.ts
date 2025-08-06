@@ -269,4 +269,67 @@ describe('DocumentsService', () => {
       )).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('findByCompany', () => {
+    it('should return documents for a company with pagination', async () => {
+      const companyId = 'company-1';
+      const queryParams = { page: 1, limit: 10 };
+      
+      const mockDocuments = [
+        { id: 'doc-1', companyId, type: DocumentType.RCCM, status: DocumentStatus.VERIFIED, fileName: 'test1.pdf' },
+        { id: 'doc-2', companyId, type: DocumentType.NATIONAL_ID, status: DocumentStatus.PENDING, fileName: 'test2.pdf' },
+      ];
+
+      // Setup the query builder mock
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockDocuments),
+        getCount: jest.fn().mockResolvedValue(mockDocuments.length),
+      };
+
+      (documentRepository.createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+
+      const result = await service.findByCompany(companyId, queryParams);
+
+      expect(result.items.length).toBe(2);
+      expect(result.totalCount).toBe(2);
+      expect(result.page).toBe(1);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('doc.companyId = :companyId', { companyId });
+    });
+    
+    it('should apply filters when provided', async () => {
+      const companyId = 'company-1';
+      const queryParams = { 
+        page: 1, 
+        limit: 10,
+        type: DocumentType.RCCM,
+        status: DocumentStatus.VERIFIED,
+        search: 'test' 
+      };
+      
+      // Setup the query builder mock
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+        getCount: jest.fn().mockResolvedValue(0),
+      };
+
+      (documentRepository.createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+
+      await service.findByCompany(companyId, queryParams);
+
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('doc.companyId = :companyId', { companyId });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('doc.type = :type', { type: DocumentType.RCCM });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('doc.status = :status', { status: DocumentStatus.VERIFIED });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('doc.fileName LIKE :search', { search: '%test%' });
+    });
+  });
 });

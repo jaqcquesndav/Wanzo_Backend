@@ -8,11 +8,14 @@ export class TokenBlacklist {
   @Column({ unique: true })
   token!: string;
 
-  @Column({ name: 'user_id' })
-  userId!: string;
+  @Column({ name: 'user_id', nullable: true })
+  userId?: string;
 
-  @Column({ name: 'expires_at' })
-  expiresAt!: Date;
+  @Column({ name: 'invalidated_at' })
+  invalidatedAt!: Date;
+
+  @Column({ name: 'expires_at', nullable: true })
+  expiresAt?: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
