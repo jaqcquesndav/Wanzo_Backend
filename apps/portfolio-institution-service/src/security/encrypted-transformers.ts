@@ -48,9 +48,31 @@ export class EncryptedColumnTransformer implements ValueTransformer {
  */
 export class EncryptedJsonTransformer implements ValueTransformer {
   private encryptionService: EncryptionService;
+  private serviceInitialized = false;
 
   constructor() {
-    this.encryptionService = new EncryptionService();
+    try {
+      // Try to initialize the encryption service
+      this.encryptionService = new EncryptionService();
+      this.serviceInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize EncryptionService in transformer:', error);
+      // Will try to initialize later when needed
+    }
+  }
+
+  // Helper to ensure encryption service is initialized
+  private getEncryptionService(): EncryptionService {
+    if (!this.serviceInitialized) {
+      try {
+        this.encryptionService = new EncryptionService();
+        this.serviceInitialized = true;
+      } catch (error) {
+        console.error('Failed to initialize EncryptionService in transformer:', error);
+        throw new Error('EncryptionService could not be initialized. Check environment variables.');
+      }
+    }
+    return this.encryptionService;
   }
 
   to(value: any): any {
@@ -58,7 +80,7 @@ export class EncryptedJsonTransformer implements ValueTransformer {
       return null;
     }
 
-    return this.encryptionService.encryptObject(value);
+    return this.getEncryptionService().encryptObject(value);
   }
 
   from(value: any): any {
@@ -67,7 +89,7 @@ export class EncryptedJsonTransformer implements ValueTransformer {
     }
 
     try {
-      return this.encryptionService.decryptObject(value as EncryptedData);
+      return this.getEncryptionService().decryptObject(value as EncryptedData);
     } catch (error) {
       console.error('Error decrypting JSON data:', error);
       return value; // Return original value if decryption fails
@@ -80,20 +102,40 @@ export class EncryptedJsonTransformer implements ValueTransformer {
  */
 export class EncryptedAccountTransformer implements ValueTransformer {
   private encryptionService: EncryptionService;
+  private serviceInitialized = false;
 
   constructor() {
-    this.encryptionService = new EncryptionService();
+    try {
+      this.encryptionService = new EncryptionService();
+      this.serviceInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize EncryptionService in EncryptedAccountTransformer:', error);
+      // Will try to initialize later when needed
+    }
+  }
+  
+  private getEncryptionService(): EncryptionService {
+    if (!this.serviceInitialized) {
+      try {
+        this.encryptionService = new EncryptionService();
+        this.serviceInitialized = true;
+      } catch (error) {
+        console.error('Failed to initialize EncryptionService in transformer:', error);
+        throw new Error('EncryptionService could not be initialized. Check environment variables.');
+      }
+    }
+    return this.encryptionService;
   }
 
   to(value: any): any {
     if (!value) return null;
 
-    const encrypted = this.encryptionService.encrypt(value);
+    const encrypted = this.getEncryptionService().encrypt(value);
     
     // Ajouter un hash pour permettre l'indexation/recherche si nécessaire
     return {
       ...encrypted,
-      hash: this.encryptionService.hash(value)
+      hash: this.getEncryptionService().hash(value)
     };
   }
 
@@ -103,7 +145,7 @@ export class EncryptedAccountTransformer implements ValueTransformer {
     }
 
     try {
-      return this.encryptionService.decrypt({
+      return this.getEncryptionService().decrypt({
         encrypted: value.encrypted,
         iv: value.iv,
         tag: value.tag

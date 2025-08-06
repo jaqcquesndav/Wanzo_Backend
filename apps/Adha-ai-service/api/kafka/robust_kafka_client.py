@@ -7,11 +7,27 @@ import json
 import logging
 import os
 import time
+import uuid
 from typing import Dict, Any, Optional, List, Callable
 from uuid import uuid4
 from datetime import datetime
 from kafka import KafkaProducer, KafkaConsumer
-from kafka.errors import KafkaError, KafkaTimeoutError
+
+# Gestion de l'import kafka.errors qui peut ne pas être résolu en environnement de développement
+# mais fonctionnera en production où kafka-python est installé
+try:
+    from kafka.errors import KafkaError, KafkaTimeoutError
+except ImportError:
+    # Définir des classes de substitution pour le développement
+    class KafkaError(Exception):
+        """Mock class pour KafkaError en environnement de développement"""
+        pass
+
+    class KafkaTimeoutError(KafkaError):
+        """Mock class pour KafkaTimeoutError en environnement de développement"""
+        pass
+    
+    logging.warning("kafka.errors n'a pas pu être importé, utilisation de classes mock pour le développement")
 
 logger = logging.getLogger(__name__)
 
@@ -282,15 +298,54 @@ class RobustKafkaConsumer:
                 self.error_handler(e, message)
     
     def _validate_message(self, message: Dict[str, Any]) -> bool:
-        """Valide la structure du message"""
-        return (
-            isinstance(message, dict) and
-            'id' in message and
-            'data' in message and
-            'metadata' in message and
-            isinstance(message['metadata'], dict) and
-            'correlation_id' in message['metadata']
-        )
+        """
+        Valide la structure du message et convertit si nécessaire les clés entre
+        camelCase et snake_case pour assurer la compatibilité entre les services
+        TypeScript (NestJS) et Python (Django)
+        """
+        # Vérifier la structure de base
+        if not (isinstance(message, dict)):
+            logger.warning("Message is not a dictionary")
+            return False
+            
+        # Vérifier l'identifiant
+        if 'id' not in message:
+            # Essayer avec le format camelCase
+            if 'messageId' in message:
+                message['id'] = message['messageId']
+            else:
+                logger.warning("Message has no ID")
+                return False
+        
+        # Vérifier les métadonnées
+        if 'metadata' not in message:
+            # Créer des métadonnées par défaut si absentes
+            message['metadata'] = {
+                'correlation_id': f"auto-{str(uuid.uuid4())}",
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        elif not isinstance(message['metadata'], dict):
+            logger.warning("Message metadata is not a dictionary")
+            return False
+        
+        # Convertir correlation_id / correlationId si nécessaire
+        metadata = message['metadata']
+        if 'correlation_id' not in metadata and 'correlationId' in metadata:
+            metadata['correlation_id'] = metadata['correlationId']
+        elif 'correlationId' not in metadata and 'correlation_id' in metadata:
+            metadata['correlationId'] = metadata['correlation_id']
+        elif 'correlation_id' not in metadata and 'correlationId' not in metadata:
+            # Ajouter un ID de corrélation par défaut
+            corr_id = f"auto-{str(uuid.uuid4())}"
+            metadata['correlation_id'] = corr_id
+            metadata['correlationId'] = corr_id
+            
+        # Assurer que les données sont présentes
+        if 'data' not in message:
+            # Si pas de section data, utiliser le message lui-même comme données
+            message['data'] = {k: v for k, v in message.items() if k not in ['id', 'metadata']}
+            
+        return True
     
     def close(self):
         """Ferme le consumer"""

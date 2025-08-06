@@ -13,13 +13,18 @@ export class EncryptionService {
   private readonly secretKey: Buffer;
 
   constructor() {
-    const key = process.env.ENCRYPTION_SECRET_KEY || 'wanzo-backend-2025-ultra-secure-encryption-key-256-bits-change-this-in-production';
-    if (!key) {
-      throw new Error('ENCRYPTION_SECRET_KEY must be set in environment variables');
-    }
+    const key = process.env.ENCRYPTION_SECRET_KEY;
     
-    // Ensure key is 32 bytes for AES-256
-    this.secretKey = crypto.scryptSync(key, 'salt', 32);
+    // If key is not set, log a warning but use a default for development
+    if (!key) {
+      console.warn('ENCRYPTION_SECRET_KEY not found in environment variables, using default development key');
+      // Using default key for development, this should be changed in production
+      const defaultKey = 'wanzo-backend-2025-ultra-secure-encryption-key-256-bits-change-this-in-production';
+      this.secretKey = crypto.scryptSync(defaultKey, 'salt', 32);
+    } else {
+      // Ensure key is 32 bytes for AES-256
+      this.secretKey = crypto.scryptSync(key, 'salt', 32);
+    }
   }
 
   /**

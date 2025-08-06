@@ -137,9 +137,44 @@ class UnifiedConsumer:
         Envoie un message vers la Dead Letter Queue
         """
         try:
-            # Ici on utiliserait le producer pour envoyer vers DLQ
-            logger.error(f"Would send to DLQ: {message.get('id')} - Error: {error}")
-            # TODO: Implémenter l'envoi vers DLQ
+            # Ajouter des informations sur l'erreur
+            from .robust_kafka_client import StandardKafkaTopics
+            from kafka import KafkaProducer
+            import json
+            
+            # Enrichir le message avec des informations sur l'erreur
+            dlq_message = message.copy() if isinstance(message, dict) else {'original_data': message}
+            
+            if 'metadata' not in dlq_message:
+                dlq_message['metadata'] = {}
+            
+            dlq_message['metadata'].update({
+                'error': error,
+                'failed_at': datetime.utcnow().isoformat(),
+                'original_topic': message.get('metadata', {}).get('kafka_topic', 'unknown'),
+                'dlq_reason': 'max_retries_exceeded'
+            })
+            
+            # Créer un producer spécifique pour le DLQ
+            producer = KafkaProducer(
+                bootstrap_servers=self.consumer.config.brokers,
+                value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            )
+            
+            # Envoyer vers la DLQ
+            future = producer.send(
+                StandardKafkaTopics.DLQ_FAILED_MESSAGES,
+                value=dlq_message
+            )
+            
+            # Attendre confirmation d'envoi
+            record_metadata = future.get(timeout=10)
+            logger.info(f"Message sent to DLQ: {dlq_message.get('id', 'unknown')} "
+                      f"(partition: {record_metadata.partition}, offset: {record_metadata.offset})")
+            
+            # Fermer le producer
+            producer.close()
+            
         except Exception as e:
             logger.critical(f"Failed to send message to DLQ: {str(e)}")
     

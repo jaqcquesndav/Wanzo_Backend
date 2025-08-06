@@ -20,6 +20,17 @@ var/
 .installed.cfg
 *.egg
 
+# Fichiers de sécurité qui ne doivent pas être exposés
+*.pem
+*.key
+*.crt
+*.pfx
+secrets/
+credentials/
+auth/
+*password*
+*secrets*
+
 # Virtual Environment
 venv/
 ENV/

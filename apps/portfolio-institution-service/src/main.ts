@@ -1,4 +1,6 @@
-import './env-loader'; // Charger les variables d'environnement en premier
+// Ensure environment variables are loaded first, before any other imports
+import './env-loader';
+// Then other imports
 import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Chat } from './entities/chat.entity';
 import { ChatMessage } from './entities/chat-message.entity';
@@ -13,7 +13,7 @@ import { AdhaAIIntegrationModule } from '../integration/adha-ai-integration.modu
     TypeOrmModule.forFeature([Chat, ChatMessage]),
     PortfoliosModule,
     ProspectionModule,
-    AdhaAIIntegrationModule,
+    forwardRef(() => AdhaAIIntegrationModule), // Utilisez forwardRef pour résoudre la dépendance circulaire
   ],
   providers: [ChatService],
   controllers: [ChatController],

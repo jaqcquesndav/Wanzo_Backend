@@ -1,13 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AdhaAIIntegrationService } from './adha-ai-integration.service';
 import { AdhaAIIntegrationController } from './adha-ai-integration.controller';
+import { ChatModule } from '../chat/chat.module';
+import { DlqService } from './dlq.service';
 
 export const ADHA_AI_KAFKA_SERVICE = 'ADHA_AI_KAFKA_SERVICE';
 
 @Module({
   imports: [
+    forwardRef(() => ChatModule), // Référence forward à ChatModule pour résoudre la dépendance circulaire
     ClientsModule.registerAsync([
       {
         name: ADHA_AI_KAFKA_SERVICE,
@@ -33,8 +36,8 @@ export const ADHA_AI_KAFKA_SERVICE = 'ADHA_AI_KAFKA_SERVICE';
       },
     ]),
   ],
-  providers: [AdhaAIIntegrationService],
+  providers: [AdhaAIIntegrationService, DlqService],
   controllers: [AdhaAIIntegrationController],
-  exports: [AdhaAIIntegrationService],
+  exports: [AdhaAIIntegrationService, DlqService],
 })
 export class AdhaAIIntegrationModule {}

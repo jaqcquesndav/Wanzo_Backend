@@ -62,6 +62,12 @@ export class AdhaAIIntegrationService implements OnModuleInit {
     try {
       await this.kafkaClient.connect();
       this.logger.log('Connected to Kafka broker for Adha AI integration');
+      
+      // S'assurer que tous les topics sont enregistrés
+      Object.values(PortfolioAIEventTopics).forEach(topic => {
+        this.kafkaClient.subscribeToResponseOf(topic);
+      });
+      
     } catch (error: any) {
       this.logger.error(`Failed to connect to Kafka: ${error.message || 'Unknown error'}`, error.stack || 'No stack trace');
     }
