@@ -17,7 +17,7 @@ const mockCreateInstitutionDto: CreateInstitutionDto = {
   name: 'Test Institution',
   type: InstitutionType.FINTECH,
   licenseNumber: 'LIC-12345',
-  licenseType: LicenseType.FULL,
+  licenseType: LicenseType.UNIVERSAL_BANKING,
   address: '123 Test St, Test City',
   phone: '123-456-7890',
   email: 'contact@testinstitution.com',
@@ -63,8 +63,8 @@ const mockExistingInstitution: Institution = {
   tokenBalance: 100,
   tokensUsed: 0,
   tokenUsageHistory: [],
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  created_at: new Date(),
+  updated_at: new Date(),
   // Optional fields from entity
   subscriptionPlan: undefined,
   subscriptionStatus: undefined,
@@ -72,7 +72,7 @@ const mockExistingInstitution: Institution = {
   lastSubscriptionChangeAt: null,
   subscriptionExpiresAt: null,
   createdBy: mockUserId,
-  regulatoryStatus: RegulatoryStatus.APPROVED,
+  regulatory_status: RegulatoryStatus.APPROVED,
 };
 
 const mockInstitutionDocument: InstitutionDocument = {
@@ -139,7 +139,7 @@ describe('InstitutionService', () => {
     service = module.get<InstitutionService>(InstitutionService);
 
     mockInstitutionRepository.create.mockImplementation((dto) => ({ ...dto, id: 'temp-id', kiotaId: 'temp-kiota', users: [], documents: [] }));
-    mockInstitutionRepository.save.mockImplementation(async (inst) => ({ ...inst, id: inst.id || mockInstitutionId, createdAt: new Date(), updatedAt: new Date() }));
+    mockInstitutionRepository.save.mockImplementation(async (inst) => ({ ...inst, id: inst.id || mockInstitutionId, created_at: new Date(), updated_at: new Date() }));
     mockInstitutionRepository.findOneOrFail.mockResolvedValue(mockExistingInstitution);
     mockInstitutionRepository.findOne.mockResolvedValue(mockExistingInstitution);
     mockInstitutionDocumentRepository.create.mockImplementation(doc => ({...doc, id: 'temp-doc-id'}));
@@ -171,8 +171,8 @@ describe('InstitutionService', () => {
         kiotaId: `${newKiotaIdPrefix}RANDOM123-AB`, // Example of generated ID
         documents: [], // documents are processed separately
         users: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       };
 
       mockInstitutionRepository.create.mockReturnValue(createdInstitutionPartial as any); // create returns the entity to be saved
@@ -250,7 +250,7 @@ describe('InstitutionService', () => {
     it('should update institution successfully', async () => {
       const updateDto: UpdateInstitutionDto = { name: 'Updated Name', type: InstitutionType.BANK }; // Example update
       const currentInstitution = { ...mockExistingInstitution, id: mockInstitutionId };
-      const expectedUpdatedInstitution = { ...currentInstitution, ...updateDto, updatedAt: expect.any(Date) };
+      const expectedUpdatedInstitution = { ...currentInstitution, ...updateDto, updated_at: expect.any(Date) };
 
       mockInstitutionRepository.findOneOrFail.mockResolvedValueOnce(currentInstitution as any); // For findById call
       mockInstitutionRepository.save.mockResolvedValueOnce(expectedUpdatedInstitution as any);

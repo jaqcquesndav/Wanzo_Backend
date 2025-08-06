@@ -1,8 +1,8 @@
 # Dockerfile optimisé pour Adha AI Service
-# Utilise l'image PyTorch officielle CPU-only pour éviter la compilation des packages lourds
+# Utilise une image Python de base et installe PyTorch via pip pour plus de fiabilité
 
-# === ÉTAPE 1: IMAGE DE BASE OPTIMISÉE ===
-FROM pytorch/pytorch:1.13.1-cpu-py3.10-ubuntu20.04 AS base
+# === ÉTAPE 1: IMAGE DE BASE FIABLE ===
+FROM python:3.10-slim-bullseye AS base
 
 # Variables d'environnement pour optimisation Python et PyTorch
 ENV PYTHONUNBUFFERED=1 \
@@ -33,29 +33,25 @@ RUN apt-get update && \
         && rm -rf /tmp/* \
         && rm -rf /var/tmp/*
 
-# === ÉTAPE 3: OPTIMISATION DES DÉPENDANCES PYTHON ===
+# === ÉTAPE 3: INSTALLATION DES DÉPENDANCES PYTHON ===
 # Copier les requirements
 COPY apps/Adha-ai-service/requirements.txt ./
 
-# Installation optimisée des packages Python
+# Installation optimisée des packages Python, y compris PyTorch
 RUN pip install --upgrade pip && \
-    # Exclure les packages déjà présents dans l'image PyTorch
-    grep -v -E "^(torch|torchvision|torchaudio)" requirements.txt > requirements_optimized.txt && \
-    # Installation avec optimisations mémoire et performance
     pip install --no-cache-dir \
                 --timeout 600 \
                 --retries 3 \
                 --prefer-binary \
-                --no-compile \
-                -r requirements_optimized.txt && \
+                -r requirements.txt && \
     # Nettoyage agressif des caches et fichiers temporaires
     pip cache purge && \
-    find /opt/conda -name "*.pyc" -delete && \
-    find /opt/conda -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local/lib/python3.10/site-packages -name "*.pyc" -delete && \
+    find /usr/local/lib/python3.10/site-packages -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
     # Supprimer les fichiers temporaires de build
     rm -rf /tmp/* /var/tmp/* && \
-    # Nettoyer les fichiers requirements temporaires
-    rm -f requirements_optimized.txt requirements.txt
+    # Nettoyer le fichier requirements
+    rm -f requirements.txt
 
 # === ÉTAPE 4: COPIE DU CODE APPLICATION ===
 # Copier uniquement les fichiers nécessaires (structure optimisée)

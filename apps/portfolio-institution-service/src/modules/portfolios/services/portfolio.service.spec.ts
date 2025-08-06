@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PortfolioService } from './portfolio.service';
-import { Portfolio } from '../entities/portfolio.entity';
+import { Portfolio, RiskProfile } from '../entities/portfolio.entity';
 import { FinancialProduct } from '../entities/financial-product.entity';
 import { FundingRequest } from '../entities/funding-request.entity';
 import { Contract } from '../entities/contract.entity';
@@ -77,7 +77,10 @@ describe('PortfolioService', () => {
     it('should create a new portfolio', async () => {
       const portfolioDto: CreatePortfolioDto = {
         name: 'Test Portfolio',
-        totalAmount: 1000000,
+        target_amount: 1000000,
+        manager_id: 'manager123',
+        institution_id: 'institution123',
+        risk_profile: RiskProfile.MODERATE
       };
       const userId = 'user123';
       const savedPortfolio = { id: 'portfolio123', ...portfolioDto };
