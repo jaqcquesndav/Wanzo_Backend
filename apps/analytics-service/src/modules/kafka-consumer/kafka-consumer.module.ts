@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { KafkaConsumerService } from './services/kafka-consumer.service';
 import { RiskAnalysisModule } from '../risk-analysis/risk-analysis.module';
 import { FraudDetectionModule } from '../fraud-detection/fraud-detection.module';
@@ -10,7 +10,7 @@ import { IntegrationModule } from '../integration/integration.module';
     RiskAnalysisModule,
     FraudDetectionModule,
     GeographicAnalysisModule,
-    IntegrationModule,
+    forwardRef(() => IntegrationModule),
   ],
   providers: [KafkaConsumerService],
   exports: [KafkaConsumerService],

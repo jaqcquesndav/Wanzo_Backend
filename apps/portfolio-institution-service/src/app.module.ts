@@ -98,7 +98,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware, RateLimitMiddleware, AuthMiddleware)
-      .exclude('health(.*)')
+      .exclude('health(.*)', 'api-docs(.*)')
       .forRoutes('*');
   }
 }

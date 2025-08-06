@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { Subscription, SubscriptionPlan } from './entities/subscription.entity';
@@ -8,6 +8,7 @@ import { TokenPurchase } from '../tokens/entities/token-purchase.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { SubscriptionService } from './services/subscription.service';
 import { FeatureAccessService } from './services/feature-access.service';
+import { DatabaseFeatureAccessService } from './services/database-feature-access.service';
 import { PricingDataSyncService } from './services/pricing-data-sync.service';
 import { SubscriptionController } from './controllers/subscription.controller';
 import { PricingController } from './controllers/pricing.controller';
@@ -17,6 +18,12 @@ import { FinancialInstitutionController } from './controllers/financial-institut
 import { FeatureAccessGuard } from './guards/feature-access.guard';
 import { CustomerExtractorMiddleware } from './middleware/customer-extractor.middleware';
 import { KafkaModule } from '../kafka/kafka.module';
+import {
+  FeatureUsageTracking, 
+  CustomerFeatureLimit, 
+  CustomerTokenBalance, 
+  TokenTransaction 
+} from './entities/usage-tracking.entity';
 
 @Module({
   imports: [
@@ -26,13 +33,17 @@ import { KafkaModule } from '../kafka/kafka.module';
       TokenPackage,
       TokenUsage,
       TokenPurchase,
-      Customer
+      Customer,
+      FeatureUsageTracking,
+      CustomerFeatureLimit,
+      CustomerTokenBalance,
+      TokenTransaction
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-secret',
       signOptions: { expiresIn: '1d' },
     }),
-    KafkaModule,
+    forwardRef(() => KafkaModule),
   ],
   controllers: [
     SubscriptionController,
@@ -44,6 +55,7 @@ import { KafkaModule } from '../kafka/kafka.module';
   providers: [
     SubscriptionService,
     FeatureAccessService,
+    DatabaseFeatureAccessService,
     PricingDataSyncService,
     FeatureAccessGuard,
     CustomerExtractorMiddleware,

@@ -5,6 +5,11 @@
     "baseUrl": "./",
     "skipLibCheck": true,
     "useDefineForClassFields": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
     "paths": {
       "@/*": ["src/*"],
       "@wanzo/shared/*": ["../../packages/shared/*"]
@@ -13,5 +18,5 @@
     "types": ["jest", "node"]
   },
   "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*spec.ts"]
 }

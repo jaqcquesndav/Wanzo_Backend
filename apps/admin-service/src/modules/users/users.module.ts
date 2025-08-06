@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UserSession, UserActivity, RolePermission } from './entities/user-related.entity';
@@ -15,7 +15,7 @@ import { HttpModule } from '@nestjs/axios';
     MulterModule.register({
       dest: './uploads',
     }),
-    EventsModule, // Import EventsModule to use EventsService
+    forwardRef(() => EventsModule), // Use forwardRef to break circular dependency
     AuthModule, // Import AuthModule to get access to JwtBlacklistGuard and JwtService
     HttpModule.register({
       timeout: 5000,

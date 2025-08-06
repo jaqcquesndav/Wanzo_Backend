@@ -59,7 +59,7 @@ export class DatabaseFeatureAccessService {
     // Créer l'enregistrement d'usage
     const featureUsage = this.featureUsageRepository.create({
       customerId,
-      featureCode,
+      featureCode: featureCode.toString(),
       usageCount: usage,
       usageDate: currentDate,
       usagePeriod: currentPeriod,
@@ -250,7 +250,7 @@ export class DatabaseFeatureAccessService {
     // Supprimer les anciennes limites pour cette période
     await this.featureLimitRepository.delete({
       customerId,
-      period: currentPeriod
+      currentPeriod
     });
 
     // Créer les nouvelles limites
@@ -259,9 +259,11 @@ export class DatabaseFeatureAccessService {
         const limit = this.featureLimitRepository.create({
           customerId,
           planId,
-          featureCode,
+          featureCode: featureCode as unknown as FeatureCode,
+          currentPeriod,
           period: currentPeriod,
           limitValue: featureConfig.limit,
+          monthlyLimit: featureConfig.limit,
           currentUsage: 0,
           isActive: true
         });

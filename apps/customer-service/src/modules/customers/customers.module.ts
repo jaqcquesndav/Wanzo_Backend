@@ -1,11 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CustomerController } from './controllers/customer.controller';
-import { InstitutionsController } from './controllers/institutions.controller';
 import { FinancialInstitutionController } from './controllers/financial-institution.controller';
-import { SmeController } from './controllers/sme.controller';
 import { CompanyController } from './controllers/company.controller';
 
 import { CustomerService } from './services/customer.service';
@@ -33,15 +31,13 @@ import { CloudinaryModule } from '../cloudinary';
       FinancialInstitutionSpecificData,
       SmeSpecificData
     ]),
-    KafkaModule,
+    forwardRef(() => KafkaModule),
     CloudinaryModule,
     EventEmitterModule.forRoot(),
   ],
   controllers: [
     CustomerController, 
-    InstitutionsController, 
     FinancialInstitutionController,
-    SmeController,
     CompanyController
   ],
   providers: [CustomerService, InstitutionService, SmeService, CustomerEventsDistributor],

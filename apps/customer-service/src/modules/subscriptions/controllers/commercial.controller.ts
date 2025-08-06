@@ -4,9 +4,9 @@ import {
   RequireFeature, 
   CurrentCustomer, 
   RequestCustomer 
-} from '../subscriptions/decorators/feature-access.decorator';
-import { FeatureAccessGuard } from '../subscriptions/guards/feature-access.guard';
-import { FeatureCode } from '../../config/subscription-pricing.config';
+} from '../decorators/feature-access.decorator';
+import { FeatureAccessGuard } from '../guards/feature-access.guard';
+import { FeatureCode } from '../../../config/subscription-pricing.config';
 
 export class CreateSalesReportDto {
   dateFrom!: Date;

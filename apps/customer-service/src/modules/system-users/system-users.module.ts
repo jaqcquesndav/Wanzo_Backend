@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UserController } from './controllers/user.controller';
@@ -15,7 +15,7 @@ import { CloudinaryModule } from '../cloudinary';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, UserActivity, Customer, Sme, SmeSpecificData]),
-    KafkaModule,
+    forwardRef(() => KafkaModule),
     CloudinaryModule,
   ],
   controllers: [UserController, AdminUserController],

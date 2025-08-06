@@ -149,17 +149,7 @@ async function bootstrap() {
       },
       'JWT-auth'
     )
-    .addTag('auth', 'Authentification et autorisation')
-    .addTag('users', 'Gestion des utilisateurs')
-    .addTag('company', 'Gestion des entreprises')
-    .addTag('customers', 'Gestion des clients')
-    .addTag('documents', 'Gestion des documents')
-    .addTag('settings', 'Paramètres du système')
-    .addTag('dashboard', 'Tableau de bord et statistiques')
-    .addTag('finance', 'Gestion financière')
-    .addTag('system', 'Opérations système')
-    .addTag('tokens', 'Gestion des tokens')
-    .addTag('chat', 'Service de messagerie')
+    // Suppression des tags manuels pour éviter la redondance avec les @ApiTags des contrôleurs
     .setContact('Équipe Wanzo', 'https://wanzo.com', 'support@wanzo.com')
     .setLicense('Propriétaire', 'https://wanzo.com/terms')
     .setExternalDoc('Documentation supplémentaire', 'https://docs.wanzo.com')
@@ -170,7 +160,7 @@ async function bootstrap() {
   const customOptions = {
     swaggerOptions: {
       persistAuthorization: true,
-      docExpansion: 'none',
+      docExpansion: 'list',  // Changé de 'none' à 'list' pour montrer les tags développés mais les opérations fermées
       filter: true,
       displayRequestDuration: true,
       syntaxHighlight: {

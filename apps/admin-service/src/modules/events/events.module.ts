@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ADMIN_KAFKA_PRODUCER_SERVICE, KafkaProducerModule } from './kafka-producer.module';
 import { EventsService } from './events.service';
@@ -11,7 +11,7 @@ import { CompanyModule } from '../company/company.module';
   imports: [
     ConfigModule,
     KafkaProducerModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
     CompanyModule,
   ],
   controllers: [UserEventsConsumer],

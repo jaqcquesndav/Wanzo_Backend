@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MicroserviceIntegrationService } from './services/microservice-integration.service';
@@ -8,7 +8,7 @@ import { KafkaConsumerModule } from '../kafka-consumer/kafka-consumer.module';
 @Module({
   imports: [
     ConfigModule,
-    KafkaConsumerModule,
+    forwardRef(() => KafkaConsumerModule),
     ClientsModule.registerAsync([
       {
         name: 'CUSTOMER_SERVICE',
