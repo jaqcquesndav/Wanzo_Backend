@@ -1,8 +1,11 @@
-﻿# NOTE: There's a known vulnerability in the Node.js image. In production,
-# this should be addressed by using a custom hardened image or by accepting
-# the risk after proper security assessment. For development purposes, 
-# we're using the standard image.
-FROM node:20-alpine AS builder
+# Utilisation d'une image Node.js spécifique et sécurisée
+# Version 20.13 inclut des correctifs de sécurité récents
+FROM node:20.13.0-alpine3.19 AS builder
+
+# Installation des mises à jour de sécurité
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -48,10 +51,12 @@ RUN mkdir -p ./apps/api-gateway/dist/src
 RUN cp ./apps/api-gateway/mock-service.js ./apps/api-gateway/dist/src/main.js
 
 # Production stage - minimal runtime image
-# NOTE: There's a known vulnerability in the Node.js image. In production,
-# this should be addressed by using a custom hardened image or by accepting
-# the risk after proper security assessment.
-FROM node:20-alpine AS production
+FROM node:20.13.0-alpine3.19 AS production
+
+# Installation des mises à jour de sécurité
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -67,23 +72,57 @@ RUN npm init -y && \
     npm install --no-optional --legacy-peer-deps express && \
     npm cache clean --force
 
-# Environment variables
+# Environment variables - non-sensitive
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV AUTH_SERVICE_URL=http://auth-service:3000
-ENV ADMIN_SERVICE_URL=http://admin-service:3001
-ENV ANALYTICS_SERVICE_URL=http://analytics-service:3002
-ENV ACCOUNTING_SERVICE_URL=http://accounting-service:3003
-ENV PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
-ENV GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
+
+# NOTE: Pour les variables d'environnement sensibles, il est recommandé de les injecter
+# au moment de l'exécution via des secrets Kubernetes, des variables d'environnement Docker,
+# ou des fichiers .env montés dans le conteneur au lieu de les coder en dur dans le Dockerfile.
+# 
+# Exemple avec docker-compose:
+# api-gateway:
+#   image: kiota-api-gateway:secure
+#   environment:
+#     - AUTH_SERVICE_URL=http://auth-service:3000
+#     - ...
+#
+# Ou avec Docker run:
+# docker run --env-file=.env kiota-api-gateway:secure
+#
+# Les variables ci-dessous sont définies avec des valeurs par défaut pour le développement
+# mais devraient être remplacées en production par des mécanismes sécurisés
+ARG AUTH_SERVICE_URL=http://auth-service:3000
+ARG ADMIN_SERVICE_URL=http://admin-service:3001
+ARG ANALYTICS_SERVICE_URL=http://analytics-service:3002
+ARG ACCOUNTING_SERVICE_URL=http://accounting-service:3003
+ARG PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
+ARG GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
+
+# Configuration des services par variables d'environnement
+ENV AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+ENV ADMIN_SERVICE_URL=${ADMIN_SERVICE_URL}
+ENV ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL}
+ENV ACCOUNTING_SERVICE_URL=${ACCOUNTING_SERVICE_URL}
+ENV PORTFOLIO_INSTITUTION_SERVICE_URL=${PORTFOLIO_INSTITUTION_SERVICE_URL}
+ENV GESTION_COMMERCIALE_SERVICE_URL=${GESTION_COMMERCIALE_SERVICE_URL}
 
 # Expose service port
 EXPOSE 3000
 
-# Set non-root user for better security
+# Meilleures pratiques de sécurité
+# Définir des permissions strictes sur les fichiers
+RUN chmod -R 755 /app && \
+    chown -R node:node /app
+
+# Mettre en place des healthchecks pour surveiller l'état du service
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/health || exit 1
+
+# Utiliser un utilisateur non-root pour une meilleure sécurité
 USER node
 
-# Start the service with conditional check
+# Start the service with conditional check and environment variables
 CMD ["sh", "-c", "if [ -f 'apps/api-gateway/dist/src/main.js' ]; then \
     node apps/api-gateway/dist/src/main.js; \
     elif [ -f 'apps/api-gateway/dist/main.js' ]; then \
