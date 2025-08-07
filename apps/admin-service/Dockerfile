@@ -1,4 +1,10 @@
-﻿FROM node:20-alpine AS builder
+﻿# Utilisation d'une image Node.js spécifique et sécurisée
+FROM node:20.13.0-alpine3.19 AS builder
+
+# Installation des mises à jour de sécurité
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -36,56 +42,72 @@ RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
 ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Create mock service file
-RUN echo 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3001;\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "admin-service-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.listen(port, () => {\n  console.log(`Mock admin service running on port ${port}`);\n});' > ./apps/admin-service/mock-service.js
+# Create mock service file using printf to handle newlines properly
+RUN printf 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3001;\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "admin-service-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.listen(port, () => {\n  console.log(`Mock admin service running on port ${port}`);\n});\n' > ./apps/admin-service/mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./apps/admin-service/dist/src
 RUN cp ./apps/admin-service/mock-service.js ./apps/admin-service/dist/src/main.js
 
-# Production stage - minimal runtime image
-FROM node:20-alpine AS production
+# Production stage - minimal runtime image with security patches
+FROM node:20.13.0-alpine3.19 AS production
+
+# Security updates and proper user setup
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates dumb-init curl && \
+    update-ca-certificates && \
+    adduser -D -u 1001 nodeuser
 
 # Set working directory
 WORKDIR /app
 
-# Create required directories
-RUN mkdir -p ./apps/admin-service/dist/src ./apps/admin-service/logs
+# Create required directories with proper permissions
+RUN mkdir -p ./apps/admin-service/dist/src ./apps/admin-service/logs && \
+    chown -R nodeuser:nodeuser /app
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/admin-service/dist/src/main.js ./apps/admin-service/dist/src/
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional --legacy-peer-deps express && \
+    npm install --no-optional --production --legacy-peer-deps express && \
     npm cache clean --force
 
-# Environment variables
+# Environment variables (non-sensitive)
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DB_HOST=postgres
+# Use placeholder values for sensitive data, to be injected at runtime
+ENV DB_HOST=db_host_placeholder
 ENV DB_PORT=5432
-ENV DB_USERNAME=postgres
-ENV DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+ENV DB_USERNAME=db_user_placeholder
 ENV DB_DATABASE=admin-service
 
 # Expose service port
 EXPOSE 3001
 
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 
 
+
+
+# Create startup script
+RUN printf '#!/bin/sh\n\
+if [ -f "apps/admin-service/dist/src/main.js" ]; then\n\
+    exec node apps/admin-service/dist/src/main.js\n\
+elif [ -f "apps/admin-service/dist/main.js" ]; then\n\
+    exec node apps/admin-service/dist/main.js\n\
+elif [ -f "apps/admin-service/dist/apps/admin-service/src/main.js" ]; then\n\
+    exec node apps/admin-service/dist/apps/admin-service/src/main.js\n\
+else\n\
+    echo "Could not find main.js file to execute" && ls -R apps/admin-service/dist && exit 1\n\
+fi\n' > /app/startup.sh && chmod +x /app/startup.sh
 
 # Set non-root user for better security
-USER node
+USER nodeuser
 
-# Start the service with conditional check
-CMD ["sh", "-c", "if [ -f 'apps/admin-service/dist/src/main.js' ]; then \
-    node apps/admin-service/dist/src/main.js; \
-    elif [ -f 'apps/admin-service/dist/main.js' ]; then \
-    node apps/admin-service/dist/main.js; \
-    elif [ -f 'apps/admin-service/dist/apps/admin-service/src/main.js' ]; then \
-    node apps/admin-service/dist/apps/admin-service/src/main.js; \
-    else \
-    echo 'Could not find main.js file to execute' && ls -R apps/admin-service/dist && exit 1; \
-    fi"]
+# Use dumb-init as entrypoint to handle signals properly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/app/startup.sh"]

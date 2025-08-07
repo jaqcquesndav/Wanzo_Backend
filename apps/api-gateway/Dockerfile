@@ -43,8 +43,21 @@ RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
 ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Create mock service file
-RUN echo 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3000;\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "api-gateway-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.listen(port, () => {\n  console.log(`Mock API Gateway running on port ${port}`);\n});' > ./apps/api-gateway/mock-service.js
+# Create mock service file using heredoc syntax
+RUN printf '%s\n' \
+    "const express = require('express');" \
+    "const app = express();" \
+    "const port = process.env.PORT || 3000;" \
+    "app.get('/', (req, res) => {" \
+    "  res.json({ status: 'ok', service: 'api-gateway-mock' });" \
+    "});" \
+    "app.get('/health', (req, res) => {" \
+    "  res.json({ status: 'healthy' });" \
+    "});" \
+    "app.listen(port, () => {" \
+    "  console.log(\`Mock API Gateway running on port \${port}\`);" \
+    "});" \
+    > ./apps/api-gateway/mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./apps/api-gateway/dist/src
