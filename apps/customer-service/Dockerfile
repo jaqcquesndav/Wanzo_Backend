@@ -1,75 +1,88 @@
-﻿FROM node:20-alpine AS builder
+﻿# Utilisation d'une image Node.js spécifique et sécurisée
+FROM node:20.13.0-alpine3.19 AS builder
+
+# Installation des mises à jour de sécurité
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates
 
 # Set working directory
 WORKDIR /app
 
 # Create essential directories
-RUN mkdir -p ./packages/tsconfig ./packages/shared/src ./packages/customer-sync/src ./apps/customer-service/dist/src
+RUN mkdir -p ./apps/customer-service/dist/src
 
-# Copy only the essential files for building
-COPY package.json ./
-COPY turbo.json ./
+# Create simple package.json for the service
+RUN echo '{"name":"customer-service","version":"1.0.0","dependencies":{"express":"^4.18.2"}}' > ./apps/customer-service/package.json
 
-# Copy local package files first
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/customer-sync/package.json ./packages/customer-sync/
-
-# Create mock modules for local packages
-RUN echo 'module.exports = {};' > ./packages/shared/src/index.js && \
-    echo 'module.exports = {};' > ./packages/customer-sync/src/index.js
-
-# Create TypeScript config files
-RUN echo '{"$schema":"https://json.schemastore.org/tsconfig","display":"Default","compilerOptions":{"composite":false,"declaration":true,"declarationMap":true,"esModuleInterop":true,"forceConsistentCasingInFileNames":true,"inlineSources":false,"isolatedModules":true,"moduleResolution":"node","preserveWatchOutput":true,"skipLibCheck":true,"strict":true,"strictNullChecks":true,"strictPropertyInitialization":false,"useDefineForClassFields":false,"noImplicitAny":false},"exclude":["node_modules"]}' > ./packages/tsconfig/base.json
-
-RUN echo '{"$schema":"https://json.schemastore.org/tsconfig","display":"NestJS","extends":"./base.json","compilerOptions":{"module":"commonjs","removeComments":true,"emitDecoratorMetadata":true,"experimentalDecorators":true,"useDefineForClassFields":false,"skipLibCheck":true,"allowSyntheticDefaultImports":true,"target":"ES2021","sourceMap":true,"outDir":"./dist","baseUrl":"./","incremental":true,"strictPropertyInitialization":false,"strictBindCallApply":false,"noImplicitAny":false,"noFallthroughCasesInSwitch":true}}' > ./packages/tsconfig/nestjs.json
-
-# Copy service package.json
-COPY apps/customer-service/package.json ./apps/customer-service/
-
-# Modify package.json to point to local dependencies
-RUN node -e "const fs = require('fs'); const pkg = require('./apps/customer-service/package.json'); if (pkg.dependencies && pkg.dependencies['@wanzobe/customer-sync']) { pkg.dependencies['@wanzobe/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzo/customer-sync']) { pkg.dependencies['@wanzo/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzobe/shared']) { pkg.dependencies['@wanzobe/shared'] = 'file:../../packages/shared'; } if (pkg.dependencies && pkg.dependencies['@wanzo/shared']) { pkg.dependencies['@wanzo/shared'] = 'file:../../packages/shared'; } fs.writeFileSync('./apps/customer-service/package.json', JSON.stringify(pkg, null, 2));"
-
-# Install dependencies with file: references for local packages
-RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
+# Install Express
+WORKDIR /app/apps/customer-service
+RUN npm install express
 
 # Set environment variables
-ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_ENV=production
+ENV PORT=3011
 
-# Create mock service file
-RUN echo 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3011;\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "customer-service-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.listen(port, () => {\n  console.log(`Mock customer service running on port ${port}`);\n});' > ./apps/customer-service/mock-service.js
+# Create mock service file using the provided mock-service.js
+COPY mock-service.js ./mock-service.js
 
 # Create dist directory and copy mock service
-RUN mkdir -p ./apps/customer-service/dist/src
-RUN cp ./apps/customer-service/mock-service.js ./apps/customer-service/dist/src/main.js
+RUN mkdir -p ./dist/src
+RUN cp ./mock-service.js ./dist/src/main.js
 
-FROM node:20-alpine AS production
+# Production stage - minimal runtime image with security patches
+FROM node:20.13.0-alpine3.19 AS production
+
+# Security updates and proper user setup
+RUN apk update && apk upgrade && \
+    apk add --no-cache ca-certificates dumb-init curl && \
+    update-ca-certificates && \
+    adduser -D -u 1001 nodeuser
 
 # Set working directory
 WORKDIR /app
 
-# Create directory structure 
-RUN mkdir -p ./apps/customer-service/dist/src ./apps/customer-service/logs
+# Create required directories with proper permissions
+RUN mkdir -p ./apps/customer-service/dist/src ./apps/customer-service/logs && \
+    chown -R nodeuser:nodeuser /app
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/customer-service/dist/src/main.js ./apps/customer-service/dist/src/
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional --legacy-peer-deps express && \
+    npm install --no-optional --production --legacy-peer-deps express && \
     npm cache clean --force
 
-# Environment variables
+# Environment variables (non-sensitive)
 ENV NODE_ENV=production
 ENV PORT=3011
+# Use placeholder values for sensitive data, to be injected at runtime
+ENV DB_HOST=db_host_placeholder
+ENV DB_PORT=5432
+ENV DB_USERNAME=db_user_placeholder
+ENV DB_DATABASE=customer_service
 
 # Expose service port
 EXPOSE 3011
-EXPOSE 9071
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Create startup script
+RUN printf '#!/bin/sh\n\
+if [ -f "apps/customer-service/dist/src/main.js" ]; then\n\
+    exec node apps/customer-service/dist/src/main.js\n\
+elif [ -f "apps/customer-service/dist/main.js" ]; then\n\
+    exec node apps/customer-service/dist/main.js\n\
+else\n\
+    echo "Could not find main.js file to execute" && ls -R apps/customer-service/dist && exit 1\n\
+fi\n' > /app/startup.sh && chmod +x /app/startup.sh
 
 # Set non-root user for better security
-USER node
+USER nodeuser
 
-# Start the service
-CMD ["node", "apps/customer-service/dist/src/main.js"]
-
+# Use dumb-init as entrypoint to handle signals properly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/app/startup.sh"]
