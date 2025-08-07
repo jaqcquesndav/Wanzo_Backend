@@ -6,7 +6,7 @@ import {
 import { ValidateTokenResponseDto } from './dto/validate-token.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator.js';
+import { CurrentUser } from './decorators/current-user.decorator';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
