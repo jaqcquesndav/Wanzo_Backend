@@ -86,11 +86,11 @@ WSGI_APPLICATION = 'adha_ai_service.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'adha_ai_db'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'NAME': os.environ.get('DB_DATABASE', 'adha-ai-service'),
+        'USER': os.environ.get('DB_USERNAME', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'd2487a19465f468aa0bdfb7e04c35579'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
