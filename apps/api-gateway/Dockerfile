@@ -40,7 +40,7 @@ COPY --from=builder /app/dist/src/main.js ./dist/src/
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express http && \
+    npm install --no-optional --production --legacy-peer-deps express http path-to-regexp && \
     npm cache clean --force
 
 # Environment variables - non-sensitive

@@ -153,3 +153,47 @@ class ChatMessage(models.Model):
         if not self.message_id or self.message_id == uuid.UUID(int=0):
             self.message_id = uuid.uuid4()
         super().save(*args, **kwargs)
+
+class TokenUsage(models.Model):
+    """
+    Modèle pour suivre l'utilisation des tokens par les modèles d'IA.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='token_usage')
+    conversation = models.ForeignKey(ChatConversation, on_delete=models.SET_NULL, null=True, blank=True, related_name='token_usage')
+    message = models.ForeignKey(ChatMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='token_usage')
+    model_name = models.CharField(max_length=100)
+    prompt_tokens = models.IntegerField(default=0)
+    completion_tokens = models.IntegerField(default=0)
+    total_tokens = models.IntegerField(default=0)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.model_name} - {self.total_tokens} tokens"
+    
+    def save(self, *args, **kwargs):
+        # Calculer le total des tokens si non fourni
+        if self.total_tokens == 0 and (self.prompt_tokens > 0 or self.completion_tokens > 0):
+            self.total_tokens = self.prompt_tokens + self.completion_tokens
+        super().save(*args, **kwargs)
+        
+class Company(models.Model):
+    """
+    Modèle pour représenter une entreprise.
+    """
+    name = models.CharField(max_length=255)
+    siret = models.CharField(max_length=20, blank=True, null=True)
+    sector = models.CharField(max_length=100, blank=True, null=True)
+    size = models.CharField(max_length=20, blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='companies')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name_plural = "Companies"
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name

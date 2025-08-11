@@ -1,0 +1,13 @@
+{
+  "name": "api-gateway-mock",
+  "version": "1.0.0",
+  "description": "Simplified API Gateway Mock",
+  "main": "simplified-mock.js",
+  "scripts": {
+    "start": "node simplified-mock.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "path-to-regexp": "^6.2.1"
+  }
+}

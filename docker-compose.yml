@@ -41,7 +41,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha_ai_db
+      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha-ai-service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -277,7 +277,7 @@ services:
       - KAFKA_BROKER_INTERNAL=kafka:29092
       - KAFKA_BROKER_EXTERNAL=localhost:9092
       - PROMETHEUS_PORT=9464
-      - POSTGRES_DB=adha_ai_db
+      - POSTGRES_DB=adha-ai-service
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - POSTGRES_HOST=postgres

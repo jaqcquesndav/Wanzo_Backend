@@ -76,16 +76,12 @@ class RetrieverAgent:
              # Utile pour diagnostiquer les conflits de version (comme le NameError précédent)
              print(f"AttributeError during SentenceTransformer init: {e}")
              raise RuntimeError(f"Erreur critique : {e}. Cela peut être dû à une incompatibilité entre 'sentence-transformers' et 'transformers'/'accelerate'. Essayez 'pip install --upgrade sentence-transformers transformers accelerate'.")
-        except Exception as e:
-             # Capturer toute autre erreur pendant le chargement (ex: modèle non trouvé si chemin fourni, problème réseau...)
-             print(f"Error during SentenceTransformer initialization: {type(e).__name__} - {repr(e)}")
-             # Renvoyer l'exception pour indiquer clairement l'échec d'initialisation
-             raise RuntimeError(f"Erreur lors de l'initialisation du modèle SentenceTransformer : {e}")
         # --- Fin de la section corrigée ---
 
         # Ajout du retriever LangChain sur la collection documentaire
         adha_embeddings_path = os.path.join(os.path.dirname(__file__), '../../data/adha_context_embeddings')
         os.makedirs(adha_embeddings_path, exist_ok=True)
+        
         self.adha_vectorstore = Chroma(
             collection_name="adha_context",
             embedding_function=SentenceTransformerEmbeddings(model_name="all-mpnet-base-v2"),

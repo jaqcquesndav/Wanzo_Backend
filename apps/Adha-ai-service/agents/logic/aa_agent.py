@@ -500,8 +500,10 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
             if (template):
                 context_prompt = f"Cette opération semble être un(e) {operation_type}. "
                 context_prompt += "Voici un modèle d'écriture typique pour ce type d'opération :\n"
-                context_prompt += f"Débit : {', '.join([f'{d['compte']} ({d['libelle']})' for d in template['debit']])}\n"
-                context_prompt += f"Crédit : {', '.join([f'{c['compte']} ({c['libelle']})' for c in template['credit']])}\n\n"
+                debits = [f"{d['compte']} ({d['libelle']})" for d in template['debit']]
+                context_prompt += f"Débit : {', '.join(debits)}\n"
+                credits = [f"{c['compte']} ({c['libelle']})" for c in template['credit']]
+                context_prompt += f"Crédit : {', '.join(credits)}\n\n"
             syscohada_prompt = f"""En tant qu'expert-comptable SYSCOHADA, générez les écritures comptables à partir de cette description en langage naturel.
             {context_prompt}ANALYSEZ LE TEXTE ET GÉNÉREZ UNE PROPOSITION D'ÉCRITURE COMPTABLE.
             FORMAT DE RÉPONSE REQUIS:
