@@ -12,7 +12,7 @@ WORKDIR /app
 RUN mkdir -p ./dist/src
 
 # Copy mock service to the container
-COPY mock-service-simple.js ./mock-service.js
+COPY mock-service.js ./mock-service.js
 
 # Copy to dist directory
 RUN cp ./mock-service.js ./dist/src/main.js
@@ -62,3 +62,4 @@ USER nodeuser
 
 # Start the service
 CMD ["node", "dist/src/main.js"]
+

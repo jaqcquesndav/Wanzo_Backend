@@ -357,7 +357,7 @@ services:
     image: grafana/grafana:10.0.3
     container_name: kiota-grafana
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
