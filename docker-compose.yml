@@ -61,7 +61,7 @@ services:
       dockerfile: ./apps/api-gateway/Dockerfile
     container_name: kiota-api-gateway
     ports:
-      - "8000:3000"
+      - "8000:8000"
     environment:
       - NODE_ENV=production
       - AUTH_SERVICE_URL=http://admin-service:3001

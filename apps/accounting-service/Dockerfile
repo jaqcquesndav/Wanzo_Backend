@@ -41,11 +41,11 @@ RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
 ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy the existing mock service file
-COPY ./apps/accounting-service/mock-service.js ./apps/accounting-service/mock-service.js
+# Copy the simplified mock service file
+COPY ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/simplified-mock.js
 
-# Copy mock service to dist folder
-RUN cp ./apps/accounting-service/mock-service.js ./apps/accounting-service/dist/src/main.js
+# Copy simplified mock service to dist folder
+RUN cp ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/dist/src/main.js
 
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
@@ -66,9 +66,9 @@ RUN mkdir -p ./apps/accounting-service/dist/src ./apps/accounting-service/logs &
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/accounting-service/dist/src/main.js ./apps/accounting-service/dist/src/
 
-# Install minimal dependencies needed for the mock service
+# Install minimal dependencies needed for the simplified mock service
 RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express prom-client && \
+    npm install --no-optional --production --legacy-peer-deps express && \
     npm cache clean --force
 
 # Environment variables (non-sensitive)

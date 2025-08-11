@@ -42,8 +42,8 @@ RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
 ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy the existing mock service file
-COPY ./apps/admin-service/mock-service.js ./apps/admin-service/mock-service.js
+# Copy the simplified mock service file
+COPY ./apps/admin-service/simplified-mock.js ./apps/admin-service/mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./apps/admin-service/dist/src

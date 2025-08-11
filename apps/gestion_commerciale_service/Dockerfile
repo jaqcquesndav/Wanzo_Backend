@@ -23,12 +23,12 @@ RUN npm install express
 ENV NODE_ENV=production
 ENV PORT=3005
 
-# Copy the existing mock service file
-COPY ./apps/gestion_commerciale_service/mock-service.js ./mock-service.js
+# Copy the simplified mock service file instead
+COPY ./apps/gestion_commerciale_service/simplified-mock.js ./simplified-mock.js
 
-# Create dist directory and copy mock service
+# Create dist directory and copy simplified mock service
 RUN mkdir -p ./dist/src
-RUN cp ./mock-service.js ./dist/src/main.js
+RUN cp ./simplified-mock.js ./dist/src/main.js
 
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
@@ -49,9 +49,9 @@ RUN mkdir -p ./apps/gestion_commerciale_service/dist/src ./apps/gestion_commerci
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/gestion_commerciale_service/dist/src/main.js ./apps/gestion_commerciale_service/dist/src/
 
-# Install minimal dependencies needed for the mock service
+# Install minimal dependencies needed for the simplified mock service
 RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express prom-client && \
+    npm install --no-optional --production --legacy-peer-deps express && \
     npm cache clean --force
 
 # Environment variables (non-sensitive)

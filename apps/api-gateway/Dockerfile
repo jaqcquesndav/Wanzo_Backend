@@ -11,11 +11,11 @@ WORKDIR /app
 # Create required directories
 RUN mkdir -p ./dist/src
 
-# Copy mock service to the container
-COPY ./apps/api-gateway/mock-service.js ./mock-service.js
+# Copy simplified mock service to the container
+COPY ./apps/api-gateway/simplified-mock.js ./simplified-mock.js
 
 # Copy to dist directory
-RUN cp ./mock-service.js ./dist/src/main.js
+RUN cp ./simplified-mock.js ./dist/src/main.js
 
 # Production stage - minimal runtime image
 FROM node:20.13.0-alpine3.19 AS production
