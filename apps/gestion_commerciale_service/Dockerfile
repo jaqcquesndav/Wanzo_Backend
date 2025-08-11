@@ -51,7 +51,7 @@ COPY --from=builder /app/apps/gestion_commerciale_service/dist/src/main.js ./app
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express && \
+    npm install --no-optional --production --legacy-peer-deps express prom-client && \
     npm cache clean --force
 
 # Environment variables (non-sensitive)
