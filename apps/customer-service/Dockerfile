@@ -24,7 +24,7 @@ ENV NODE_ENV=production
 ENV PORT=3011
 
 # Create mock service file using the provided mock-service.js
-COPY mock-service.js ./mock-service.js
+COPY ./apps/customer-service/mock-service.js ./mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./dist/src

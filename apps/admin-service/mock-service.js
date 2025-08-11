@@ -9,13 +9,13 @@ const serviceName = process.env.SERVICE_NAME || 'mock-service';
 // Setup Prometheus registry
 const register = new Registry();
 const requestCounter = new Counter({
-  name: ${serviceName}_requests_total,
+  name: `${serviceName}_requests_total`,
   help: 'Total number of requests',
   registers: [register]
 });
 
 const healthGauge = new Gauge({
-  name: ${serviceName}_health_status,
+  name: `${serviceName}_health_status`,
   help: 'Health status of the service (1 = healthy, 0 = unhealthy)',
   registers: [register]
 });
@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
   requestCounter.inc();
   res.json({ 
     status: 'ok', 
-    message: ${serviceName} mock is running,
+    message: `${serviceName} mock is running`,
     timestamp: new Date().toISOString()
   });
 });
@@ -45,7 +45,7 @@ app.get('/metrics', async (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-  console.log(${serviceName} mock service running on port );
+  console.log(`${serviceName} mock service running on port ${port}`);
 });
 
 process.on('SIGTERM', () => {

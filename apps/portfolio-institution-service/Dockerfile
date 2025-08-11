@@ -23,8 +23,8 @@ RUN npm install express
 ENV NODE_ENV=production
 ENV PORT=3004
 
-# Create mock service file using printf to handle newlines properly
-COPY mock-service.js ./mock-service.js
+# Create mock service file using the provided mock-service.js
+COPY ./apps/portfolio-institution-service/mock-service.js ./mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./dist/src

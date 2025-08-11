@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    image: kiota-api-gateway:latest
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: ./apps/admin-service/Dockerfile
+    image: kiota-admin-service:latest
+
+  accounting-service:
+    build:
+      context: .
+      dockerfile: ./apps/accounting-service/Dockerfile
+    image: kiota-accounting-service:latest
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./apps/analytics-service/Dockerfile
+    image: kiota-analytics-service:latest
+
+  portfolio-institution-service:
+    build:
+      context: .
+      dockerfile: ./apps/portfolio-institution-service/Dockerfile
+    image: kiota-portfolio-institution-service:latest
+
+  gestion-commerciale-service:
+    build:
+      context: .
+      dockerfile: ./apps/gestion_commerciale_service/Dockerfile
+    image: kiota-gestion-commerciale-service:latest
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: ./apps/customer-service/Dockerfile
+    image: kiota-customer-service:latest
+
+  adha-ai-service:
+    build:
+      context: .
+      dockerfile: ./apps/Adha-ai-service/Dockerfile
+    image: kiota-adha-ai-service:latest

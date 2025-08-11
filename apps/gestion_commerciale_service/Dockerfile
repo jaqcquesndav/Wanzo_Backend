@@ -23,8 +23,8 @@ RUN npm install express
 ENV NODE_ENV=production
 ENV PORT=3005
 
-# Create mock service file using printf to handle newlines properly
-RUN printf 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3005;\napp.use(express.json());\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "gestion-commerciale-service-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.post("/api/mock/commerciale", (req, res) => {\n  console.log("Received request:", req.body);\n  res.json({\n    success: true,\n    message: "Mock response from gestion commerciale service",\n    requestReceived: req.body,\n    timestamp: new Date().toISOString()\n  });\n});\napp.listen(port, () => {\n  console.log(`Mock gestion commerciale service running on port ${port}`);\n});\n' > ./mock-service.js
+# Copy the existing mock service file
+COPY ./apps/gestion_commerciale_service/mock-service.js ./mock-service.js
 
 # Create dist directory and copy mock service
 RUN mkdir -p ./dist/src

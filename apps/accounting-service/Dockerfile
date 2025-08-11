@@ -41,8 +41,8 @@ RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
 ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Create mock service file using printf to handle newlines properly
-RUN printf 'const express = require("express");\nconst app = express();\nconst port = process.env.PORT || 3003;\napp.get("/", (req, res) => {\n  res.json({ status: "ok", service: "accounting-service-mock" });\n});\napp.get("/health", (req, res) => {\n  res.json({ status: "healthy" });\n});\napp.listen(port, () => {\n  console.log(`Mock accounting service running on port ${port}`);\n});\n' > ./apps/accounting-service/mock-service.js
+# Copy the existing mock service file
+COPY ./apps/accounting-service/mock-service.js ./apps/accounting-service/mock-service.js
 
 # Copy mock service to dist folder
 RUN cp ./apps/accounting-service/mock-service.js ./apps/accounting-service/dist/src/main.js
