@@ -30,6 +30,9 @@ COPY ./apps/portfolio-institution-service/mock-service.js ./mock-service.js
 RUN mkdir -p ./dist/src
 RUN cp ./mock-service.js ./dist/src/main.js
 
+# Copy Auth0 certificate
+COPY ./apps/portfolio-institution-service/auth0-certificate.pem ./auth0-certificate.pem
+
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
 
@@ -48,6 +51,7 @@ RUN mkdir -p ./apps/portfolio-institution-service/dist/src ./apps/portfolio-inst
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/portfolio-institution-service/dist/src/main.js ./apps/portfolio-institution-service/dist/src/
+COPY --from=builder /app/apps/portfolio-institution-service/auth0-certificate.pem ./apps/portfolio-institution-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \

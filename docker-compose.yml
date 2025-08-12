@@ -111,6 +111,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     env_file:
       - ./apps/admin-service/.env
     volumes:
@@ -146,6 +148,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -215,6 +219,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     env_file:
       - ./apps/portfolio-institution-service/.env
     volumes:
@@ -250,6 +256,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     env_file:
       - ./apps/gestion_commerciale_service/.env
     volumes:
@@ -322,6 +330,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     volumes:
       - customer-service-logs:/app/apps/customer-service/logs
     depends_on:

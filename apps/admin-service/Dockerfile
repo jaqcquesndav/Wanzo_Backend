@@ -49,6 +49,9 @@ COPY ./apps/admin-service/simplified-mock.js ./apps/admin-service/mock-service.j
 RUN mkdir -p ./apps/admin-service/dist/src
 RUN cp ./apps/admin-service/mock-service.js ./apps/admin-service/dist/src/main.js
 
+# Copy Auth0 certificate
+COPY ./apps/admin-service/auth0-certificate.pem ./apps/admin-service/auth0-certificate.pem
+
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
 
@@ -67,6 +70,7 @@ RUN mkdir -p ./apps/admin-service/dist/src ./apps/admin-service/logs && \
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/admin-service/dist/src/main.js ./apps/admin-service/dist/src/
+COPY --from=builder /app/apps/admin-service/auth0-certificate.pem ./apps/admin-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the mock service
 RUN npm init -y && \

@@ -47,6 +47,9 @@ COPY ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/simp
 # Copy simplified mock service to dist folder
 RUN cp ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/dist/src/main.js
 
+# Copy Auth0 certificate
+COPY ./apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
+
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
 
@@ -65,6 +68,7 @@ RUN mkdir -p ./apps/accounting-service/dist/src ./apps/accounting-service/logs &
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/accounting-service/dist/src/main.js ./apps/accounting-service/dist/src/
+COPY --from=builder /app/apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the simplified mock service
 RUN npm init -y && \

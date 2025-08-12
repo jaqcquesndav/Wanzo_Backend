@@ -30,6 +30,9 @@ COPY ./apps/gestion_commerciale_service/simplified-mock.js ./simplified-mock.js
 RUN mkdir -p ./dist/src
 RUN cp ./simplified-mock.js ./dist/src/main.js
 
+# Copy Auth0 certificate
+COPY ./apps/gestion_commerciale_service/auth0-certificate.pem ./auth0-certificate.pem
+
 # Production stage - minimal runtime image with security patches
 FROM node:20.13.0-alpine3.19 AS production
 
@@ -48,6 +51,7 @@ RUN mkdir -p ./apps/gestion_commerciale_service/dist/src ./apps/gestion_commerci
 
 # Copy only the built artifacts from builder
 COPY --from=builder /app/apps/gestion_commerciale_service/dist/src/main.js ./apps/gestion_commerciale_service/dist/src/
+COPY --from=builder /app/apps/gestion_commerciale_service/auth0-certificate.pem ./apps/gestion_commerciale_service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the simplified mock service
 RUN npm init -y && \
