@@ -515,7 +515,7 @@ export class UserService {
    * @param idType - The type of identity document
    * @returns Promise with upload status
    */
-  async uploadIdentityDocument(userId: string, file: MulterFile, idType: string): Promise<{ idType: string, idStatus: string, documentUrl: string }> {
+  async uploadIdentityDocument(userId: string, file: MulterFile, idType: string): Promise<{ idType: string, idStatus: string, documentUrl: string, url: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     
     if (!user) {
@@ -555,7 +555,45 @@ export class UserService {
     return {
       idType,
       idStatus: IdStatus.PENDING,
-      documentUrl: uploadResult.url
+      documentUrl: uploadResult.url,
+      url: uploadResult.url
+    };
+  }
+
+  /**
+   * Upload profile photo
+   * @param userId - The user ID
+   * @param file - The uploaded file
+   * @returns Promise with upload status and URL
+   */
+  async uploadProfilePhoto(userId: string, file: MulterFile): Promise<{ url: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    
+    // Upload the file to Cloudinary
+    const uploadResult = await this.cloudinaryService.uploadImage(file, 'avatars');
+    
+    // Update the user with the profile picture URL
+    user.picture = uploadResult.url;
+    user.updatedAt = new Date();
+    
+    await this.userRepository.save(user);
+    
+    // Log this activity
+    await this.recordUserActivity({
+      userId: user.id, 
+      activityType: ActivityType.PROFILE_UPDATED, 
+      details: {
+        fieldChanged: 'profile_picture',
+        newValue: uploadResult.url
+      }
+    });
+    
+    return {
+      url: uploadResult.url
     };
   }
 

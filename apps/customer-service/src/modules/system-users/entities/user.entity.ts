@@ -38,7 +38,7 @@ export enum AccountType {
 export enum IdType {
   NATIONAL_ID = 'national_id',
   PASSPORT = 'passport',
-  DRIVERS_LICENSE = 'drivers_license',
+  DRIVING_LICENSE = 'driver_license',
   OTHER = 'other'
 }
 

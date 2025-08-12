@@ -18,7 +18,7 @@ class RecordTokenUsageDto {
 @ApiTags('tokens')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('land/api/v1/tokens')
+@Controller('tokens')
 export class TokenController {
   constructor(private readonly tokenService: TokenService) {}
 
@@ -46,11 +46,7 @@ export class TokenController {
       throw new UnauthorizedException('Utilisateur non authentifié');
     }
     
-    const balance = await this.tokenService.getTokenBalanceByAuth0Id(auth0Id);
-    return { 
-      balance: balance.balance,
-      totalPurchased: balance.totalPurchased
-    };
+    return await this.tokenService.getTokenBalanceByAuth0Id(auth0Id);
   }
 
   @Get('transactions')

@@ -25,7 +25,7 @@ interface MulterFile {
 
 @ApiTags('financial-institutions')
 @ApiBearerAuth()
-@Controller('land/api/v1/financial-institutions')
+@Controller('financial-institutions')
 export class FinancialInstitutionController {
   constructor(private readonly institutionService: InstitutionService) {}
 

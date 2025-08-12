@@ -28,7 +28,7 @@ class UpdateSubscriptionDto {
 
 @ApiTags('subscriptions')
 @ApiBearerAuth()
-@Controller('land/api/v1')
+@Controller('subscription')
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
@@ -46,7 +46,7 @@ export class SubscriptionController {
     return this.subscriptionService.findByCustomer(customerId);
   }
 
-  @Get('subscription/plans')
+  @Get('/plans')
   @ApiOperation({ summary: 'Récupérer tous les plans d\'abonnement disponibles' })
   @ApiResponse({ status: 200, description: 'Liste des plans récupérée' })
   async getPlans(): Promise<SubscriptionPlan[]> {
@@ -107,7 +107,7 @@ export class SubscriptionController {
     return this.subscriptionService.findExpiredSubscriptions();
   }
 
-  @Get('subscriptions/current')
+  @Get('/current')
   @ApiOperation({ summary: 'Récupérer l\'abonnement actuel de l\'utilisateur connecté' })
   @ApiResponse({ status: 200, description: 'Abonnement actuel récupéré' })
   @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
@@ -120,7 +120,7 @@ export class SubscriptionController {
     return this.subscriptionService.getCurrentSubscriptionByAuth0Id(auth0Id);
   }
 
-  @Post('subscriptions/cancel')
+  @Post('/cancel')
   @ApiOperation({ summary: 'Annuler l\'abonnement actuel de l\'utilisateur connecté' })
   @ApiResponse({ status: 200, description: 'Abonnement annulé avec succès' })
   @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })

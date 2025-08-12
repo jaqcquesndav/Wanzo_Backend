@@ -194,7 +194,7 @@ export class TokenService {
   /**
    * Récupère le solde de tokens d'un utilisateur par son Auth0 ID
    */
-  async getTokenBalanceByAuth0Id(auth0Id: string): Promise<{ balance: number, totalPurchased: number }> {
+  async getTokenBalanceByAuth0Id(auth0Id: string): Promise<any> {
     // Trouver l'utilisateur par son Auth0 ID
     const user = await this.userRepository.findOne({ where: { auth0Id } });
     
@@ -205,10 +205,28 @@ export class TokenService {
     const totalPurchased = await this.getTotalPurchasedTokens(user.customerId);
     const totalUsage = await this.getTotalTokenUsage(user.customerId);
     const balance = totalPurchased - totalUsage;
+    
+    // Période courante (mois en cours)
+    const now = new Date();
+    const currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+    // Renvoyer un format compatible avec le frontend
     return {
-      balance,
-      totalPurchased
+      id: user.customerId, // Utiliser l'ID client comme identifiant unique
+      customerId: user.customerId,
+      totalTokens: totalPurchased,
+      usedTokens: totalUsage,
+      remainingTokens: balance,
+      monthlyAllocation: 0, // À définir selon votre logique d'allocation mensuelle
+      rolledOverTokens: 0,  // À définir selon votre logique de report
+      purchasedTokens: totalPurchased,
+      bonusTokens: 0,       // À définir selon votre logique de bonus
+      currentPeriod: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+      periodStartDate: currentPeriodStart,
+      periodEndDate: currentPeriodEnd,
+      balance: balance,     // Pour la compatibilité avec le code existant
+      totalPurchased: totalPurchased // Pour la compatibilité avec le code existant
     };
   }
 

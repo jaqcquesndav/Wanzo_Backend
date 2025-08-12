@@ -9,7 +9,7 @@ import { MulterFile } from '../../cloudinary/cloudinary.service';
 
 @ApiTags('users')
 @ApiBearerAuth()
-@Controller('land/api/v1/users')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -148,7 +148,7 @@ export class UserController {
 
   @Post('me/identity-document')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('idDocument'))
+  @UseInterceptors(FileInterceptor('document'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Télécharger une pièce d\'identité' })
   @ApiResponse({ status: 200, description: 'Document d\'identité téléchargé', type: ApiResponseDto })
@@ -157,7 +157,7 @@ export class UserController {
     @Body() uploadIdentityDocumentDto: UploadIdentityDocumentDto,
     @UploadedFile() file: MulterFile,
     @Req() req: any
-  ): Promise<ApiResponseDto<{ idType: string, idStatus: string, message: string }>> {
+  ): Promise<ApiResponseDto<{ url: string, documentType: string, message: string }>> {
     const auth0Id = req.user?.sub;
     if (!auth0Id) {
       throw new UnauthorizedException('Utilisateur non authentifié');
@@ -178,8 +178,8 @@ export class UserController {
     return {
       success: true,
       data: {
-        idType: result.idType,
-        idStatus: result.idStatus,
+        url: result.url,
+        documentType: result.idType,
         message: 'Document d\'identité téléchargé avec succès et en attente de vérification'
       }
     };
@@ -235,6 +235,37 @@ export class UserController {
       success: true,
       data: {
         message: 'Compte supprimé avec succès'
+      }
+    };
+  }
+
+  @Post('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Télécharger une photo de profil' })
+  @ApiResponse({ status: 200, description: 'Photo téléchargée', type: ApiResponseDto })
+  @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
+  async uploadProfilePhoto(
+    @UploadedFile() file: MulterFile,
+    @Req() req: any
+  ): Promise<ApiResponseDto<{ url: string }>> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    const user = await this.userService.findByAuth0Id(auth0Id);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    
+    const result = await this.userService.uploadProfilePhoto(user.id, file);
+    
+    return {
+      success: true,
+      data: {
+        url: result.url
       }
     };
   }

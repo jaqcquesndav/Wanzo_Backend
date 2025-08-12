@@ -15,7 +15,7 @@ interface MulterFile {
 
 @ApiTags('companies')
 @ApiBearerAuth()
-@Controller('land/api/v1/companies')
+@Controller('companies')
 export class CompanyController {
   constructor(private readonly smeService: SmeService) {}
 

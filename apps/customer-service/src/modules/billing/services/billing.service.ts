@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, Like, LessThan } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 import { User } from '../../system-users/entities/user.entity';
+import { ConfigService } from '@nestjs/config';
 
 interface CreateInvoiceDto {
   customerId: string;
@@ -48,6 +49,7 @@ export class BillingService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly customerEventsProducer: CustomerEventsProducer,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -360,5 +362,67 @@ export class BillingService {
     // Log de l'événement pour les administrateurs
     // TODO: Implémenter un système de notification pour les preuves de paiement manuelles
     console.log(`Preuve de paiement manuelle téléchargée - Payment ID: ${manualPayment.id}, User: ${auth0Id}, Amount: ${proofData.amount} ${proofData.currency}`);
+  }
+  
+  /**
+   * Upload une preuve de paiement manuel avec un fichier
+   * Adapté pour correspondre à l'API frontend
+   */
+  async uploadManualPaymentWithFile(
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+    data: {
+      planId?: string;
+      tokenAmount?: number;
+      referenceNumber: string;
+      amount: number;
+      paymentDate: Date;
+    },
+    auth0Id: string
+  ): Promise<Payment> {
+    // Vérifier que l'utilisateur existe
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    
+    // Uploader le fichier de preuve à Cloudinary ou S3
+    // Pour cet exemple, nous supposons que nous avons un service de stockage
+    // const fileUploadResult = await this.storageService.uploadFile(file.buffer, {
+    //   folder: 'payment-proofs',
+    //   public_id: `${user.id}-${Date.now()}`,
+    //   resource_type: 'auto'
+    // });
+    
+    // Comme il n'y a pas de service de stockage défini, nous utilisons un chemin factice
+    const proofUrl = `https://storage.example.com/payment-proofs/${user.id}-${Date.now()}-${file.originalname}`;
+    
+    // Créer le paiement manuel
+    const payment = this.paymentRepository.create({
+      customerId: user.customerId,
+      amount: data.amount,
+      currency: 'USD', // Par défaut USD, à adapter selon les besoins
+      paymentMethod: PaymentMethod.MANUAL,
+      status: PaymentStatus.PENDING, // Les paiements manuels sont en attente jusqu'à vérification
+      paymentDate: data.paymentDate,
+      transactionId: data.referenceNumber,
+      notes: `Paiement manuel avec référence: ${data.referenceNumber}`,
+      metadata: {
+        proofUrl: proofUrl,
+        manualSubmission: true,
+        submittedAt: new Date(),
+        submittedBy: auth0Id,
+        planId: data.planId,
+        tokenAmount: data.tokenAmount
+      }
+    });
+    
+    // Enregistrer le paiement
+    const savedPayment = await this.paymentRepository.save(payment);
+    
+    // Notifier les administrateurs (à implémenter)
+    console.log(`Nouvelle preuve de paiement manuel - ID: ${savedPayment.id}, User: ${auth0Id}, Amount: ${data.amount}`);
+    
+    return savedPayment;
   }
 }

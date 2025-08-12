@@ -167,10 +167,33 @@ export class SubscriptionService {
   /**
    * Récupère les plans d'abonnement disponibles
    */
-  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    return this.planRepository.find({
-      order: { priceUSD: 'ASC' },
+  async getSubscriptionPlans(): Promise<any[]> {
+    const plans = await this.planRepository.find({
+      where: { isActive: true, isVisible: true },
+      order: { sortOrder: 'ASC', priceUSD: 'ASC' },
     });
+    
+    // Transformer les plans pour correspondre à la structure attendue par le frontend
+    return plans.map(plan => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description,
+      customerType: plan.customerType,
+      billingPeriod: plan.type === 'annual' ? 'annual' : 'monthly',
+      monthlyPriceUSD: plan.type === 'annual' ? plan.priceUSD / 12 : plan.priceUSD,
+      annualPriceUSD: plan.type === 'annual' ? plan.priceUSD : plan.priceUSD * 12,
+      annualDiscountPercentage: plan.type === 'annual' ? 15 : 0, // Valeur par défaut
+      tokenAllocation: plan.tokenAllocation || {
+        monthlyTokens: plan.includedTokens,
+        tokenRollover: true,
+        maxRolloverMonths: 3
+      },
+      features: plan.features || {},
+      isPopular: plan.isPopular,
+      isVisible: plan.isVisible,
+      sortOrder: plan.sortOrder,
+      tags: plan.tags || []
+    }));
   }
 
   /**

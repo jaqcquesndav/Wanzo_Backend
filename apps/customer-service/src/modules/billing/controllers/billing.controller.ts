@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req, UnauthorizedException, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req, UnauthorizedException, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { BillingService } from '../services/billing.service';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
-import { Payment } from '../entities/payment.entity';
+import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
+// DTOs alignés avec le frontend
 class CreateInvoiceDto {
   customerId!: string;
   subscriptionId?: string;
@@ -23,6 +25,7 @@ class CreateInvoiceDto {
   metadata?: Record<string, any>;
 }
 
+// Adapté aux attentes du frontend
 class CreatePaymentDto {
   customerId!: string;
   invoiceId?: string;
@@ -37,9 +40,25 @@ class CreatePaymentDto {
   metadata?: Record<string, any>;
 }
 
+// Structure pour le téléchargement manuel de preuve de paiement
+class ManualPaymentProofDto {
+  planId?: string;
+  tokenAmount?: number;
+  referenceNumber!: string;
+  amount!: number;
+  paymentDate!: string;
+}
+
+interface MulterFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
+
 @ApiTags('payments')
 @ApiBearerAuth()
-@Controller('land/api/v1')
+@Controller()
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
@@ -134,6 +153,7 @@ export class BillingController {
 
   // Endpoints selon la documentation frontend
 
+  // Endpoint adapté pour correspondre au frontend: /payments
   @Get('payments')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer l\'historique des paiements de l\'utilisateur connecté' })
@@ -142,15 +162,43 @@ export class BillingController {
     @Req() req: any,
     @Query('page') page = 1,
     @Query('limit') limit = 20
-  ): Promise<{ payments: Payment[], total: number, page: number, limit: number }> {
+  ): Promise<{ 
+    success: boolean;
+    data: any[];
+    meta: { pagination: { page: number; limit: number; total: number; pages: number } }
+  }> {
     const auth0Id = req.user?.sub;
     if (!auth0Id) {
       throw new UnauthorizedException('Utilisateur non authentifié');
     }
     
-    return this.billingService.getPaymentsByAuth0Id(auth0Id, +page, +limit);
+    const { payments, total, page: resultPage, limit: resultLimit } = await this.billingService.getPaymentsByAuth0Id(auth0Id, +page, +limit);
+    
+    // Format adapté pour le frontend
+    return {
+      success: true,
+      data: payments.map(payment => ({
+        id: payment.id,
+        date: payment.paymentDate?.toISOString(),
+        amount: payment.amount,
+        currency: payment.currency,
+        method: this.mapPaymentMethodToFrontend(payment.paymentMethod),
+        plan: payment.invoice?.subscription?.plan?.name || 'N/A',
+        status: this.mapPaymentStatusToFrontend(payment.status),
+        receiptUrl: `/payments/${payment.id}/receipt`
+      })),
+      meta: { 
+        pagination: { 
+          page: resultPage, 
+          limit: resultLimit, 
+          total, 
+          pages: Math.ceil(total / resultLimit) 
+        } 
+      }
+    };
   }
 
+  // Endpoint pour télécharger un reçu de paiement
   @Get('payments/:id/receipt')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Télécharger le reçu d\'un paiement (PDF)' })
@@ -176,30 +224,68 @@ export class BillingController {
     res.send(receiptBuffer);
   }
 
-  @Post('payments/manual-proof')
+  // Endpoint pour télécharger une preuve de paiement manuel adapté au frontend
+  @Post('payments/manual')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('proofFile'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Télécharger une preuve de paiement manuelle' })
   @ApiResponse({ status: 200, description: 'Preuve de paiement téléchargée avec succès' })
-  async uploadManualProof(
-    @Body() proofData: { 
-      paymentId: string; 
-      proofUrl: string; 
-      description?: string;
-      amount: number;
-      currency: string;
-    },
+  async uploadManualPaymentProof(
+    @UploadedFile() proofFile: MulterFile,
+    @Body() body: ManualPaymentProofDto,
     @Req() req: any
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; data: { message: string; referenceId: string } }> {
     const auth0Id = req.user?.sub;
     if (!auth0Id) {
       throw new UnauthorizedException('Utilisateur non authentifié');
     }
     
-    await this.billingService.uploadManualPaymentProof(proofData, auth0Id);
+    const result = await this.billingService.uploadManualPaymentWithFile(
+      proofFile,
+      {
+        planId: body.planId,
+        tokenAmount: body.tokenAmount ? +body.tokenAmount : undefined,
+        referenceNumber: body.referenceNumber,
+        amount: +body.amount,
+        paymentDate: new Date(body.paymentDate),
+      },
+      auth0Id
+    );
     
     return {
       success: true,
-      message: 'Preuve de paiement téléchargée avec succès'
+      data: {
+        message: 'Preuve de paiement téléchargée avec succès',
+        referenceId: result.id
+      }
     };
+  }
+  
+  // Méthodes utilitaires pour adapter au frontend
+  private mapPaymentMethodToFrontend(method: string): string {
+    const methodMap = {
+      'credit_card': 'Carte bancaire',
+      'bank_transfer': 'Virement bancaire',
+      'mobile_money': 'Mobile Money',
+      'manual': 'Paiement manuel',
+      'crypto': 'Cryptomonnaie',
+      'paypal': 'PayPal',
+    };
+    return methodMap[method] || method;
+  }
+  
+  private mapPaymentStatusToFrontend(status: PaymentStatus): 'Payé' | 'En attente' | 'Échoué' {
+    switch(status) {
+      case PaymentStatus.COMPLETED:
+        return 'Payé';
+      case PaymentStatus.PENDING:
+        return 'En attente';
+      case PaymentStatus.FAILED:
+      case PaymentStatus.CANCELLED:
+        return 'Échoué';
+      default:
+        return 'En attente';
+    }
   }
 }

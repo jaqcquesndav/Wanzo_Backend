@@ -61,7 +61,7 @@ export class RouteResolverService {
       {
         service: 'customer',
         baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
-        prefix: 'customers',
+        prefix: 'customer/land/api/v1',
         healthCheck: '/health',
         scopes: ['customers:read', 'customers:write', 'users:read', 'users:write', 'subscriptions:read', 'subscriptions:write'],
         roles: ['admin', 'superadmin', 'service'],
