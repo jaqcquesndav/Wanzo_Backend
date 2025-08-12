@@ -10,7 +10,7 @@ param (
 $NETWORK = "wanzo_backend_default"
 
 # Fonction pour charger les données pour un service spécifique
-function Load-ServiceData {
+function Import-ServiceData {
     param (
         [string]$ServiceName
     )
@@ -22,7 +22,7 @@ function Load-ServiceData {
     $dbContainer = ""
     $dbName = ""
     $dbUser = "postgres"
-    $dbPassword = "postgres"
+    # $dbPassword n'est pas utilisé actuellement
     
     # Déterminer le conteneur de base de données et les paramètres en fonction du service
     switch ($ServiceName) {
@@ -53,14 +53,14 @@ function Load-ServiceData {
     
     # Générer le fichier SQL
     Write-Host "Génération du fichier SQL pour $ServiceName..." -ForegroundColor Cyan
-    docker run --rm -v "${PWD}/mock-data:/app/mock-data" `
+    docker run --rm -v "$PWD/mock-data:/app/mock-data" `
         --network $NETWORK `
         wanzo_backend-api-gateway `
         node /app/mock-data/db-loader.js generate $ServiceName
     
     # Copier le fichier SQL dans le conteneur
     Write-Host "Copie du fichier SQL dans le conteneur..." -ForegroundColor Cyan
-    docker cp "./mock-data/$ServiceName.sql" "$dbContainer:/tmp/$ServiceName.sql"
+    docker cp "./mock-data/$ServiceName.sql" "${dbContainer}:/tmp/$ServiceName.sql"
     
     # Exécuter le fichier SQL dans la base de données
     Write-Host "Exécution du fichier SQL dans la base de données..." -ForegroundColor Cyan
@@ -71,19 +71,19 @@ function Load-ServiceData {
 }
 
 # Fonction pour charger les données pour tous les services
-function Load-AllData {
-    Load-ServiceData -ServiceName "customerService"
-    Load-ServiceData -ServiceName "accountingService"
-    Load-ServiceData -ServiceName "gestionCommercialeService"
+function Import-AllData {
+    Import-ServiceData -ServiceName "customerService"
+    Import-ServiceData -ServiceName "accountingService"
+    Import-ServiceData -ServiceName "gestionCommercialeService"
 }
 
 # Logique principale
 if (-not $Service) {
     # Si aucun service n'est spécifié, charger toutes les données
-    Load-AllData
+    Import-AllData
 } else {
     # Sinon, charger seulement les données du service spécifié
-    Load-ServiceData -ServiceName $Service
+    Import-ServiceData -ServiceName $Service
 }
 
 Write-Host "======================================================" -ForegroundColor Green
