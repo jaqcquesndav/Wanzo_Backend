@@ -7,6 +7,21 @@ const app = express();
 const port = process.env.PORT || 8000;
 const serviceName = 'api-gateway';
 
+// CORS middleware
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle OPTIONS method for preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Service configurations
 const services = {
   admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:3001',
@@ -131,6 +146,8 @@ app.use('/api/commercial', simpleProxy(services.gestionCommerciale));
 // Customer Service routes
 app.use('/api/customers', simpleProxy(services.customer));
 app.use('/api/subscriptions', simpleProxy(services.customer));
+// Add support for frontend routes format
+app.use('/customer/land/api', simpleProxy(services.customer));
 
 // 404 handler
 app.use((req, res) => {
@@ -161,6 +178,7 @@ app.listen(port, () => {
   console.log('  - /api/commercial/* -> Gestion Commerciale Service');
   console.log('  - /api/customers/* -> Customer Service');
   console.log('  - /api/subscriptions/* -> Customer Service');
+  console.log('  - /customer/land/api/* -> Customer Service (for frontend compatibility)');
   console.log('Health check available at: /health');
   console.log('Metrics available at: /metrics');
 });

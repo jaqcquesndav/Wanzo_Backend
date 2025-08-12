@@ -1,0 +1,39 @@
+services:
+  # Service API Gateway
+  api-gateway:
+    image: wanzo_backend-api-gateway:latest
+    container_name: kiota-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - ADMIN_SERVICE_URL=http://kiota-admin-service:3001
+      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service:3003
+      - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service:3005
+      - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service:3006
+      - CUSTOMER_SERVICE_URL=http://kiota-customer-service:3011
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Customer Service
+  customer-service:
+    image: customer-service-with-me-endpoint:latest
+    container_name: kiota-customer-service
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=kiota-postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=customer-service
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+networks:
+  kiota-network:
+    name: wanzo_backend_kiota-network
+    external: true

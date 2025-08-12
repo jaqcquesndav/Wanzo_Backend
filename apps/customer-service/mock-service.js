@@ -141,6 +141,42 @@ app.get('/api/subscriptions', (req, res) => {
   });
 });
 
+// Support for frontend routes (add route for /v1/users/me)
+app.get('/v1/users/me', (req, res) => {
+  // Mock authenticated user data
+  res.json({
+    id: "auth0|123456789",
+    firstName: "Jacques",
+    lastName: "Ndavaro",
+    email: "jacquesndav@gmail.com",
+    profilePicture: "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
+    role: "admin",
+    permissions: ["read:profile", "update:profile"],
+    createdAt: "2025-01-15T09:30:00Z",
+    updatedAt: "2025-08-01T14:20:00Z",
+    lastLogin: "2025-08-11T10:45:00Z",
+    isActive: true
+  });
+});
+
+// Support for frontend routes (add route for /v1/users/me)
+app.get('/v1/users/me', (req, res) => {
+  // Mock authenticated user data
+  res.json({
+    id: "auth0|123456789",
+    firstName: "Jean",
+    lastName: "Dupont",
+    email: "jean.dupont@example.com",
+    profilePicture: "https://example.com/avatar.jpg",
+    role: "customer",
+    permissions: ["read:profile", "update:profile"],
+    createdAt: "2025-01-15T09:30:00Z",
+    updatedAt: "2025-08-01T14:20:00Z",
+    lastLogin: "2025-08-11T10:45:00Z",
+    isActive: true
+  });
+});
+
 // Mock database connection simulation
 console.log('Connecting to database...');
 setTimeout(() => {
@@ -153,6 +189,7 @@ setTimeout(() => {
     console.log(`  - /api/customers`);
     console.log(`  - /api/customers/:id`);
     console.log(`  - /api/subscriptions`);
+    console.log(`  - /v1/users/me (for frontend compatibility)`);
     console.log(`Health check available at: /health`);
     console.log(`Metrics available at: /metrics`);
   });

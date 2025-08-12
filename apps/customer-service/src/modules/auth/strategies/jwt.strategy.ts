@@ -4,22 +4,44 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 import { UserService } from '../../system-users/services/user.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly userService: UserService) {
-    super({
-      secretOrKeyProvider: passportJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-      }),
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      audience: process.env.AUTH0_AUDIENCE,
-      issuer: `https://${process.env.AUTH0_DOMAIN}/`,
-      algorithms: ['RS256'],
-    });
+    // Déterminer quelle méthode de vérification utiliser basée sur la présence du certificat
+    let jwtOptions;
+    
+    if (process.env.AUTH0_CERTIFICATE_PATH && fs.existsSync(process.env.AUTH0_CERTIFICATE_PATH)) {
+      // Utiliser le certificat local
+      const certificate = fs.readFileSync(process.env.AUTH0_CERTIFICATE_PATH, 'utf8');
+      jwtOptions = {
+        secretOrKey: certificate,
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        audience: process.env.AUTH0_AUDIENCE,
+        issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+        algorithms: ['RS256'],
+      };
+      console.log('Auth0: Using local certificate for JWT validation');
+    } else {
+      // Fallback sur l'endpoint JWKS
+      jwtOptions = {
+        secretOrKeyProvider: passportJwtSecret({
+          cache: true,
+          rateLimit: true,
+          jwksRequestsPerMinute: 5,
+          jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+        }),
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        audience: process.env.AUTH0_AUDIENCE,
+        issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+        algorithms: ['RS256'],
+      };
+      console.log('Auth0: Using JWKS endpoint for JWT validation');
+    }
+    
+    super(jwtOptions);
   }
 
   async validate(payload: any) {
