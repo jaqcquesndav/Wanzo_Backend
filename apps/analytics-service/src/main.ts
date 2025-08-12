@@ -17,7 +17,7 @@ async function bootstrap() {
       'http://localhost:4000',  // Autre service potentiel
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time'],
     exposedHeaders: ['Authorization'],
     credentials: true,
     maxAge: 3600

@@ -41,7 +41,13 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   
   // Enable CORS for the mobile app
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time'],
+    exposedHeaders: ['Authorization'],
+    credentials: true,
+  });
   
   // Add global validation pipe
   app.useGlobalPipes(new ValidationPipe({

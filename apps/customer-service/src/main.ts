@@ -33,7 +33,13 @@ async function bootstrap() {
   }));
   
   // Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time'],
+    exposedHeaders: ['Authorization'],
+    credentials: true,
+  });
   
   // Configuration Prometheus pour monitoring
   const register = new prometheus.Registry();

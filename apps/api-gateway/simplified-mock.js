@@ -11,7 +11,7 @@ const serviceName = 'api-gateway';
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, x-request-time, x-client-version');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   // Handle OPTIONS method for preflight requests
@@ -24,11 +24,11 @@ app.use((req, res, next) => {
 
 // Service configurations
 const services = {
-  admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:3001',
-  accounting: process.env.ACCOUNTING_SERVICE_URL || 'http://localhost:3003',
-  portfolio: process.env.PORTFOLIO_INSTITUTION_SERVICE_URL || 'http://localhost:3005',
-  gestionCommerciale: process.env.GESTION_COMMERCIALE_SERVICE_URL || 'http://localhost:3006',
-  customer: process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3011'
+  admin: process.env.ADMIN_SERVICE_URL || 'http://kiota-admin-service:3001',
+  accounting: process.env.ACCOUNTING_SERVICE_URL || 'http://kiota-accounting-service:3003',
+  portfolio: process.env.PORTFOLIO_INSTITUTION_SERVICE_URL || 'http://kiota-portfolio-institution-service:3005',
+  gestionCommerciale: process.env.GESTION_COMMERCIALE_SERVICE_URL || 'http://kiota-gestion-commerciale-service:3006',
+  customer: process.env.CUSTOMER_SERVICE_URL || 'http://kiota-customer-service:3011'
 };
 
 console.log('Starting API Gateway...');
