@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { ConfigService } from '@nestjs/config';
 import { passportJwtSecret } from 'jwks-rsa';
 import { User } from '../entities/user.entity';
+import * as fs from 'fs';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,20 +15,49 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly authService: AuthService,
     private configService: ConfigService,
   ) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKeyProvider: passportJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: `${configService.get('AUTH0_DOMAIN')}/.well-known/jwks.json`,
-      }),
-      issuer: `${configService.get('AUTH0_DOMAIN')}/`,
-      audience: configService.get('AUTH0_AUDIENCE'),
-    });
+    // Déterminer quelle méthode de vérification utiliser basée sur la présence du certificat
+    const certificatePath = configService.get('AUTH0_CERTIFICATE_PATH');
+    const domain = configService.get('AUTH0_DOMAIN');
+    const audience = configService.get('AUTH0_AUDIENCE');
+    let jwtOptions;
     
-    this.logger.debug(`JWT Strategy initialized with issuer: ${configService.get('AUTH0_DOMAIN')}`);
+    if (certificatePath && fs.existsSync(certificatePath)) {
+      // Utiliser le certificat local
+      const certificate = fs.readFileSync(certificatePath, 'utf8');
+      jwtOptions = {
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ignoreExpiration: false,
+        secretOrKey: certificate,
+        issuer: `https://${domain}/`,
+        audience: audience,
+        algorithms: ['RS256'],
+      };
+    } else {
+      // Fallback sur l'endpoint JWKS
+      jwtOptions = {
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ignoreExpiration: false,
+        secretOrKeyProvider: passportJwtSecret({
+          cache: true,
+          rateLimit: true,
+          jwksRequestsPerMinute: 5,
+          jwksUri: `https://${domain}/.well-known/jwks.json`,
+        }),
+        issuer: `https://${domain}/`,
+        audience: audience,
+      };
+    }
+    
+    super(jwtOptions);
+    
+    // Log après super()
+    this.logger.debug(`JWT Strategy initialized with issuer: ${domain}`);
+    
+    if (certificatePath && fs.existsSync(certificatePath)) {
+      this.logger.debug('Auth0: Using local certificate for JWT validation');
+    } else {
+      this.logger.debug('Auth0: Using JWKS endpoint for JWT validation');
+    }
   }
 
   async validate(payload: any): Promise<User> {
