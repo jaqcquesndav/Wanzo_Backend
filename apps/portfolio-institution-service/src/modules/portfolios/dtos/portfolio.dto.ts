@@ -1,7 +1,7 @@
-import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID, IsArray } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID, IsArray, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RiskToleranceLevel, PortfolioStatus, RiskProfile } from '../entities/portfolio.entity';
+import { RiskToleranceLevel, PortfolioStatus, RiskProfile, PortfolioType } from '../entities/portfolio.entity';
 
 class PortfolioSettingsDto {
   @ApiProperty({ description: 'Maximum loan amount' })
@@ -36,6 +36,11 @@ export class CreatePortfolioDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({ description: 'Portfolio type', enum: PortfolioType, default: PortfolioType.TRADITIONAL })
+  @IsEnum(PortfolioType)
+  @IsOptional()
+  type?: PortfolioType = PortfolioType.TRADITIONAL;
 
   @ApiProperty({ description: 'Manager ID' })
   @IsUUID()

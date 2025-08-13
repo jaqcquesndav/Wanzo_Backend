@@ -5,6 +5,7 @@ import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
 export { JournalLine }; // Re-export JournalLine
 
+// Les énumérations sont alignées exactement avec les types utilisés par le frontend
 export enum JournalType {
   GENERAL = 'general',
   SALES = 'sales',
@@ -18,14 +19,14 @@ export enum JournalStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   POSTED = 'posted',
-  REJECTED = 'rejected',
-  CANCELLED = 'cancelled'
+  REJECTED = 'rejected',  // Conservé pour les fonctionnalités backend existantes
+  CANCELLED = 'cancelled' // Conservé pour les fonctionnalités backend existantes
 }
 
 export enum JournalSource {
   MANUAL = 'manual',
   AGENT = 'agent',
-  IMPORT = 'import'
+  IMPORT = 'import' // Conservé pour les fonctionnalités backend existantes
 }
 
 export enum ValidationStatus {
@@ -49,7 +50,7 @@ export class Journal {
     type: 'enum',
     enum: JournalType,
   })
-  journalType!: JournalType;
+  journalType!: JournalType; // Utilisation cohérente de journalType comme dans le frontend
 
   @Column('text')
   description!: string;

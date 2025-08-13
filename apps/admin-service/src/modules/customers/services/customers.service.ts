@@ -27,12 +27,15 @@ import {
   ValidationProcessDto
 } from '../dtos';
 import { EventsService } from '../../events/events.service';
+import { documentMethods } from './customers-document.methods';
+import { CustomerDocumentMethods } from '../interfaces';
 
 @Injectable()
-export class CustomersService {
+export class CustomersService implements CustomerDocumentMethods {
   constructor(
     @InjectRepository(Customer)
-    private customersRepository: Repository<Customer>,    @InjectRepository(CustomerDocument)
+    private customersRepository: Repository<Customer>,
+    @InjectRepository(CustomerDocument)
     private documentsRepository: Repository<CustomerDocument>,
     @InjectRepository(CustomerActivity)
     private activitiesRepository: Repository<CustomerActivity>,
@@ -41,9 +44,16 @@ export class CustomersService {
     private readonly eventsService: EventsService,
   ) {
     this.logger = new Logger(CustomersService.name);
+    
+    // Add document methods to this class
+    Object.assign(this, documentMethods);
   }
 
   private logger: Logger;
+
+  // These methods are added dynamically from documentMethods
+  approveDocument!: CustomerDocumentMethods['approveDocument'];
+  rejectDocument!: CustomerDocumentMethods['rejectDocument'];
 
   /**
    * Get all customers with pagination and filtering
@@ -476,73 +486,7 @@ export class CustomersService {
     return this.mapDocumentToDto(savedDocument);
   }
 
-  /**
-   * Approve a document
-   */
-  async approveDocument(customerId: string, documentId: string, comments?: string): Promise<CustomerDocumentDto> {
-    const document = await this.documentsRepository.findOne({
-      where: { id: documentId, customerId }
-    });
-
-    if (!document) {
-      throw new NotFoundException(`Document with ID ${documentId} not found for customer ${customerId}`);
-    }
-
-    document.status = DocumentStatus.APPROVED;
-    document.reviewedAt = new Date();
-    document.reviewedBy = 'current-admin-id'; // In real implementation, get from the authenticated user
-    document.reviewComments = comments;
-
-    const approvedDocument = await this.documentsRepository.save(document);
-
-    // Create activity record for document approval
-    await this.createActivity(
-      customerId,
-      'document',
-      'approved',
-      `Document ${document.fileName} approved`,
-      {
-        documentId,
-        documentType: document.type
-      }
-    );
-
-    return this.mapDocumentToDto(approvedDocument);
-  }
-
-  /**
-   * Reject a document
-   */
-  async rejectDocument(customerId: string, documentId: string, reason: string): Promise<CustomerDocumentDto> {
-    const document = await this.documentsRepository.findOne({
-      where: { id: documentId, customerId }
-    });
-
-    if (!document) {
-      throw new NotFoundException(`Document with ID ${documentId} not found for customer ${customerId}`);
-    }
-
-    document.status = DocumentStatus.REJECTED;
-    document.reviewedAt = new Date();
-    document.reviewedBy = 'current-admin-id'; // In real implementation, get from the authenticated user
-    document.reviewComments = reason;
-
-    const rejectedDocument = await this.documentsRepository.save(document);
-
-    // Create activity record for document rejection
-    await this.createActivity(
-      customerId,
-      'document',
-      'rejected',
-      `Document ${document.fileName} rejected: ${reason}`,
-      {
-        documentId,
-        documentType: document.type
-      }
-    );
-
-    return this.mapDocumentToDto(rejectedDocument);
-  }
+  // The approveDocument and rejectDocument methods are now imported from customers-document.methods.ts
 
   /**
    * Get customer activities

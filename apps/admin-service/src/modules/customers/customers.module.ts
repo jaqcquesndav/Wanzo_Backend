@@ -4,7 +4,10 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CustomersController } from './controllers';
+import { ValidationController } from './controllers/validation.controller';
+import { DocumentsController } from './controllers/documents.controller';
 import { CustomersService } from './services';
+import { ValidationService } from './services/validation.service';
 import { 
   Customer, 
   CustomerDocument, 
@@ -48,8 +51,8 @@ import { EventsModule } from '../events/events.module';
     }),
     EventsModule,
   ],
-  controllers: [CustomersController],
-  providers: [CustomersService],
-  exports: [CustomersService]
+  controllers: [CustomersController, ValidationController, DocumentsController],
+  providers: [CustomersService, ValidationService],
+  exports: [CustomersService, ValidationService]
 })
 export class CustomersModule {}

@@ -3,7 +3,6 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 export enum FiscalYearStatus {
   OPEN = 'open',
   CLOSED = 'closed',
-  AUDITED = 'audited',
 }
 
 @Entity('fiscal_years')

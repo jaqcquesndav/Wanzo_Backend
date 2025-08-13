@@ -37,7 +37,7 @@ export class JournalService {
     const journalData: Partial<Journal> = {
       date: createJournalDto.date,
       description: createJournalDto.description,
-      journalType: createJournalDto.type, // DTO `type` maps to entity `journalType`
+      journalType: createJournalDto.journalType, // Utilisation de journalType directement
       fiscalYearId: createJournalDto.fiscalYear, // DTO `fiscalYear` (string ID) maps to entity `fiscalYearId`
       companyId: createJournalDto.companyId,
       reference: createJournalDto.reference,
@@ -46,6 +46,7 @@ export class JournalService {
       kiotaId,
       totalDebit,
       totalCredit,
+      totalVat: createJournalDto.totalVat || 0, // Ajout du totalVat
       createdBy: userId,
       status: JournalStatus.DRAFT,
       // source: JournalSource.MANUAL, // Set a default source if applicable
@@ -90,8 +91,8 @@ export class JournalService {
       where.fiscalYearId = filters.fiscalYear; // Corrected to fiscalYearId
     }
 
-    if (filters.type) {
-      where.journalType = filters.type; // Corrected to journalType
+    if (filters.journalType) {
+      where.journalType = filters.journalType; // Utilisation de journalType directement
     }
 
     if (filters.status) {
@@ -204,8 +205,8 @@ export class JournalService {
       });
     }
 
-    if (filters.type) {
-      query.andWhere('journal.journalType = :type', { type: filters.type }); // Changed from journal.type to journal.journalType
+    if (filters.journalType) {
+      query.andWhere('journal.journalType = :journalType', { journalType: filters.journalType });
     }
 
     if (filters.status) {

@@ -41,6 +41,7 @@ export class AccountController {
   @ApiResponse({ status: 200, description: 'Accounts retrieved successfully' })
   async findAll(@Query() filters: AccountFilterDto) {
     const result = await this.accountService.findAll(filters);
+    
     return {
       success: true,
       data: result,

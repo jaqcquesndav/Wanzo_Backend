@@ -20,10 +20,26 @@ export class JournalController {
   @ApiResponse({ status: 201, description: 'Journal entry created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createJournalDto: CreateJournalDto, @Req() req: any) {
+    // Nous ajustons les propriétés manquantes
+    if (typeof createJournalDto.date === 'string') {
+      createJournalDto.date = new Date(createJournalDto.date);
+    }
+    
+    // S'assurer que fiscalYear est défini
+    if (!createJournalDto.fiscalYear && createJournalDto['fiscalYearId']) {
+      createJournalDto.fiscalYear = createJournalDto['fiscalYearId'];
+    }
+    
+    // S'assurer que companyId est défini
+    if (!createJournalDto.companyId) {
+      createJournalDto.companyId = req.user.companyId;
+    }
+    
     const journal = await this.journalService.create(createJournalDto, req.user.id);
+    
     return {
       success: true,
-      data: journal,
+      data: journal
     };
   }
 
@@ -47,7 +63,7 @@ export class JournalController {
     const result = await this.journalService.findAll(
       {
         ...filters,
-        type: filters.journalType || filters.type,
+        journalType: filters.journalType, // Utilisation de journalType uniquement
         fiscalYear: filters.fiscalYear,
         startDate: filters.startDate,
         endDate: filters.endDate,
@@ -79,6 +95,7 @@ export class JournalController {
   @ApiResponse({ status: 404, description: 'Journal entry not found' })
   async findOne(@Param('id') id: string) {
     const journal = await this.journalService.findById(id);
+    
     return {
       success: true,
       data: journal,

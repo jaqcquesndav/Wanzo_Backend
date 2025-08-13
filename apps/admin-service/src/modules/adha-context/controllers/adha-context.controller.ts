@@ -30,7 +30,7 @@ import {
 import { AdhaContextSource, AdhaContextType, ZoneCibleType } from '../entities/adha-context.entity';
 
 @ApiTags('Adha Context')
-@Controller('api/adha-context')
+@Controller('adha-context')
 export class AdhaContextController {
     constructor(private readonly adhaContextService: AdhaContextService) {}
 

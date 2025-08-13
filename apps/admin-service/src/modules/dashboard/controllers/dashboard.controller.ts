@@ -25,7 +25,7 @@ import { APIResponse } from '../../../common/interfaces';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
-@Controller('api/dashboard')
+@Controller('dashboard')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}

@@ -40,7 +40,7 @@ import { UserRole } from '../../users/entities/enums';
 @ApiTags('Company')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/company')
+@Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 

@@ -33,7 +33,7 @@ export class RouteResolverService {
       {
         service: 'accounting',
         baseUrl: this.configService.get('ACCOUNTING_SERVICE_URL', 'http://localhost:3003'),
-        prefix: 'accounting',
+        prefix: 'accounting', // Correspond au préfixe utilisé par le frontend dans config.ts
       },
       {
         service: 'portfolio-institution',

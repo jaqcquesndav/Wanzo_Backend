@@ -3,13 +3,13 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum ReportType {
-  BALANCE_SHEET = 'balance-sheet',
-  INCOME_STATEMENT = 'income-statement',
-  CASH_FLOW = 'cash-flow',
+  BALANCE_SHEET = 'balance',
+  INCOME_STATEMENT = 'income',
+  CASH_FLOW = 'cashflow',
   TRIAL_BALANCE = 'trial-balance',
   GENERAL_LEDGER = 'general-ledger',
   JOURNAL_BOOK = 'journal-book',
-  // Types supplémentaires selon la documentation API
+  // Types alignés avec le frontend
   EQUITY_CHANGES = 'equity-changes',
   NOTES = 'notes',
   RECONCILIATION = 'reconciliation',

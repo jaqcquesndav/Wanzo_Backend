@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
 
+// Ces énumérations sont alignées exactement avec les types du frontend
 export enum AccountType {
   ASSET = 'asset',
   LIABILITY = 'liability',

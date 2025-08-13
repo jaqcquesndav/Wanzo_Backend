@@ -72,6 +72,9 @@ async function bootstrap() {
     defaultVersion: '1',
   });
 
+  // Set global prefix to ensure all routes are properly accessible via API gateway
+  app.setGlobalPrefix('v1');
+
   // 3) Security middleware
   app.use(helmet());
   

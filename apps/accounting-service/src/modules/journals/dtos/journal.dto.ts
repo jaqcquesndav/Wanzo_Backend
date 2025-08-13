@@ -52,7 +52,7 @@ export class CreateJournalDto {
 
   @ApiProperty({ description: 'Journal type', enum: JournalType })
   @IsEnum(JournalType)
-  type!: JournalType;
+  journalType!: JournalType; // Changé de 'type' à 'journalType' pour correspondre au frontend
 
   @ApiProperty({ description: 'Journal reference' })
   @IsString()
@@ -77,9 +77,24 @@ export class CreateJournalDto {
   @IsOptional()
   metadata?: Record<string, any>;
 
-  @ApiProperty({ description: 'Company ID' }) // Changed from ApiPropertyOptional
+  @ApiProperty({ description: 'Company ID' })
   @IsUUID()
-  companyId!: string; // Changed from optional
+  companyId!: string;
+  
+  @ApiPropertyOptional({ description: 'Total debit calculated' })
+  @IsOptional()
+  @IsNumber()
+  totalDebit?: number;
+
+  @ApiPropertyOptional({ description: 'Total credit calculated' })
+  @IsOptional()
+  @IsNumber()
+  totalCredit?: number;
+
+  @ApiPropertyOptional({ description: 'Total VAT calculated' })
+  @IsOptional()
+  @IsNumber()
+  totalVat?: number;
 }
 
 export class UpdateJournalStatusDto {
@@ -100,11 +115,6 @@ export class JournalFilterDto {
   fiscalYear?: string;
 
   @ApiPropertyOptional({ description: 'Filter by journal type', enum: JournalType })
-  @IsOptional()
-  @IsEnum(JournalType)
-  type?: JournalType;
-
-  @ApiPropertyOptional({ description: 'Filter by journal type (alias for type)', enum: JournalType })
   @IsOptional()
   @IsEnum(JournalType)
   journalType?: JournalType;

@@ -57,11 +57,13 @@ interface PortfolioMetrics {
   taux_couverture: number;
 }
 
-interface ManagerInfo {
+class ManagerInfo {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
+  role?: string;
+  department?: string;
 }
 
 @Entity('portfolios')

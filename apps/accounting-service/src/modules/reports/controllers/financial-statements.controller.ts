@@ -39,7 +39,11 @@ export class FinancialStatementsController {
       framework,
     );
 
-    return balanceSheet;
+    // Formatage pour aligner la structure avec les attentes du frontend
+    return {
+      success: true,
+      data: balanceSheet
+    };
   }
 
   @Get('income-statement')

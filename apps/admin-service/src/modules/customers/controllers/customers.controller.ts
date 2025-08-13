@@ -17,10 +17,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtBlacklistGuard } from '@/modules/auth/guards/jwt-blacklist.guard';
+import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CustomersService } from '../services';
+import { User } from '@/modules/users/entities/user.entity';
 import {
   CustomerDto,
   CustomerListResponseDto,
@@ -40,7 +42,7 @@ import {
 @ApiTags('Customers')
 @ApiBearerAuth()
 @UseGuards(JwtBlacklistGuard)
-@Controller('api/customers')
+@Controller('customers')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
@@ -161,9 +163,10 @@ export class CustomersController {
   async approveDocument(
     @Param('customerId', ParseUUIDPipe) customerId: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
-    @Body() approveDocumentDto: ApproveDocumentDto
+    @Body() approveDocumentDto: ApproveDocumentDto,
+    @CurrentUser() user: User
   ): Promise<CustomerDocumentDto> {
-    return this.customersService.approveDocument(customerId, documentId, approveDocumentDto.comments);
+    return this.customersService.approveDocument(customerId, documentId, approveDocumentDto, user);
   }
 
   @Put(':customerId/documents/:documentId/reject')
@@ -172,9 +175,10 @@ export class CustomersController {
   async rejectDocument(
     @Param('customerId', ParseUUIDPipe) customerId: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
-    @Body() rejectDocumentDto: RejectDocumentDto
+    @Body() rejectDocumentDto: RejectDocumentDto,
+    @CurrentUser() user: User
   ): Promise<CustomerDocumentDto> {
-    return this.customersService.rejectDocument(customerId, documentId, rejectDocumentDto.reason);
+    return this.customersService.rejectDocument(customerId, documentId, rejectDocumentDto, user);
   }
 
   // Activities
