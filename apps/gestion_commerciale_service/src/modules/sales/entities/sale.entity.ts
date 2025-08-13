@@ -90,8 +90,8 @@ export class Sale {
     format: 'decimal',
     default: 0
   })
-  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'amount_paid_in_cdf', default: 0 })
-  amountPaidInCdf: number;
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'paid_amount_in_cdf', default: 0 })
+  paidAmountInCdf: number;
 
   @ApiProperty({
     description: 'Statut de la vente',
@@ -108,6 +108,26 @@ export class Sale {
   status: SaleStatus;
 
   @ApiProperty({
+    description: 'Montant total en USD',
+    example: 500.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_amount_in_usd', nullable: true })
+  totalAmountInUsd: number;
+
+  @ApiProperty({
+    description: 'Montant payé en USD',
+    example: 300.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'paid_amount_in_usd', nullable: true })
+  paidAmountInUsd: number;
+  
+  @ApiProperty({
     description: 'Taux de change utilisé pour la vente',
     example: 2000.00,
     type: 'number',
@@ -115,6 +135,44 @@ export class Sale {
   })
   @Column({ type: 'decimal', precision: 10, scale: 2, name: 'exchange_rate' })
   exchangeRate: number;
+  
+  @ApiProperty({
+    description: 'Code de la devise de transaction',
+    example: 'USD',
+    nullable: true
+  })
+  @Column({ name: 'transaction_currency_code', nullable: true, default: 'CDF' })
+  transactionCurrencyCode: string;
+  
+  @ApiProperty({
+    description: 'Montant total dans la devise de transaction',
+    example: 500.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_amount_in_transaction_currency', nullable: true })
+  totalAmountInTransactionCurrency: number;
+  
+  @ApiProperty({
+    description: 'Montant payé dans la devise de transaction',
+    example: 300.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'paid_amount_in_transaction_currency', nullable: true })
+  paidAmountInTransactionCurrency: number;
+  
+  @ApiProperty({
+    description: 'Pourcentage de réduction appliqué',
+    example: 10.00,
+    type: 'number',
+    format: 'decimal',
+    default: 0
+  })
+  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'discount_percentage', default: 0 })
+  discountPercentage: number;
   
   @ApiProperty({
     description: 'Méthode de paiement',

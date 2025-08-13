@@ -26,14 +26,15 @@ export class Product {
     example: 'Smartphone haut de gamme avec écran OLED 6.5 pouces',
     nullable: true
   })
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, default: '' })
   description: string;
 
   @ApiProperty({
     description: 'Numéro de référence unique du produit (Stock Keeping Unit)',
-    example: 'PROD-12345'
+    example: 'PROD-12345',
+    nullable: true
   })
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   sku: string;
 
   @ApiProperty({
@@ -162,6 +163,45 @@ export class Product {
   })
   @Column('simple-array', { name: 'tags', nullable: true })
   tags: string[];
+  
+  @ApiProperty({
+    description: 'Devise dans laquelle les prix ont été saisis',
+    example: 'USD',
+    default: 'CDF',
+    nullable: true
+  })
+  @Column({ name: 'input_currency_code', nullable: true, default: 'CDF' })
+  inputCurrencyCode: string;
+
+  @ApiProperty({
+    description: 'Taux de change utilisé lors de la saisie (par rapport au CDF)',
+    example: 2000.00,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'input_exchange_rate', nullable: true, default: 1 })
+  inputExchangeRate: number;
+
+  @ApiProperty({
+    description: 'Prix d\'achat dans la devise de saisie',
+    example: 0.25,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'cost_price_in_input_currency', nullable: true })
+  costPriceInInputCurrency: number;
+
+  @ApiProperty({
+    description: 'Prix de vente dans la devise de saisie',
+    example: 0.40,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'selling_price_in_input_currency', nullable: true })
+  sellingPriceInInputCurrency: number;
   
   @ApiProperty({
     description: 'Taux de taxe en pourcentage',

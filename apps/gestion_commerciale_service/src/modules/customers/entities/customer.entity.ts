@@ -1,6 +1,15 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+// Enum pour la catégorie client, aligné avec le frontend
+export enum CustomerCategory {
+  VIP = 'vip',
+  REGULAR = 'regular',
+  NEW_CUSTOMER = 'new_customer',
+  OCCASIONAL = 'occasional',
+  BUSINESS = 'business'
+}
+
 @Entity('customers')
 export class Customer {
   @ApiProperty({
@@ -20,10 +29,9 @@ export class Customer {
 
   @ApiProperty({
     description: 'Numéro de téléphone du client',
-    example: '+33612345678',
-    nullable: true
+    example: '+243999123456'
   })
-  @Column({ name: 'phone_number', unique: true, nullable: true })
+  @Column({ name: 'phone_number', unique: true })
   phoneNumber: string;
 
   @ApiProperty({
@@ -41,6 +49,7 @@ export class Customer {
   })
   @Column({ nullable: true })
   address: string;
+  
   @ApiProperty({
     description: 'Date de création',
     example: '2025-06-04T12:00:00Z',
@@ -58,7 +67,7 @@ export class Customer {
     nullable: true
   })
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz', nullable: true })
-  updatedAt: Date; // Assuming updatedAt can be null if not yet updated
+  updatedAt: Date;
 
   @ApiProperty({
     description: 'Notes concernant le client',
@@ -84,5 +93,29 @@ export class Customer {
     nullable: true
   })
   @Column({ name: 'profile_picture_url', nullable: true })
-  profilePicture: string; // Storing as URL
+  profilePicture: string;
+  
+  @ApiProperty({
+    description: 'Date du dernier achat du client',
+    example: '2025-07-10T14:30:00Z',
+    type: 'string',
+    format: 'date-time',
+    nullable: true
+  })
+  @Column({ name: 'last_purchase_date', type: 'timestamptz', nullable: true })
+  lastPurchaseDate: Date;
+  
+  @ApiProperty({
+    description: 'Catégorie du client',
+    enum: CustomerCategory,
+    example: CustomerCategory.REGULAR,
+    default: CustomerCategory.REGULAR
+  })
+  @Column({ 
+    type: 'enum', 
+    enum: CustomerCategory, 
+    default: CustomerCategory.REGULAR,
+    name: 'category'
+  })
+  category: CustomerCategory;
 }

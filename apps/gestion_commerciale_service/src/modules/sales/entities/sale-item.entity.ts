@@ -3,6 +3,11 @@ import { Sale } from './sale.entity';
 import { Product } from '../../inventory/entities/product.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
+export enum SaleItemType {
+  PRODUCT = 'product',
+  SERVICE = 'service',
+}
+
 @Entity('sale_items')
 export class SaleItem {
   @ApiProperty({
@@ -29,6 +34,19 @@ export class SaleItem {
   @JoinColumn({ name: 'sale_id' })
   sale: Sale;
 
+  @ApiProperty({
+    description: 'Type d\'élément (produit ou service)',
+    enum: SaleItemType,
+    default: SaleItemType.PRODUCT
+  })
+  @Column({ 
+    type: 'enum', 
+    enum: SaleItemType, 
+    default: SaleItemType.PRODUCT, 
+    name: 'item_type' 
+  })
+  itemType: SaleItemType;
+  
   @ApiProperty({
     description: 'Identifiant du produit',
     example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
@@ -116,6 +134,15 @@ export class SaleItem {
   notes: string | null;
 
   @ApiProperty({
+    description: 'Prix unitaire en CDF',
+    example: 1500.00,
+    type: 'number',
+    format: 'decimal'
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'unit_price_in_cdf' })
+  unitPriceInCdf: number;
+  
+  @ApiProperty({
     description: 'Prix total de l\'article (quantité × prix unitaire - remise)',
     example: 1500.00,
     type: 'number',
@@ -123,4 +150,13 @@ export class SaleItem {
   })
   @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_price' })
   totalPrice: number; // quantity * unitPrice - discount
+  
+  @ApiProperty({
+    description: 'Prix total en CDF',
+    example: 3000000.00,
+    type: 'number',
+    format: 'decimal'
+  })
+  @Column({ type: 'decimal', precision: 12, scale: 2, name: 'total_price_in_cdf' })
+  totalPriceInCdf: number;
 }

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm'; // Added EntityManager
-import { Customer } from './entities/customer.entity';
+import { Customer, CustomerCategory } from './entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
@@ -130,6 +130,35 @@ export class CustomersService {
       throw new NotFoundException(`Customer with ID "${customerId}" not found`);
     }
     customer.totalPurchases = (customer.totalPurchases || 0) + amount;
+    customer.lastPurchaseDate = new Date(); // Mise à jour de la date du dernier achat
+    
+    // Mise à jour de la catégorie en fonction du total des achats
+    this.updateCustomerCategory(customer);
+    
     await customerRepository.save(customer);
+  }
+  
+  // Helper method to determine the customer category based on purchase history
+  private updateCustomerCategory(customer: Customer): void {
+    const totalPurchases = Number(customer.totalPurchases);
+    
+    if (totalPurchases >= 2000000) { // 2 million FC ou plus
+      customer.category = CustomerCategory.VIP;
+    } else if (totalPurchases >= 500000) { // 500,000 FC ou plus
+      customer.category = CustomerCategory.BUSINESS;
+    } else if (totalPurchases >= 200000) { // 200,000 FC ou plus
+      customer.category = CustomerCategory.REGULAR;
+    } else if (totalPurchases > 0 && (
+      !customer.lastPurchaseDate || 
+      new Date().getTime() - customer.lastPurchaseDate.getTime() > 90 * 24 * 60 * 60 * 1000 // 90 jours
+    )) {
+      customer.category = CustomerCategory.OCCASIONAL;
+    } else if (totalPurchases === 0 || 
+      (customer.createdAt && new Date().getTime() - customer.createdAt.getTime() < 30 * 24 * 60 * 60 * 1000) // 30 jours
+    ) {
+      customer.category = CustomerCategory.NEW_CUSTOMER;
+    } else {
+      customer.category = CustomerCategory.REGULAR;
+    }
   }
 }
