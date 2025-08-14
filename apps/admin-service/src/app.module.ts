@@ -47,7 +47,7 @@ import { DatabaseCheckService } from './database-check.service';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'password'),        database: configService.get('DB_DATABASE', 'admin-service'), // Changed default to 'admin-service'
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // Disable auto-synchronization to avoid issues with enums
+        synchronize: true, // Enable auto-synchronization for development
         migrationsRun: false, // Don't run migrations automatically
       }),
       inject: [ConfigService],

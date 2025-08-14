@@ -33,7 +33,7 @@ import { EventsModule } from './modules/events/events.module';
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_DATABASE', 'customer_service'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
+        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
         logging: configService.get<boolean>('DB_LOGGING', false),
       }),
     }),

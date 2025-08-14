@@ -7,7 +7,7 @@ export default registerAs('timeseries', () => ({
   username: process.env.TIMESCALE_USERNAME || 'postgres',
   password: process.env.TIMESCALE_PASSWORD || 'root123',
   database: process.env.TIMESCALE_DATABASE || 'analytics-timeseries',
-  synchronize: false,
+  synchronize: true,
   logging: process.env.NODE_ENV === 'development',
   entities: ['dist/modules/timeseries/**/*.entity.js'],
   migrations: ['dist/migrations/timeseries/*.js'],

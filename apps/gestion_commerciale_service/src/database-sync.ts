@@ -22,7 +22,7 @@ async function resetDatabase() {
     password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
     database: configService.get<string>('DATABASE_NAME', 'wanzo_gestion_commerciale_db'),
     entities: [Supplier, Company, Product, User, Sale, SaleItem, Customer],
-    synchronize: false,
+    synchronize: true,
   });
 
   try {
