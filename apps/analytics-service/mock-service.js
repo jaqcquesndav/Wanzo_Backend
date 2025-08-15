@@ -9,13 +9,13 @@ const serviceName = process.env.SERVICE_NAME || 'mock-service';
 // Setup Prometheus registry
 const register = new Registry();
 const requestCounter = new Counter({
-  name: `${serviceName}_requests_total`,
+  name: 'analytics_service_requests_total',
   help: 'Total number of requests',
   registers: [register]
 });
 
 const healthGauge = new Gauge({
-  name: `${serviceName}_health_status`,
+  name: 'analytics_service_health_status',
   help: 'Health status of the service (1 = healthy, 0 = unhealthy)',
   registers: [register]
 });

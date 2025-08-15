@@ -6,7 +6,8 @@ export default () => ({
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'analytics',
-    synchronize: process.env.NODE_ENV !== 'production',
+    // Toujours synchroniser, même en production, pour la création initiale des tables
+    synchronize: true,
     logging: process.env.DB_LOGGING === 'true',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     migrations: [__dirname + '/../migrations/*{.ts,.js}'],

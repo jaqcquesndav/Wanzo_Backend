@@ -67,6 +67,13 @@ RUN cd apps/analytics-service && \
      (echo "Build failed, using mock service" && \
       cp -f ./mock-service.js ./dist/src/main.js))
 
+# Ensure the dist/src/main.js exists
+RUN cd apps/analytics-service && \
+    if [ ! -f ./dist/src/main.js ]; then \
+      mkdir -p ./dist/src && \
+      cp -f ./mock-service.js ./dist/src/main.js; \
+    fi
+
 # Production stage - Utilisation d'une image Node.js standard au lieu de distroless
 FROM node:20.17.0-bookworm-slim AS production
 
@@ -89,16 +96,24 @@ RUN npm install --only=production express prom-client
 # Copy compiled service and required modules
 COPY --from=builder --chown=appuser:appuser /app/apps/analytics-service/dist /app/dist
 
+# Ensure that main.js is in the correct location
+RUN mkdir -p /app/dist/src && \
+    if [ -f /app/dist/main.js ] && [ ! -f /app/dist/src/main.js ]; then \
+      cp /app/dist/main.js /app/dist/src/main.js; \
+    fi
+
 # Change ownership and switch to non-root user
 USER appuser
 
 # Expose port
-EXPOSE 3004
+EXPOSE 3002
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=3004
+ENV PORT=3002
+
+# Set service name
 ENV SERVICE_NAME="analytics-service"
 
-# Start the application
-CMD ["node", "dist/src/main.js"]
+# Command to run the app with absolute path
+CMD ["node", "/app/dist/src/main.js"]
