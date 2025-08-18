@@ -16,7 +16,7 @@ export class AnalyticsAccessController {
     
     return {
       hasAccess: true,
-      userType: user.userType,
+      userType: user.userType || 'unknown',
       message: 'You have access to the analytics service'
     };
   }
