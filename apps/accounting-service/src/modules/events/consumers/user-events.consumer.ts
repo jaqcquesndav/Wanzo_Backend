@@ -5,9 +5,9 @@ import {
   UserEventTopics,
   UserStatusChangedEvent,
   UserCreatedEvent, // Base event type
-  // Import other relevant event types from '@wanzo/shared/events/kafka-config' as needed
-} from '@wanzo/shared/events/kafka-config';
-import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzo/shared/events/subscription-events';
+  // Import other relevant event types from '@wanzobe/shared/events/kafka-config' as needed
+} from '@wanzobe/shared/events/kafka-config';
+import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzobe/shared/events/subscription-events';
 import { ExtendedUserCreatedEvent } from '../types/extended-event-types';
 
 // Import services from accounting-service that will handle the business logic

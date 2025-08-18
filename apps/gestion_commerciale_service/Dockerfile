@@ -12,23 +12,38 @@ WORKDIR /app
 # Create essential directories
 RUN mkdir -p ./apps/gestion_commerciale_service/dist/src
 
-# Create simple package.json for the service
-RUN echo '{"name":"gestion-commerciale-service","version":"1.0.0","dependencies":{"express":"^4.18.2"}}' > ./apps/gestion_commerciale_service/package.json
+# Copy turbo and package files
+COPY package.json ./
+COPY turbo.json ./
 
-# Install Express
+# Copy local package files first
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/customer-sync/package.json ./packages/customer-sync/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+
+# Copy the TypeScript config files
+COPY packages/tsconfig/*.json ./packages/tsconfig/
+
+# Create mock modules for local packages
+RUN mkdir -p ./packages/shared/src ./packages/customer-sync/src
+RUN echo 'module.exports = {};' > ./packages/shared/src/index.js && \
+    echo 'module.exports = {};' > ./packages/customer-sync/src/index.js
+
+# Copy service files
+COPY ./apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
+COPY ./apps/gestion_commerciale_service/tsconfig.json ./apps/gestion_commerciale_service/
+COPY ./apps/gestion_commerciale_service/nest-cli.json ./apps/gestion_commerciale_service/
+COPY ./apps/gestion_commerciale_service/src ./apps/gestion_commerciale_service/src/
+
+# Create tsconfig.build.json if it doesn't exist
+RUN echo '{"extends":"./tsconfig.json","exclude":["node_modules","test","dist","**/*spec.ts"]}' > ./apps/gestion_commerciale_service/tsconfig.build.json
+
+# Install dependencies with file: references for local packages
+RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
+
+# Build the service
 WORKDIR /app/apps/gestion_commerciale_service
-RUN npm install express
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3005
-
-# Copy the simplified mock service file instead
-COPY ./apps/gestion_commerciale_service/simplified-mock.js ./simplified-mock.js
-
-# Create dist directory and copy simplified mock service
-RUN mkdir -p ./dist/src
-RUN cp ./simplified-mock.js ./dist/src/main.js
+RUN npm run build
 
 # Copy Auth0 certificate
 COPY ./apps/gestion_commerciale_service/auth0-certificate.pem ./auth0-certificate.pem

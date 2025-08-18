@@ -1,22 +1,19 @@
-{
+﻿{
   "extends": "../../packages/tsconfig/nestjs.json",
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./",
-    "skipLibCheck": true,
-    "useDefineForClassFields": false,
-    "declaration": true,
-    "declarationMap": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
     "paths": {
       "@/*": ["src/*"],
-      "@wanzo/shared/*": ["../../packages/shared/*"]
+      "@wanzobe/shared/*": ["../../packages/shared/*"],
+      "@wanzobe/types": ["../../packages/types"]
     },
-    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./src/types"],
-    "types": ["jest", "node"]
+    "skipLibCheck": true,
+    "types": ["jest", "node"],
+    "typeRoots": [
+      "../../node_modules/@types"
+    ]
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist", "**/*spec.ts"]
+  "include": ["src/**/*", "../../packages/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }

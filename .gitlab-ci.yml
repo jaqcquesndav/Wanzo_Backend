@@ -1,0 +1,90 @@
+image: node:20.13.0-alpine3.19
+
+stages:
+  - setup
+  - test
+  - build
+  - docker-build
+  - deploy
+
+variables:
+  YARN_CACHE_FOLDER: .yarn-cache
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .yarn-cache/
+    - node_modules/
+
+setup:
+  stage: setup
+  script:
+    - yarn --version || npm install -g yarn
+    - yarn install --frozen-lockfile
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 day
+
+lint:
+  stage: test
+  dependencies:
+    - setup
+  script:
+    - yarn lint
+
+test:
+  stage: test
+  dependencies:
+    - setup
+  script:
+    - yarn test
+
+build:
+  stage: build
+  dependencies:
+    - setup
+  script:
+    - yarn build
+  artifacts:
+    paths:
+      - apps/*/dist/
+    expire_in: 1 week
+
+# Docker build pour chaque service
+.docker-build-template: &docker-build-definition
+  stage: docker-build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  only:
+    - main
+    - develop
+
+accounting-service-docker:
+  <<: *docker-build-definition
+  script:
+    - cd apps/accounting-service
+    - docker build -t $CI_REGISTRY/wanzobe/accounting-service:$CI_COMMIT_REF_SLUG -f Dockerfile .
+    - docker push $CI_REGISTRY/wanzobe/accounting-service:$CI_COMMIT_REF_SLUG
+
+admin-service-docker:
+  <<: *docker-build-definition
+  script:
+    - cd apps/admin-service
+    - docker build -t $CI_REGISTRY/wanzobe/admin-service:$CI_COMMIT_REF_SLUG -f Dockerfile .
+    - docker push $CI_REGISTRY/wanzobe/admin-service:$CI_COMMIT_REF_SLUG
+
+# Ajouter d'autres services au besoin
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - apk add --no-cache curl
+    - curl -X POST $DEPLOY_WEBHOOK_URL
+  only:
+    - main
+  when: manual

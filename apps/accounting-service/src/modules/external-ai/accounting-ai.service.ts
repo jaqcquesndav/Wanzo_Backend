@@ -208,6 +208,7 @@ export class AccountingAIService {
         date: new Date(suggestion.date),
         description: suggestion.description,
         type: mappedJournalType,
+        journalType: mappedJournalType, // Ajout pour compatibilité
         fiscalYear: fiscalYearToUse,
         companyId,
         reference: `AI-SUGGEST-${Date.now()}`,

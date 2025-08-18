@@ -15,9 +15,9 @@ RUN mkdir -p ./apps/customer-service/dist/src
 # Create simple package.json for the service
 RUN echo '{"name":"customer-service","version":"1.0.0","dependencies":{"express":"^4.18.2"}}' > ./apps/customer-service/package.json
 
-# Install Express
+# Install Express with Yarn
 WORKDIR /app/apps/customer-service
-RUN npm install express
+RUN yarn add express
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -50,9 +50,9 @@ RUN mkdir -p ./apps/customer-service/dist/src ./apps/customer-service/logs && \
 COPY --from=builder /app/apps/customer-service/dist/src/main.js ./apps/customer-service/dist/src/
 
 # Install minimal dependencies needed for the mock service
-RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express && \
-    npm cache clean --force
+RUN yarn init -y && \
+    yarn add express --production && \
+    yarn cache clean
 
 # Environment variables (non-sensitive)
 ENV NODE_ENV=production

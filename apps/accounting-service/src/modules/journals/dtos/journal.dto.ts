@@ -52,7 +52,12 @@ export class CreateJournalDto {
 
   @ApiProperty({ description: 'Journal type', enum: JournalType })
   @IsEnum(JournalType)
-  journalType!: JournalType; // Changé de 'type' à 'journalType' pour correspondre au frontend
+  type!: JournalType; // Compatible avec les tests existants
+
+  @ApiProperty({ description: 'Journal type', enum: JournalType })
+  @IsEnum(JournalType)
+  @IsOptional()
+  journalType?: JournalType; // Optionnel pour rétrocompatibilité
 
   @ApiProperty({ description: 'Journal reference' })
   @IsString()
@@ -113,6 +118,11 @@ export class JournalFilterDto {
   @IsOptional()
   @IsString()
   fiscalYear?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by journal type', enum: JournalType })
+  @IsOptional()
+  @IsEnum(JournalType)
+  type?: JournalType;  // Ajout de la propriété 'type' pour les tests
 
   @ApiPropertyOptional({ description: 'Filter by journal type', enum: JournalType })
   @IsOptional()

@@ -5,8 +5,10 @@
     "rootDir": "./",
     "baseUrl": "./",
     "composite": true, // Often useful for shared packages in a monorepo
-    "declaration": true // Ensure .d.ts files are generated
+    "declaration": true, // Ensure .d.ts files are generated
+    "skipLibCheck": true,
+    "types": ["node"]
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

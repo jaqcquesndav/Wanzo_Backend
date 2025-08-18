@@ -5,9 +5,15 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "@wanzo/shared/*": ["../../packages/shared/*"]
-    }
+      "@wanzobe/shared/*": ["../../packages/shared/*"],
+      "@wanzobe/types": ["../../packages/types"]
+    },
+    "typeRoots": [
+      "../../node_modules/@types"
+    ],
+    "skipLibCheck": true,
+    "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../packages/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

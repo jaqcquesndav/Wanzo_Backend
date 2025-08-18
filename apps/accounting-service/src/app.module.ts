@@ -54,7 +54,9 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         password: configService.get('DB_PASSWORD', 'password'),
         database: configService.get('DB_DATABASE', 'accounting'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: true, // Force synchronize to true to create tables
+        logging: true,     // Enable logging for debugging
+        autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),    // 3) Import de tous tes modules métier

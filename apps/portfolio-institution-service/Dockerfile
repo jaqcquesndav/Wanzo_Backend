@@ -15,9 +15,9 @@ RUN mkdir -p ./apps/portfolio-institution-service/dist/src
 # Create simple package.json for the service
 RUN echo '{"name":"portfolio-institution-service","version":"1.0.0","dependencies":{"express":"^4.18.2"}}' > ./apps/portfolio-institution-service/package.json
 
-# Install Express
+# Install Express with Yarn
 WORKDIR /app/apps/portfolio-institution-service
-RUN npm install express
+RUN yarn add express
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -54,9 +54,9 @@ COPY --from=builder /app/apps/portfolio-institution-service/dist/src/main.js ./a
 COPY --from=builder /app/apps/portfolio-institution-service/auth0-certificate.pem ./apps/portfolio-institution-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the mock service
-RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express && \
-    npm cache clean --force
+RUN yarn init -y && \
+    yarn add express --production && \
+    yarn cache clean
 
 # Environment variables (non-sensitive)
 ENV NODE_ENV=production

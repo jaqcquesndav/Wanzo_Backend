@@ -51,6 +51,7 @@ describe('JournalController', () => {
         description: 'Test Journal Entry',
         reference: 'REF001',
         type: JournalType.GENERAL,
+        journalType: JournalType.GENERAL,
         companyId: 'company-id',
         fiscalYear: 'fiscal-year-id',
         lines: [

@@ -60,8 +60,8 @@ import { TokenBlacklist } from './modules/auth/entities';
         password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
         database: configService.get<string>('DATABASE_NAME', 'wanzo_gestion_commerciale_db'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV', 'development') === 'development',
-        logging: configService.get<string>('NODE_ENV', 'development') === 'development',
+        synchronize: true, // Force synchronize to true to create tables
+        logging: true,     // Enable logging for debugging
         autoLoadEntities: true,
         entitySkipConstructor: true,
         connectTimeoutMS: 10000,

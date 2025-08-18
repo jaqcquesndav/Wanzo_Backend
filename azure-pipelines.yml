@@ -1,0 +1,92 @@
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildTest
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.13.x'
+      displayName: 'Install Node.js'
+
+    - task: Cache@2
+      inputs:
+        key: 'yarn | "$(Agent.OS)" | yarn.lock'
+        restoreKeys: |
+          yarn | "$(Agent.OS)"
+        path: $(YARN_CACHE_FOLDER)
+      displayName: Cache Yarn packages
+
+    - script: |
+        yarn --version || npm install -g yarn
+        yarn install --frozen-lockfile
+      displayName: 'Install dependencies'
+
+    - script: |
+        yarn lint
+      displayName: 'Run linting'
+
+    - script: |
+        yarn test
+      displayName: 'Run tests'
+
+    - script: |
+        yarn build
+      displayName: 'Build application'
+      
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)'
+        artifact: 'drop'
+        publishLocation: 'pipeline'
+
+- stage: Docker
+  displayName: 'Build and Push Docker Images'
+  dependsOn: Build
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.SourceBranch'], 'refs/heads/develop')))
+  jobs:
+  - job: DockerBuild
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'drop'
+        targetPath: '$(System.DefaultWorkingDirectory)'
+        
+    - task: Docker@2
+      displayName: 'Build and push accounting-service'
+      inputs:
+        containerRegistry: 'DockerHubConnection'
+        repository: 'wanzobe/accounting-service'
+        command: 'buildAndPush'
+        Dockerfile: 'apps/accounting-service/Dockerfile'
+        buildContext: '.'
+        tags: |
+          latest
+          $(Build.BuildId)
+          
+    - task: Docker@2
+      displayName: 'Build and push admin-service'
+      inputs:
+        containerRegistry: 'DockerHubConnection'
+        repository: 'wanzobe/admin-service'
+        command: 'buildAndPush'
+        Dockerfile: 'apps/admin-service/Dockerfile'
+        buildContext: '.'
+        tags: |
+          latest
+          $(Build.BuildId)
+          
+    # Ajouter d'autres services selon vos besoins

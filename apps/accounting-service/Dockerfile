@@ -35,17 +35,22 @@ COPY apps/accounting-service/package.json ./apps/accounting-service/
 RUN node -e "const fs = require('fs'); const pkg = require('./apps/accounting-service/package.json'); if (pkg.dependencies && pkg.dependencies['@wanzobe/customer-sync']) { pkg.dependencies['@wanzobe/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzo/customer-sync']) { pkg.dependencies['@wanzo/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzobe/shared']) { pkg.dependencies['@wanzobe/shared'] = 'file:../../packages/shared'; } if (pkg.dependencies && pkg.dependencies['@wanzo/shared']) { pkg.dependencies['@wanzo/shared'] = 'file:../../packages/shared'; } fs.writeFileSync('./apps/accounting-service/package.json', JSON.stringify(pkg, null, 2));"
 
 # Install dependencies with file: references for local packages
-RUN npm install --legacy-peer-deps || npm install --legacy-peer-deps --force
+RUN yarn install --ignore-engines
 
 # Set environment variables
-ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copy the simplified mock service file
-COPY ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/simplified-mock.js
+# Copy the actual service source code
+COPY ./apps/accounting-service/src ./apps/accounting-service/src
+COPY ./apps/accounting-service/tsconfig.json ./apps/accounting-service/
+COPY ./apps/accounting-service/nest-cli.json ./apps/accounting-service/
 
-# Copy simplified mock service to dist folder
-RUN cp ./apps/accounting-service/simplified-mock.js ./apps/accounting-service/dist/src/main.js
+# Create tsconfig.build.json if it doesn't exist
+RUN echo '{"extends":"./tsconfig.json","exclude":["node_modules","test","dist","**/*spec.ts"]}' > ./apps/accounting-service/tsconfig.build.json
+
+# Build the actual service
+WORKDIR /app/apps/accounting-service
+RUN yarn build
 
 # Copy Auth0 certificate
 COPY ./apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
@@ -71,9 +76,9 @@ COPY --from=builder /app/apps/accounting-service/dist/src/main.js ./apps/account
 COPY --from=builder /app/apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the simplified mock service
-RUN npm init -y && \
-    npm install --no-optional --production --legacy-peer-deps express && \
-    npm cache clean --force
+RUN yarn init -y && \
+    yarn add express --production && \
+    yarn cache clean
 
 # Environment variables (non-sensitive)
 ENV NODE_ENV=production

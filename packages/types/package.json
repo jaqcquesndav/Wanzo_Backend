@@ -1,0 +1,11 @@
+{
+  "name": "@wanzobe/types",
+  "version": "1.0.0",
+  "description": "Shared type definitions for the Wanzobe ecosystem",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "private": true,
+  "files": [
+    "*.d.ts"
+  ]
+}

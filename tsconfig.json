@@ -1,24 +1,27 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Kiota Suit Monorepo",
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" },
-    { "path": "./packages/customer-sync/tsconfig.json" }
+    { "path": "./packages/types" },
+    { "path": "./packages/customer-sync" },
+    { "path": "./packages/shared" }
   ],
   "compilerOptions": {
-    "target": "ES2021",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
+    "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@wanzobe/customer-sync": ["packages/customer-sync/src"],
-      "@wanzobe/customer-sync/*": ["packages/customer-sync/src/*"]
-    }
+      "@wanzobe/customer-sync/*": ["packages/customer-sync/src/*"],
+      "@wanzobe/shared": ["packages/shared/src"],
+      "@wanzobe/shared/*": ["packages/shared/src/*"],
+      "@wanzobe/types": ["packages/types"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./packages/types"
+    ]
   }
 }

@@ -1,4 +1,4 @@
-import { UserCreatedEvent as BaseUserCreatedEvent } from '@wanzo/shared/events/kafka-config';
+import { UserCreatedEvent as BaseUserCreatedEvent } from '@wanzobe/shared/events/kafka-config';
 
 export interface OrganizationDetails {
   id: string;
@@ -9,6 +9,9 @@ export interface OrganizationDetails {
 }
 
 export interface ExtendedUserCreatedEvent extends BaseUserCreatedEvent {
+  userId: string;
+  email: string;
+  timestamp: string;
   isOwner?: boolean;
   organizationDetails?: OrganizationDetails;
 }
