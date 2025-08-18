@@ -8,7 +8,7 @@ import helmet from 'helmet';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { getKafkaConfig } from '../../../packages/shared/events/kafka-config'; // Import shared Kafka config
+import { getKafkaConfig } from '@wanzobe/shared/events/kafka-config'; // Import shared Kafka config
 import { ConfigService } from '@nestjs/config'; // Added import for ConfigService
 
 async function bootstrap() {

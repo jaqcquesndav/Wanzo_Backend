@@ -20,15 +20,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @InjectRepository(TokenBlacklist)
     private readonly tokenBlacklistRepository: Repository<TokenBlacklist>,
   ) {
-    // Déterminer quelle méthode de vérification utiliser basée sur la présence du certificat
+    // Récupérer les configurations
     const certificatePath = configService.get('AUTH0_CERTIFICATE_PATH');
     const domain = configService.get('AUTH0_DOMAIN');
     const audience = configService.get('AUTH0_AUDIENCE');
+    
+    // Déterminer la configuration JWT
     let jwtOptions;
-    let usesLocalCertificate = false;
     
     if (certificatePath && fs.existsSync(certificatePath)) {
-      // Utiliser le certificat local
+      // Utiliser le certificat local RSA
       const certificate = fs.readFileSync(certificatePath, 'utf8');
       jwtOptions = {
         jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -37,11 +38,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         issuer: `https://${domain}/`,
         audience: audience,
         algorithms: ['RS256'],
-        passReqToCallback: true, // Pass request to validate method
+        passReqToCallback: true,
       };
-      usesLocalCertificate = true;
     } else {
-      // Fallback sur l'endpoint JWKS
+      // Utiliser JWKS avec RSA
       jwtOptions = {
         jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
         ignoreExpiration: false,
@@ -53,20 +53,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }),
         issuer: `https://${domain}/`,
         audience: audience,
-        passReqToCallback: true, // Pass request to validate method
+        passReqToCallback: true,
       };
     }
     
-    // Appel de super() avant d'utiliser this
+    // Appel de super() obligatoire en premier
     super(jwtOptions);
-    
-    // Maintenant on peut utiliser this en toute sécurité
-    this.logger.debug(`JWT Strategy initialized with issuer: ${domain}`);
-    if (usesLocalCertificate) {
-      this.logger.debug('Auth0: Using local certificate for JWT validation');
-    } else {
-      this.logger.debug('Auth0: Using JWKS endpoint for JWT validation');
-    }
   }
 
   async validate(req: any, payload: any): Promise<any> {

@@ -41,7 +41,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha-ai-service
+      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -269,42 +269,42 @@ services:
       - kiota-network
     restart: unless-stopped
 
-  # Adha AI Service
-  adha-ai-service:
-    build:
-      context: .
-      dockerfile: ./apps/Adha-ai-service/Dockerfile
-    container_name: kiota-adha-ai-service
-    ports:
-      - "8002:8002"
-      - "9464:9464" # Port Prometheus standardisé
-    environment:
-      - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
-      - PORT=8002
-      - KAFKA_ENV=docker
-      - KAFKA_BROKER_INTERNAL=kafka:29092
-      - KAFKA_BROKER_EXTERNAL=localhost:9092
-      - PROMETHEUS_PORT=9464
-      - POSTGRES_DB=adha-ai-service
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - DLQ_ENABLED=true
-      - DLQ_MAX_RETRIES=3
-      - DLQ_RETRY_DELAY_MS=5000
-    env_file:
-      - ./apps/Adha-ai-service/.env
-    volumes:
-      - ./apps/Adha-ai-service/data:/app/data
-    depends_on:
-      - postgres
-      - kafka
-      - prometheus
-      - grafana
-    networks:
-      - kiota-network
-    restart: unless-stopped
+  # Adha AI Service - TEMPORARILY DISABLED
+  # adha-ai-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/Adha-ai-service/Dockerfile
+  #   container_name: kiota-adha-ai-service
+  #   ports:
+  #     - "8002:8002"
+  #     - "9464:9464" # Port Prometheus standardisé
+  #   environment:
+  #     - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
+  #     - PORT=8002
+  #     - KAFKA_ENV=docker
+  #     - KAFKA_BROKER_INTERNAL=kafka:29092
+  #     - KAFKA_BROKER_EXTERNAL=localhost:9092
+  #     - PROMETHEUS_PORT=9464
+  #     - POSTGRES_DB=adha-ai-service
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_PORT=5432
+  #     - DLQ_ENABLED=true
+  #     - DLQ_MAX_RETRIES=3
+  #     - DLQ_RETRY_DELAY_MS=5000
+  #   env_file:
+  #     - ./apps/Adha-ai-service/.env
+  #   volumes:
+  #     - ./apps/Adha-ai-service/data:/app/data
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+  #     - prometheus
+  #     - grafana
+  #   networks:
+  #     - kiota-network
+  #   restart: unless-stopped
 
   # Customer Service
   customer-service:
@@ -388,7 +388,7 @@ volumes:
   analytics-service-logs:
   portfolio-institution-service-logs:
   gestion-commerciale-service-logs:
-  adha-ai-service-data:
+  # adha-ai-service-data:  # TEMPORARILY DISABLED
   customer-service-logs:
   postgres_data:
   prometheus_data:

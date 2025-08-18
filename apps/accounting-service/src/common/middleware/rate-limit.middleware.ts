@@ -17,6 +17,7 @@ export class RateLimitMiddleware implements NestMiddleware {
       },
     });
 
-    limiter(req, res, next);
+    // Cast explicit pour éviter les conflits de types
+    (limiter as any)(req as any, res as any, next);
   }
 }

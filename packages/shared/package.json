@@ -8,8 +8,11 @@
     "build": "tsc",
     "test": "jest --passWithNoTests"
   },
-  "dependencies": {},
+  "dependencies": {
+    "kafkajs": "~2.2.4"
+  },
   "devDependencies": {
-    "typescript": "^4.9.5"
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.24"
   }
 }

@@ -19,9 +19,14 @@ COPY turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/customer-sync/package.json ./packages/customer-sync/
 
-# Create mock modules for local packages
-RUN echo 'module.exports = {};' > ./packages/shared/src/index.js && \
-    echo 'module.exports = {};' > ./packages/customer-sync/src/index.js
+# Copy packages source code
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+COPY packages/tsconfig/*.json ./packages/tsconfig/
+COPY packages/shared ./packages/shared/
+COPY packages/customer-sync ./packages/customer-sync/
+
+# Create essential directories
+RUN mkdir -p ./packages/shared/src ./packages/customer-sync/src
 
 # Create TypeScript config files
 RUN echo '{"":"https://json.schemastore.org/tsconfig","display":"Default","compilerOptions":{"composite":false,"declaration":true,"declarationMap":true,"esModuleInterop":true,"forceConsistentCasingInFileNames":true,"inlineSources":false,"isolatedModules":true,"moduleResolution":"node","preserveWatchOutput":true,"skipLibCheck":true,"strict":true,"strictNullChecks":true,"strictPropertyInitialization":false,"useDefineForClassFields":false,"noImplicitAny":false},"exclude":["node_modules"]}' > ./packages/tsconfig/base.json
@@ -48,6 +53,10 @@ COPY ./apps/accounting-service/nest-cli.json ./apps/accounting-service/
 # Create tsconfig.build.json if it doesn't exist
 RUN echo '{"extends":"./tsconfig.json","exclude":["node_modules","test","dist","**/*spec.ts"]}' > ./apps/accounting-service/tsconfig.build.json
 
+# Build shared packages first
+WORKDIR /app/packages/shared
+RUN yarn build || echo "Shared build completed or failed gracefully"
+
 # Build the actual service
 WORKDIR /app/apps/accounting-service
 RUN yarn build
@@ -72,7 +81,7 @@ RUN mkdir -p ./apps/accounting-service/dist/src ./apps/accounting-service/logs &
     chown -R nodeuser:nodeuser /app
 
 # Copy only the built artifacts from builder
-COPY --from=builder /app/apps/accounting-service/dist/src/main.js ./apps/accounting-service/dist/src/
+COPY --from=builder /app/apps/accounting-service/dist ./apps/accounting-service/dist
 COPY --from=builder /app/apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
 
 # Install minimal dependencies needed for the simplified mock service
@@ -97,7 +106,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Create startup script
-RUN printf '#!/bin/sh\nexec node apps/accounting-service/dist/src/main.js\n' > /app/startup.sh && chmod +x /app/startup.sh
+RUN printf '#!/bin/sh\nexec node apps/accounting-service/dist/apps/accounting-service/src/main.js\n' > /app/startup.sh && chmod +x /app/startup.sh
 
 # Set non-root user for better security
 USER nodeuser

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ACCOUNTING_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
-import { UserEventTopics, UserCreatedEvent } from '../../../../../packages/shared/events/kafka-config';
+import { UserEventTopics, UserCreatedEvent } from '@wanzobe/shared/events/kafka-config';
 
 // Define the DataSharingConsentChangedEventData interface locally since it's not exported from kafka-config
 interface DataSharingConsentChangedEventData {

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { User, UserStatus } from '../entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserQueryDto, InviteUserDto } from '../dtos/user.dto';
 import { EventsService } from '../../events/events.service';
-import { UserEventTopics, EventUserType } from '../../../../../../packages/shared/events/kafka-config';
+import { UserEventTopics, EventUserType } from '@wanzobe/shared/events/kafka-config';
 
 @Injectable()
 export class UserService {
