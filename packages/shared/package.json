@@ -4,6 +4,10 @@
   "description": "Shared utilities and types for Wanzobe services",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    "./*": "./dist/*",
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest --passWithNoTests"
