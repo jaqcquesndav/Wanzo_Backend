@@ -19,37 +19,30 @@ RUN apk update && apk upgrade && \
         python3 \
         make \
         g++ \
-        curl \
     && rm -rf /var/cache/apk/*
 
 # Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
 # Copie des fichiers de configuration du monorepo
-COPY package.json yarn.lock ./
-COPY turbo.json ./
-
-# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
-COPY packages/shared ./packages/shared/
-COPY packages/types ./packages/types/
-COPY packages/tsconfig ./packages/tsconfig/
-
-# Copie du service spÃ©cifique
+COPY package.json yarn.lock turbo.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/types/package.json ./packages/types/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY apps/accounting-service/package.json ./apps/accounting-service/
 
-# Installation des dÃ©pendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
+# Installation des dÃ©pendances seulement
+RUN yarn install --frozen-lockfile --ignore-engines && \
+    yarn cache clean --all
 
-# Copie du code source du service
-COPY apps/accounting-service/src ./apps/accounting-service/src/
-COPY apps/accounting-service/tsconfig*.json ./apps/accounting-service/
-COPY apps/accounting-service/nest-cli.json ./apps/accounting-service/
+# Copie du code source aprÃ¨s l'installation
+COPY packages/ ./packages/
+COPY apps/accounting-service/ ./apps/accounting-service/
 
-# Build des packages partagÃ©s d'abord
+# Build optimisÃ©
 WORKDIR /app/packages/shared
-RUN yarn build
+RUN yarn build && rm -rf node_modules
 
-# Retour au service et build
 WORKDIR /app/apps/accounting-service
 RUN yarn build
 
@@ -67,51 +60,44 @@ RUN apk update && apk upgrade && \
         ca-certificates \
         dumb-init \
         curl \
-        tini \
     && adduser -D -u 1001 nodeuser \
     && rm -rf /var/cache/apk/*
 
 # Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Copie des fichiers de configuration
-COPY package.json ./
+# Configuration minimaliste pour la production
+COPY package.json yarn.lock ./
 COPY apps/accounting-service/package.json ./apps/accounting-service/
 
-# Installation UNIQUEMENT des dÃ©pendances de production
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
-    yarn cache clean
+# CrÃ©ation structure packages pour les imports
+RUN mkdir -p packages/shared packages/types packages/tsconfig && \
+    echo '{"name":"@wanzobe/shared","version":"0.0.1","main":"dist/index.js"}' > packages/shared/package.json && \
+    echo '{"name":"@wanzobe/types","version":"1.0.0","main":"index.js"}' > packages/types/package.json && \
+    echo '{"name":"@wanzobe/tsconfig","version":"1.0.0"}' > packages/tsconfig/package.json
 
-# Copie des artefacts buildÃ©s depuis le stage builder
+# Installation PRODUCTION SEULEMENT - sans dev dependencies
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+    yarn cache clean --all && \
+    rm -rf /tmp/* /var/tmp/* ~/.npm ~/.yarn
+
+# Copie UNIQUEMENT des artefacts buildÃ©s (pas de sources)
 COPY --from=builder /app/apps/accounting-service/dist ./apps/accounting-service/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 
-# Installation du package shared et crÃ©ation du lien workspace
-WORKDIR /app/packages/shared
-RUN yarn install --production --ignore-engines
-
-WORKDIR /app
-RUN mkdir -p node_modules/@wanzobe && \
-    ln -sf /app/packages/shared node_modules/@wanzobe/shared
-
-# Configuration des permissions et utilisateur
 RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
-# Variables d'environnement
 ENV NODE_ENV=production
-ENV PORT=3003
+ENV PORT=3001
 
-# Health check standardisÃ©
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3003/health || exit 1
+    CMD curl -f http://localhost:3001/health || exit 1
 
-# Exposition du port
-EXPOSE 3003
+EXPOSE 3001
 
-# Point d'entrÃ©e avec init process
 WORKDIR /app/apps/accounting-service
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/accounting-service/src/main.js"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["node", "dist/main.js"]
 

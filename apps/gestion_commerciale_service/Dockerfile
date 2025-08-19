@@ -76,4 +76,4 @@ EXPOSE 3006
 
 WORKDIR /app/apps/gestion_commerciale_service
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "dist/apps/gestion_commerciale_service/src/main.js"]
+CMD ["node", "dist/main.js"]

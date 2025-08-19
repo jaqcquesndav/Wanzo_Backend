@@ -51,3 +51,31 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Backup files
+*.bak
+*.old
+*.backup
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.new
+
+# Docker
+docker-compose.override.yml
+
+# Storage and uploads (development)
+apps/*/uploads/*
+apps/*/storage/*
+apps/*/logs/*
+!apps/*/uploads/.gitkeep
+!apps/*/storage/.gitkeep
+!apps/*/logs/.gitkeep
+
+# Simplified mock files
+*simplified-mock*
+
+# Package mock files
+package-mock.json

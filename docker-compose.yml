@@ -86,8 +86,44 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
 
-  # Admin Service
+  api-gateway-dev:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+      target: builder
+    container_name: kiota-api-gateway-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://kiota-admin-service-dev:3001
+      - ADMIN_SERVICE_URL=http://kiota-admin-service-dev:3001
+      - ANALYTICS_SERVICE_URL=http://kiota-analytics-service-dev:3002
+      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service-dev:3003
+      - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service-dev:3005
+      - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service-dev:3006
+      - CUSTOMER_SERVICE_URL=http://kiota-customer-service-dev:3011
+    volumes:
+      - ./apps/api-gateway/src:/app/apps/api-gateway/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/api-gateway/node_modules
+    command: yarn start:dev
+    depends_on:
+      - admin-service-dev
+      - accounting-service-dev
+      - analytics-service-dev
+      - portfolio-institution-service-dev
+      - gestion-commerciale-service-dev
+      - customer-service-dev
+    networks:
+      - kiota-network
+    profiles:
+      - dev
+
+  # Admin Service (Production)
   admin-service:
     build:
       context: .
@@ -123,19 +159,57 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
+      
+  # Admin Service (Development)
+  admin-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/admin-service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-admin-service-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=admin-service
+      - KAFKA_BROKERS=kafka:29092
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+    volumes:
+      - ./apps/admin-service/src:/app/apps/admin-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/admin-service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
 
-  # Accounting Service
+  # Accounting Service (Production)
   accounting-service:
     build:
       context: .
       dockerfile: ./apps/accounting-service/Dockerfile
     container_name: kiota-accounting-service
     ports:
-      - "3003:3003"
-      - "9465:9464" # Port Prometheus (mapping différent)
+      - "3003:3001" # Port 3001 in container
+      - "9465:9464"
     environment:
       - NODE_ENV=production
-      - PORT=3003
+      - PORT=3001
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
@@ -145,11 +219,8 @@ services:
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
       - PROMETHEUS_PORT=9464
-      # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
-      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -160,8 +231,41 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
 
-  # Analytics Service
+  # Accounting Service (Development)
+  accounting-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/accounting-service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-accounting-service-dev
+    ports:
+      - "3003:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=accounting-service
+      - KAFKA_BROKERS=kafka:29092
+    volumes:
+      - ./apps/accounting-service/src:/app/apps/accounting-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/accounting-service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
+
+  # Analytics Service (Production)
   analytics-service:
     build:
       context: .
@@ -192,10 +296,43 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
+      
+  # Analytics Service (Development)
+  analytics-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/analytics-service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-analytics-service-dev
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=analytics-service
+      - KAFKA_BROKERS=kafka:29092
+    volumes:
+      - ./apps/analytics-service/src:/app/apps/analytics-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/analytics-service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
 
 
 
-  # Portfolio Institution Service
+  # Portfolio Institution Service (Production)
   portfolio-institution-service:
     build:
       context: .
@@ -231,6 +368,44 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
+      
+  # Portfolio Institution Service (Development)
+  portfolio-institution-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/portfolio-institution-service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-portfolio-institution-service-dev
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=portfolio-institution-service
+      - KAFKA_BROKERS=kafka:29092
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+    volumes:
+      - ./apps/portfolio-institution-service/src:/app/apps/portfolio-institution-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/portfolio-institution-service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
 
   # Gestion Commerciale Service
   gestion-commerciale-service:
@@ -268,6 +443,39 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    profiles:
+      - prod
+
+  # Gestion Commerciale Service (Development)
+  gestion-commerciale-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/gestion_commerciale_service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-gestion-commerciale-service-dev
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=gestion_commerciale_service
+      - KAFKA_BROKERS=kafka:29092
+    volumes:
+      - ./apps/gestion_commerciale_service/src:/app/apps/gestion_commerciale_service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/gestion_commerciale_service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
 
   # Adha AI Service - TEMPORARILY DISABLED
   # adha-ai-service:
@@ -306,7 +514,7 @@ services:
   #     - kiota-network
   #   restart: unless-stopped
 
-  # Customer Service
+  # Customer Service (Production)
   customer-service:
     build:
       context: .
@@ -332,6 +540,8 @@ services:
       - AUTH0_AUDIENCE=https://api.wanzo.com
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+    env_file:
+      - ./apps/customer-service/.env
     volumes:
       - customer-service-logs:/app/apps/customer-service/logs
     depends_on:
@@ -340,10 +550,46 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
-    env_file:
-      - ./apps/customer-service/.env
+    profiles:
+      - prod
 
-  # Prometheus for metrics
+  # Customer Service (Development)
+  customer-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/customer-service/Dockerfile
+      target: builder # Use builder stage with dev dependencies
+    container_name: kiota-customer-service-dev
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=customer-service
+      - KAFKA_BROKERS=kafka:29092
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+    volumes:
+      - ./apps/customer-service/src:/app/apps/customer-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/customer-service/node_modules # Anonymous volume
+    command: yarn start:dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - kiota-network
+    profiles:
+      - dev
+
+  # Monitoring services
   prometheus:
     image: prom/prometheus:v2.45.0
     container_name: kiota-prometheus
@@ -361,6 +607,7 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    # Pas de profil pour les outils de monitoring
 
   # Grafana for visualization
   grafana:
@@ -380,6 +627,7 @@ services:
     networks:
       - kiota-network
     restart: unless-stopped
+    # Pas de profil pour les outils de monitoring
 
 volumes:
   api-gateway-logs:
