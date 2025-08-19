@@ -12,7 +12,8 @@
     "build": "tsc",
     "clean": "if exist dist rmdir /s /q dist",
     "prebuild": "npm run clean",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "dev": "tsc --watch"
   },
   "files": [
     "dist",

@@ -4,21 +4,25 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
     "lint": {
-      "outputs": []
+      "outputs": [],
+      "inputs": ["src/**", "*.js", "*.ts"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["^build"]
     },
     "clean": {
       "cache": false
     },
     "test": {
       "outputs": ["coverage/**"],
-      "inputs": ["src/**/*.ts", "src/**/*.js", "src/**/*.py", "test/**", "tests/**", "**/*.test.*", "**/*.spec.*"]
+      "inputs": ["src/**/*.ts", "src/**/*.js", "src/**/*.py", "test/**", "tests/**", "**/*.test.*", "**/*.spec.*"],
+      "dependsOn": ["^build"]
     }
   }
 }

@@ -94,7 +94,7 @@ export class TokensService {
             packageId: tokenPackage.id,
             tokensPurchased: transaction.amount,
             amountPaid: tokenPackage.priceUSD, 
-            currency: tokenPackage.localCurrency, 
+            currency: tokenPackage.localCurrency || 'USD', 
             timestamp: new Date().toISOString(),
         };
         this.eventsService.publishTokenPurchase(eventPayload);

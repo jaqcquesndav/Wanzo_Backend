@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientsModule, Transport, KafkaOptions } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KafkaProducerService } from './kafka-producer.service';
 // Import the shared config function
@@ -11,14 +11,22 @@ import { getKafkaConfig } from '@wanzobe/shared';
       {
         name: 'KAFKA_PRODUCER_SERVICE', // This is the main client for admin-service's own events
         imports: [ConfigModule],
-        useFactory: (configService: ConfigService) => {
+        useFactory: (configService: ConfigService): KafkaOptions => {
           const kafkaOptions = getKafkaConfig(configService);
+          if (!kafkaOptions.options) {
+            throw new Error('Kafka options not properly configured');
+          }
+          
+          // Ensure brokers is properly set
+          const brokers = kafkaOptions.options.client?.brokers || ['localhost:9092'];
+          
           return {
-            ...kafkaOptions,
+            transport: Transport.KAFKA,
             options: {
               ...kafkaOptions.options,
               client: {
                 ...kafkaOptions.options.client,
+                brokers, // Use the ensured brokers value
                 clientId: configService.get<string>('KAFKA_CLIENT_ID_ADMIN_PRODUCER', 'admin-service-producer'),
               },
               producer: {
@@ -39,14 +47,23 @@ import { getKafkaConfig } from '@wanzobe/shared';
       // it must also provide a ClientKafka named 'EVENTS_SERVICE'
       {
         name: 'EVENTS_SERVICE', // For the shared TokenService from packages/shared/events/token.service.ts
-        imports: [ConfigModule],        useFactory: (configService: ConfigService) => {
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService): KafkaOptions => {
           const kafkaOptions = getKafkaConfig(configService);
+          if (!kafkaOptions.options) {
+            throw new Error('Kafka options not properly configured');
+          }
+          
+          // Ensure brokers is properly set
+          const brokers = kafkaOptions.options.client?.brokers || ['localhost:9092'];
+          
           return {
-            ...kafkaOptions,
+            transport: Transport.KAFKA,
             options: {
               ...kafkaOptions.options,
               client: {
                 ...kafkaOptions.options.client,
+                brokers, // Use the ensured brokers value
                 clientId: configService.get<string>('KAFKA_CLIENT_ID_EVENTS_PROXY', 'admin-events-proxy-producer'),
               },
               producer: {

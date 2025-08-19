@@ -4,10 +4,21 @@
   "description": "Package partagé pour synchronisation avec le customer-service",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*"
+  },
   "scripts": {
     "build": "tsc",
+    "clean": "if exist dist rmdir /s /q dist",
+    "prebuild": "npm run clean",
+    "dev": "tsc --watch",
     "test": "jest --passWithNoTests"
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "peerDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
