@@ -15,6 +15,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
+    "@wanzobe/shared": "0.0.1",
+    "@wanzobe/types": "1.0.0",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.3.3",
     "@nestjs/config": "^3.2.0",

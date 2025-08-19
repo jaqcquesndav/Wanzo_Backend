@@ -7,7 +7,7 @@ import { UpdateBusinessOperationDto } from './dto/update-business-operation.dto'
 import { ListBusinessOperationsDto } from './dto/list-business-operations.dto';
 import { ExportOperationsDto } from './dto/export-operations.dto';
 import { EventsService } from '../events/events.service';
-import { SharedOperationStatus, SharedOperationType } from '@wanzo/shared/events/commerce-operations';
+import { SharedOperationStatus, SharedOperationType } from '@wanzobe/shared/events/commerce-operations';
 
 @Injectable()
 export class BusinessOperationsService {

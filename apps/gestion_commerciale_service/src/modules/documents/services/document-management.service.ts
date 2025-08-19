@@ -20,7 +20,7 @@ export class DocumentManagementService {
   async create(
     createDocumentDto: CreateDocumentDto,
     user: User,
-    file: Express.Multer.File,
+    file: any,
   ): Promise<Document> {
     this.logger.log(`User ${user.id} creating document with original name: ${file.originalname}`);
     
@@ -131,7 +131,7 @@ export class DocumentManagementService {
     id: string, 
     updateDocumentDto: UpdateDocumentDto, 
     user: User,
-    file?: Express.Multer.File,
+    file?: any,
   ): Promise<Document> {
     this.logger.log(`User ${user.id} (Company: ${user.companyId || 'N/A'}) updating document with id: ${id}`);
     // Pass user object to findOne to ensure companyId check if applicable

@@ -11,7 +11,7 @@ module.exports = {
   setupFiles: ['dotenv/config'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@wanzo/shared/(.*)$': '<rootDir>/../../packages/shared/$1',
+    '^@wanzobe/shared/(.*)$': '<rootDir>/../../packages/shared/$1',
   },
   // Configuration pour les tests d'API mobile
   testTimeout: 10000,

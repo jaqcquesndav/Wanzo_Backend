@@ -1,117 +1,117 @@
-﻿FROM node:20.13.0-alpine3.19 AS builder
+﻿# ===========================================
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# Service: accounting-service
+# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# ===========================================
 
-# Installation des mises à jour de sécurité
+# ======== STAGE 1: BUILD ========
+FROM node:20.13.0-alpine3.19 AS builder
+
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="accounting-service"
+LABEL stage="builder"
+
+# Installation des dÃ©pendances systÃ¨me pour le build
 RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates && \
-    update-ca-certificates
+    apk add --no-cache \
+        ca-certificates \
+        python3 \
+        make \
+        g++ \
+        curl \
+    && rm -rf /var/cache/apk/*
 
-# Set working directory
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create essential directories
-RUN mkdir -p ./packages/tsconfig ./packages/shared/src ./packages/customer-sync/src ./apps/accounting-service/dist/src
-
-# Copy only the essential files for building
-COPY package.json ./
+# Copie des fichiers de configuration du monorepo
+COPY package.json yarn.lock ./
 COPY turbo.json ./
 
-# Copy local package files first
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/customer-sync/package.json ./packages/customer-sync/
-
-# Copy packages source code
-COPY packages/tsconfig/package.json ./packages/tsconfig/
-COPY packages/tsconfig/*.json ./packages/tsconfig/
+# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
 COPY packages/shared ./packages/shared/
-COPY packages/customer-sync ./packages/customer-sync/
+COPY packages/types ./packages/types/
+COPY packages/tsconfig ./packages/tsconfig/
 
-# Create essential directories
-RUN mkdir -p ./packages/shared/src ./packages/customer-sync/src
-
-# Create TypeScript config files
-RUN echo '{"":"https://json.schemastore.org/tsconfig","display":"Default","compilerOptions":{"composite":false,"declaration":true,"declarationMap":true,"esModuleInterop":true,"forceConsistentCasingInFileNames":true,"inlineSources":false,"isolatedModules":true,"moduleResolution":"node","preserveWatchOutput":true,"skipLibCheck":true,"strict":true,"strictNullChecks":true,"strictPropertyInitialization":false,"useDefineForClassFields":false,"noImplicitAny":false},"exclude":["node_modules"]}' > ./packages/tsconfig/base.json
-
-RUN echo '{"":"https://json.schemastore.org/tsconfig","display":"NestJS","extends":"./base.json","compilerOptions":{"module":"commonjs","removeComments":true,"emitDecoratorMetadata":true,"experimentalDecorators":true,"useDefineForClassFields":false,"skipLibCheck":true,"allowSyntheticDefaultImports":true,"target":"ES2021","sourceMap":true,"outDir":"./dist","baseUrl":"./","incremental":true,"strictPropertyInitialization":false,"strictBindCallApply":false,"noImplicitAny":false,"noFallthroughCasesInSwitch":true}}' > ./packages/tsconfig/nestjs.json
-
-# Copy service package.json
+# Copie du service spÃ©cifique
 COPY apps/accounting-service/package.json ./apps/accounting-service/
 
-# Modify package.json to point to local dependencies
-RUN node -e "const fs = require('fs'); const pkg = require('./apps/accounting-service/package.json'); if (pkg.dependencies && pkg.dependencies['@wanzobe/customer-sync']) { pkg.dependencies['@wanzobe/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzo/customer-sync']) { pkg.dependencies['@wanzo/customer-sync'] = 'file:../../packages/customer-sync'; } if (pkg.dependencies && pkg.dependencies['@wanzobe/shared']) { pkg.dependencies['@wanzobe/shared'] = 'file:../../packages/shared'; } if (pkg.dependencies && pkg.dependencies['@wanzo/shared']) { pkg.dependencies['@wanzo/shared'] = 'file:../../packages/shared'; } fs.writeFileSync('./apps/accounting-service/package.json', JSON.stringify(pkg, null, 2));"
+# Installation des dÃ©pendances avec Yarn Workspaces
+RUN yarn install --frozen-lockfile --ignore-engines
 
-# Install dependencies with file: references for local packages
-RUN yarn install --ignore-engines
+# Copie du code source du service
+COPY apps/accounting-service/src ./apps/accounting-service/src/
+COPY apps/accounting-service/tsconfig*.json ./apps/accounting-service/
+COPY apps/accounting-service/nest-cli.json ./apps/accounting-service/
 
-# Set environment variables
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
-# Copy the actual service source code
-COPY ./apps/accounting-service/src ./apps/accounting-service/src
-COPY ./apps/accounting-service/tsconfig.json ./apps/accounting-service/
-COPY ./apps/accounting-service/nest-cli.json ./apps/accounting-service/
-
-# Create tsconfig.build.json if it doesn't exist
-RUN echo '{"extends":"./tsconfig.json","exclude":["node_modules","test","dist","**/*spec.ts"]}' > ./apps/accounting-service/tsconfig.build.json
-
-# Build shared packages first
+# Build des packages partagÃ©s d'abord
 WORKDIR /app/packages/shared
-RUN yarn build || echo "Shared build completed or failed gracefully"
+RUN yarn build
 
-# Build the actual service
+# Retour au service et build
 WORKDIR /app/apps/accounting-service
 RUN yarn build
 
-# Copy Auth0 certificate
-COPY ./apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
-
-# Production stage - minimal runtime image with security patches
+# ======== STAGE 2: PRODUCTION ========
 FROM node:20.13.0-alpine3.19 AS production
 
-# Security updates and proper user setup
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates dumb-init curl && \
-    update-ca-certificates && \
-    adduser -D -u 1001 nodeuser
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="accounting-service"
+LABEL stage="production"
 
-# Set working directory
+# Installation des dÃ©pendances runtime + sÃ©curitÃ©
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        dumb-init \
+        curl \
+        tini \
+    && adduser -D -u 1001 nodeuser \
+    && rm -rf /var/cache/apk/*
+
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create required directories with proper permissions
-RUN mkdir -p ./apps/accounting-service/dist/src ./apps/accounting-service/logs && \
-    chown -R nodeuser:nodeuser /app
+# Copie des fichiers de configuration
+COPY package.json ./
+COPY apps/accounting-service/package.json ./apps/accounting-service/
 
-# Copy only the built artifacts from builder
-COPY --from=builder /app/apps/accounting-service/dist ./apps/accounting-service/dist
-COPY --from=builder /app/apps/accounting-service/auth0-certificate.pem ./apps/accounting-service/auth0-certificate.pem
-
-# Install minimal dependencies needed for the simplified mock service
-RUN yarn init -y && \
-    yarn add express --production && \
+# Installation UNIQUEMENT des dÃ©pendances de production
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
     yarn cache clean
 
-# Environment variables (non-sensitive)
-ENV NODE_ENV=production
-ENV PORT=3003
-# Use placeholder values for sensitive data, to be injected at runtime
-ENV DB_HOST=db_host_placeholder
-ENV DB_PORT=5432
-ENV DB_USERNAME=db_user_placeholder
-ENV DB_DATABASE=accounting-service
+# Copie des artefacts buildÃ©s depuis le stage builder
+COPY --from=builder /app/apps/accounting-service/dist ./apps/accounting-service/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
-# Expose service port
-EXPOSE 3003
+# Installation du package shared et crÃ©ation du lien workspace
+WORKDIR /app/packages/shared
+RUN yarn install --production --ignore-engines
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+WORKDIR /app
+RUN mkdir -p node_modules/@wanzobe && \
+    ln -sf /app/packages/shared node_modules/@wanzobe/shared
 
-# Create startup script
-RUN printf '#!/bin/sh\nexec node apps/accounting-service/dist/apps/accounting-service/src/main.js\n' > /app/startup.sh && chmod +x /app/startup.sh
-
-# Set non-root user for better security
+# Configuration des permissions et utilisateur
+RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
-# Use dumb-init as entrypoint to handle signals properly
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/app/startup.sh"]
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3003
+
+# Health check standardisÃ©
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3003/health || exit 1
+
+# Exposition du port
+EXPOSE 3003
+
+# Point d'entrÃ©e avec init process
+WORKDIR /app/apps/accounting-service
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/apps/accounting-service/src/main.js"]
 

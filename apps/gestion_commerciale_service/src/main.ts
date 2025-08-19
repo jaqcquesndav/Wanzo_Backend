@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { getKafkaConfig } from '@wanzobe/shared/events/kafka-config';
 import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config'; // Added import for ConfigService
 

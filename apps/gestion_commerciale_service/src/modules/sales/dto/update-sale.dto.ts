@@ -120,5 +120,5 @@ export class UpdateSaleDto {
   @IsNumber()
   @Min(0)
   @IsOptional()
-  amountPaidInCdf?: number;
+  paidAmountInCdf?: number;
 }

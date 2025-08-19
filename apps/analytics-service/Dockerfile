@@ -1,119 +1,117 @@
-﻿FROM node:20.17.0-bookworm-slim AS base
+﻿# ===========================================
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# Service: analytics-service
+# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# ===========================================
 
-# Install security updates and required packages
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    git \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# ======== STAGE 1: BUILD ========
+FROM node:20.13.0-alpine3.19 AS builder
 
-# Set working directory
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="analytics-service"
+LABEL stage="builder"
+
+# Installation des dÃ©pendances systÃ¨me pour le build
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        python3 \
+        make \
+        g++ \
+        curl \
+    && rm -rf /var/cache/apk/*
+
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Première étape: préparation des dépendances partagées
-FROM base AS deps-shared
-WORKDIR /app
+# Copie des fichiers de configuration du monorepo
+COPY package.json yarn.lock ./
+COPY turbo.json ./
 
-# Copie des fichiers nécessaires pour l'installation des packages
-COPY package.json ./
-COPY packages/shared/package.json ./packages/shared/
-RUN mkdir -p ./packages/tsconfig/
-RUN echo "{}" > ./packages/tsconfig/package.json
+# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
+COPY packages/shared ./packages/shared/
+COPY packages/types ./packages/types/
+COPY packages/tsconfig ./packages/tsconfig/
 
-# Installation des dépendances au niveau racine
-RUN npm install --legacy-peer-deps
-RUN npm install --prefix packages/shared --legacy-peer-deps
-
-# Deuxième étape: construction du service
-FROM base AS builder
-WORKDIR /app
-
-# Copie des dépendances depuis l'étape précédente
-COPY --from=deps-shared /app/packages /app/packages
-COPY --from=deps-shared /app/node_modules /app/node_modules
-COPY package.json ./
-
-# Préparation du service analytics
-RUN mkdir -p ./apps/analytics-service/
+# Copie du service spÃ©cifique
 COPY apps/analytics-service/package.json ./apps/analytics-service/
-COPY apps/analytics-service/mock-service.js ./apps/analytics-service/
 
-# Ajout de dépendances explicites pour le service mock
-RUN cd apps/analytics-service && npm install express prom-client --save
+# Installation des dÃ©pendances avec Yarn Workspaces
+RUN yarn install --frozen-lockfile --ignore-engines
 
-# Configuration des fichiers TypeScript par défaut
-RUN echo '{"extends": "../../tsconfig.json", "compilerOptions": {"outDir": "./dist"}}' > ./apps/analytics-service/tsconfig.json
-RUN echo '{"extends": "./tsconfig.json", "exclude": ["node_modules", "test", "dist"]}' > ./apps/analytics-service/tsconfig.build.json
-RUN echo '{"projects": {"analytics-service": {"type": "application", "root": "."}}}' > ./apps/analytics-service/nest-cli.json
+# Copie du code source du service
+COPY apps/analytics-service/src ./apps/analytics-service/src/
+COPY apps/analytics-service/tsconfig*.json ./apps/analytics-service/
+COPY apps/analytics-service/nest-cli.json ./apps/analytics-service/
 
-# Préparation du répertoire source et copie du code source minimal pour le mock
-RUN mkdir -p ./apps/analytics-service/src
-RUN echo 'import { NestFactory } from "@nestjs/core"; const bootstrap = async () => { console.log("Mock service initialized"); }; bootstrap();' > ./apps/analytics-service/src/main.ts
+# Build des packages partagÃ©s d'abord
+WORKDIR /app/packages/shared
+RUN yarn build
 
-# Installation des dépendances du service
-RUN npm install --prefix apps/analytics-service --legacy-peer-deps
+# Retour au service et build
+WORKDIR /app/apps/analytics-service
+RUN yarn build
 
-# Installation des outils de build
-RUN cd apps/analytics-service && npm install @nestjs/cli --no-save
+# ======== STAGE 2: PRODUCTION ========
+FROM node:20.13.0-alpine3.19 AS production
 
-# Tentative de build du service avec fallback au mock
-RUN cd apps/analytics-service && \
-    mkdir -p dist/src && \
-    (npx nest build || \
-     (echo "Build failed, using mock service" && \
-      cp -f ./mock-service.js ./dist/src/main.js))
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="analytics-service"
+LABEL stage="production"
 
-# Ensure the dist/src/main.js exists
-RUN cd apps/analytics-service && \
-    if [ ! -f ./dist/src/main.js ]; then \
-      mkdir -p ./dist/src && \
-      cp -f ./mock-service.js ./dist/src/main.js; \
-    fi
+# Installation des dÃ©pendances runtime + sÃ©curitÃ©
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        dumb-init \
+        curl \
+        tini \
+    && adduser -D -u 1001 nodeuser \
+    && rm -rf /var/cache/apk/*
 
-# Production stage - Utilisation d'une image Node.js standard au lieu de distroless
-FROM node:20.17.0-bookworm-slim AS production
-
-# Réduction de la taille de l'image
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends ca-certificates && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Création d'un utilisateur non-root pour la sécurité
-RUN groupadd -r appuser && useradd -r -g appuser -s /bin/bash appuser
-
-# Set working directory
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Installation uniquement des dépendances de production nécessaires au mock service
-COPY --from=builder /app/apps/analytics-service/package.json /app/
-RUN npm install --only=production express prom-client
+# Copie des fichiers de configuration
+COPY package.json ./
+COPY apps/analytics-service/package.json ./apps/analytics-service/
 
-# Copy compiled service and required modules
-COPY --from=builder --chown=appuser:appuser /app/apps/analytics-service/dist /app/dist
+# Installation UNIQUEMENT des dÃ©pendances de production
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+    yarn cache clean
 
-# Ensure that main.js is in the correct location
-RUN mkdir -p /app/dist/src && \
-    if [ -f /app/dist/main.js ] && [ ! -f /app/dist/src/main.js ]; then \
-      cp /app/dist/main.js /app/dist/src/main.js; \
-    fi
+# Copie des artefacts buildÃ©s depuis le stage builder
+COPY --from=builder /app/apps/analytics-service/dist ./apps/analytics-service/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
-# Change ownership and switch to non-root user
-USER appuser
+# Installation du package shared et crÃ©ation du lien workspace
+WORKDIR /app/packages/shared
+RUN yarn install --production --ignore-engines
 
-# Expose port
-EXPOSE 3002
+WORKDIR /app
+RUN mkdir -p node_modules/@wanzobe && \
+    ln -sf /app/packages/shared node_modules/@wanzobe/shared
 
-# Set environment
+# Configuration des permissions et utilisateur
+RUN chown -R nodeuser:nodeuser /app
+USER nodeuser
+
+# Variables d'environnement
 ENV NODE_ENV=production
 ENV PORT=3002
 
-# Set service name
-ENV SERVICE_NAME="analytics-service"
+# Health check standardisÃ©
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3002/health || exit 1
 
-# Command to run the app with absolute path
-CMD ["node", "/app/dist/src/main.js"]
+# Exposition du port
+EXPOSE 3002
+
+# Point d'entrÃ©e avec init process
+WORKDIR /app/apps/analytics-service
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/apps/analytics-service/src/main.js"]
+

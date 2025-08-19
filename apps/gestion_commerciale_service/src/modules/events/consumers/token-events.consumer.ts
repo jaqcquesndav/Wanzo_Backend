@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { TokenEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/kafka-config';
+import { TokenEventTopics, TokenTransactionEvent } from '@wanzobe/shared/events/kafka-config';
 import { Logger } from '@nestjs/common';
 
 // Définition locale pour remplacer la référence à l'entité supprimée

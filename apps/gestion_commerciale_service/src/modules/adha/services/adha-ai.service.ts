@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { EventsService } from '../../events/events.service';
-import { AdhaEventTopics, AdhaMessageSentEvent, AdhaResponseReadyEvent, SharedUserRole } from '@wanzo/shared/events/adha-events';
+import { AdhaEventTopics, AdhaMessageSentEvent, AdhaResponseReadyEvent, SharedUserRole } from '@wanzobe/shared/events/adha-events';
 import { ClientKafka } from '@nestjs/microservices';
 import { GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from '../../events/kafka-producer.module';
 

@@ -89,7 +89,7 @@ export class SalesService {
       const saleData: DeepPartial<Sale> = {
         items: saleItemEntities, 
         totalAmountInCdf: totalAmountInCdf,
-        amountPaidInCdf: 0, // Initialize as unpaid
+        paidAmountInCdf: 0, // Initialize as unpaid
         date: new Date(date),
         dueDate: dueDate ? new Date(dueDate) : null,
         status: SaleStatus.PENDING, // New sales start as pending
@@ -196,7 +196,7 @@ export class SalesService {
   
   // New method for marking a sale as completed
   async completeSale(id: string, completeSaleDto: CompleteSaleDto): Promise<Sale> {
-    const { amountPaidInCdf, paymentMethod, paymentReference } = completeSaleDto;
+    const { paidAmountInCdf, paymentMethod, paymentReference } = completeSaleDto;
     
     return this.dataSource.transaction(async (transactionalEntityManager) => {
       const sale = await transactionalEntityManager.findOne(Sale, { 
@@ -217,12 +217,12 @@ export class SalesService {
       }
       
       // Update sale properties
-      sale.amountPaidInCdf = amountPaidInCdf;
+      sale.paidAmountInCdf = paidAmountInCdf;
       sale.paymentMethod = paymentMethod;
       sale.paymentReference = paymentReference || null;
       
       // Mark as completed if the full amount is paid
-      if (amountPaidInCdf >= sale.totalAmountInCdf) {
+      if (paidAmountInCdf >= sale.totalAmountInCdf) {
         sale.status = SaleStatus.COMPLETED;
       } else {
         sale.status = SaleStatus.PARTIALLY_PAID;

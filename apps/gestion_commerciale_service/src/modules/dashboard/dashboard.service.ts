@@ -667,7 +667,7 @@ export class DashboardService {
 
     let totalReceivables = 0;
     for (const sale of creditSales) {
-      totalReceivables += (sale.totalAmountInCdf - (sale.amountPaidInCdf || 0));
+      totalReceivables += (sale.totalAmountInCdf - (sale.paidAmountInCdf || 0));
     }
 
     return totalReceivables;

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule } from '@nestjs/microservices';
-import { getUnifiedKafkaConfig } from '@wanzo/shared/events/unified-kafka-config';
+import { getUnifiedKafkaConfig } from '@wanzobe/shared/events/unified-kafka-config';
 
 // Define a unique injection token for the Kafka producer client in this service
 export const GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE = 'GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE';

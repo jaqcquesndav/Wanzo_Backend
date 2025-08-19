@@ -222,7 +222,7 @@ export class ExpensesController {
         fileIsRequired: false, // Set to true if attachment is mandatory
       }),
     )
-    attachment?: Express.Multer.File, // Make attachment optional
+    attachment?: any, // Make attachment optional
   ) {
     // TODO: Handle file upload to Cloudinary and add URL to createExpenseDto.attachmentUrl
     // if (attachment) {
@@ -350,7 +350,7 @@ export class ExpensesController {
         fileIsRequired: false,
       }),
     )
-    attachment?: Express.Multer.File,
+    attachment?: any,
   ) {
     // TODO: Handle file upload for update, potentially deleting old one
     // if (attachment) {

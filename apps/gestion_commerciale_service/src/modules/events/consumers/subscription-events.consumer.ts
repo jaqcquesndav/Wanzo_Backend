@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { SubscriptionEventTopics } from '@wanzo/shared/events/kafka-config';
+import { SubscriptionEventTopics } from '@wanzobe/shared/events/kafka-config';
 
 /**
  * Consumer désactivé - les souscriptions sont gérées centralement par customer-service

@@ -1,65 +1,117 @@
+﻿# ===========================================
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# Service: api-gateway
+# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# ===========================================
+
+# ======== STAGE 1: BUILD ========
 FROM node:20.13.0-alpine3.19 AS builder
 
-# Installation des mises à jour de sécurité
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates && \
-    update-ca-certificates
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="api-gateway"
+LABEL stage="builder"
 
-# Set working directory
+# Installation des dÃ©pendances systÃ¨me pour le build
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        python3 \
+        make \
+        g++ \
+        curl \
+    && rm -rf /var/cache/apk/*
+
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create required directories
-RUN mkdir -p ./dist/src
+# Copie des fichiers de configuration du monorepo
+COPY package.json yarn.lock ./
+COPY turbo.json ./
 
-# Copy simplified mock service to the container
-COPY ./apps/api-gateway/simplified-mock.js ./simplified-mock.js
+# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
+COPY packages/shared ./packages/shared/
+COPY packages/types ./packages/types/
+COPY packages/tsconfig ./packages/tsconfig/
 
-# Copy to dist directory
-RUN cp ./simplified-mock.js ./dist/src/main.js
+# Copie du service spÃ©cifique
+COPY apps/api-gateway/package.json ./apps/api-gateway/
 
-# Production stage - minimal runtime image
+# Installation des dÃ©pendances avec Yarn Workspaces
+RUN yarn install --frozen-lockfile --ignore-engines
+
+# Copie du code source du service
+COPY apps/api-gateway/src ./apps/api-gateway/src/
+COPY apps/api-gateway/tsconfig*.json ./apps/api-gateway/
+COPY apps/api-gateway/nest-cli.json ./apps/api-gateway/
+
+# Build des packages partagÃ©s d'abord
+WORKDIR /app/packages/shared
+RUN yarn build
+
+# Retour au service et build
+WORKDIR /app/apps/api-gateway
+RUN yarn build
+
+# ======== STAGE 2: PRODUCTION ========
 FROM node:20.13.0-alpine3.19 AS production
 
-# Installation des mises à jour de sécurité
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="api-gateway"
+LABEL stage="production"
+
+# Installation des dÃ©pendances runtime + sÃ©curitÃ©
 RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates dumb-init curl && \
-    update-ca-certificates
+    apk add --no-cache \
+        ca-certificates \
+        dumb-init \
+        curl \
+        tini \
+    && adduser -D -u 1001 nodeuser \
+    && rm -rf /var/cache/apk/*
 
-# Create a non-root user and group
-RUN addgroup -S nodeuser && adduser -S -G nodeuser nodeuser
-
-# Set working directory
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create required directories
-RUN mkdir -p ./dist/src ./logs && \
-    chown -R nodeuser:nodeuser /app
+# Copie des fichiers de configuration
+COPY package.json ./
+COPY apps/api-gateway/package.json ./apps/api-gateway/
 
-# Copy only the built artifacts from builder
-COPY --from=builder /app/dist/src/main.js ./dist/src/
-
-# Install minimal dependencies needed for the mock service
-RUN yarn init -y && \
-    yarn add express http path-to-regexp --production && \
+# Installation UNIQUEMENT des dÃ©pendances de production
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
     yarn cache clean
 
-# Environment variables - non-sensitive
+# Copie des artefacts buildÃ©s depuis le stage builder
+COPY --from=builder /app/apps/api-gateway/dist ./apps/api-gateway/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+
+# Installation du package shared et crÃ©ation du lien workspace
+WORKDIR /app/packages/shared
+RUN yarn install --production --ignore-engines
+
+WORKDIR /app
+RUN mkdir -p node_modules/@wanzobe && \
+    ln -sf /app/packages/shared node_modules/@wanzobe/shared
+
+# Configuration des permissions et utilisateur
+RUN chown -R nodeuser:nodeuser /app
+USER nodeuser
+
+# Variables d'environnement
 ENV NODE_ENV=production
 ENV PORT=8000
 
-# Expose service port
+# Health check standardisÃ©
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Exposition du port
 EXPOSE 8000
 
-# Mettre en place des healthchecks pour surveiller l'état du service
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
-
-# Use dumb-init as PID 1
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-
-# Utiliser un utilisateur non-root pour une meilleure sécurité
-USER nodeuser
-
-# Start the service
-CMD ["node", "dist/src/main.js"]
+# Point d'entrÃ©e avec init process
+WORKDIR /app/apps/api-gateway
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/apps/api-gateway/src/main.js"]
 

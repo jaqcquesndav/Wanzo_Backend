@@ -1,4 +1,4 @@
-﻿import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max, IsEnum, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { FinancingType, FinancingRequestStatus } from '../entities/financing-record.entity';

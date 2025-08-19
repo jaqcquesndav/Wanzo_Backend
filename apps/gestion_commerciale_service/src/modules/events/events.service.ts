@@ -10,14 +10,14 @@ import {
   TokenEventTopics,
   TokenTransactionEvent,
   BusinessOperationEventTopics
-} from '@wanzo/shared/events/kafka-config';
+} from '@wanzobe/shared/events/kafka-config';
 import { 
   BusinessOperationCreatedEvent, 
   BusinessOperationUpdatedEvent, 
   BusinessOperationDeletedEvent,
   SharedOperationType,
   SharedOperationStatus
-} from '@wanzo/shared/events/commerce-operations';
+} from '@wanzobe/shared/events/commerce-operations';
 import { GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()

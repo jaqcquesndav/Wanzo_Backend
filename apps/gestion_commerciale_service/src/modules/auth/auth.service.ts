@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { Company } from '../company/entities/company.entity'; // Corrected path
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { EventsService } from '../events/events.service'; // Import EventsService
-import { UserCreatedEventData, UserEventTopics, EventUserType } from '@wanzo/shared/events/kafka-config'; // Import event data interface and topics
+import { UserCreatedEventData, UserEventTopics, EventUserType } from '@wanzobe/shared/events/kafka-config'; // Import event data interface and topics
 
 export interface AuthResponse {
   user: Omit<User, 'password' | 'hashPassword' | 'validatePassword'>;

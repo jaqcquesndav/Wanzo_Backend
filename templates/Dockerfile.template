@@ -1,18 +1,18 @@
-﻿# ===========================================
-# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
-# Service: portfolio-institution-service
-# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# ===========================================
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÉ
+# Service: {{SERVICE_NAME}}
+# Optimisé pour Yarn Workspaces + Multi-stage
 # ===========================================
 
 # ======== STAGE 1: BUILD ========
 FROM node:20.13.0-alpine3.19 AS builder
 
-# MÃ©tadonnÃ©es
+# Métadonnées
 LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="portfolio-institution-service"
+LABEL service="{{SERVICE_NAME}}"
 LABEL stage="builder"
 
-# Installation des dÃ©pendances systÃ¨me pour le build
+# Installation des dépendances système pour le build
 RUN apk update && apk upgrade && \
     apk add --no-cache \
         ca-certificates \
@@ -22,46 +22,46 @@ RUN apk update && apk upgrade && \
         curl \
     && rm -rf /var/cache/apk/*
 
-# Configuration du rÃ©pertoire de travail
+# Configuration du répertoire de travail
 WORKDIR /app
 
 # Copie des fichiers de configuration du monorepo
 COPY package.json yarn.lock ./
 COPY turbo.json ./
 
-# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
+# Copie des packages partagés (priorité pour workspace linking)
 COPY packages/shared ./packages/shared/
 COPY packages/types ./packages/types/
 COPY packages/tsconfig ./packages/tsconfig/
 
-# Copie du service spÃ©cifique
-COPY apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
+# Copie du service spécifique
+COPY apps/{{SERVICE_NAME}}/package.json ./apps/{{SERVICE_NAME}}/
 
-# Installation des dÃ©pendances avec Yarn Workspaces
+# Installation des dépendances avec Yarn Workspaces
 RUN yarn install --frozen-lockfile --ignore-engines
 
 # Copie du code source du service
-COPY apps/portfolio-institution-service/src ./apps/portfolio-institution-service/src/
-COPY apps/portfolio-institution-service/tsconfig*.json ./apps/portfolio-institution-service/
-COPY apps/portfolio-institution-service/nest-cli.json ./apps/portfolio-institution-service/
+COPY apps/{{SERVICE_NAME}}/src ./apps/{{SERVICE_NAME}}/src/
+COPY apps/{{SERVICE_NAME}}/tsconfig*.json ./apps/{{SERVICE_NAME}}/
+COPY apps/{{SERVICE_NAME}}/nest-cli.json ./apps/{{SERVICE_NAME}}/
 
-# Build des packages partagÃ©s d'abord
+# Build des packages partagés d'abord
 WORKDIR /app/packages/shared
 RUN yarn build
 
 # Retour au service et build
-WORKDIR /app/apps/portfolio-institution-service
+WORKDIR /app/apps/{{SERVICE_NAME}}
 RUN yarn build
 
 # ======== STAGE 2: PRODUCTION ========
 FROM node:20.13.0-alpine3.19 AS production
 
-# MÃ©tadonnÃ©es
+# Métadonnées
 LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="portfolio-institution-service"
+LABEL service="{{SERVICE_NAME}}"
 LABEL stage="production"
 
-# Installation des dÃ©pendances runtime + sÃ©curitÃ©
+# Installation des dépendances runtime + sécurité
 RUN apk update && apk upgrade && \
     apk add --no-cache \
         ca-certificates \
@@ -71,23 +71,23 @@ RUN apk update && apk upgrade && \
     && adduser -D -u 1001 nodeuser \
     && rm -rf /var/cache/apk/*
 
-# Configuration du rÃ©pertoire de travail
+# Configuration du répertoire de travail
 WORKDIR /app
 
 # Copie des fichiers de configuration
 COPY package.json ./
-COPY apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
+COPY apps/{{SERVICE_NAME}}/package.json ./apps/{{SERVICE_NAME}}/
 
-# Installation UNIQUEMENT des dÃ©pendances de production
+# Installation UNIQUEMENT des dépendances de production
 RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
     yarn cache clean
 
-# Copie des artefacts buildÃ©s depuis le stage builder
-COPY --from=builder /app/apps/portfolio-institution-service/dist ./apps/portfolio-institution-service/dist
+# Copie des artefacts buildés depuis le stage builder
+COPY --from=builder /app/apps/{{SERVICE_NAME}}/dist ./apps/{{SERVICE_NAME}}/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
-# Installation du package shared et crÃ©ation du lien workspace
+# Installation du package shared et création du lien workspace
 WORKDIR /app/packages/shared
 RUN yarn install --production --ignore-engines
 
@@ -101,17 +101,16 @@ USER nodeuser
 
 # Variables d'environnement
 ENV NODE_ENV=production
-ENV PORT=3005
+ENV PORT={{SERVICE_PORT}}
 
-# Health check standardisÃ©
+# Health check standardisé
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3005/health || exit 1
+    CMD curl -f http://localhost:{{SERVICE_PORT}}/health || exit 1
 
 # Exposition du port
-EXPOSE 3005
+EXPOSE {{SERVICE_PORT}}
 
-# Point d'entrÃ©e avec init process
-WORKDIR /app/apps/portfolio-institution-service
+# Point d'entrée avec init process
+WORKDIR /app/apps/{{SERVICE_NAME}}
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/portfolio-institution-service/src/main.js"]
-
+CMD ["node", "dist/apps/{{SERVICE_NAME}}/src/main.js"]

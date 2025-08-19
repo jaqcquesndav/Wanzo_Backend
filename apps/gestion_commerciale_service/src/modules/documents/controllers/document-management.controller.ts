@@ -53,7 +53,7 @@ export class DocumentManagementController {
         fileIsRequired: true,
       }),
     )
-    file: Express.Multer.File,
+    file: any,
     @CurrentUser() user: User,
   ): Promise<Document> {
     if (!createDocumentDto.fileName && file && file.originalname) {
@@ -121,7 +121,7 @@ export class DocumentManagementController {
         fileIsRequired: false,
       }),
     )
-    file?: Express.Multer.File,
+    file?: any,
   ): Promise<Document> {
     return this.documentManagementService.update(id, updateDocumentDto, user, file);
   }

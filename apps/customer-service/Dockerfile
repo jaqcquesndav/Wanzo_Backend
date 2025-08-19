@@ -1,88 +1,117 @@
-﻿# Utilisation d'une image Node.js spécifique et sécurisée
+﻿# ===========================================
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# Service: customer-service
+# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# ===========================================
+
+# ======== STAGE 1: BUILD ========
 FROM node:20.13.0-alpine3.19 AS builder
 
-# Installation des mises à jour de sécurité
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates && \
-    update-ca-certificates
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="customer-service"
+LABEL stage="builder"
 
-# Set working directory
+# Installation des dÃ©pendances systÃ¨me pour le build
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        python3 \
+        make \
+        g++ \
+        curl \
+    && rm -rf /var/cache/apk/*
+
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create essential directories
-RUN mkdir -p ./apps/customer-service/dist/src
+# Copie des fichiers de configuration du monorepo
+COPY package.json yarn.lock ./
+COPY turbo.json ./
 
-# Create simple package.json for the service
-RUN echo '{"name":"customer-service","version":"1.0.0","dependencies":{"express":"^4.18.2"}}' > ./apps/customer-service/package.json
+# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
+COPY packages/shared ./packages/shared/
+COPY packages/types ./packages/types/
+COPY packages/tsconfig ./packages/tsconfig/
 
-# Install Express with Yarn
+# Copie du service spÃ©cifique
+COPY apps/customer-service/package.json ./apps/customer-service/
+
+# Installation des dÃ©pendances avec Yarn Workspaces
+RUN yarn install --frozen-lockfile --ignore-engines
+
+# Copie du code source du service
+COPY apps/customer-service/src ./apps/customer-service/src/
+COPY apps/customer-service/tsconfig*.json ./apps/customer-service/
+COPY apps/customer-service/nest-cli.json ./apps/customer-service/
+
+# Build des packages partagÃ©s d'abord
+WORKDIR /app/packages/shared
+RUN yarn build
+
+# Retour au service et build
 WORKDIR /app/apps/customer-service
-RUN yarn add express
+RUN yarn build
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3011
-
-# Create mock service file using the provided mock-service.js
-COPY ./apps/customer-service/mock-service.js ./mock-service.js
-
-# Create dist directory and copy mock service
-RUN mkdir -p ./dist/src
-RUN cp ./mock-service.js ./dist/src/main.js
-
-# Production stage - minimal runtime image with security patches
+# ======== STAGE 2: PRODUCTION ========
 FROM node:20.13.0-alpine3.19 AS production
 
-# Security updates and proper user setup
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates dumb-init curl && \
-    update-ca-certificates && \
-    adduser -D -u 1001 nodeuser
+# MÃ©tadonnÃ©es
+LABEL maintainer="Wanzobe DevOps Team"
+LABEL service="customer-service"
+LABEL stage="production"
 
-# Set working directory
+# Installation des dÃ©pendances runtime + sÃ©curitÃ©
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        ca-certificates \
+        dumb-init \
+        curl \
+        tini \
+    && adduser -D -u 1001 nodeuser \
+    && rm -rf /var/cache/apk/*
+
+# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Create required directories with proper permissions
-RUN mkdir -p ./apps/customer-service/dist/src ./apps/customer-service/logs && \
-    chown -R nodeuser:nodeuser /app
+# Copie des fichiers de configuration
+COPY package.json ./
+COPY apps/customer-service/package.json ./apps/customer-service/
 
-# Copy only the built artifacts from builder
-COPY --from=builder /app/apps/customer-service/dist/src/main.js ./apps/customer-service/dist/src/
-
-# Install minimal dependencies needed for the mock service
-RUN yarn init -y && \
-    yarn add express --production && \
+# Installation UNIQUEMENT des dÃ©pendances de production
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
     yarn cache clean
 
-# Environment variables (non-sensitive)
-ENV NODE_ENV=production
-ENV PORT=3011
-# Use placeholder values for sensitive data, to be injected at runtime
-ENV DB_HOST=db_host_placeholder
-ENV DB_PORT=5432
-ENV DB_USERNAME=db_user_placeholder
-ENV DB_DATABASE=customer_service
+# Copie des artefacts buildÃ©s depuis le stage builder
+COPY --from=builder /app/apps/customer-service/dist ./apps/customer-service/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
-# Expose service port
-EXPOSE 3011
+# Installation du package shared et crÃ©ation du lien workspace
+WORKDIR /app/packages/shared
+RUN yarn install --production --ignore-engines
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+WORKDIR /app
+RUN mkdir -p node_modules/@wanzobe && \
+    ln -sf /app/packages/shared node_modules/@wanzobe/shared
 
-# Create startup script
-RUN printf '#!/bin/sh\n\
-if [ -f "apps/customer-service/dist/src/main.js" ]; then\n\
-    exec node apps/customer-service/dist/src/main.js\n\
-elif [ -f "apps/customer-service/dist/main.js" ]; then\n\
-    exec node apps/customer-service/dist/main.js\n\
-else\n\
-    echo "Could not find main.js file to execute" && ls -R apps/customer-service/dist && exit 1\n\
-fi\n' > /app/startup.sh && chmod +x /app/startup.sh
-
-# Set non-root user for better security
+# Configuration des permissions et utilisateur
+RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
-# Use dumb-init as entrypoint to handle signals properly
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/app/startup.sh"]
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3011
+
+# Health check standardisÃ©
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3011/health || exit 1
+
+# Exposition du port
+EXPOSE 3011
+
+# Point d'entrÃ©e avec init process
+WORKDIR /app/apps/customer-service
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/apps/customer-service/src/main.js"]
+

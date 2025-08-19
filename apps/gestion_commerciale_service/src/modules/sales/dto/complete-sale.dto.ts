@@ -10,7 +10,7 @@ export class CompleteSaleDto {
   })
   @IsNumber()
   @IsPositive()
-  amountPaidInCdf: number;
+  paidAmountInCdf: number;
 
   @ApiProperty({
     description: 'Méthode de paiement',
