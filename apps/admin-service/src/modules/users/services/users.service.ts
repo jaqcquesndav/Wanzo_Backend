@@ -17,7 +17,7 @@ import { UserRole, UserStatus, UserType } from '../entities/enums';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { EventsService } from '../../events/events.service';
-import { EventUserType, SharedUserStatus } from '@wanzo/shared/events/kafka-config';
+import { EventUserType, SharedUserStatus } from '@wanzobe/shared';
 
 @Injectable()
 export class UsersService {
@@ -35,7 +35,7 @@ export class UsersService {
     private readonly eventsService: EventsService,
   ) {}
 
-  private async findByEmail(email: string): Promise<User> {
+  private async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
 
@@ -321,6 +321,10 @@ export class UsersService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('User password not set');
     }
 
     const isPasswordMatching = await bcrypt.compare(currentPassword, user.password);

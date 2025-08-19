@@ -5,13 +5,19 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "./*": "./dist/*",
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./*": "./dist/*"
   },
   "scripts": {
     "build": "tsc",
+    "clean": "if exist dist rmdir /s /q dist",
+    "prebuild": "npm run clean",
     "test": "jest --passWithNoTests"
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "dependencies": {
     "kafkajs": "~2.2.4"
   },

@@ -17,7 +17,7 @@ import {
     TokenTransactionDto
 } from '../dtos/token.dto';
 import { EventsService } from '../../events/events.service';
-import { TokenEventTopics, TokenPurchaseEvent, TokenAllocatedEvent } from '@wanzo/shared/events/kafka-config';
+import { TokenEventTopics, TokenPurchaseEvent, TokenAllocatedEvent } from '@wanzobe/shared';
 
 @Injectable()
 export class TokensService {
@@ -240,13 +240,13 @@ export class TokensService {
         const transaction: TokenTransaction = {
             id: `trans_${Math.random().toString(36).substr(2, 9)}`,
             customerId: allocateTokensDto.customerId,
-            packageId: null as string,
+            packageId: undefined,
             type: TokenTransactionType.ALLOCATION,
             amount: allocateTokensDto.amount,
             balance: 0, // This would be calculated
             description: `Allocation: ${allocateTokensDto.reason}`,
             timestamp: new Date(),
-            expiryDate: null as Date,
+            expiryDate: undefined,
             metadata: { allocatedBy: adminId },
             customer: null as any, // Mocked for type compliance
             package: null as any, // Mocked for type compliance

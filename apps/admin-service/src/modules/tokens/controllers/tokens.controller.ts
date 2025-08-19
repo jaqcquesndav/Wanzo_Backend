@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { TokensService } from '../services/tokens.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,12 +29,20 @@ import { User } from '../../users/entities/user.entity';
 export class TokensController {
     constructor(private readonly tokensService: TokensService) {}
 
+    private validateCustomerAccountId(user: User): string {
+        if (!user.customerAccountId) {
+            throw new UnauthorizedException('Customer account ID is required');
+        }
+        return user.customerAccountId;
+    }
+
     @Get('balance')
     @ApiOperation({ summary: 'Get token balance', description: 'Retrieves the current token balance for the authenticated user or company.' })
     @ApiResponse({ status: 200, description: 'Successful response', type: TokenBalanceDto })
     @Roles('tokens:read')
     getTokenBalance(@CurrentUser() user: User): Promise<TokenBalanceDto> {
-        return this.tokensService.getTokenBalance(user.customerAccountId);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.getTokenBalance(customerAccountId);
     }
 
     @Get('packages')
@@ -56,7 +64,8 @@ export class TokensController {
         @Body() purchaseTokensDto: PurchaseTokensDto,
         @UploadedFile() proofDocument: Express.Multer.File
     ): Promise<PurchaseTokensResponseDto> {
-        return this.tokensService.purchaseTokens(user.customerAccountId, purchaseTokensDto, proofDocument);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.purchaseTokens(customerAccountId, purchaseTokensDto, proofDocument);
     }
 
     @Get('usage')
@@ -64,7 +73,8 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response', type: TokenUsageResponseDto })
     @Roles('tokens:read')
     getTokenUsageHistory(@CurrentUser() user: User, @Query() query: GetTokenUsageQueryDto): Promise<TokenUsageResponseDto> {
-        return this.tokensService.getTokenUsageHistory(user.customerAccountId, query);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.getTokenUsageHistory(customerAccountId, query);
     }
 
     @Get('history')
@@ -72,7 +82,8 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response', type: TokenHistoryResponseDto })
     @Roles('tokens:read')
     getTokenTransactionHistory(@CurrentUser() user: User, @Query() query: GetTokenHistoryQueryDto): Promise<TokenHistoryResponseDto> {
-        return this.tokensService.getTokenTransactionHistory(user.customerAccountId, query);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.getTokenTransactionHistory(customerAccountId, query);
     }
 
     @Get('usage/stats')
@@ -80,7 +91,9 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response' })
     @Roles('tokens:read')
     getTokenUsageStats(@CurrentUser() user: User, @Query() query: GetTokenStatsQueryDto): Promise<any> {
-        return this.tokensService.getTokenUsageStats(user.customerAccountId, query.period);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        const period = query.period || 'monthly';
+        return this.tokensService.getTokenUsageStats(customerAccountId, period);
     }
 
     @Get('usage/features')
@@ -88,7 +101,8 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response' })
     @Roles('tokens:read')
     getTokenUsageByFeature(@CurrentUser() user: User): Promise<any> {
-        return this.tokensService.getTokenUsageByFeature(user.customerAccountId);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.getTokenUsageByFeature(customerAccountId);
     }
 
     @Get('usage/apps')
@@ -96,7 +110,8 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response' })
     @Roles('tokens:read')
     getTokenUsageByApp(@CurrentUser() user: User): Promise<any> {
-        return this.tokensService.getTokenUsageByApp(user.customerAccountId);
+        const customerAccountId = this.validateCustomerAccountId(user);
+        return this.tokensService.getTokenUsageByApp(customerAccountId);
     }
 
     // Admin Endpoints
@@ -105,7 +120,8 @@ export class TokensController {
     @ApiResponse({ status: 200, description: 'Successful response', type: TokenStatisticsDto })
     @Roles('admin:tokens:read')
     getAllTokenStatistics(@Query() query: GetTokenStatsQueryDto): Promise<TokenStatisticsDto> {
-        return this.tokensService.getAllTokenStatistics(query.period);
+        const period = query.period || 'monthly';
+        return this.tokensService.getAllTokenStatistics(period);
     }
 
     @Post('/admin/tokens/allocate')

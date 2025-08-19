@@ -12,7 +12,7 @@ import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { ConfigService } from '@nestjs/config';
 // Use local Kafka config instead of shared module to avoid dependency issues
-// import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+// import { getKafkaConfig } from '@wanzobe/shared/events/kafka-config';
 import { getLocalKafkaConfig } from './config/kafka-config';
 import { setupSwagger } from './swagger.config';
 

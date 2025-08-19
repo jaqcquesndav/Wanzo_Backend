@@ -5,7 +5,7 @@ import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/i
 import { TokenEventHandler } from './token-event.handler';
 import { EventsService } from '../../events/events.service';
 import { BadRequestException, Logger } from '@nestjs/common';
-import { EntityType, SubscriptionStatusType } from '@wanzo/shared/events/subscription-types';
+import { EntityType, SubscriptionStatusType } from '@wanzobe/shared/events/subscription-types';
 
 // Mock data
 const mockInstitutionId = 'institution-123';

@@ -7,7 +7,7 @@ import { InstitutionUser, UserRole } from '../entities/institution-user.entity';
 import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from '../../events/events.module';
 import { NotFoundException } from '@nestjs/common';
 import { CreateInstitutionDto, UpdateInstitutionDto } from '../dtos/institution.dto'; // Added UpdateInstitutionDto
-import { InstitutionEventTopics, InstitutionStatusType } from '@wanzo/shared/events/kafka-config';
+import { InstitutionEventTopics, InstitutionStatusType } from '@wanzobe/shared/events/kafka-config';
 
 // Define common mock data
 const mockInstitutionId = 'inst-123';

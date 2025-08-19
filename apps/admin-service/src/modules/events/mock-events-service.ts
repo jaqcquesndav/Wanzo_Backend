@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { 
   UserStatusChangedEvent, 
   UserRoleChangedEvent
-} from '@wanzo/shared/events/kafka-config';
-import type { SubscriptionChangedEvent } from '@wanzo/shared/events/kafka-config';
+} from '@wanzobe/shared';
+import type { SubscriptionChangedEvent } from '@wanzobe/shared';
 
 /**
  * Mock implementation of EventsService for when Kafka is disabled.

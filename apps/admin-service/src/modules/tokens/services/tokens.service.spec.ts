@@ -6,7 +6,7 @@ import { EventsService } from '../../events/events.service';
 import { TokenPackage, TokenBalance, TokenTransaction, TokenUsage, TokenTransactionType, AppType, CustomerType } from '../entities/token.entity';
 import { PurchaseTokensDto, AllocateTokensDto, GetTokenUsageQueryDto, GetTokenHistoryQueryDto } from '../dtos/token.dto';
 import { NotFoundException } from '@nestjs/common';
-import { TokenPurchaseEvent, TokenAllocatedEvent } from '@wanzo/shared/events/kafka-config';
+import { TokenPurchaseEvent, TokenAllocatedEvent } from '@wanzobe/shared';
 
 type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 

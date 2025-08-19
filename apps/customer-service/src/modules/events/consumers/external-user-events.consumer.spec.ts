@@ -9,7 +9,7 @@ import {
   UserStatusChangedEvent,
   UserRoleChangedEvent,
   SharedUserStatus
-} from '@wanzo/shared/events/kafka-config';
+} from '@wanzobe/shared/events/kafka-config';
 
 describe('ExternalUserEventsConsumer', () => {
   let consumer: ExternalUserEventsConsumer;

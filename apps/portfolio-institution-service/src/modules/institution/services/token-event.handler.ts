@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { TokenTransactionEvent } from '@wanzo/shared/events/kafka-config';
-import { EntityType } from '@wanzo/shared/events/subscription-types';
+import { TokenTransactionEvent } from '@wanzobe/shared/events/kafka-config';
+import { EntityType } from '@wanzobe/shared/events/subscription-types';
 import { EventsService } from '../../events/events.service';
 
 @Injectable()

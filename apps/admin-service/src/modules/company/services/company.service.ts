@@ -109,12 +109,20 @@ export class CompanyService {
     uploadedAt: string;
   }[]> {
     const company = await this.findCompany();
-    const result = [];
+    const result: Array<{
+      id: string;
+      type: string;
+      fileUrl: string;
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+      uploadedAt: string;
+    }> = [];
     
     // Convert the documents object to an array for the response
     for (const [type, fileUrl] of Object.entries(company.documents)) {
       if (fileUrl) {
-        const fileName = fileUrl.split('/').pop();
+        const fileName = fileUrl.split('/').pop() || 'unknown-file';
         result.push({
           id: `doc_${uuidv4().substring(0, 5)}`, // Generate a shorter unique ID
           type,
@@ -203,7 +211,7 @@ export class CompanyService {
     
     // If not found, create it (this should only happen on first run)
     if (!company) {
-      company = this.companyRepository.create({
+      const companyData: Partial<Company> = {
         id: this.WANZO_COMPANY_ID,
         name: 'Wanzo Inc.',
         rccmNumber: 'CD/KIN/RCCM/123456',
@@ -221,28 +229,19 @@ export class CompanyService {
             lng: 15.322
           }
         },
-        locations: [
-          {
-            address: '456 Business Avenue, Kinshasa',
-            coordinates: {
-              lat: -4.327,
-              lng: 15.324
-            },
-            type: LocationType.HEADQUARTERS
-          }
-        ],
         documents: {
-          rccmFile: null,
-          nationalIdFile: null,
-          taxNumberFile: null,
-          cnssFile: null
+          rccmFile: undefined,
+          nationalIdFile: undefined,
+          taxNumberFile: undefined,
+          cnssFile: undefined
         },
         contactEmail: 'info@wanzo.com',
         contactPhone: ['+243123456789'],
         representativeName: 'John Doe',
         representativeRole: 'CEO'
-      });
+      };
       
+      company = this.companyRepository.create(companyData);
       await this.companyRepository.save(company);
     }
     

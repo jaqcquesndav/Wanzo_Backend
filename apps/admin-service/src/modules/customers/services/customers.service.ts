@@ -631,11 +631,11 @@ export class CustomersService implements CustomerDocumentMethods {
       ownerEmail: customer.ownerEmail,
       validatedAt: customer.validatedAt,
       validatedBy: customer.validatedBy,
-      suspendedAt: customer.suspendedAt,
-      suspendedBy: customer.suspendedBy,
-      suspensionReason: customer.suspensionReason,
-      reactivatedAt: customer.reactivatedAt,
-      reactivatedBy: customer.reactivatedBy,
+      suspendedAt: customer.suspendedAt ?? undefined,
+      suspendedBy: customer.suspendedBy ?? undefined,
+      suspensionReason: customer.suspensionReason ?? undefined,
+      reactivatedAt: customer.reactivatedAt ?? undefined,
+      reactivatedBy: customer.reactivatedBy ?? undefined,
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt
     };

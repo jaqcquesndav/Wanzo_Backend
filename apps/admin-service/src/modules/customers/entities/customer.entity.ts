@@ -90,19 +90,19 @@ export class Customer {
   validatedBy: string;
 
   @Column({ nullable: true })
-  suspendedAt: Date;
+  suspendedAt: Date | null;
 
   @Column({ nullable: true })
-  suspendedBy: string;
+  suspendedBy: string | null;
 
   @Column({ nullable: true })
-  suspensionReason: string;
+  suspensionReason: string | null;
 
   @Column({ nullable: true })
-  reactivatedAt: Date;
+  reactivatedAt: Date | null;
 
   @Column({ nullable: true })
-  reactivatedBy: string;
+  reactivatedBy: string | null;
 
   @Column('jsonb', { nullable: true })
   validationHistory: Array<{

@@ -74,11 +74,11 @@ export class ValidationStep {
   requiredDocuments: DocumentType[];
 
   @Column({ nullable: true })
-  completedAt: Date;
+  completedAt: Date | null;
 
   @Column({ nullable: true })
-  completedBy: string;
+  completedBy: string | null;
 
   @Column({ nullable: true })
-  notes: string;
+  notes: string | null;
 }

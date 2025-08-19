@@ -2,13 +2,13 @@
   "extends": "../tsconfig/nestjs.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./",
-    "baseUrl": "./",
-    "composite": true, // Often useful for shared packages in a monorepo
-    "declaration": true, // Ensure .d.ts files are generated
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "composite": true,
+    "declaration": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["**/*.ts", "../types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "../types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

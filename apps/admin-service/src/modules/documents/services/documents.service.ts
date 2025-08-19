@@ -16,8 +16,8 @@ import {
 } from '../dtos';
 import { EventsService } from '../../events/events.service';
 // Import events from shared package
-// import { DocumentEventTopics } from '@wanzo/shared/events/kafka-config';
-// import type { DocumentUploadedEvent, DocumentDeletedEvent } from '@wanzo/shared/events/kafka-config';
+// import { DocumentEventTopics } from '@wanzobe/shared';
+// import type { DocumentUploadedEvent, DocumentDeletedEvent } from '@wanzobe/shared';
 
 // Temporary local enum until shared package import works
 enum DocumentEventTopics {

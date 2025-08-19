@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { EncryptedJsonTransformer, EncryptionService } from '@wanzo/shared/security';
+import { EncryptedJsonTransformer, EncryptionService } from '@wanzobe/shared/security';
 
 export enum DisbursementStatus {
   PENDING = 'en attente',

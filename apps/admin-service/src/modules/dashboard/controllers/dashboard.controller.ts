@@ -1,5 +1,5 @@
 
-import { Controller, Get, Post, Put, Body, UseGuards, Request, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, UseGuards, Request, Query, Param, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../../modules/auth/decorators/roles.decorator';
@@ -30,6 +30,12 @@ import { APIResponse } from '../../../common/interfaces';
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
+  private validateUser(req: ExpressRequest): void {
+    if (!req.user) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get main dashboard data' })
   @ApiResponse({ status: 200, description: 'Main dashboard data retrieved successfully.', type: DashboardCompleteDataDto })
@@ -41,7 +47,11 @@ export class DashboardController {
     @Request() req: ExpressRequest,
     @Query() queryParams: DashboardQueryParamsDto
   ): Promise<DashboardCompleteDataDto> {
-    return this.dashboardService.getMainDashboardData(req.user.companyId, queryParams);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getMainDashboardData(req.user!.companyId, queryParams);
   }
 
   @Get('widgets/:widgetId')
@@ -54,7 +64,8 @@ export class DashboardController {
     @Param('widgetId') widgetId: string,
     @Request() req: ExpressRequest
   ): Promise<WidgetResponseDto> {
-    return this.dashboardService.getWidgetData(widgetId, req.user.id);
+    this.validateUser(req);
+    return this.dashboardService.getWidgetData(widgetId, req.user!.id);
   }
 
   @Get('configuration')
@@ -64,7 +75,8 @@ export class DashboardController {
   async getDashboardConfiguration(
     @Request() req: ExpressRequest
   ): Promise<DashboardConfigurationDto> {
-    return this.dashboardService.getDashboardConfiguration(req.user.id);
+    this.validateUser(req);
+    return this.dashboardService.getDashboardConfiguration(req.user!.id);
   }
 
   @Put('configuration')
@@ -75,7 +87,8 @@ export class DashboardController {
     @Request() req: ExpressRequest,
     @Body() updateData: UpdateDashboardConfigurationDto
   ): Promise<APIResponse<DashboardConfigurationDto>> {
-    const updatedConfig = await this.dashboardService.updateDashboardConfiguration(req.user.id, updateData);
+    this.validateUser(req);
+    const updatedConfig = await this.dashboardService.updateDashboardConfiguration(req.user!.id, updateData);
     return {
       success: true,
       data: updatedConfig,
@@ -94,7 +107,11 @@ export class DashboardController {
     @Request() req: ExpressRequest,
     @Query() query: any
   ): Promise<any> {
-    return this.dashboardService.getSalesStatistics(req.user.companyId, query);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getSalesStatistics(req.user!.companyId, query);
   }
 
   @Get('statistics/user-engagement')
@@ -107,7 +124,11 @@ export class DashboardController {
     @Request() req: ExpressRequest,
     @Query() query: any
   ): Promise<any> {
-    return this.dashboardService.getUserEngagementStatistics(req.user.companyId, query);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getUserEngagementStatistics(req.user!.companyId, query);
   }
 
   // Legacy endpoints for backward compatibility
@@ -116,7 +137,11 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'KPIs retrieved successfully.', type: KpisDto })
   @Roles(Role.Admin)
   async getKpis(@Request() req: ExpressRequest): Promise<KpisDto> {
-    return this.dashboardService.getKpis(req.user.companyId);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getKpis(req.user!.companyId);
   }
 
   @Get('financial-summary')
@@ -124,7 +149,11 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'Financial summary retrieved successfully.', type: FinancialSummaryDto })
   @Roles(Role.Admin)
   async getFinancialSummary(@Request() req: ExpressRequest): Promise<FinancialSummaryDto> {
-    return this.dashboardService.getFinancialSummary(req.user.companyId);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getFinancialSummary(req.user!.companyId);
   }
 
   @Get('recent-activities')
@@ -132,7 +161,11 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'Recent activities retrieved successfully.', type: [RecentActivityDto] })
   @Roles(Role.Admin, Role.User)
   async getRecentActivities(@Request() req: ExpressRequest): Promise<RecentActivityDto[]> {
-    return this.dashboardService.getRecentActivities(req.user.companyId);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getRecentActivities(req.user!.companyId);
   }
 
   @Get('user-statistics')
@@ -140,7 +173,11 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'User statistics retrieved successfully.', type: UserStatisticDto })
   @Roles(Role.Admin)
   async getUserStatistics(@Request() req: ExpressRequest): Promise<UserStatisticDto> {
-    return this.dashboardService.getUserStatistics(req.user.companyId);
+    this.validateUser(req);
+    if (!req.user!.companyId) {
+      throw new UnauthorizedException('User missing company ID');
+    }
+    return this.dashboardService.getUserStatistics(req.user!.companyId);
   }
 
   @Get('system-health')
@@ -156,6 +193,7 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'Notifications retrieved successfully.', type: [NotificationDto] })
   @Roles(Role.Admin, Role.User)
   async getNotifications(@Request() req: ExpressRequest): Promise<NotificationDto[]> {
-    return this.dashboardService.getNotifications(req.user.id);
+    this.validateUser(req);
+    return this.dashboardService.getNotifications(req.user!.id);
   }
 }

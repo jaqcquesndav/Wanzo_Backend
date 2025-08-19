@@ -34,7 +34,7 @@ import {
   InstitutionCreatedEvent,
   InstitutionProfileUpdatedEvent,
   InstitutionStatusChangedEvent,
-} from '@wanzo/shared/events/kafka-config';
+} from '@wanzobe/shared';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {

@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { TokenUsageEvent } from '@wanzo/shared/events/kafka-config';
+import { TokenUsageEvent } from '@wanzobe/shared';
 import { TokensService } from '../../tokens/services/tokens.service';
 
 @Controller()

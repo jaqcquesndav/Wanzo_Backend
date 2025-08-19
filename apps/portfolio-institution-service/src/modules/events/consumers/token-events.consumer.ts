@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { TokenEventTopics, TokenTransactionEvent } from '@wanzo/shared/events/token-events';
+import { TokenEventTopics, TokenTransactionEvent } from '@wanzobe/shared/events/token-events';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { 

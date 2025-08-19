@@ -9,6 +9,7 @@ import {
   InvoiceItem,
   TransactionStatus,
   PaymentStatus,
+  PaymentMethod,
   InvoiceStatus as EntityInvoiceStatus,
   BillingCycle,
   SubscriptionStatus
@@ -37,7 +38,7 @@ import {
 } from '../dtos';
 import { User } from '../../users/entities/user.entity';
 import { EventsService } from '../../events/events.service';
-import { InvoiceStatus as KafkaInvoiceStatus } from '@wanzo/shared/events/kafka-config';
+import { InvoiceStatus as KafkaInvoiceStatus } from '@wanzobe/shared';
 
 @Injectable()
 export class FinanceService {
@@ -566,7 +567,7 @@ export class FinanceService {
         customerName: '', // À remplir avec les données du client si nécessaire
         amount: transaction.amount,
         currency: transaction.currency || 'USD',
-        method: undefined, // Transaction entity needs a method property
+        method: PaymentMethod.OTHER, // Default payment method
         proofType: '', // Transaction entity needs a proofType property
         proofUrl: '', // Transaction entity needs a proofUrl property
         status: paymentStatus,

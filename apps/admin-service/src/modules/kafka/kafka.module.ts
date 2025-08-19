@@ -3,7 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KafkaProducerService } from './kafka-producer.service';
 // Import the shared config function
-import { getKafkaConfig } from '@wanzo/shared/events/kafka-config';
+import { getKafkaConfig } from '@wanzobe/shared';
 
 @Module({
   imports: [

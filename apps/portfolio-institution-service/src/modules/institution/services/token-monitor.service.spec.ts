@@ -4,7 +4,7 @@ import { TokenMonitorService } from './token-monitor.service';
 import { Institution } from '../entities/institution.entity';
 import { EventsService } from '../../events/events.service';
 import { InstitutionUser } from '../entities/institution-user.entity'; // Corrected import path
-import { EntityType } from '@wanzo/shared/events/subscription-types';
+import { EntityType } from '@wanzobe/shared/events/subscription-types';
 import { LessThan } from 'typeorm';
 
 // Mock User and Institution data

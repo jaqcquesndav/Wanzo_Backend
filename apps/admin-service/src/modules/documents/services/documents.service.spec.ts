@@ -9,7 +9,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DocumentDto } from '../dtos';
 
 // Import DocumentEventTopics from shared events
-import { DocumentEventTopics } from '@wanzo/shared/events/kafka-config';
+import { DocumentEventTopics } from '@wanzobe/shared';
 
 type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
