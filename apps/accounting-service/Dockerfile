@@ -29,6 +29,7 @@ COPY package.json yarn.lock turbo.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/types/package.json ./packages/types/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
+COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/accounting-service/package.json ./apps/accounting-service/
 
 # Installation des dÃ©pendances seulement
@@ -39,54 +40,40 @@ RUN yarn install --frozen-lockfile --ignore-engines && \
 COPY packages/ ./packages/
 COPY apps/accounting-service/ ./apps/accounting-service/
 
-# Build optimisÃ©
-WORKDIR /app/packages/shared
-RUN yarn build && rm -rf node_modules
+# Build optimisé avec Yarn Workspaces
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build && \
+    yarn workspace @kiota-suit/accounting-service build
 
-WORKDIR /app/apps/accounting-service
-RUN yarn build
+# ======== STAGE 2: PRODUCTION (WORKSPACE-OPTIMIZED) ========
+FROM node:20-alpine AS production
 
-# ======== STAGE 2: PRODUCTION ========
-FROM node:20.13.0-alpine3.19 AS production
+# Installation runtime minimal + sécurité
+RUN apk add --no-cache dumb-init curl && \
+    adduser -D -u 1001 nodeuser && \
+    rm -rf /var/cache/apk/* /tmp/*
 
-# MÃ©tadonnÃ©es
-LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="accounting-service"
-LABEL stage="production"
-
-# Installation des dÃ©pendances runtime + sÃ©curitÃ©
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
-        ca-certificates \
-        dumb-init \
-        curl \
-    && adduser -D -u 1001 nodeuser \
-    && rm -rf /var/cache/apk/*
-
-# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Configuration minimaliste pour la production
-COPY package.json yarn.lock ./
-COPY apps/accounting-service/package.json ./apps/accounting-service/
+# ÉTAPE 1: Recréer la structure workspace pour production
+COPY --chown=nodeuser:nodeuser package.json yarn.lock turbo.json ./
+COPY --chown=nodeuser:nodeuser packages/shared/package.json ./packages/shared/
+COPY --chown=nodeuser:nodeuser packages/types/package.json ./packages/types/
+COPY --chown=nodeuser:nodeuser packages/tsconfig/package.json ./packages/tsconfig/
+COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/customer-sync/
+COPY --chown=nodeuser:nodeuser apps/accounting-service/package.json ./apps/accounting-service/
 
-# CrÃ©ation structure packages pour les imports
-RUN mkdir -p packages/shared packages/types packages/tsconfig && \
-    echo '{"name":"@wanzobe/shared","version":"0.0.1","main":"dist/index.js"}' > packages/shared/package.json && \
-    echo '{"name":"@wanzobe/types","version":"1.0.0","main":"index.js"}' > packages/types/package.json && \
-    echo '{"name":"@wanzobe/tsconfig","version":"1.0.0"}' > packages/tsconfig/package.json
-
-# Installation PRODUCTION SEULEMENT - sans dev dependencies
+# ÉTAPE 2: Installation production avec workspace resolution
 RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
-    yarn cache clean --all && \
-    rm -rf /tmp/* /var/tmp/* ~/.npm ~/.yarn
+    yarn cache clean && \
+    npm cache clean --force && \
+    rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm
 
-# Copie UNIQUEMENT des artefacts buildÃ©s (pas de sources)
-COPY --from=builder /app/apps/accounting-service/dist ./apps/accounting-service/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+# ÉTAPE 3: Copie des artefacts buildés avec structure workspace
+COPY --from=builder --chown=nodeuser:nodeuser /app/apps/accounting-service/dist ./apps/accounting-service/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/customer-sync/dist ./packages/customer-sync/dist
 
-RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
 ENV NODE_ENV=production

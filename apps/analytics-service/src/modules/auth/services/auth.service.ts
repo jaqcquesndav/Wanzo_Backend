@@ -2,6 +2,7 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,7 @@ export class AuthService {
       const authServiceUrl = this.configService.get('AUTH_SERVICE_URL');
       this.logger.debug(`Validating token with auth service: ${authServiceUrl}`);
 
-      const response = await firstValueFrom(
+      const response: AxiosResponse<any> = await firstValueFrom(
         this.httpService.get(`${authServiceUrl}/oauth/userinfo`, {
           headers: { Authorization: `Bearer ${token}` },
         })

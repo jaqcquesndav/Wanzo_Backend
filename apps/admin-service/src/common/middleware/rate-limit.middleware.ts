@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 export class RateLimitMiddleware implements NestMiddleware {
   constructor(private configService: ConfigService) {}
 
-  use(req: Request, res: Response, next: NextFunction): void {
+  use(req: any, res: any, next: NextFunction): void {
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: this.configService.get('RATE_LIMIT_MAX', 100),

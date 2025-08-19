@@ -1,116 +1,85 @@
 ﻿# ===========================================
-# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# WANZOBE BACKEND - DOCKERFILE OPTIMISÉ
 # Service: admin-service
-# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# Image ultra-légère avec Alpine + Multi-stage
 # ===========================================
 
-# ======== STAGE 1: BUILD ========
-FROM node:20.13.0-alpine3.19 AS builder
+# ======== STAGE 1: BUILD (WORKSPACE-AWARE) ========
+FROM node:20-alpine AS builder
 
-# MÃ©tadonnÃ©es
-LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="admin-service"
-LABEL stage="builder"
+# Installation minimale des outils de build
+RUN apk add --no-cache python3 make g++ && \
+    npm install -g npm@latest && \
+    rm -rf /var/cache/apk/*
 
-# Installation des dÃ©pendances systÃ¨me pour le build
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
-        ca-certificates \
-        python3 \
-        make \
-        g++ \
-        curl \
-    && rm -rf /var/cache/apk/*
-
-# Configuration du rÃ©pertoire de travail
+# Configuration du répertoire de travail
 WORKDIR /app
 
-# Copie des fichiers de configuration du monorepo
-COPY package.json yarn.lock ./
-COPY turbo.json ./
+# ÉTAPE 1: Copie de la structure workspace complète
+COPY package.json yarn.lock turbo.json ./
 
-# Copie des packages partagÃ©s (prioritÃ© pour workspace linking)
-COPY packages/shared ./packages/shared/
-COPY packages/types ./packages/types/
-COPY packages/tsconfig ./packages/tsconfig/
-
-# Copie du service spÃ©cifique
+# ÉTAPE 2: Copie de TOUS les package.json pour workspace resolution
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/types/package.json ./packages/types/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/admin-service/package.json ./apps/admin-service/
 
-# Installation des dÃ©pendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
-
-# Copie du code source du service
-COPY apps/admin-service/src ./apps/admin-service/src/
-COPY apps/admin-service/tsconfig*.json ./apps/admin-service/
-COPY apps/admin-service/nest-cli.json ./apps/admin-service/
-
-# Build des packages partagÃ©s d'abord
-WORKDIR /app/packages/shared
-RUN yarn build
-
-# Retour au service et build
-WORKDIR /app/apps/admin-service
-RUN yarn build
-
-# ======== STAGE 2: PRODUCTION ========
-FROM node:20.13.0-alpine3.19 AS production
-
-# MÃ©tadonnÃ©es
-LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="admin-service"
-LABEL stage="production"
-
-# Installation des dÃ©pendances runtime + sÃ©curitÃ©
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
-        ca-certificates \
-        dumb-init \
-        curl \
-        tini \
-    && adduser -D -u 1001 nodeuser \
-    && rm -rf /var/cache/apk/*
-
-# Configuration du rÃ©pertoire de travail
-WORKDIR /app
-
-# Copie des fichiers de configuration
-COPY package.json ./
-COPY apps/admin-service/package.json ./apps/admin-service/
-
-# Installation UNIQUEMENT des dÃ©pendances de production
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+# ÉTAPE 3: Installation avec workspace resolution
+RUN yarn install --frozen-lockfile --ignore-engines && \
     yarn cache clean
 
-# Copie des artefacts buildÃ©s depuis le stage builder
-COPY --from=builder /app/apps/admin-service/dist ./apps/admin-service/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+# ÉTAPE 4: Copie du code source (après installation pour cache optimal)
+COPY packages/ ./packages/
+COPY apps/admin-service/src ./apps/admin-service/src/
+COPY apps/admin-service/tsconfig*.json apps/admin-service/nest-cli.json ./apps/admin-service/
 
-# Installation du package shared et crÃ©ation du lien workspace
-WORKDIR /app/packages/shared
-RUN yarn install --production --ignore-engines
+# ÉTAPE 5: Build avec ordre de dépendances respecté
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build && \
+    yarn workspace @kiota-suit/admin-service build
+
+# ======== STAGE 2: PRODUCTION (WORKSPACE-OPTIMIZED) ========
+FROM node:20-alpine AS production
+
+# Installation runtime minimal
+RUN apk add --no-cache dumb-init curl && \
+    adduser -D -u 1001 nodeuser && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
-RUN mkdir -p node_modules/@wanzobe && \
-    ln -sf /app/packages/shared node_modules/@wanzobe/shared
 
-# Configuration des permissions et utilisateur
-RUN chown -R nodeuser:nodeuser /app
+# ÉTAPE 1: Recréer la structure workspace pour production
+COPY --chown=nodeuser:nodeuser package.json yarn.lock turbo.json ./
+COPY --chown=nodeuser:nodeuser packages/shared/package.json ./packages/shared/
+COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/customer-sync/
+COPY --chown=nodeuser:nodeuser apps/admin-service/package.json ./apps/admin-service/
+
+# ÉTAPE 2: Installation production avec workspace resolution
+RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+    yarn cache clean && \
+    npm cache clean --force && \
+    rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm
+
+# ÉTAPE 3: Copie des artefacts buildés avec structure workspace
+COPY --from=builder --chown=nodeuser:nodeuser /app/apps/admin-service/dist ./apps/admin-service/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/customer-sync/dist ./packages/customer-sync/dist
+
 USER nodeuser
 
-# Variables d'environnement
-ENV NODE_ENV=production
-ENV PORT=3001
+# Variables d'environnement optimisées pour performance
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=256" \
+    PORT=3001
 
-# Health check standardisÃ©
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Health check ultra-léger
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
     CMD curl -f http://localhost:3001/health || exit 1
 
-# Exposition du port
 EXPOSE 3001
 
-# Point d'entrÃ©e avec init process
+# Point d'entrée optimisé
 WORKDIR /app/apps/admin-service
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/apps/admin-service/src/main.js"]

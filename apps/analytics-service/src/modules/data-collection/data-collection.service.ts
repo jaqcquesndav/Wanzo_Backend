@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, ServiceUnavailableException, Forbidde
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { AxiosResponse } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsConfig } from '../../entities';
@@ -102,7 +103,7 @@ export class DataCollectionService implements OnModuleInit {
   async getInstitutionPortfolioData(institutionId: string, period?: string) {
     try {
       const serviceUrl = this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL');
-      const response = await firstValueFrom(
+      const response: AxiosResponse<any> = await firstValueFrom(
         this.httpService.get(`${serviceUrl}/api/portfolios/${institutionId}`, {
           params: period ? { period } : {}
         })
@@ -129,7 +130,7 @@ export class DataCollectionService implements OnModuleInit {
     
     try {
       const serviceUrl = this.configService.get('PORTFOLIO_SME_SERVICE_URL');
-      const response = await firstValueFrom(
+      const response: AxiosResponse<any> = await firstValueFrom(
         this.httpService.get(`${serviceUrl}/api/portfolios/${smeId}`, {
           params: period ? { period } : {}
         })
@@ -156,7 +157,7 @@ export class DataCollectionService implements OnModuleInit {
     
     try {
       const serviceUrl = this.configService.get('ACCOUNTING_SERVICE_URL');
-      const response = await firstValueFrom(
+      const response: AxiosResponse<any> = await firstValueFrom(
         this.httpService.get(`${serviceUrl}/api/dashboard`, {
           params: {
             companyId,

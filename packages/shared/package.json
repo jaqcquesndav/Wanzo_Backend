@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "if exist dist rmdir /s /q dist",
+    "clean": "rm -rf dist",
     "prebuild": "npm run clean",
     "test": "jest --passWithNoTests",
     "dev": "tsc --watch"

@@ -1,9 +1,8 @@
-﻿# Multi-stage Dockerfile ultra-optimisé pour gestion_commerciale_service
-FROM node:20.13.0-alpine3.19 AS builder
+﻿# Multi-stage Dockerfile workspace-optimisé pour gestion_commerciale_service
+FROM node:20-alpine AS builder
 
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates python3 make g++ && \
-    rm -rf /var/cache/apk/*
+RUN apk add --no-cache ca-certificates python3 make g++ && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
 
@@ -14,56 +13,46 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
 
-# Installation des dépendances seulement
+# Installation des dépendances avec workspace resolution
 RUN yarn install --frozen-lockfile --ignore-engines && \
-    yarn cache clean --all
+    yarn cache clean
 
 # Copie du code source après l'installation
 COPY packages/ ./packages/
 COPY apps/gestion_commerciale_service/ ./apps/gestion_commerciale_service/
 
-# Build optimisé
-WORKDIR /app/packages/shared
-RUN yarn build && rm -rf node_modules
+# Build optimisé avec Yarn Workspaces
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build && \
+    yarn workspace @wanzobe/gestion-commerciale-service build
 
-WORKDIR /app/apps/gestion_commerciale_service
-RUN yarn build
+# ======== STAGE 2: PRODUCTION (WORKSPACE-OPTIMIZED) ========
+FROM node:20-alpine AS production
 
-FROM node:20.13.0-alpine3.19 AS production
-
-RUN apk update && apk upgrade && \
-    apk add --no-cache ca-certificates dumb-init curl && \
+RUN apk add --no-cache dumb-init curl && \
     adduser -D -u 1001 nodeuser && \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
 
-# Configuration minimaliste pour la production
-COPY package.json yarn.lock ./
-COPY apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
+# ÉTAPE 1: Recréer la structure workspace pour production
+COPY --chown=nodeuser:nodeuser package.json yarn.lock turbo.json ./
+COPY --chown=nodeuser:nodeuser packages/shared/package.json ./packages/shared/
+COPY --chown=nodeuser:nodeuser packages/types/package.json ./packages/types/
+COPY --chown=nodeuser:nodeuser packages/tsconfig/package.json ./packages/tsconfig/
+COPY --chown=nodeuser:nodeuser apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
 
-# Création structure packages pour les imports
-RUN mkdir -p packages/shared packages/types packages/tsconfig && \
-    echo '{"name":"@wanzobe/shared","version":"0.0.1","main":"dist/index.js"}' > packages/shared/package.json && \
-    echo '{"name":"@wanzobe/types","version":"1.0.0","main":"index.js"}' > packages/types/package.json && \
-    echo '{"name":"@wanzobe/tsconfig","version":"1.0.0"}' > packages/tsconfig/package.json
-
-# Installation PRODUCTION SEULEMENT - sans dev dependencies
+# ÉTAPE 2: Installation production avec workspace resolution
 RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
-    yarn cache clean --all && \
-    rm -rf /tmp/* /var/tmp/* ~/.npm ~/.yarn
+    yarn cache clean && \
+    npm cache clean --force && \
+    rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm
 
-# Copie UNIQUEMENT des artefacts buildés (pas de sources)
-COPY --from=builder /app/apps/gestion_commerciale_service/dist ./apps/gestion_commerciale_service/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+# ÉTAPE 3: Copie des artefacts buildés avec structure workspace
+COPY --from=builder --chown=nodeuser:nodeuser /app/apps/gestion_commerciale_service/dist ./apps/gestion_commerciale_service/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/types/dist ./packages/types/dist
 
-# Pas besoin de symlink, on va s'appuyer sur la résolution de Node.js
-# RUN mkdir -p node_modules/@wanzobe && \
-#     ln -sf /app/packages/shared node_modules/@wanzobe/shared && \
-#     ln -sf /app/packages/types node_modules/@wanzobe/types
-
-RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
 ENV NODE_ENV=production

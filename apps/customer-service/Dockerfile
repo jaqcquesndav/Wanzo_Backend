@@ -5,7 +5,7 @@
 # ===========================================
 
 # ======== STAGE 1: BUILD ========
-FROM node:20.13.0-alpine3.19 AS builder
+FROM node:20-alpine AS builder
 
 # MÃ©tadonnÃ©es
 LABEL maintainer="Wanzobe DevOps Team"
@@ -33,85 +33,67 @@ COPY turbo.json ./
 COPY packages/shared ./packages/shared/
 COPY packages/types ./packages/types/
 COPY packages/tsconfig ./packages/tsconfig/
+COPY packages/customer-sync ./packages/customer-sync/
 
 # Copie du service spÃ©cifique
 COPY apps/customer-service/package.json ./apps/customer-service/
 
-# Installation des dÃ©pendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
+# Installation des dÃ©pendances avec Yarn Workspaces (TOUTES pour le build)
+RUN yarn install --frozen-lockfile
 
 # Copie du code source du service
 COPY apps/customer-service/src ./apps/customer-service/src/
 COPY apps/customer-service/tsconfig*.json ./apps/customer-service/
 COPY apps/customer-service/nest-cli.json ./apps/customer-service/
 
-# Build des packages partagÃ©s d'abord
-WORKDIR /app/packages/shared
-RUN yarn build
+# Build des packages partagés ET du service avec Yarn Workspaces
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build && \
+    yarn workspace @wanzobe/customer-service build
 
-# Retour au service et build
-WORKDIR /app/apps/customer-service
-RUN yarn build
+# ======== STAGE 2: PRODUCTION (WORKSPACE-OPTIMIZED) ========
+FROM node:20-alpine AS production
 
-# ======== STAGE 2: PRODUCTION ========
-FROM node:20.13.0-alpine3.19 AS production
+# Installation runtime minimal + sécurité
+RUN apk add --no-cache dumb-init curl tini && \
+    adduser -D -u 1001 nodeuser && \
+    rm -rf /var/cache/apk/* /tmp/*
 
-# MÃ©tadonnÃ©es
-LABEL maintainer="Wanzobe DevOps Team"
-LABEL service="customer-service"
-LABEL stage="production"
-
-# Installation des dÃ©pendances runtime + sÃ©curitÃ©
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
-        ca-certificates \
-        dumb-init \
-        curl \
-        tini \
-    && adduser -D -u 1001 nodeuser \
-    && rm -rf /var/cache/apk/*
-
-# Configuration du rÃ©pertoire de travail
 WORKDIR /app
 
-# Copie des fichiers de configuration
-COPY package.json ./
-COPY apps/customer-service/package.json ./apps/customer-service/
+# ÉTAPE 1: Recréer la structure workspace pour production
+COPY --chown=nodeuser:nodeuser package.json yarn.lock turbo.json ./
+COPY --chown=nodeuser:nodeuser packages/shared/package.json ./packages/shared/
+COPY --chown=nodeuser:nodeuser packages/types/package.json ./packages/types/
+COPY --chown=nodeuser:nodeuser packages/tsconfig/package.json ./packages/tsconfig/
+COPY --chown=nodeuser:nodeuser apps/customer-service/package.json ./apps/customer-service/
 
-# Installation UNIQUEMENT des dÃ©pendances de production
+# ÉTAPE 2: Installation production avec workspace resolution
 RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
-    yarn cache clean
+    yarn cache clean && \
+    npm cache clean --force && \
+    rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm
 
-# Copie des artefacts buildÃ©s depuis le stage builder
-COPY --from=builder /app/apps/customer-service/dist ./apps/customer-service/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+# ÉTAPE 3: Copie des artefacts buildés avec structure workspace
+COPY --from=builder --chown=nodeuser:nodeuser /app/apps/customer-service/dist ./apps/customer-service/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodeuser:nodeuser /app/packages/types/dist ./packages/types/dist
 
-# Installation du package shared et crÃ©ation du lien workspace
-WORKDIR /app/packages/shared
-RUN yarn install --production --ignore-engines
-
-WORKDIR /app
-RUN mkdir -p node_modules/@wanzobe && \
-    ln -sf /app/packages/shared node_modules/@wanzobe/shared
-
-# Configuration des permissions et utilisateur
-RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
 # Variables d'environnement
 ENV NODE_ENV=production
 ENV PORT=3011
 
-# Health check standardisÃ©
+# Health check standardisé
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3011/health || exit 1
 
 # Exposition du port
 EXPOSE 3011
 
-# Point d'entrÃ©e avec init process
+# Point d'entrée avec init process
 WORKDIR /app/apps/customer-service
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/customer-service/src/main.js"]
+CMD ["node", "dist/main.js"]
 
