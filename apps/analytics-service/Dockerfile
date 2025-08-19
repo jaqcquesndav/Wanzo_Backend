@@ -1,7 +1,7 @@
 ﻿# ===========================================
-# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÉ
 # Service: analytics-service
-# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# Optimisé pour Yarn Workspaces + Multi-stage
 # ===========================================
 
 # ======== STAGE 1: BUILD ========
@@ -72,15 +72,10 @@ COPY --from=builder --chown=nodeuser:nodeuser /app/packages/customer-sync/dist .
 USER nodeuser
 
 # Installation du package shared et crÃ©ation du lien workspace
-WORKDIR /app/packages/shared
-RUN yarn install --production --ignore-engines
-
 WORKDIR /app
 RUN mkdir -p node_modules/@wanzobe && \
     ln -sf /app/packages/shared node_modules/@wanzobe/shared
 
-# Configuration des permissions et utilisateur
-RUN chown -R nodeuser:nodeuser /app
 USER nodeuser
 
 # Variables d'environnement
