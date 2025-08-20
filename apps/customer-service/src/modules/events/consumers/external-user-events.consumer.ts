@@ -8,7 +8,7 @@ import {
   EventUserType,
   UserStatusChangedEvent,
   UserRoleChangedEvent 
-} from '../../../../../../packages/shared/events/kafka-config';
+} from '@wanzobe/shared';
 
 @Injectable()
 export class ExternalUserEventsConsumer {

@@ -151,8 +151,8 @@ export class SmeService {
     if (updateCompanyDto.description) smeEntity.description = updateCompanyDto.description;
     if (updateCompanyDto.website) smeEntity.website = updateCompanyDto.website;
     if (updateCompanyDto.facebookPage) smeEntity.facebookPage = updateCompanyDto.facebookPage;
-    if (updateCompanyDto.rccm) smeEntity.registrationNumber = updateCompanyDto.rccm;
-    if (updateCompanyDto.taxId) smeEntity.taxIdentificationNumber = updateCompanyDto.taxId;
+    if (updateCompanyDto.rccm) smeEntity.rccm = updateCompanyDto.rccm;
+    if (updateCompanyDto.taxId) smeEntity.taxId = updateCompanyDto.taxId;
     
     // Update SME specific data if needed
     if (smeEntity.customer?.smeData) {
@@ -411,9 +411,9 @@ export class SmeService {
       size: sme.size,
       website: sme.website,
       facebookPage: sme.facebookPage,
-      rccm: sme.registrationNumber,
-      taxId: sme.taxIdentificationNumber,
-      natId: sme.nationalId,
+      rccm: sme.rccm,
+      taxId: sme.taxId,
+      natId: sme.natId,
       createdAt: customer?.createdAt,
       updatedAt: customer?.updatedAt,
       createdBy: customer?.createdBy,

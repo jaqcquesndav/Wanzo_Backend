@@ -5,7 +5,10 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
+      "@wanzobe/shared": ["../../packages/shared/src"],
       "@wanzobe/shared/*": ["../../packages/shared/src/*"],
+      "@wanzobe/customer-sync": ["../../packages/customer-sync/src"],
+      "@wanzobe/customer-sync/*": ["../../packages/customer-sync/src/*"],
       "@wanzobe/types": ["../../packages/types"]
     },
     "skipLibCheck": true,
