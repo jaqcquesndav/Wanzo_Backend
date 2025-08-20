@@ -19,13 +19,17 @@ export class PrometheusService implements OnModuleInit {
   
   constructor(private configService: ConfigService) {
     // Configuration des métriques par défaut
-    client.collectDefaultMetrics({ prefix: this.prefix });
+    client.collectDefaultMetrics({ 
+      prefix: this.prefix,
+      register: this.register 
+    });
     
     // Compteur de requêtes HTTP
     this.httpRequestsTotal = new client.Counter({
       name: `${this.prefix}http_requests_total`,
       help: 'Total des requêtes HTTP',
       labelNames: ['method', 'path', 'status'],
+      registers: [this.register],
     });
     
     // Durée des requêtes HTTP
@@ -34,12 +38,14 @@ export class PrometheusService implements OnModuleInit {
       help: 'Durée des requêtes HTTP en secondes',
       labelNames: ['method', 'path', 'status'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+      registers: [this.register],
     });
     
     // Utilisateurs actifs
     this.activeUsers = new client.Gauge({
       name: `${this.prefix}active_users`,
       help: 'Nombre d\'utilisateurs actuellement connectés',
+      registers: [this.register],
     });
     
     // Durée des requêtes à la base de données
@@ -48,6 +54,7 @@ export class PrometheusService implements OnModuleInit {
       help: 'Durée des requêtes à la base de données en secondes',
       labelNames: ['query', 'table'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+      registers: [this.register],
     });
 
     // Durée de traitement des événements d'analyse
@@ -56,6 +63,7 @@ export class PrometheusService implements OnModuleInit {
       help: 'Durée de traitement des événements d\'analyse en secondes',
       labelNames: ['event_type', 'source'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 30, 60],
+      registers: [this.register],
     });
 
     // Durée de génération des rapports

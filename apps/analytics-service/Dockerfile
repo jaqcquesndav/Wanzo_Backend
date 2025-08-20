@@ -27,7 +27,9 @@ COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/analytics-service/package.json ./apps/analytics-service/
 
 # Installation des dépendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --ignore-engines --network-timeout 600000
 
 # Copie du code source
 COPY packages/ ./packages/
@@ -59,7 +61,9 @@ COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/cu
 COPY --chown=nodeuser:nodeuser apps/analytics-service/package.json ./apps/analytics-service/
 
 # ÉTAPE 2: Installation production avec workspace resolution
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --production=true --ignore-engines --network-timeout 600000 && \
     yarn cache clean && \
     npm cache clean --force && \
     rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm
@@ -92,5 +96,5 @@ EXPOSE 3002
 # Point d'entrÃ©e avec init process
 WORKDIR /app/apps/analytics-service
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/analytics-service/src/main.js"]
+CMD ["node", "dist/main.js"]
 

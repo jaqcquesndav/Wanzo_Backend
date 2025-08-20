@@ -1,7 +1,7 @@
 ﻿# ===========================================
-# WANZOBE BACKEND - DOCKERFILE STANDARDISÃ‰
+# WANZOBE BACKEND - DOCKERFILE STANDARDISÉ
 # Service: accounting-service
-# OptimisÃ© pour Yarn Workspaces + Multi-stage
+# Optimisé pour Yarn Workspaces + Multi-stage
 # ===========================================
 
 # ======== STAGE 1: BUILD ========
@@ -32,8 +32,10 @@ COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/accounting-service/package.json ./apps/accounting-service/
 
-# Installation des dÃ©pendances seulement
-RUN yarn install --frozen-lockfile --ignore-engines && \
+# Installation des dépendances seulement
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --ignore-engines --network-timeout 600000 && \
     yarn cache clean --all
 
 # Copie du code source aprÃ¨s l'installation
@@ -64,7 +66,9 @@ COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/cu
 COPY --chown=nodeuser:nodeuser apps/accounting-service/package.json ./apps/accounting-service/
 
 # ÉTAPE 2: Installation production avec workspace resolution
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --production=true --ignore-engines --network-timeout 600000 && \
     yarn cache clean && \
     npm cache clean --force && \
     rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm

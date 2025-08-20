@@ -26,7 +26,9 @@ COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/admin-service/package.json ./apps/admin-service/
 
 # ÉTAPE 3: Installation avec workspace resolution
-RUN yarn install --frozen-lockfile --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --ignore-engines --network-timeout 600000 && \
     yarn cache clean
 
 # ÉTAPE 4: Copie du code source (après installation pour cache optimal)
@@ -56,7 +58,9 @@ COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/cu
 COPY --chown=nodeuser:nodeuser apps/admin-service/package.json ./apps/admin-service/
 
 # ÉTAPE 2: Installation production avec workspace resolution
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --production=true --ignore-engines --network-timeout 600000 && \
     yarn cache clean && \
     npm cache clean --force && \
     rm -rf /tmp/* /var/cache/* ~/.yarn ~/.npm

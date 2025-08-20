@@ -20,7 +20,9 @@ COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
 
 # Installation des dépendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --ignore-engines --network-timeout 600000
 
 # Copie du code source
 COPY packages/ ./packages/
@@ -50,7 +52,9 @@ COPY --chown=nodeuser:nodeuser packages/tsconfig/package.json ./packages/tsconfi
 COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/customer-sync/
 COPY --chown=nodeuser:nodeuser apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
 
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --production=true --ignore-engines --network-timeout 600000 && \
     yarn cache clean && \
     rm -rf /tmp/* /var/cache/* ~/.yarn
 
