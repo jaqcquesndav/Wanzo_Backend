@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { AdminRoleGuard } from '../admin-role.guard';
-import { UserRole } from '../../../users/entities/user.entity';
+import { UserRole } from '../../../system-users/entities/user.entity';
 import { jest } from '@jest/globals';
 
 describe('AdminRoleGuard', () => {

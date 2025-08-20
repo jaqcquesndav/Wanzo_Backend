@@ -164,7 +164,12 @@ describe('UserController', () => {
       const dto: UploadIdentityDocumentDto = {
         idType: IdType.PASSPORT,
       };
-      const updatedResult = { idStatus: IdStatus.PENDING, documentUrl: 'http://example.com/doc.jpg', idType: IdType.PASSPORT };
+      const updatedResult = { 
+        idStatus: IdStatus.PENDING, 
+        documentUrl: 'http://example.com/doc.jpg', 
+        idType: IdType.PASSPORT,
+        url: 'http://example.com/doc.jpg'
+      };
 
       userService.findByAuth0Id.mockResolvedValue(mockUserResponse);
       userService.uploadIdentityDocument.mockResolvedValue(updatedResult);
@@ -176,7 +181,8 @@ describe('UserController', () => {
         file,
         dto.idType,
       );
-      expect(result.data.idStatus).toEqual(updatedResult.idStatus);
+      expect(result.data.url).toEqual(updatedResult.url);
+      expect(result.data.documentType).toEqual(updatedResult.idType);
     });
   });
 

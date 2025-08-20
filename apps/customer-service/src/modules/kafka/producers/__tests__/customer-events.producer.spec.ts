@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CustomerEventsProducer } from '../customer-events.producer';
 import { ClientKafka } from '@nestjs/microservices';
-import { User, UserStatus, UserRole } from '../../../users/entities/user.entity';
+import { User, UserStatus, UserRole } from '../../../system-users/entities/user.entity';
 import { Customer, CustomerType, CustomerStatus } from '../../../customers/entities/customer.entity';
 import { Logger } from '@nestjs/common';
 import { jest } from '@jest/globals';

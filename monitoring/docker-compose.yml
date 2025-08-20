@@ -20,7 +20,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=wanzo-secret
       - GF_USERS_ALLOW_SIGN_UP=false
     networks:
-      - wanzo-monitoring
+      - wanzo
     depends_on:
       - prometheus
 
@@ -39,7 +39,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     networks:
-      - wanzo-monitoring
+      - wanzo
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
@@ -50,7 +50,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - wanzo-monitoring
+      - wanzo
 
   kafka:
     image: confluentinc/cp-kafka:7.0.1
@@ -73,15 +73,15 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     networks:
-      - wanzo-monitoring
+      - wanzo
 
 volumes:
   grafana-storage:
   prometheus-data:
 
 networks:
-  wanzo-monitoring:
-    driver: bridge
+  wanzo:
+    external: true
 
 # ----------------------------------------
 # Exemple de fichier prometheus.yml

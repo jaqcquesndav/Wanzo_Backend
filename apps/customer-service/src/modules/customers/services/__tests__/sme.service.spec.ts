@@ -14,7 +14,7 @@ import {
   AssociateDto 
 } from '../../dto/company.dto';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { User, UserRole, UserStatus, UserType } from '../../../users/entities/user.entity';
+import { User, UserRole, UserStatus, UserType } from '../../../system-users/entities/user.entity';
 import { jest } from '@jest/globals';
 
 const mockCustomerRepository = () => ({
