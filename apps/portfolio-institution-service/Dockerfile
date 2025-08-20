@@ -25,7 +25,6 @@ RUN yarn install --frozen-lockfile --ignore-engines
 # Copie du code source
 COPY packages/ ./packages/
 COPY *.d.ts ./
-COPY types/ ./types/
 COPY apps/portfolio-institution-service/src ./apps/portfolio-institution-service/src/
 COPY apps/portfolio-institution-service/tsconfig*.json ./apps/portfolio-institution-service/
 COPY apps/portfolio-institution-service/nest-cli.json ./apps/portfolio-institution-service/
