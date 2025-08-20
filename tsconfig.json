@@ -1,11 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Kiota Suit Monorepo",
+  "display": "Wanzobe Backend Monorepo",
   "files": [],
   "references": [
     { "path": "./packages/types" },
     { "path": "./packages/customer-sync" },
-    { "path": "./packages/shared" }
+    { "path": "./packages/shared" },
+    { "path": "./packages/tsconfig" }
   ],
   "compilerOptions": {
     "strict": false,

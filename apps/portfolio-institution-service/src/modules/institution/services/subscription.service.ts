@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/institution.entity';
 import { TokenEventHandler } from './token-event.handler';
-import { EntityType, SubscriptionStatusType, SubscriptionPlanType } from '@wanzobe/shared/events/subscription-types';
+import { EntityType, SubscriptionStatusType, SubscriptionPlanType } from '@wanzobe/shared';
 import { EventsService } from '../../events/events.service';
 
 @Injectable()

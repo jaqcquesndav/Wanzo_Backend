@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { 
   UserStatusChangedEvent, 
   UserRoleChangedEvent,
-} from '../../../../../packages/shared/events/kafka-config';
-import { SubscriptionChangedEvent } from '../../../../../packages/shared/events/subscription-events';
-import { TokenTransactionEvent } from '../../../../../packages/shared/events/token-events';
+} from '@wanzobe/shared';
+import { SubscriptionChangedEvent } from '@wanzobe/shared';
+import { TokenTransactionEvent } from '@wanzobe/shared';
 import {
   FundingRequestStatusChangedEvent,
   ContractCreatedEvent,
@@ -16,7 +16,7 @@ import {
   DocumentUploadedEvent,
   DocumentUpdatedEvent,
   DocumentStatusChangedEvent
-} from '../../../../../packages/shared/events/portfolio-events';
+} from '@wanzobe/shared';
 
 /**
  * Mock implementation of EventsService for when Kafka is disabled.

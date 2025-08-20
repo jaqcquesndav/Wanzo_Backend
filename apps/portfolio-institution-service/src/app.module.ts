@@ -16,7 +16,7 @@ import { VirementsModule } from './modules/virements/virements.module';
 import { ChatModule } from './modules/chat/chat.module';
 
 // Security Module
-import { SecurityModule } from '../../../packages/shared/security/security.module';
+import { SecurityModule } from '@wanzobe/shared';
 
 // <-- On importe le MonitoringModule (avec ton PrometheusController)
 import { MonitoringModule } from './monitoring/monitoring.module';

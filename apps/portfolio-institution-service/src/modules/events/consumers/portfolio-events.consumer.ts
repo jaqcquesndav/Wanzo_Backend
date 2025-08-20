@@ -9,7 +9,7 @@ import {
   DisbursementCompletedEvent,
   RepaymentReceivedEvent,
   PaymentScheduleUpdatedEvent
-} from '@wanzobe/shared/events/portfolio-events';
+} from '@wanzobe/shared';
 
 @Injectable()
 export class PortfolioEventsConsumer {

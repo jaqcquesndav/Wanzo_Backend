@@ -13,17 +13,19 @@ export * from './events/adha-events';
 // Security
 export * from './security/encryption.service';
 export * from './security/encrypted-transformers';
+export { SecurityModule } from './security/security.module';
 
 // Re-export specific items from conflicting modules
-export type {
+export {
   PortfolioEventTopics,
-  FundingRequestStatusChangedEvent,
-  ContractCreatedEvent,
-  ContractStatusChangedEvent,
-  ContractRestructuredEvent,
-  DisbursementCompletedEvent,
-  RepaymentReceivedEvent,
-  PaymentScheduleUpdatedEvent,
-  DocumentUpdatedEvent,
-  DocumentStatusChangedEvent
+  type FundingRequestStatusChangedEvent,
+  type ContractCreatedEvent,
+  type ContractStatusChangedEvent,
+  type ContractRestructuredEvent,
+  type DisbursementCompletedEvent,
+  type RepaymentReceivedEvent,
+  type PaymentScheduleUpdatedEvent,
+  type DocumentUpdatedEvent,
+  type DocumentStatusChangedEvent,
+  type DocumentUploadedEvent
 } from './events/portfolio-events';

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm'; // Imported LessThan
 import { Institution } from '../entities/institution.entity';
 import { EventsService } from '../../events/events.service';
-import { EntityType } from '@wanzobe/shared/events/subscription-types';
+import { EntityType } from '@wanzobe/shared';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()

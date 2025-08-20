@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { InstitutionDocument } from './institution-document.entity';
 import { InstitutionUser } from './institution-user.entity';
-import { SubscriptionPlanType, SubscriptionStatusType, InstitutionStatusType } from '../../../../../../packages/shared/events/kafka-config'; // Adjusted import path
+import { SubscriptionPlanType, SubscriptionStatusType, InstitutionStatusType } from '@wanzobe/shared';
 
 export enum InstitutionType {
   BANK = 'bank',

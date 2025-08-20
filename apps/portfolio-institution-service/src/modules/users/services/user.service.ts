@@ -14,7 +14,7 @@ import {
   UserPreferenceDto 
 } from '../dto/user.dto';
 import { EventsService } from '../../events/events.service';
-import { EventUserType } from '../../../../../../packages/shared/events/kafka-config';
+import { EventUserType } from '@wanzobe/shared';
 
 @Injectable()
 export class UserService {

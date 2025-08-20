@@ -5,9 +5,9 @@ import {
   UserCreatedEvent,
   UserStatusChangedEvent, 
   UserRoleChangedEvent
-} from '../../../../../packages/shared/events/kafka-config';
-import { TokenEventTopics, TokenTransactionEvent } from '../../../../../packages/shared/events/token-events';
-import { SubscriptionChangedEvent, SubscriptionEventTopics } from '../../../../../packages/shared/events/subscription-events';
+} from '@wanzobe/shared';
+import { TokenEventTopics, TokenTransactionEvent } from '@wanzobe/shared';
+import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzobe/shared';
 import {
   PortfolioEventTopics,
   FundingRequestStatusChangedEvent,
@@ -20,7 +20,7 @@ import {
   DocumentUploadedEvent,
   DocumentUpdatedEvent,
   DocumentStatusChangedEvent
-} from '../../../../../packages/shared/events/portfolio-events';
+} from '@wanzobe/shared';
 import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './events.module';
 
 @Injectable()

@@ -4,6 +4,7 @@ import { Repository, Like } from 'typeorm';
 import { Document, DocumentType, DocumentStatus } from '../entities/document.entity';
 import { CreateDocumentDto, UpdateDocumentDto, DocumentFilterDto } from '../dtos/document.dto';
 import { EventsService } from '../../events/events.service';
+import { DocumentUploadedEvent } from '@wanzobe/shared';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -62,7 +63,7 @@ export class DocumentService {
 
     // Publier l'événement d'upload de document
     await this.eventsService.publishDocumentUploaded({
-      id: savedDocument.id,
+      id: savedDocument.id.toString(),
       name: savedDocument.name,
       type: savedDocument.type,
       portfolio_id: undefined,

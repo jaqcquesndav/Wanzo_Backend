@@ -3,6 +3,8 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": false
+    "webpack": false,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true
   }
 }

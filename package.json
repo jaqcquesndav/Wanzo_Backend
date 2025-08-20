@@ -1,7 +1,8 @@
 {
-  "name": "kiota-suit",
+  "name": "@wanzobe/backend",
   "private": true,
   "version": "1.0.0",
+  "description": "Wanzobe Backend - Microservices Architecture with Yarn Workspaces",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,40 +13,16 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "start:gateway": "yarn workspace api-gateway start",
-    "dev:gateway": "yarn workspace api-gateway dev"
+    "start:gateway": "yarn workspace @wanzobe/api-gateway start",
+    "dev:gateway": "yarn workspace @wanzobe/api-gateway dev"
   },
   "devDependencies": {
-    "@hapi/catbox": "^12.1.1",
-    "@hapi/shot": "^6.0.2",
-    "@types/bcrypt": "^5.0.2",
-    "@types/date-fns": "^2.6.3",
-    "@types/hapi": "^18.0.14",
-    "@types/hapi__catbox": "^12.1.0",
-    "@types/hapi__shot": "^6.0.0",
     "@types/node": "^20.11.24",
-    "@types/passport-local": "^1.0.38",
-    "@types/sanitize-html": "^2.16.0",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3"
   },
-  "dependencies": {
-    "@opentelemetry/api": "^1.7.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.41.1",
-    "@opentelemetry/exporter-prometheus": "^0.48.0",
-    "@opentelemetry/resources": "^1.18.1",
-    "@opentelemetry/sdk-node": "^0.48.0",
-    "@opentelemetry/sdk-trace-base": "^1.18.1",
-    "@opentelemetry/semantic-conventions": "^1.18.1",
-    "bcrypt": "^6.0.0",
-    "date-fns": "^3.0.0",
-    "helmet": "^7.2.0",
-    "nest-winston": "^1.10.2",
-    "passport-local": "^1.0.0",
-    "sanitize-html": "^2.17.0",
-    "winston": "^3.17.0"
-  },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
   }
 }

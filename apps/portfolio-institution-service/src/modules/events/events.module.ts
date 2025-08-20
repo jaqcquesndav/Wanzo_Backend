@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, KafkaOptions } from '@nestjs/microservices';
-import { getKafkaConfig } from '../../../../../packages/shared/events/kafka-config';
+import { getKafkaConfig } from '@wanzobe/shared';
 import { UserEventsConsumer } from './consumers/user-events.consumer';
 import { EventsService } from './events.service';
 import { MockEventsService } from './mock-events.service';

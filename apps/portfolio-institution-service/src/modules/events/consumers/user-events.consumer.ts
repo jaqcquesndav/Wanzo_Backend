@@ -5,8 +5,8 @@ import {
   UserEventTopics,
   UserStatusChangedEvent,
   EventUserType,
-} from '../../../../../../packages/shared/events/kafka-config';
-import { SubscriptionChangedEvent, SubscriptionEventTopics } from '../../../../../../packages/shared/events/subscription-events';
+} from '@wanzobe/shared';
+import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzobe/shared';
 import { InstitutionService } from '../../institution/services/institution.service';
 import { ProspectService } from '../../prospection/services/prospect.service';
 

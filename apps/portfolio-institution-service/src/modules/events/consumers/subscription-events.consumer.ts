@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { SubscriptionEventTopics } from '@wanzobe/shared/events/subscription-events';
-import { SubscriptionChangedEvent } from '@wanzobe/shared/events/subscription-events';
+import { SubscriptionEventTopics } from '@wanzobe/shared';
+import { SubscriptionChangedEvent } from '@wanzobe/shared';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { 
@@ -11,7 +11,7 @@ import {
   SubscriptionPlan 
 } from '../../institution/entities/institution.entity';
 import { Logger } from '@nestjs/common';
-import { SubscriptionPlanType, SubscriptionStatusType } from '@wanzobe/shared/events/subscription-types';
+import { SubscriptionPlanType, SubscriptionStatusType } from '@wanzobe/shared';
 
 @Controller()
 @Injectable()
