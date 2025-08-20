@@ -33,24 +33,28 @@ export class PrometheusService {
       name: `${this.prefix}user_creations_total`,
       help: 'Total number of user creations',
       labelNames: ['userType', 'role'],
+      registers: [this.register],
     });
 
     this.customerCreationCounter = new prometheus.Counter({
       name: `${this.prefix}customer_creations_total`,
       help: 'Total number of customer creations',
       labelNames: ['customerType'],
+      registers: [this.register],
     });
 
     this.fileUploadCounter = new prometheus.Counter({
       name: `${this.prefix}file_uploads_total`,
       help: 'Total number of file uploads',
       labelNames: ['fileType', 'customerType'],
+      registers: [this.register],
     });
 
     this.userLoginCounter = new prometheus.Counter({
       name: `${this.prefix}user_logins_total`,
       help: 'Total number of user logins',
       labelNames: ['userType', 'role'],
+      registers: [this.register],
     });
 
     // Définir les histogrammes pour mesurer la durée
@@ -59,6 +63,7 @@ export class PrometheusService {
       help: 'Duration of document uploads in seconds',
       labelNames: ['documentType'],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 20],
+      registers: [this.register],
     });
 
     this.apiRequestDuration = new prometheus.Histogram({
@@ -66,6 +71,7 @@ export class PrometheusService {
       help: 'Duration of API requests in seconds',
       labelNames: ['method', 'route', 'status'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+      registers: [this.register],
     });
 
     // Définir les jauges pour mesurer les valeurs actuelles
@@ -73,24 +79,28 @@ export class PrometheusService {
       name: `${this.prefix}user_count`,
       help: 'Current number of users',
       labelNames: ['status'],
+      registers: [this.register],
     });
 
     this.smeCountGauge = new prometheus.Gauge({
       name: `${this.prefix}sme_count`,
       help: 'Current number of SMEs',
       labelNames: ['status'],
+      registers: [this.register],
     });
 
     this.institutionCountGauge = new prometheus.Gauge({
       name: `${this.prefix}institution_count`,
       help: 'Current number of financial institutions',
       labelNames: ['status'],
+      registers: [this.register],
     });
 
     this.activeUsersGauge = new prometheus.Gauge({
       name: `${this.prefix}active_users`,
       help: 'Current number of active users',
       labelNames: ['userType'],
+      registers: [this.register],
     });
 
     // Enregistrer toutes les métriques

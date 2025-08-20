@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build:docker": "echo \"Bypassing build for Docker\" && mkdir -p dist/src && echo \"console.log(\\\"Mock service running\\\")\" > dist/src/main.js",
-    "build": "nest build -p tsconfig.json",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start -p tsconfig.json",
     "start:dev": "nest start -p tsconfig.json --watch",

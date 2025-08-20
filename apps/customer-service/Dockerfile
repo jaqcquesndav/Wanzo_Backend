@@ -26,7 +26,9 @@ COPY packages/customer-sync/package.json ./packages/customer-sync/
 COPY apps/customer-service/package.json ./apps/customer-service/
 
 # Installation des dépendances avec Yarn Workspaces
-RUN yarn install --frozen-lockfile --ignore-engines
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --ignore-engines --network-timeout 600000
 
 # Copie du code source des packages partagés
 COPY packages/ ./packages/
@@ -64,7 +66,9 @@ COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/cu
 COPY --chown=nodeuser:nodeuser apps/customer-service/package.json ./apps/customer-service/
 
 # Installation des dépendances de production uniquement
-RUN yarn install --frozen-lockfile --production=true --ignore-engines && \
+RUN yarn config set network-timeout 600000 && \
+    yarn config set registry https://registry.npmjs.org/ && \
+    yarn install --frozen-lockfile --production=true --ignore-engines --network-timeout 600000 && \
     yarn cache clean && \
     npm cache clean --force && \
     rm -rf /tmp/*
@@ -93,7 +97,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Point d'entrée avec dumb-init pour la gestion des signaux
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/apps/customer-service/src/main.js"]
 
 # Exposition du port
 EXPOSE 3001
