@@ -73,6 +73,16 @@ services:
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
       - CUSTOMER_SERVICE_URL=http://kiota-customer-service:3011
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/api-gateway/.env
     volumes:
@@ -150,8 +160,13 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/admin-service/.env
     volumes:
@@ -222,8 +237,16 @@ services:
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -289,6 +312,16 @@ services:
       - KAFKA_CLIENT_ID=analytics-service
       - KAFKA_GROUP_ID=analytics-service-group
       - PROMETHEUS_PORT=9464
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/analytics-service/.env
     volumes:
@@ -359,8 +392,13 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/portfolio-institution-service/.env
     volumes:
@@ -434,8 +472,13 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/gestion_commerciale_service/.env
     volumes:
@@ -504,6 +547,16 @@ services:
       - DLQ_ENABLED=true
       - DLQ_MAX_RETRIES=3
       - DLQ_RETRY_DELAY_MS=5000
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/Adha-ai-service/.env
     volumes:
@@ -541,8 +594,13 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      # Auth0 M2M Configuration
+      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
+      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
     env_file:
       - ./apps/customer-service/.env
     volumes:

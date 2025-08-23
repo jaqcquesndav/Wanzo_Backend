@@ -53,6 +53,35 @@ export class SubscriptionController {
     return this.subscriptionService.getSubscriptionPlans();
   }
 
+  @Get('/current')
+  @ApiOperation({ summary: 'Récupérer l\'abonnement actuel de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Abonnement actuel récupéré' })
+  @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
+  @UseGuards(JwtAuthGuard)
+  async getCurrentSubscription(@Req() req: any): Promise<Subscription | null> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return this.subscriptionService.getCurrentSubscriptionByAuth0Id(auth0Id);
+  }
+
+  @Get('expiring/soon')
+  @ApiOperation({ summary: 'Récupérer les abonnements qui vont bientôt expirer' })
+  @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée' })
+  async getExpiringSubscriptions(
+    @Query('days') days: number = 7
+  ): Promise<Subscription[]> {
+    return this.subscriptionService.findExpiringSubscriptions(days);
+  }
+
+  @Get('expired')
+  @ApiOperation({ summary: 'Récupérer les abonnements expirés' })
+  @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée' })
+  async getExpiredSubscriptions(): Promise<Subscription[]> {
+    return this.subscriptionService.findExpiredSubscriptions();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Récupérer un abonnement par son ID' })
   @ApiResponse({ status: 200, description: 'Abonnement récupéré' })
@@ -89,35 +118,6 @@ export class SubscriptionController {
   @ApiResponse({ status: 404, description: 'Abonnement non trouvé' })
   async activate(@Param('id') id: string): Promise<Subscription> {
     return this.subscriptionService.activate(id);
-  }
-
-  @Get('expiring/soon')
-  @ApiOperation({ summary: 'Récupérer les abonnements qui vont bientôt expirer' })
-  @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée' })
-  async getExpiringSubscriptions(
-    @Query('days') days: number = 7
-  ): Promise<Subscription[]> {
-    return this.subscriptionService.findExpiringSubscriptions(days);
-  }
-
-  @Get('expired')
-  @ApiOperation({ summary: 'Récupérer les abonnements expirés' })
-  @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée' })
-  async getExpiredSubscriptions(): Promise<Subscription[]> {
-    return this.subscriptionService.findExpiredSubscriptions();
-  }
-
-  @Get('/current')
-  @ApiOperation({ summary: 'Récupérer l\'abonnement actuel de l\'utilisateur connecté' })
-  @ApiResponse({ status: 200, description: 'Abonnement actuel récupéré' })
-  @ApiResponse({ status: 404, description: 'Aucun abonnement actuel trouvé' })
-  @UseGuards(JwtAuthGuard)
-  async getCurrentSubscription(@Req() req: any): Promise<Subscription | null> {
-    const auth0Id = req.user?.sub;
-    if (!auth0Id) {
-      throw new UnauthorizedException('Utilisateur non authentifié');
-    }
-    return this.subscriptionService.getCurrentSubscriptionByAuth0Id(auth0Id);
   }
 
   @Post('/cancel')

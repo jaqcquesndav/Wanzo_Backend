@@ -19,6 +19,18 @@ interface MulterFile {
 export class CompanyController {
   constructor(private readonly smeService: SmeService) {}
 
+  @Post('test')
+  @ApiOperation({ summary: 'Test endpoint without auth' })
+  @ApiResponse({ status: 200, description: 'Test successful' })
+  async test(@Body() testDto: any): Promise<any> {
+    return {
+      success: true,
+      message: 'Company endpoint is working!',
+      data: testDto,
+      timestamp: new Date().toISOString()
+    };
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Créer une nouvelle entreprise' })

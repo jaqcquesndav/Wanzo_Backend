@@ -35,18 +35,24 @@ export class ProxyController {
     const startTime = Date.now();
     
     this.logger.log(`🚀 CUSTOMER SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    if (headers.authorization) {
+      this.logger.log(`🔑 Authorization header found: ${headers.authorization.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found`);
+    }
     
     try {
       // Extract path after 'land/api/v1'
       const targetPath = path.replace('/land/api/v1', '');
-      const targetUrl = `http://customer-service:3011${targetPath}`;
+      const targetUrl = `http://kiota-customer-service:3011${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers
       const forwardHeaders = {
         ...headers,
-        host: 'customer-service:3011'
+        host: 'kiota-customer-service:3011'
       };
       delete forwardHeaders['content-length'];
       
