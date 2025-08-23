@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Connection } from 'typeorm';
-import { User, UserStatus, UserRole, UserType, IdStatus } from '../entities/user.entity';
+import { User, UserRole, UserStatus, UserType, IdStatus, IdType } from '../entities/user.entity';
 import { UserActivity, ActivityType } from '../entities/user-activity.entity';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto/user.dto';
 import { SyncUserDto } from '../dto/sync-user.dto';
@@ -21,40 +21,69 @@ interface UserActivityDto {
   timestamp?: Date;
 }
 
+// Define CreateFromExternalEventDto interface
+interface CreateFromExternalEventDto {
+  name: string;
+  email: string;
+  auth0Id: string;
+  role: string;
+  userType: string;
+  customerId: string;
+  companyId: string;
+  isCompanyOwner: boolean;
+}
+
+// Define DeviceInfo interface
+interface DeviceInfo {
+  deviceId: string;
+  deviceType: string;
+  platform: string;
+  appVersion?: string;
+  osVersion?: string;
+}
+
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(UserActivity)
-    private readonly userActivityRepository: Repository<UserActivity>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
     @InjectRepository(Sme)
     private readonly smeRepository: Repository<Sme>,
     @InjectRepository(SmeSpecificData)
     private readonly smeDataRepository: Repository<SmeSpecificData>,
-    private readonly customerEventsProducer: CustomerEventsProducer,
+    @InjectRepository(UserActivity)
+    private readonly userActivityRepository: Repository<UserActivity>,
     private readonly connection: Connection,
+    private readonly customerEventsProducer: CustomerEventsProducer,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   /**
    * Synchronize user from Auth0 - handles first login as signup
+   * IMPORTANT: This method should NOT create companies automatically
+   * Companies are created later via company/institution endpoints after user profile completion
    */
   async syncUser(syncUserDto: SyncUserDto): Promise<UserResponseDto> {
+    const { auth0Id, email, name, firstName, lastName, picture, companyId, userType, metadata } = syncUserDto;
+    
+    console.log('🔄 [UserService] Starting syncUser for:', { auth0Id, email, companyId, userType });
+
     // Check if user already exists by auth0Id
     let user = await this.userRepository.findOne({ 
-      where: { auth0Id: syncUserDto.auth0Id },
+      where: { auth0Id },
       relations: ['customer']
     });
     
     // If user exists, just update profile information
     if (user) {
+      console.log('✅ [UserService] User already exists:', user.id);
+      
       // Update basic user information from Auth0
-      user.name = syncUserDto.name || `${syncUserDto.firstName || ''} ${syncUserDto.lastName || ''}`.trim();
-      user.email = syncUserDto.email || user.email;
-      user.picture = syncUserDto.picture || user.picture;
+      user.name = name || `${firstName || ''} ${lastName || ''}`.trim();
+      user.email = email || user.email;
+      user.picture = picture || user.picture;
       user.lastLogin = new Date();
       user.updatedAt = new Date();
       
@@ -76,107 +105,71 @@ export class UserService {
       return this.mapUserToResponseDto(updatedUser);
     }
     
-    // First login - create a new user and SME customer
-    // Use transaction to ensure both user and customer are created or none
-    const queryRunner = this.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // First login - create a new user WITHOUT automatically creating company
+    console.log('🆕 [UserService] Creating new user (without auto-creating company)');
     
-    try {
-      // Create default SME customer
-      const customerName = syncUserDto.name || `${syncUserDto.firstName || ''} ${syncUserDto.lastName || ''}`.trim();
-      const newCustomer = queryRunner.manager.create(Customer, {
-        name: `${customerName}'s Business`,
-        email: syncUserDto.email,
-        phone: '',
-        address: {},
-        type: CustomerType.SME,
-        status: CustomerStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    const customerName = name || `${firstName || ''} ${lastName || ''}`.trim();
+    let savedCustomer: Customer | null = null;
+    
+    // Only associate with existing company if companyId is provided AND company exists
+    if (companyId) {
+      console.log('🔍 [UserService] Checking if company exists:', companyId);
+      
+      savedCustomer = await this.customerRepository.findOne({
+        where: { id: companyId }
       });
       
-      const savedCustomer = await queryRunner.manager.save(Customer, newCustomer);
-      
-      // Create SME-specific data
-      const smeData = queryRunner.manager.create(SmeSpecificData, {
-        legalForm: 'Not specified',
-        industry: 'Other',
-        yearFounded: new Date().getFullYear(),
-      });
-      
-      const savedSmeData = await queryRunner.manager.save(SmeSpecificData, smeData);
-      
-      // Update customer with SME data reference
-      savedCustomer.smeData = savedSmeData;
-      await queryRunner.manager.save(Customer, savedCustomer);
-      
-      // Create SME entity
-      const sme = queryRunner.manager.create(Sme, {
-        customerId: savedCustomer.id,
-        businessName: `${customerName}'s Business`,
-        registrationNumber: '',
-        legalForm: 'Not specified',
-        industry: 'Other',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      
-      await queryRunner.manager.save(Sme, sme);
-      
-      // Create user with admin role for this SME
-      const newUser = queryRunner.manager.create(User, {
-        name: customerName,
-        email: syncUserDto.email,
-        auth0Id: syncUserDto.auth0Id,
-        role: UserRole.CUSTOMER_ADMIN,
-        userType: UserType.SME,
-        customerId: savedCustomer.id,
-        companyId: savedCustomer.id,
-        status: UserStatus.ACTIVE,
-        picture: syncUserDto.picture,
-        isCompanyOwner: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastLogin: new Date(),
-      });
-      
-      const savedUser = await queryRunner.manager.save(User, newUser);
-      
-      // Commit transaction
-      await queryRunner.commitTransaction();
-      
-      // Emit events for new user creation and first login
-      await this.customerEventsProducer.emitSmeCreated({
-        customer: savedCustomer,
-        sme,
-      });
-      
-      await this.customerEventsProducer.emitUserCreated(savedUser);
-      await this.customerEventsProducer.emitUserLogin(savedUser, { 
-        isFirstLogin: true 
-      });
-      
-      // Record first login activity
-      await this.recordUserActivity({
-        userId: savedUser.id,
-        activityType: ActivityType.LOGIN,
-        details: { source: 'auth0_sync', isFirstLogin: true, accountCreated: true },
-      });
-      
-      return this.mapUserToResponseDto(savedUser);
-    } catch (error) {
-      // Rollback transaction on error
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      // Release query runner
-      await queryRunner.release();
+      if (savedCustomer) {
+        console.log('✅ [UserService] Found existing company, associating user');
+      } else {
+        console.log('⚠️ [UserService] Company not found - user will be created without company association');
+        console.log('ℹ️ [UserService] Company will be created later via company/institution endpoint');
+      }
     }
+    
+    // Create user
+    const newUser = this.userRepository.create({
+      name: customerName,
+      email: email,
+      auth0Id: auth0Id,
+      role: UserRole.CUSTOMER_ADMIN, // Default role, can be updated later
+      userType: userType === 'financial_institution' ? UserType.FINANCIAL_INSTITUTION : UserType.SME,
+      customerId: savedCustomer?.id || null, // Only set if company exists
+      companyId: savedCustomer?.id || null, // Only set if company exists
+      status: UserStatus.ACTIVE,
+      picture: picture,
+      isCompanyOwner: savedCustomer ? false : true, // Will be owner when company is created later
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: new Date(),
+    } as Partial<User>);
+    
+    const savedUser = await this.userRepository.save(newUser);
+    console.log('✅ [UserService] Created User:', savedUser.id);
+    
+    // Emit user creation events
+    await this.customerEventsProducer.emitUserCreated(savedUser);
+    await this.customerEventsProducer.emitUserLogin(savedUser, { 
+      isFirstLogin: true 
+    });
+    
+    // Record first login activity
+    await this.recordUserActivity({
+      userId: savedUser.id,
+      activityType: ActivityType.LOGIN,
+      details: { 
+        source: 'auth0_sync', 
+        isFirstLogin: true, 
+        accountCreated: true,
+        companyAssociated: !!savedCustomer
+      },
+    });
+    
+    return this.mapUserToResponseDto(savedUser);
   }
 
   /**
-   * Find user by Auth0 ID
+   * Find user by Auth0 ID and return DTO
    */
   async findByAuth0Id(auth0Id: string): Promise<UserResponseDto | null> {
     const user = await this.userRepository.findOne({ 
@@ -190,7 +183,62 @@ export class UserService {
   }
 
   /**
-   * Find user entity by Auth0 ID (returns the entity, not DTO)
+   * Find user with associated company or financial institution
+   */
+  async findUserWithAssociation(auth0Id: string): Promise<any> {
+    const user = await this.userRepository.findOne({ 
+      where: { auth0Id },
+      relations: ['customer']
+    });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const userProfile = this.mapUserToResponseDto(user);
+    let company: any = null;
+    let financialInstitution: any = null;
+
+    // Si l'utilisateur a un customerId et que c'est un SME
+    if (user.customerId && user.userType === UserType.SME) {
+      const sme = await this.smeRepository.findOne({
+        where: { customerId: user.customerId },
+        relations: ['customer']
+      });
+      
+      if (sme) {
+        const smeData = await this.smeDataRepository.findOne({
+          where: { id: user.customerId }
+        });
+        
+        company = {
+          id: sme.customerId,
+          name: sme.name,
+          logo: sme.logoUrl,
+          industry: smeData?.industry || 'Other',
+          legalForm: smeData?.legalForm || 'Not specified',
+          yearFounded: smeData?.yearFounded || null,
+          registrationNumber: sme.rccm,
+          status: sme.customer?.status || 'active',
+        };
+      }
+    }
+    // Si c'est une institution financière
+    else if (user.financialInstitutionId && user.userType === UserType.FINANCIAL_INSTITUTION) {
+      // TODO: Implement financial institution logic when entity is available
+      financialInstitution = {};
+    }
+
+    return {
+      user: userProfile,
+      company: company || {},
+      financialInstitution: financialInstitution || {},
+      hasAssociation: !!(company || financialInstitution)
+    };
+  }
+
+  /**
+   * Find user entity by Auth0 ID (for internal use)
    */
   async findUserEntityByAuth0Id(auth0Id: string): Promise<User | null> {
     return await this.userRepository.findOne({ 
@@ -200,170 +248,107 @@ export class UserService {
   }
 
   /**
-   * Change user type (SME, FINANCIAL_INSTITUTION)
+   * Create a new user
    */
-  async changeUserType(userId: string, newType: string): Promise<UserResponseDto> {
-    const user = await this.findById(userId);
-    
-    if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email }
+    });
+
+    if (existingUser) {
+      throw new Error('Un utilisateur avec cet email existe déjà');
     }
-    
-    if (newType === 'sme') {
-      user.userType = UserType.SME;
-    } else if (newType === 'financial_institution') {
-      user.userType = UserType.FINANCIAL_INSTITUTION;
-    } else {
-      throw new Error('Type d\'utilisateur non pris en charge');
+
+    // Déterminer le type d'utilisateur basé sur le customerId
+    const customer = await this.customerRepository.findOne({
+      where: { id: createUserDto.customerId }
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer introuvable');
     }
+
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      userType: customer.type === CustomerType.SME ? UserType.SME : UserType.FINANCIAL_INSTITUTION,
+      companyId: createUserDto.customerId,
+      status: UserStatus.PENDING, // Par défaut en attente de validation
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Partial<User>);
+
+    const savedUser = await this.userRepository.save(newUser);
+
+    // Émettre un événement de création d'utilisateur
+    await this.customerEventsProducer.emitUserCreated(savedUser);
+
+    // Enregistrer l'activité de création
+    await this.recordUserActivity({
+      userId: savedUser.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { createdBy: 'system', customerType: customer.type },
+    });
+
+    return this.mapUserToResponseDto(savedUser);
+  }
+
+  /**
+   * Update user
+   */
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+    const user = await this.findById(id);
     
+    Object.assign(user, updateUserDto);
     user.updatedAt = new Date();
+    
     const updatedUser = await this.userRepository.save(user);
     
+    // Émettre un événement de mise à jour
     await this.customerEventsProducer.emitUserUpdated(updatedUser);
     
     return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Crée un nouvel utilisateur
-   */
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await this.userRepository.findOne({ 
-      where: { email: createUserDto.email } 
-    });
-    
-    if (existingUser) {
-      throw new Error('Un utilisateur avec cet email existe déjà');
-    }
-    
-    // Créer le nouvel utilisateur
-    const user = this.userRepository.create({
-      ...createUserDto,
-      status: UserStatus.PENDING, // Par défaut en attente de validation
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    
-    const savedUser = await this.userRepository.save(user);
-    
-    // Publier un événement Kafka pour la création d'utilisateur
-    await this.customerEventsProducer.emitUserCreated(savedUser);
-    
-    return this.mapUserToResponseDto(savedUser);
-  }
-
-  /**
-   * Récupère tous les utilisateurs (avec pagination)
-   */
-  async findAll(page = 1, limit = 10, customerId?: string): Promise<[UserResponseDto[], number]> {
-    const query = this.userRepository.createQueryBuilder('user');
-    
-    if (customerId) {
-      query.where('user.customerId = :customerId', { customerId });
-    }
-    
-    const [users, count] = await query
-      .orderBy('user.createdAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-      
-    return [users.map(user => this.mapUserToResponseDto(user)), count];
-  }
-
-  /**
-   * Récupère un utilisateur par son ID
-   */
-  async findOne(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findOne({ 
-      where: { id },
-      relations: ['customer']
-    });
-    
-    if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
-    }
-    
-    return this.mapUserToResponseDto(user);
-  }
-
-  /**
-   * Récupère un utilisateur par son ID. Alias pour findOne.
+   * Find user by ID
    */
   async findById(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ 
+    const user = await this.userRepository.findOne({
       where: { id },
       relations: ['customer']
     });
     
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      throw new NotFoundException('Utilisateur introuvable');
     }
     
     return user;
   }
 
   /**
-   * Met à jour les préférences d'un utilisateur
+   * Upload user profile picture
    */
-  async updateUserPreferences(userId: string, preferences: Record<string, any>): Promise<UserResponseDto> {
+  async uploadProfilePicture(userId: string, file: MulterFile): Promise<UserResponseDto> {
     const user = await this.findById(userId);
-    if (!user.settings) {
-      user.settings = {};
-    }
-    if (!user.settings.preferences) {
-      user.settings.preferences = {};
-    }
-    user.settings.preferences = { ...user.settings.preferences, ...preferences };
+    
+    // Upload to Cloudinary
+    const uploadResult = await this.cloudinaryService.uploadImage(file, 'user-profiles');
+    
+    // Update user picture URL
+    user.picture = uploadResult.url;
     user.updatedAt = new Date();
-    const updatedUser = await this.userRepository.save(user);
-    await this.customerEventsProducer.emitUserUpdated(updatedUser);
-    return this.mapUserToResponseDto(updatedUser);
-  }
-
-  /**
-   * Enregistre un nouvel appareil pour un utilisateur
-   */
-  async registerUserDevice(userId: string, deviceInfo: Record<string, any>): Promise<UserResponseDto> {
-    const user = await this.findById(userId);
-    if (!user.devices) {
-      user.devices = [];
-    }
-    user.devices.push({
-      deviceId: deviceInfo.id || 'unknown-device-' + Date.now(),
-      lastLogin: new Date(),
-      deviceInfo,
-    });
-    user.updatedAt = new Date();
-    const updatedUser = await this.userRepository.save(user);
-    await this.customerEventsProducer.emitUserUpdated(updatedUser);
-    return this.mapUserToResponseDto(updatedUser);
-  }
-
-  /**
-   * Met à jour un utilisateur
-   */
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
-    const user = await this.findById(id);
-    
-    // Mettre à jour les propriétés
-    Object.assign(user, {
-      ...updateUserDto,
-      updatedAt: new Date(),
-    });
     
     const updatedUser = await this.userRepository.save(user);
     
-    // Publier un événement Kafka pour la mise à jour d'utilisateur
+    // Emit update event
     await this.customerEventsProducer.emitUserUpdated(updatedUser);
     
     return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Désactive un utilisateur
+   * Deactivate user
    */
   async deactivate(id: string): Promise<UserResponseDto> {
     const user = await this.findById(id);
@@ -371,16 +356,19 @@ export class UserService {
     user.status = UserStatus.INACTIVE;
     user.updatedAt = new Date();
     
-    const deactivatedUser = await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
     
-    // Publier un événement Kafka pour la désactivation d'utilisateur
-    await this.customerEventsProducer.emitUserStatusChanged(deactivatedUser);
+    // Record deactivation activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+    });
     
-    return this.mapUserToResponseDto(deactivatedUser);
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Active un utilisateur
+   * Activate user
    */
   async activate(id: string): Promise<UserResponseDto> {
     const user = await this.findById(id);
@@ -388,70 +376,168 @@ export class UserService {
     user.status = UserStatus.ACTIVE;
     user.updatedAt = new Date();
     
-    const activatedUser = await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
     
-    // Publier un événement Kafka pour l'activation d'utilisateur
-    await this.customerEventsProducer.emitUserStatusChanged(activatedUser);
+    // Record activation activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+    });
     
-    return this.mapUserToResponseDto(activatedUser);
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Supprime un utilisateur
+   * Find users by customer ID
    */
-  async remove(id: string): Promise<void> {
-    const user = await this.findById(id);
-    await this.userRepository.remove(user);
-    // Notifier la suppression de l'utilisateur
-    await this.customerEventsProducer.emitUserUpdated({
-      ...user,
-      status: UserStatus.INACTIVE
+  async findByCustomerId(customerId: string): Promise<UserResponseDto[]> {
+    const users = await this.userRepository.find({
+      where: { 
+        customerId,
+        status: UserStatus.ACTIVE
+      },
+      relations: ['customer']
+    });
+    
+    return users.map(user => this.mapUserToResponseDto(user));
+  }
+
+  /**
+   * Create user from external event
+   */
+  async createFromExternalEvent(eventDto: CreateFromExternalEventDto): Promise<UserResponseDto> {
+    const newUser = this.userRepository.create({
+      name: eventDto.name,
+      email: eventDto.email,
+      auth0Id: eventDto.auth0Id,
+      role: eventDto.role as UserRole,
+      userType: eventDto.userType === 'FINANCIAL_INSTITUTION' ? UserType.FINANCIAL_INSTITUTION : UserType.SME,
+      customerId: eventDto.customerId,
+      companyId: eventDto.companyId,
+      isCompanyOwner: eventDto.isCompanyOwner,
+      status: UserStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Partial<User>);
+
+    const savedUser = await this.userRepository.save(newUser);
+    
+    // Emit creation event
+    await this.customerEventsProducer.emitUserCreated(savedUser);
+    
+    return this.mapUserToResponseDto(savedUser);
+  }
+
+  /**
+   * Update user status
+   */
+  async updateStatus(userId: string, newStatus: string): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
+    
+    // Map string status to UserStatus enum
+    let status: UserStatus;
+    switch (newStatus.toLowerCase()) {
+      case 'active':
+        status = UserStatus.ACTIVE;
+        break;
+      case 'inactive':
+        status = UserStatus.INACTIVE;
+        break;
+      case 'pending':
+        status = UserStatus.PENDING;
+        break;
+      default:
+        status = UserStatus.PENDING;
+    }
+    
+    user.status = status;
+    user.updatedAt = new Date();
+    
+    const updatedUser = await this.userRepository.save(user);
+    
+    // Record status change activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { statusChanged: { from: user.status, to: status } },
+    });
+    
+    return this.mapUserToResponseDto(updatedUser);
+  }
+
+  /**
+   * Update user role
+   */
+  async updateRole(userId: string, newRole: string): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
+    
+    const oldRole = user.role;
+    user.role = newRole as UserRole;
+    user.updatedAt = new Date();
+    
+    const updatedUser = await this.userRepository.save(user);
+    
+    // Record role change activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { roleChanged: { from: oldRole, to: newRole } },
+    });
+    
+    return this.mapUserToResponseDto(updatedUser);
+  }
+
+  /**
+   * Register user device
+   */
+  async registerUserDevice(userId: string, deviceInfo: DeviceInfo): Promise<void> {
+    const user = await this.findById(userId);
+    
+    // Record device registration activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.LOGIN,
+      details: { 
+        deviceRegistered: {
+          deviceId: deviceInfo.deviceId,
+          deviceType: deviceInfo.deviceType,
+          platform: deviceInfo.platform,
+          appVersion: deviceInfo.appVersion,
+          osVersion: deviceInfo.osVersion,
+        }
+      },
     });
   }
 
   /**
-   * Enregistre une activité utilisateur
+   * Record user activity (made public for external consumers)
    */
-  async recordUserActivity(activityDto: UserActivityDto): Promise<UserActivity> {
+  async recordUserActivity(activityDto: UserActivityDto): Promise<void> {
     try {
-      // Vérifier si l'utilisateur existe
-      await this.findById(activityDto.userId);
-      
-      // Créer l'activité
       const activity = this.userActivityRepository.create({
         userId: activityDto.userId,
-        activityType: activityDto.activityType as ActivityType,
+        activityType: activityDto.activityType,
         details: activityDto.details || {},
         ipAddress: activityDto.ipAddress,
         userAgent: activityDto.userAgent,
-        timestamp: activityDto.timestamp || new Date(),
-      });
+      } as Partial<UserActivity>);
       
-      return this.userActivityRepository.save(activity);
+      // Set timestamp manually if provided
+      if (activityDto.timestamp) {
+        activity.timestamp = activityDto.timestamp;
+      }
+      
+      await this.userActivityRepository.save(activity);
     } catch (error) {
       console.error('Error recording user activity:', error);
-      throw error;
+      // Don't throw - activity recording shouldn't break main flow
     }
   }
 
   /**
-   * Récupère les activités d'un utilisateur
-   */
-  async getUserActivities(userId: string, page = 1, limit = 20): Promise<[UserActivity[], number]> {
-    return this.userActivityRepository.findAndCount({
-      where: { userId },
-      order: { timestamp: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-  }
-
-  /**
-   * Convertit un objet User en UserResponseDto
+   * Map User entity to UserResponseDto
    */
   private mapUserToResponseDto(user: User): UserResponseDto {
-    const birthdate = user.birthdate ? user.birthdate.toISOString().split('T')[0] : undefined;
-    
     return {
       id: user.id,
       email: user.email,
@@ -467,196 +553,185 @@ export class UserService {
       idType: user.idType,
       idStatus: user.idStatus,
       role: user.role,
-      birthdate: birthdate,
+      birthdate: user.birthdate?.toISOString(),
       bio: user.bio,
       userType: user.userType,
       companyId: user.companyId,
       financialInstitutionId: user.financialInstitutionId,
-      isCompanyOwner: user.isCompanyOwner || false,
+      isCompanyOwner: user.isCompanyOwner,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      settings: user.settings,
-      language: user.language,
-      permissions: this.extractPermissions(user.permissions),
-      plan: user.plan,
-      tokenBalance: user.tokenBalance,
-      tokenTotal: user.tokenTotal
     };
   }
 
   /**
-   * Extrait les permissions d'un utilisateur dans un format cohérent
+   * Find all users with pagination (for admin)
    */
-  private extractPermissions(permissions?: string[] | { applicationId: string; permissions: string[] }[]): string[] | undefined {
-    if (!permissions) return undefined;
-    
-    // Si c'est déjà un tableau de chaînes, on le retourne
-    if (Array.isArray(permissions) && (permissions.length === 0 || typeof permissions[0] === 'string')) {
-      return permissions as string[];
+  async findAll(page: number = 1, limit: number = 10, customerId?: string): Promise<[UserResponseDto[], number]> {
+    const whereCondition: any = {};
+    if (customerId) {
+      whereCondition.customerId = customerId;
     }
-    
-    // Sinon, on extrait les permissions des objets
-    const permArray = permissions as { applicationId: string; permissions: string[] }[];
-    const allPermissions: string[] = [];
-    
-    permArray.forEach(perm => {
-      if (Array.isArray(perm.permissions)) {
-        allPermissions.push(...perm.permissions);
-      }
+
+    const [users, total] = await this.userRepository.findAndCount({
+      where: whereCondition,
+      relations: ['customer'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' }
     });
-    
-    return allPermissions.length > 0 ? allPermissions : undefined;
+
+    return [users.map(user => this.mapUserToResponseDto(user)), total];
   }
 
   /**
-   * Upload and process an identity document for the user
-   * @param userId - The ID of the user
-   * @param file - The uploaded file
-   * @param idType - The type of identity document
-   * @returns Promise with upload status
+   * Find one user by ID (for admin/user controllers)
    */
-  async uploadIdentityDocument(userId: string, file: MulterFile, idType: string): Promise<{ idType: string, idStatus: string, documentUrl: string, url: string }> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+  async findOne(id: string): Promise<UserResponseDto> {
+    const user = await this.findById(id);
+    return this.mapUserToResponseDto(user);
+  }
+
+  /**
+   * Remove/delete user
+   */
+  async remove(id: string): Promise<void> {
+    const user = await this.findById(id);
     
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
+    // Soft delete by setting status to inactive
+    user.status = UserStatus.INACTIVE;
+    user.updatedAt = new Date();
     
-    // Upload the file to Cloudinary
+    await this.userRepository.save(user);
+    
+    // Record deletion activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { userDeleted: true },
+    });
+  }
+
+  /**
+   * Get user activities
+   */
+  async getUserActivities(userId: string, page: number = 1, limit: number = 10): Promise<[UserActivity[], number]> {
+    const user = await this.findById(userId); // Validate user exists
+    
+    return await this.userActivityRepository.findAndCount({
+      where: { userId },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { timestamp: 'DESC' }
+    });
+  }
+
+  /**
+   * Upload identity document
+   */
+  async uploadIdentityDocument(userId: string, file: MulterFile, documentType: string): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
+    
+    // Upload to Cloudinary
     const uploadResult = await this.cloudinaryService.uploadImage(file, 'identity-documents');
     
-    // Update the user with the document information
-    user.identityDocumentType = idType;
-    user.identityDocumentUrl = uploadResult.url;
-    user.identityDocumentStatus = IdStatus.PENDING;
-    user.identityDocumentUpdatedAt = new Date();
+    // Update user with identity document info
+    user.idType = documentType as IdType;
+    user.idStatus = IdStatus.PENDING; // Pending verification
+    // Store document URL in user metadata or create separate document entity
+    user.updatedAt = new Date();
     
-    await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
     
-    // Log this activity
+    // Record document upload activity
     await this.recordUserActivity({
-      userId: user.id, 
-      activityType: ActivityType.DOCUMENT_UPLOAD, 
-      details: {
-        documentType: idType,
-        documentUrl: uploadResult.url
-      }
-    });
-    
-    // Emit an event for identity document upload
-    await this.customerEventsProducer.emitUserDocumentUploaded({
       userId: user.id,
-      documentType: idType,
-      documentUrl: uploadResult.url,
-      status: 'pending',
-      timestamp: new Date().toISOString()
+      activityType: ActivityType.DOCUMENT_UPLOAD,
+      details: { documentType, documentUrl: uploadResult.url },
     });
     
-    return {
-      idType,
-      idStatus: IdStatus.PENDING,
-      documentUrl: uploadResult.url,
-      url: uploadResult.url
-    };
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Upload profile photo
-   * @param userId - The user ID
-   * @param file - The uploaded file
-   * @returns Promise with upload status and URL
+   * Associate user to company (with validation)
    */
-  async uploadProfilePhoto(userId: string, file: MulterFile): Promise<{ url: string }> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+  async associateUserToCompany(userId: string, companyId: string): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
     
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
+    // Verify company exists
+    const company = await this.customerRepository.findOne({ where: { id: companyId } });
+    if (!company) {
+      // If company doesn't exist, we should NOT create it here
+      // The company must be created through the proper flow with an owner
+      throw new NotFoundException(`Company not found: ${companyId}. A company must be created with a valid owner/admin user first.`);
     }
     
-    // Upload the file to Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadImage(file, 'avatars');
-    
-    // Update the user with the profile picture URL
-    user.picture = uploadResult.url;
+    user.customerId = companyId;
+    user.companyId = companyId;
+    user.userType = company.type === CustomerType.SME ? UserType.SME : UserType.FINANCIAL_INSTITUTION;
     user.updatedAt = new Date();
     
-    await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
     
-    // Log this activity
+    // Record association activity
     await this.recordUserActivity({
-      userId: user.id, 
-      activityType: ActivityType.PROFILE_UPDATED, 
-      details: {
-        fieldChanged: 'profile_picture',
-        newValue: uploadResult.url
-      }
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { associatedToCompany: companyId },
     });
     
-    return {
-      url: uploadResult.url
-    };
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Create user from external event (from other microservices)
+   * Change user type
    */
-  async createFromExternalEvent(userData: {
-    name: string;
-    email: string;
-    auth0Id: string;
-    role: string;
-    userType: string;
-    customerId: string;
-    companyId: string;
-    isCompanyOwner: boolean;
-    status: string;
-    createdAt: Date;
-  }): Promise<User> {
-    const newUser = this.userRepository.create({
-      name: userData.name,
-      email: userData.email,
-      auth0Id: userData.auth0Id,
-      role: userData.role as UserRole,
-      userType: userData.userType as UserType,
-      customerId: userData.customerId,
-      companyId: userData.companyId,
-      status: userData.status as UserStatus,
-      isCompanyOwner: userData.isCompanyOwner,
-      createdAt: userData.createdAt,
-      updatedAt: new Date(),
-      lastLogin: undefined,
+  async changeUserType(userId: string, newUserType: UserType): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
+    
+    const oldUserType = user.userType;
+    user.userType = newUserType;
+    user.updatedAt = new Date();
+    
+    const updatedUser = await this.userRepository.save(user);
+    
+    // Record user type change activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { userTypeChanged: { from: oldUserType, to: newUserType } },
     });
-
-    return await this.userRepository.save(newUser);
+    
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Update user status
+   * Update user preferences
    */
-  async updateStatus(userId: string, newStatus: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
-    user.status = newStatus as UserStatus;
+  async updateUserPreferences(userId: string, preferences: Record<string, any>): Promise<UserResponseDto> {
+    const user = await this.findById(userId);
+    
+    // Store preferences in user metadata or separate preferences entity
+    // For now, we'll store in user entity - you might want to create a separate preferences entity
     user.updatedAt = new Date();
-
-    return await this.userRepository.save(user);
+    
+    const updatedUser = await this.userRepository.save(user);
+    
+    // Record preferences update activity
+    await this.recordUserActivity({
+      userId: user.id,
+      activityType: ActivityType.PROFILE_UPDATED,
+      details: { preferencesUpdated: preferences },
+    });
+    
+    return this.mapUserToResponseDto(updatedUser);
   }
 
   /**
-   * Update user role
+   * Upload profile photo (alias for uploadProfilePicture)
    */
-  async updateRole(userId: string, newRole: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
-    user.role = newRole as UserRole;
-    user.updatedAt = new Date();
-
-    return await this.userRepository.save(user);
+  async uploadProfilePhoto(userId: string, file: MulterFile): Promise<UserResponseDto> {
+    return this.uploadProfilePicture(userId, file);
   }
 }

@@ -157,8 +157,8 @@ export class AdminUserController {
     return {
       success: true,
       data: {
-        idType: result.idType,
-        idStatus: result.idStatus,
+        idType: result.idType || 'unknown',
+        idStatus: result.idStatus || 'pending',
         message: 'Document d\'identité téléchargé avec succès et en attente de vérification'
       }
     };

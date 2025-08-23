@@ -24,6 +24,14 @@ export class SyncUserDto {
   @IsOptional()
   picture?: string;
 
+  @IsString()
+  @IsOptional()
+  companyId?: string;
+
+  @IsString()
+  @IsOptional()
+  userType?: string; // 'sme' or 'financial_institution'
+
   @IsOptional()
   metadata?: Record<string, any>;
 }

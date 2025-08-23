@@ -40,6 +40,10 @@ export class ContactsDto {
 
 export class OwnerDto {
   @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @IsOptional()
   @IsString()
   name?: string;
 
@@ -54,6 +58,10 @@ export class OwnerDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  cv?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -192,6 +200,10 @@ export class CreateCompanyDto {
 
   @IsOptional()
   @IsString()
+  logo?: string;
+
+  @IsOptional()
+  @IsString()
   legalForm?: string;
 
   @IsOptional()
@@ -201,6 +213,22 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsString()
   size?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  rccm?: string;
+
+  @IsOptional()
+  @IsString()
+  taxId?: string;
+
+  @IsOptional()
+  @IsString()
+  natId?: string;
 
   @IsOptional()
   @ValidateNested()

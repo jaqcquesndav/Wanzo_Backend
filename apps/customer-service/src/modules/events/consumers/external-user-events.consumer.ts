@@ -83,8 +83,6 @@ export class ExternalUserEventsConsumer {
         customerId: customer.id,
         companyId: customer.id,
         isCompanyOwner,
-        status: 'ACTIVE',
-        createdAt: new Date(event.timestamp),
       });
 
       this.logger.log(`Successfully created user ${newUser.id} from external event`);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Like } from 'typeorm';
 import { Customer, CustomerStatus, CustomerType } from '../entities/customer.entity';
@@ -84,8 +84,19 @@ export class SmeService {
   }
 
   async create(createCompanyDto: CreateCompanyDto, auth0Id: string): Promise<CompanyResponseDto> {
+    // Validate required fields
+    if (!createCompanyDto.contacts?.email) {
+      throw new BadRequestException('Email de contact requis');
+    }
+    if (!createCompanyDto.contacts?.phone) {
+      throw new BadRequestException('Téléphone de contact requis');
+    }
+
     // Create base customer entity
     const customer = this.customerRepository.create({
+      name: createCompanyDto.name, // Add the required name field
+      email: createCompanyDto.contacts.email, // Add the required email field
+      phone: createCompanyDto.contacts.phone, // Add the required phone field
       type: CustomerType.SME,
       status: CustomerStatus.PENDING,
       createdBy: auth0Id,
@@ -97,11 +108,15 @@ export class SmeService {
     // Create SME specific entity
     const sme = this.smeRepository.create({
       name: createCompanyDto.name,
+      logoUrl: createCompanyDto.logo,
       legalForm: createCompanyDto.legalForm,
       industry: createCompanyDto.industry,
       size: createCompanyDto.size,
+      website: createCompanyDto.website,
+      rccm: createCompanyDto.rccm,
+      taxId: createCompanyDto.taxId,
+      natId: createCompanyDto.natId,
       customerId: savedCustomer.id,
-      // Add other fields from createCompanyDto
     });
     
     const savedSmeResult = await this.smeRepository.save(sme);

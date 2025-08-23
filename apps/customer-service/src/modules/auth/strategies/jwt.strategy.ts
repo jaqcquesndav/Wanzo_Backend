@@ -10,6 +10,11 @@ import * as path from 'path';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly userService: UserService) {
+    console.log('🚀 JwtStrategy constructor called - STARTING INITIALIZATION');
+    console.log('AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN);
+    console.log('AUTH0_AUDIENCE:', process.env.AUTH0_AUDIENCE);
+    console.log('AUTH0_CERTIFICATE_PATH:', process.env.AUTH0_CERTIFICATE_PATH);
+    
     // Déterminer quelle méthode de vérification utiliser basée sur la présence du certificat
     let jwtOptions;
     
@@ -41,13 +46,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       console.log('Auth0: Using JWKS endpoint for JWT validation');
     }
     
+    console.log('JWT Options configured:', {
+      audience: jwtOptions.audience,
+      issuer: jwtOptions.issuer,
+      algorithms: jwtOptions.algorithms,
+      hasSecretOrKey: !!jwtOptions.secretOrKey,
+      hasSecretOrKeyProvider: !!jwtOptions.secretOrKeyProvider
+    });
+    
     super(jwtOptions);
+    console.log('JwtStrategy initialization completed');
   }
 
   async validate(payload: any) {
+    console.log('JWT Strategy validate called with payload:', JSON.stringify(payload, null, 2));
+    
     // Check if user exists in our database
     try {
+      console.log('Attempting to find user by Auth0 ID:', payload.sub);
       const user = await this.userService.findByAuth0Id(payload.sub);
+      console.log('User found:', user ? 'YES' : 'NO');
       
       // Vérifiez les permissions à partir du token Auth0
       const permissions = payload.permissions || [];
@@ -55,6 +73,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       
       // Si l'utilisateur existe déjà dans notre base de données
       if (user) {
+        console.log('Returning existing user data');
         return {
           ...payload,
           userId: user.id,
@@ -69,6 +88,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       
       // Si l'utilisateur n'existe pas encore, laissez passer uniquement 
       // pour les endpoints /users/sync et /users/me
+      console.log('Returning new user data');
       return {
         ...payload,
         isNewUser: true,

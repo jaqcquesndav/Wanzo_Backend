@@ -6,6 +6,7 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto, ApiResponseDto, ApiError
 import { SyncUserDto } from '../dto/sync-user.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { MulterFile } from '../../cloudinary/cloudinary.service';
+import { UserType } from '../entities/user.entity';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -63,6 +64,44 @@ export class UserController {
     };
   }
 
+  @Get('me/profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer le profil utilisateur avec compagnie/institution associée' })
+  @ApiResponse({ status: 200, description: 'Profil utilisateur avec association récupéré', type: ApiResponseDto })
+  @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
+  async getCurrentUserWithAssociation(@Req() req: any): Promise<ApiResponseDto<any>> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    const profile = await this.userService.findUserWithAssociation(auth0Id);
+    return {
+      success: true,
+      data: profile
+    };
+  }
+
+  @Post('me/associate-company/:companyId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Associer l\'utilisateur connecté à une compagnie' })
+  @ApiResponse({ status: 200, description: 'Association réalisée avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Compagnie non trouvée', type: ApiErrorResponseDto })
+  async associateUserToCompany(@Param('companyId') companyId: string, @Req() req: any): Promise<ApiResponseDto<any>> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    const result = await this.userService.associateUserToCompany(auth0Id, companyId);
+    return {
+      success: true,
+      data: result,
+      meta: { message: 'Utilisateur associé à la compagnie avec succès' }
+    };
+  }
+
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Mettre à jour le profil utilisateur courant' })
@@ -102,7 +141,7 @@ export class UserController {
       throw new NotFoundException('Utilisateur non trouvé');
     }
     
-    const updatedUser = await this.userService.changeUserType(user.id, body.userType);
+    const updatedUser = await this.userService.changeUserType(user.id, body.userType as UserType);
     return {
       success: true,
       data: {
@@ -178,8 +217,8 @@ export class UserController {
     return {
       success: true,
       data: {
-        url: result.url,
-        documentType: result.idType,
+        url: '', // Mock URL since we don't have actual upload yet
+        documentType: result.idType || 'unknown',
         message: 'Document d\'identité téléchargé avec succès et en attente de vérification'
       }
     };
@@ -265,7 +304,7 @@ export class UserController {
     return {
       success: true,
       data: {
-        url: result.url
+        url: result.picture || ''
       }
     };
   }

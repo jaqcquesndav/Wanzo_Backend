@@ -217,7 +217,14 @@ export class ExternalRequestsConsumer {
         case 'device_registered':
           // Enregistrer un nouvel appareil pour l'utilisateur
           if (payload.deviceInfo) {
-            await this.userService.registerUserDevice(payload.userId, payload.deviceInfo);
+            const deviceInfo = {
+              deviceId: payload.deviceInfo.deviceId || 'unknown',
+              deviceType: payload.deviceInfo.deviceType || 'unknown',
+              platform: payload.deviceInfo.platform || 'unknown',
+              appVersion: payload.deviceInfo.appVersion,
+              osVersion: payload.deviceInfo.osVersion,
+            };
+            await this.userService.registerUserDevice(payload.userId, deviceInfo);
           }
           break;
           

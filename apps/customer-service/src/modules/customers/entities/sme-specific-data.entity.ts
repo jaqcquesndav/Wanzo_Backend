@@ -75,10 +75,12 @@ export class SmeSpecificData {
 
   @Column({ type: 'jsonb', nullable: true })
   owner?: {
+    id?: string;
     name?: string;
     gender?: string;
     email?: string;
     phone?: string;
+    cv?: string;
     hasOtherJob?: boolean;
     linkedin?: string;
     facebook?: string;
