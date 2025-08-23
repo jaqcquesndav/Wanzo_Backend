@@ -14,7 +14,7 @@ import { CustomersModule } from '../customers/customers.module';
         options: {
           client: {
             clientId: 'customer-service-consumer',
-            brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+            brokers: [process.env.KAFKA_BROKERS || 'localhost:9092'],
           },
           consumer: {
             groupId: 'customer-service-group',

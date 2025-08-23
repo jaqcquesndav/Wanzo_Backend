@@ -269,4 +269,42 @@ export class UserController {
       }
     };
   }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Créer un nouvel utilisateur (premier signup)' })
+  @ApiResponse({ status: 201, description: 'Utilisateur créé avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
+  async createUser(@Body() createUserDto: CreateUserDto, @Req() req: any): Promise<ApiResponseDto<UserResponseDto>> {
+    // Extraction des données Auth0 depuis le JWT si pas fourni dans le body
+    const auth0Id = req.user?.sub;
+    const email = createUserDto.email || req.user?.email;
+    const name = createUserDto.name || req.user?.name;
+
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+
+    // Si isFirstTimeUser est true ou pas défini, on utilise la logique de sync
+    // qui gère automatiquement la création du premier utilisateur
+    if ((createUserDto as any).isFirstTimeUser !== false) {
+      const syncUserDto: SyncUserDto = {
+        auth0Id,
+        email,
+        name,
+        picture: (createUserDto as any).picture,
+      };
+      return {
+        success: true,
+        data: await this.userService.syncUser(syncUserDto)
+      };
+    }
+
+    // Sinon, utiliser la logique de création standard
+    const user = await this.userService.create(createUserDto);
+    return {
+      success: true,
+      data: user
+    };
+  }
 }

@@ -41,11 +41,12 @@ async function bootstrap() {
   // 1) Création d'une seule app Nest avec AppModule
   const app = await NestFactory.create(AppModule, { logger });
   
-  // 2) Versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
+  // 2) Remove versioning - it's interfering with our proxy routing
+  // app.enableVersioning({
+  //   type: VersioningType.URI,
+  //   prefix: 'v',
+  //   defaultVersion: '1',
+  // });
 
   // 3) Security middleware
   app.use(helmet());

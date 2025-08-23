@@ -51,7 +51,7 @@ export class HealthController {
         options: {
           client: {
             clientId: 'customer-service',
-            brokers: [this.configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
+            brokers: [this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092')],
           },
         },
       }),
@@ -71,7 +71,7 @@ export class HealthController {
         options: {
           client: {
             clientId: 'customer-service',
-            brokers: [this.configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
+            brokers: [this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092')],
           },
         },
       }),

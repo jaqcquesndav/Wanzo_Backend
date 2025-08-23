@@ -42,7 +42,7 @@ export class RouteResolverService {
       },
       {
         service: 'customer',
-        baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3006'),
+        baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
         prefix: 'land/api/v1',
       },
     ];
@@ -52,15 +52,21 @@ export class RouteResolverService {
     // Remove leading slash
     const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
     
+    this.logger.debug(`Resolving route for path: ${path}, normalized: ${normalizedPath}`);
+    
     // Find matching route
-    const route = this.routes.find(r => normalizedPath.startsWith(r.prefix));
+    const route = this.routes.find(r => {
+      const matches = normalizedPath.startsWith(r.prefix);
+      this.logger.debug(`Checking prefix "${r.prefix}" against "${normalizedPath}": ${matches}`);
+      return matches;
+    });
     
     if (route) {
-      this.logger.debug(`Resolved path ${path} to service ${route.service}`);
+      this.logger.debug(`Resolved path ${path} to service ${route.service} (prefix: ${route.prefix}, baseUrl: ${route.baseUrl})`);
       return route;
     }
 
-    this.logger.warn(`No service found for path ${path}`);
+    this.logger.warn(`No service found for path ${path}. Available prefixes: ${this.routes.map(r => r.prefix).join(', ')}`);
     return null;
   }
 
@@ -75,9 +81,24 @@ export class RouteResolverService {
   }
 
   stripPrefix(path: string, prefix: string): string {
-    if (path.startsWith(`/${prefix}`)) {
-      return path.substring(prefix.length + 1);
+    // Normalize both path and prefix to remove leading slashes
+    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    const normalizedPrefix = prefix.startsWith('/') ? prefix.substring(1) : prefix;
+    
+    this.logger.debug(`stripPrefix - original path: ${path}, prefix: ${prefix}, normalized path: ${normalizedPath}, normalized prefix: ${normalizedPrefix}`);
+    
+    if (normalizedPath.startsWith(normalizedPrefix)) {
+      // Remove the prefix and ensure we have a clean path
+      const remainingPath = normalizedPath.substring(normalizedPrefix.length);
+      // If the remaining path starts with '/', remove it; otherwise add one
+      const result = remainingPath.startsWith('/') ? remainingPath : '/' + remainingPath;
+      this.logger.debug(`stripPrefix result: ${result}`);
+      return result;
     }
-    return path;
+    
+    // If path doesn't start with prefix, return the original path with leading slash
+    const result = path.startsWith('/') ? path : '/' + path;
+    this.logger.debug(`stripPrefix no match, returning: ${result}`);
+    return result;
   }
 }

@@ -9,7 +9,7 @@ import { MulterFile } from '../../cloudinary/cloudinary.service';
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
-@Controller('land/api/v1/admin/users')
+@Controller('admin/users')
 @UseGuards(JwtAuthGuard, AdminRoleGuard)
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}

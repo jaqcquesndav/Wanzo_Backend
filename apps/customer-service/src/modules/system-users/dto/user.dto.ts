@@ -96,6 +96,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsInt()
   tokenTotal?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstTimeUser?: boolean;
 }
 
 export class UpdateUserDto {

@@ -12,11 +12,10 @@ export interface ServiceRoute {
 
 @Injectable()
 export class RouteResolverService {
-  getRoutes() {
-    throw new Error('Method not implemented.');
-  }
   private readonly logger = new Logger(RouteResolverService.name);
-  private readonly routes: ServiceRoute[];  constructor(private configService: ConfigService) {
+  private readonly routes: ServiceRoute[];
+
+  constructor(private configService: ConfigService) {
     this.routes = [
       {
         service: 'admin',
@@ -61,7 +60,7 @@ export class RouteResolverService {
       {
         service: 'customer',
         baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
-        prefix: 'customer/land/api/v1',
+        prefix: 'land/api/v1',
         healthCheck: '/health',
         scopes: ['customers:read', 'customers:write', 'users:read', 'users:write', 'subscriptions:read', 'subscriptions:write'],
         roles: ['admin', 'superadmin', 'service'],
@@ -88,6 +87,8 @@ export class RouteResolverService {
   resolveRoute(path: string): ServiceRoute | null {
     // Remove leading slash
     const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    this.logger.debug(`Resolving route for path: ${path}, normalized: ${normalizedPath}`);
 
     // 1. Cas spécial : adha-ai en sous-préfixe (ex: /accounting/adha-ai/..., /mobile/adha-ai/...)
     if (normalizedPath.includes('/adha-ai/')) {
@@ -155,9 +156,10 @@ export class RouteResolverService {
       return path.substring('/admin'.length);
     }
 
-    // Comportement normal
-    if (path.startsWith(`/${prefix}`)) {
-      return path.substring(prefix.length + 1);
+    // Comportement normal - s'assurer que le préfixe commence par /
+    const normalizedPrefix = prefix.startsWith('/') ? prefix : `/${prefix}`;
+    if (path.startsWith(normalizedPrefix)) {
+      return path.substring(normalizedPrefix.length);
     }
     return path;
   }
@@ -191,5 +193,9 @@ export class RouteResolverService {
       };
       return metrics;
     }, {} as Record<string, any>);
+  }
+
+  getRoutes(): ServiceRoute[] {
+    return this.routes;
   }
 }

@@ -58,7 +58,7 @@ interface MulterFile {
 
 @ApiTags('payments')
 @ApiBearerAuth()
-@Controller()
+@Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 

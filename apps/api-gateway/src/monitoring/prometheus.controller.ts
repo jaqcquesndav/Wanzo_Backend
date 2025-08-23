@@ -1,9 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { register } from 'prom-client';
 
-@Controller()
+@Controller('metrics')
 export class PrometheusController {
-  @Get('/metrics')
+  @Get()
   async getMetrics(): Promise<string> {
     return await register.metrics();
   }

@@ -11,6 +11,7 @@ import {
 import { ProxyModule } from './modules/proxy/proxy.module';
 import { HealthModule } from './modules/health/health.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 // -- Filtres, intercepteurs --
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -19,8 +20,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 
-// -- Prometheus --
-import { PrometheusController } from './monitoring/prometheus.controller';
+// -- Prometheus Service --
 import { PrometheusService } from './modules/proxy/services/prometheus.service';
 
 @Module({
@@ -44,16 +44,17 @@ import { PrometheusService } from './modules/proxy/services/prometheus.service';
       }),
     }),
 
-    // 3) Tes modules métier
-    ProxyModule,
+    // 3) Tes modules métier - IMPORTANT: ProxyModule doit être en dernier pour capturer toutes les routes
     HealthModule,
     AnalyticsModule,
+    MonitoringModule,
+    ProxyModule, // Doit être en dernier car il capture toutes les routes avec @All('*')
   ],
 
-  // 4) CONTROLLERS : on déclare PrometheusController ici
-  controllers: [PrometheusController],
+  // 4) PAS DE CONTROLLERS ICI - ils sont maintenant dans leurs modules respectifs
+  controllers: [],
 
-  // 5) PROVIDERS : on déclare PrometheusService + interceptors, filters, guards
+  // 5) PROVIDERS : PrometheusService + interceptors, filters, guards
   providers: [
     PrometheusService,
     {
@@ -62,24 +63,24 @@ import { PrometheusService } from './modules/proxy/services/prometheus.service';
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TimeoutInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
     },
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: TransformInterceptor,
+    // },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: TimeoutInterceptor,
+    // },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: CacheInterceptor,
+    // },
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
   ],
 })
 export class AppModule {}
