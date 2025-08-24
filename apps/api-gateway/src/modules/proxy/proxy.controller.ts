@@ -36,10 +36,14 @@ export class ProxyController {
     
     this.logger.log(`🚀 CUSTOMER SERVICE PROXY: ${method} ${path}`);
     this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
-    if (headers.authorization) {
-      this.logger.log(`🔑 Authorization header found: ${headers.authorization.substring(0, 20)}...`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
     } else {
-      this.logger.log(`❌ No Authorization header found`);
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
     }
     
     try {
@@ -49,12 +53,18 @@ export class ProxyController {
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
-      // Prepare headers
+      // Prepare headers - ensure Authorization header is properly forwarded
       const forwardHeaders = {
         ...headers,
         host: 'kiota-customer-service:3011'
       };
       delete forwardHeaders['content-length'];
+      
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`🔑 Authorization header set in forward headers`);
+      }
       
       // Make the request
       const response: AxiosResponse = await axios({
@@ -68,6 +78,80 @@ export class ProxyController {
       
       const duration = Date.now() - startTime;
       this.logger.log(`✅ Customer service responded: ${response.status} (${duration}ms)`);
+      
+      // Forward response headers
+      if (response.headers) {
+        Object.keys(response.headers).forEach(key => {
+          if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+            res.set(key, response.headers[key]);
+          }
+        });
+      }
+      
+      res.status(response.status).send(response.data);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.handleError(error, req, res, duration);
+    }
+  }
+
+  @All('accounting/api/v1/*')
+  @ApiOperation({ 
+    summary: 'Proxy to Accounting Service',
+    description: 'Routes all requests starting with accounting/api/v1 to the accounting service'
+  })
+  @ApiResponse({ status: 200, description: 'Request successfully proxied' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async proxyToAccountingService(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { method, path, headers, body } = req;
+    const startTime = Date.now();
+    
+    this.logger.log(`💰 ACCOUNTING SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
+    }
+    
+    try {
+      // Extract path after 'accounting/api/v1' and add /v1 prefix for the accounting service
+      const targetPath = path.replace('/accounting/api/v1', '/v1');
+      const targetUrl = `http://localhost:3003${targetPath}`;
+      
+      this.logger.log(`📡 Forwarding to: ${targetUrl}`);
+      
+      // Prepare headers - ensure Authorization header is properly forwarded
+      const forwardHeaders = {
+        ...headers,
+        host: 'localhost:3003'
+      };
+      delete forwardHeaders['content-length'];
+      
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`🔑 Authorization header set in forward headers`);
+      }
+      
+      // Make the request
+      const response: AxiosResponse = await axios({
+        method: method.toLowerCase() as any,
+        url: targetUrl,
+        headers: forwardHeaders,
+        data: body,
+        timeout: 30000,
+        validateStatus: () => true
+      });
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`✅ Accounting service responded: ${response.status} (${duration}ms)`);
       
       // Forward response headers
       if (response.headers) {
@@ -104,7 +188,8 @@ export class ProxyController {
       timestamp: new Date().toISOString(),
       availableRoutes: [
         'GET /health - API Gateway health check',
-        'ANY /land/api/v1/* - Customer service routes'
+        'ANY /land/api/v1/* - Customer service routes',
+        'ANY /accounting/api/v1/* - Accounting service routes'
       ]
     });
   }

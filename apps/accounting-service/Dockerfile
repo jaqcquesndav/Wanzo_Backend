@@ -90,5 +90,5 @@ EXPOSE 3001
 
 WORKDIR /app/apps/accounting-service
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/apps/accounting-service/src/main.js"]
 
