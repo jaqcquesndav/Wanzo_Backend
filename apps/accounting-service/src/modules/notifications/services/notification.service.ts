@@ -6,22 +6,33 @@ import { CreateNotificationDto, UpdateNotificationDto, NotificationQueryDto } fr
 
 @Injectable()
 export class NotificationService {
+  private isEmptyCache: boolean | null = null;
+  private lastEmptyCheck: number = 0;
+  private readonly EMPTY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
   ) {}
 
-  async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {
-    const notification = this.notificationRepository.create({
-      ...createNotificationDto,
-      expiresAt: createNotificationDto.expiresAt ? new Date(createNotificationDto.expiresAt) : undefined
-    });
-    
-    return await this.notificationRepository.save(notification);
-  }
-
   async findAll(userId: string, query: NotificationQueryDto) {
     const { page = 1, pageSize = 20, unreadOnly, type, from, to } = query;
+    
+    // Vérifier si la DB est vide avec cache
+    const isEmpty = await this.checkIfEmpty();
+    if (isEmpty) {
+      return {
+        notifications: [],
+        pagination: {
+          page,
+          pageSize,
+          total: 0,
+          totalPages: 0
+        },
+        unreadCount: 0,
+        isEmpty: true // Indicateur pour le frontend
+      };
+    }
     
     let queryBuilder = this.notificationRepository
       .createQueryBuilder('notification')
@@ -75,8 +86,37 @@ export class NotificationService {
         total,
         totalPages: Math.ceil(total / pageSize)
       },
-      unreadCount
+      unreadCount,
+      isEmpty: false
     };
+  }
+
+  private async checkIfEmpty(): Promise<boolean> {
+    const now = Date.now();
+    
+    // Utiliser le cache si disponible et récent
+    if (this.isEmptyCache !== null && (now - this.lastEmptyCheck) < this.EMPTY_CHECK_INTERVAL) {
+      return this.isEmptyCache;
+    }
+    
+    // Vérifier si la table est vide
+    const count = await this.notificationRepository.count();
+    this.isEmptyCache = count === 0;
+    this.lastEmptyCheck = now;
+    
+    return this.isEmptyCache;
+  }
+
+  async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {
+    // Invalider le cache lors de la création
+    this.isEmptyCache = false;
+    
+    const notification = this.notificationRepository.create({
+      ...createNotificationDto,
+      expiresAt: createNotificationDto.expiresAt ? new Date(createNotificationDto.expiresAt) : undefined
+    });
+    
+    return await this.notificationRepository.save(notification);
   }
 
   async findOne(id: string, userId: string): Promise<Notification> {
