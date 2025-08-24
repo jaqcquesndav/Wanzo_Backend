@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, TokenBlacklist } from '../entities';
 import { UserRole } from '../entities/user.entity';
+import { CustomerSyncService } from '../services/customer-sync.service';
 import * as fs from 'fs';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly userRepository: Repository<User>,
     @InjectRepository(TokenBlacklist)
     private readonly tokenBlacklistRepository: Repository<TokenBlacklist>,
+    private readonly customerSyncService: CustomerSyncService,
   ) {
     // Récupérer les configurations
     const certificatePath = configService.get('AUTH0_CERTIFICATE_PATH');
@@ -81,7 +83,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     let user = await this.userRepository.findOne({ where: { auth0Id } });
     
     if (!user) {
-      this.logger.log(`User with Auth0 ID ${auth0Id} not found. Creating new user.`);
+      this.logger.log(`User with Auth0 ID ${auth0Id} not found. Syncing with Customer Service first.`);
       
       const companyId = payload['https://wanzo.com/company_id'];
       const userType = payload['https://wanzo.com/user_type'];
@@ -91,19 +93,86 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('User is not authorized for this service.');
       }
 
-      const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
+      try {
+        // 🔄 Synchronisation avec Customer Service AVANT création locale
+        await this.customerSyncService.syncUserWithCustomerService({
+          auth0Id,
+          email: payload.email,
+          name: `${payload.given_name || ''} ${payload.family_name || ''}`.trim(),
+          firstName: payload.given_name,
+          lastName: payload.family_name,
+          picture: payload.picture,
+          companyId,
+          userType,
+          metadata: {
+            source: 'accounting-service',
+            firstLoginFrom: 'accounting-app'
+          }
+        });
 
-      user = this.userRepository.create({
-        auth0Id,
-        email: payload.email,
-        firstName: payload.given_name || 'User',
-        lastName: payload.family_name || '',
-        profilePicture: payload.picture,
-        role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
-        organizationId: companyId,
-      });
-      await this.userRepository.save(user);
-      this.logger.log(`Created new user ${user.id} for organization ${companyId}`);
+        // Attendre un court délai pour que l'événement soit traité
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Rechercher à nouveau l'utilisateur (il devrait maintenant exister)
+        user = await this.userRepository.findOne({ where: { auth0Id } });
+        
+        if (!user) {
+          // Si l'utilisateur n'existe toujours pas, créer localement en fallback
+          this.logger.warn(`User still not found after sync, creating locally as fallback`);
+          const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
+
+          user = this.userRepository.create({
+            auth0Id,
+            email: payload.email,
+            firstName: payload.given_name || 'User',
+            lastName: payload.family_name || '',
+            profilePicture: payload.picture,
+            role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
+            organizationId: companyId,
+          });
+          await this.userRepository.save(user);
+          this.logger.log(`Created user locally as fallback for ${auth0Id}`);
+        }
+        
+      } catch (syncError: any) {
+        this.logger.error(`Customer Service sync failed: ${syncError.message || syncError}`);
+        
+        // Fallback : créer l'utilisateur localement si la sync échoue
+        const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
+
+        user = this.userRepository.create({
+          auth0Id,
+          email: payload.email,
+          firstName: payload.given_name || 'User',
+          lastName: payload.family_name || '',
+          profilePicture: payload.picture,
+          role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
+          organizationId: companyId,
+        });
+        await this.userRepository.save(user);
+        this.logger.log(`Created user locally as fallback for ${auth0Id}`);
+      }
+    } else {
+      // 🔄 Pour les utilisateurs existants, informer aussi Customer Service
+      try {
+        await this.customerSyncService.notifyUserLogin({
+          auth0Id,
+          email: payload.email,
+          name: `${payload.given_name || ''} ${payload.family_name || ''}`.trim(),
+          firstName: payload.given_name,
+          lastName: payload.family_name,
+          picture: payload.picture,
+          companyId: payload['https://wanzo.com/company_id'],
+          userType: payload['https://wanzo.com/user_type'],
+          metadata: {
+            source: 'accounting-service',
+            existingUser: true
+          }
+        });
+      } catch (syncError: any) {
+        this.logger.warn(`Failed to sync existing user login: ${syncError.message || syncError}`);
+        // Ne pas bloquer si la sync échoue pour un utilisateur existant
+      }
     }
     
     user.lastLoginAt = new Date();

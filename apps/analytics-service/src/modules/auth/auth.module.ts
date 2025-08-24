@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from './services/auth.service';
 import { AuthMiddleware } from './middleware/auth.middleware';
+import { CustomerSyncService } from './services/customer-sync.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { AuthMiddleware } from './middleware/auth.middleware';
     }),
     ConfigModule,
   ],
-  providers: [JwtStrategy, AuthService],
-  exports: [AuthService],
+  providers: [JwtStrategy, AuthService, CustomerSyncService],
+  exports: [AuthService, CustomerSyncService],
 })
 export class AuthModule {}

@@ -3,13 +3,17 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { passportJwtSecret } from 'jwks-rsa';
+import { CustomerSyncService } from '../services/customer-sync.service';
 import * as fs from 'fs';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
 
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly customerSyncService: CustomerSyncService,
+  ) {
     // Déterminer quelle méthode de vérification utiliser basée sur la présence du certificat
     const certificatePath = configService.get('AUTH0_CERTIFICATE_PATH');
     
@@ -69,6 +73,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Depending on whether an institution context is always required,
         // this could be an error or handled downstream.
         // For now, it will be undefined if not present.
+    }
+
+    // 🔄 NOUVELLE LOGIQUE : Sync avec Customer Service AVANT retour
+    try {
+      const syncData = {
+        auth0Id: payload.sub,
+        email: payload.email,
+        name: payload.name || payload.given_name || payload.nickname,
+        companyId: payload.companyId,
+        financialInstitutionId: institutionId,
+        userType: payload.user_type || 'FINANCIAL_INSTITUTION',
+        role: payload.role,
+      };
+
+      this.logger.debug(`🔄 Syncing user ${payload.sub} with Customer Service`);
+      await this.customerSyncService.syncUserWithCustomerService(syncData);
+      this.logger.debug(`✅ User sync successful for ${payload.sub}`);
+    } catch (syncError: any) {
+      this.logger.warn(`⚠️ Customer Service sync failed: ${syncError.message}. Continuing with local validation.`);
+      // Continue avec la validation locale en cas d'échec de sync
     }
 
     return {

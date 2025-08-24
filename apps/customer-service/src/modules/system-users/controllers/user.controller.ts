@@ -42,6 +42,42 @@ export class UserController {
     };
   }
 
+  @Post('sync/cross-service')
+  @ApiOperation({ summary: 'Synchroniser l\'utilisateur depuis un autre service (sans token utilisateur)' })
+  @ApiResponse({ status: 201, description: 'Utilisateur synchronisé avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
+  @ApiResponse({ status: 403, description: 'Accès refusé - Service non autorisé', type: ApiErrorResponseDto })
+  async syncUserCrossService(@Body() syncUserDto: SyncUserDto, @Req() req: any): Promise<ApiResponseDto<UserResponseDto>> {
+    // Vérifier que l'appel provient d'un service autorisé
+    const serviceName = req.headers['x-service-name'];
+    const syncSource = req.headers['x-sync-source'];
+    
+    const allowedServices = ['accounting-service', 'gestion-commerciale-service', 'portfolio-institution-service'];
+    
+    if (!serviceName || !allowedServices.includes(serviceName)) {
+      throw new UnauthorizedException('Service non autorisé pour la synchronisation cross-service');
+    }
+    
+    if (syncSource !== 'cross-service-login') {
+      throw new UnauthorizedException('Source de synchronisation non autorisée');
+    }
+    
+    console.log(`🔄 Cross-service sync from ${serviceName} for user ${syncUserDto.auth0Id}`);
+    
+    // Ajouter des métadonnées pour identifier la source
+    if (!syncUserDto.metadata) {
+      syncUserDto.metadata = {};
+    }
+    syncUserDto.metadata.crossServiceSync = true;
+    syncUserDto.metadata.originService = serviceName;
+    
+    const user = await this.userService.syncUser(syncUserDto);
+    return {
+      success: true,
+      data: user
+    };
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Récupérer le profil utilisateur courant' })

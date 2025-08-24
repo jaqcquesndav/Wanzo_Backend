@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from './services/auth.service';
 import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
+import { CustomerSyncService } from './services/customer-sync.service';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
       inject: [ConfigService],
     }),
   ],
-  providers: [JwtStrategy, AuthService, JwtBlacklistGuard],
-  exports: [AuthService, JwtBlacklistGuard],
+  providers: [JwtStrategy, AuthService, CustomerSyncService, JwtBlacklistGuard],
+  exports: [AuthService, CustomerSyncService, JwtBlacklistGuard],
 })
 export class AuthModule {}

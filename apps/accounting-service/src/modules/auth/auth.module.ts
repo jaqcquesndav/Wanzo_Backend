@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from './services/auth.service';
 import { UserService } from './services/user.service';
+import { CustomerSyncService } from './services/customer-sync.service';
 import { AuthMiddleware } from './middleware/auth.middleware';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -56,7 +57,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     }),
   ],
   controllers: [AuthController, UserController],
-  providers: [JwtStrategy, AuthService, UserService, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, UserService, JwtAuthGuard, RolesGuard, JwtModule],
+  providers: [JwtStrategy, AuthService, UserService, CustomerSyncService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, UserService, CustomerSyncService, JwtAuthGuard, RolesGuard, JwtModule],
 })
 export class AuthModule {}

@@ -176,6 +176,12 @@ export class AuthService {
     return null;
   }
 
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.userRepository.update(userId, {
+      lastLoginAt: new Date(),
+    });
+  }
+
   private async _createToken(user: Omit<User, 'password' | 'hashPassword' | 'validatePassword'>): Promise<string> {
     const payload = {
       sub: user.id,

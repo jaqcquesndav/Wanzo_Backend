@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { CustomerSyncService } from './services/customer-sync.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
 import { HttpModule } from '@nestjs/axios';
@@ -34,8 +35,8 @@ import { User, TokenBlacklist } from './entities';
     }),
     forwardRef(() => EventsModule),
   ],  
-  providers: [AuthService, JwtStrategy, LocalStrategy, JwtAuthGuard, JwtBlacklistGuard],
+  providers: [AuthService, JwtStrategy, LocalStrategy, CustomerSyncService, JwtAuthGuard, JwtBlacklistGuard],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, JwtAuthGuard, JwtBlacklistGuard],
+  exports: [AuthService, JwtModule, PassportModule, JwtStrategy, LocalStrategy, CustomerSyncService, JwtAuthGuard, JwtBlacklistGuard],
 })
 export class AuthModule {}
