@@ -59,7 +59,7 @@ async function bootstrap() {
       'http://localhost:5175', // Frontend Accounting
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time', 'x-client-version'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time', 'x-client-version', 'x-accounting-client', 'x-customer-client'],
     exposedHeaders: ['Authorization'],
     credentials: true,
     maxAge: 3600,
