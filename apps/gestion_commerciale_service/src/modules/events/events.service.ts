@@ -165,4 +165,20 @@ export class EventsService {
         error instanceof Error ? error.stack : undefined);
     }
   }
+
+  /**
+   * Publie un événement de demande de synchronisation d'organisation
+   * @param event Données de la demande de synchronisation
+   */
+  async publishOrganizationSyncRequest(event: any): Promise<void> {
+    this.logger.log(`Publishing organization sync request: ${JSON.stringify(event)}`);
+    
+    try {
+      this.eventsClient.emit('organization.sync.request', event);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error publishing organization sync request: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined);
+    }
+  }
 }

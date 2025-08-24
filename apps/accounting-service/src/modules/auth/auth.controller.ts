@@ -60,22 +60,20 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
-    summary: 'Récupérer le profil utilisateur', 
-    description: 'Récupère les informations complètes du profil utilisateur'
+    summary: 'Récupérer le profil utilisateur avec informations de l\'organisation', 
+    description: 'Récupère les informations complètes du profil utilisateur ainsi que celles de son organisation'
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Profil utilisateur récupéré avec succès',
+    description: 'Profil utilisateur et organisation récupérés avec succès',
     type: UserProfileDto
   })
   @ApiResponse({ status: 401, description: 'Non authentifié' })
   async getProfile(@CurrentUser() user: any): Promise<any> {
-    const profile = await this.authService.getUserProfile(user.id);
+    const profileData = await this.authService.getUserProfileWithOrganization(user.id);
     return {
       success: true,
-      data: {
-        user: profile
-      }
+      data: profileData
     };
   }
 

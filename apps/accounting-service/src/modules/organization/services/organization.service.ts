@@ -61,14 +61,6 @@ export class OrganizationService {
     return await this.organizationRepository.save(organization);
   }
 
-  async updateLastActivity(id: string, lastActivityDate: Date): Promise<void> {
-    const organization = await this.findById(id);
-    if (organization) {
-      organization.lastActivityAt = lastActivityDate;
-      await this.organizationRepository.save(organization);
-    }
-  }
-
   async updateLogo(id: string, file: Express.Multer.File): Promise<string> {
     const organization = await this.findById(id);
     if (!organization) {
@@ -199,5 +191,64 @@ export class OrganizationService {
     // Si les coordonnées bancaires sont principales, vous devriez définir un autre compte comme principal
     
     // Cette méthode ne renvoie rien car le code d'état HTTP 200 et le message de succès sont gérés par le contrôleur
+  }
+
+  /**
+   * Créer ou mettre à jour une organisation à partir d'un événement Kafka
+   */
+  async createOrUpdate(organizationData: any): Promise<Organization> {
+    const existingOrganization = await this.findById(organizationData.id);
+    
+    if (existingOrganization) {
+      // Mettre à jour l'organisation existante
+      await this.organizationRepository.update(organizationData.id, {
+        ...organizationData,
+        updatedAt: new Date()
+      });
+      
+      // Récupérer l'organisation mise à jour
+      const updatedOrganization = await this.findById(organizationData.id);
+      if (!updatedOrganization) {
+        throw new NotFoundException(`Organization with ID ${organizationData.id} not found after update`);
+      }
+      return updatedOrganization;
+    } else {
+      // Créer une nouvelle organisation
+      const result = await this.organizationRepository.insert({
+        ...organizationData,
+        createdAt: organizationData.createdAt || new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Récupérer l'organisation créée
+      const newOrganization = await this.findById(organizationData.id);
+      if (!newOrganization) {
+        throw new NotFoundException(`Organization with ID ${organizationData.id} not found after creation`);
+      }
+      return newOrganization;
+    }
+  }
+
+  /**
+   * Mettre à jour une organisation à partir d'un événement de mise à jour
+   */
+  async updateFromEvent(organizationId: string, updatedFields: Record<string, any>): Promise<Organization> {
+    const organization = await this.findById(organizationId);
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${organizationId} not found`);
+    }
+    
+    Object.assign(organization, updatedFields, { updatedAt: new Date() });
+    return await this.organizationRepository.save(organization);
+  }
+
+  /**
+   * Mettre à jour la dernière activité d'une organisation
+   */
+  async updateLastActivity(organizationId: string, lastActivity: Date): Promise<void> {
+    await this.organizationRepository.update(organizationId, { 
+      lastActivityAt: lastActivity,
+      updatedAt: new Date()
+    });
   }
 }

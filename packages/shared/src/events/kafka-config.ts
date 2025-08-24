@@ -52,6 +52,8 @@ export enum CustomerEventTopics {
     CUSTOMER_VALIDATED = 'customer.validated',
     CUSTOMER_SUSPENDED = 'customer.suspended',
     CUSTOMER_REACTIVATED = 'customer.reactivated',
+    CUSTOMER_SYNC_REQUEST = 'customer.sync.request',
+    CUSTOMER_SYNC_RESPONSE = 'customer.sync.response',
 }
 
 export { BusinessOperationEventTopics } from './commerce-operations';
@@ -79,6 +81,14 @@ export enum InstitutionEventTopics {
     INSTITUTION_CREATED = 'institution.created',
     INSTITUTION_PROFILE_UPDATED = 'institution.profile.updated',
     INSTITUTION_STATUS_CHANGED = 'institution.status.changed',
+}
+
+export enum OrganizationEventTopics {
+    ORGANIZATION_CREATED = 'organization.created',
+    ORGANIZATION_UPDATED = 'organization.updated',
+    ORGANIZATION_DELETED = 'organization.deleted',
+    ORGANIZATION_SYNC_REQUEST = 'organization.sync.request',
+    ORGANIZATION_SYNC_RESPONSE = 'organization.sync.response',
 }
 
 // #endregion
@@ -189,6 +199,54 @@ export interface CustomerStatusChangedEvent {
     newStatus: string;
     changedBy: string;
     reason?: string;
+    timestamp: string;
+}
+
+export interface OrganizationCreatedEvent {
+    organizationId: string;
+    name: string;
+    type: 'company' | 'financial_institution';
+    ownerId: string;
+    registrationNumber?: string;
+    taxId?: string;
+    country?: string;
+    timestamp: string;
+}
+
+export interface OrganizationUpdatedEvent {
+    organizationId: string;
+    updatedFields: Record<string, any>;
+    updatedBy: string;
+    timestamp: string;
+}
+
+export interface OrganizationSyncRequestEvent {
+    organizationId: string;
+    requestedBy: string; // Service name requesting the sync
+    requestId: string;
+    timestamp: string;
+}
+
+export interface OrganizationSyncResponseEvent {
+    requestId: string;
+    organizationId: string;
+    organization: {
+        id: string;
+        name: string;
+        type: 'company' | 'financial_institution';
+        registrationNumber?: string;
+        taxId?: string;
+        vatNumber?: string;
+        address?: string;
+        city?: string;
+        country?: string;
+        phone?: string;
+        email?: string;
+        ownerId: string;
+        createdAt: string;
+        updatedAt: string;
+    } | null;
+    found: boolean;
     timestamp: string;
 }
 
@@ -361,3 +419,110 @@ export enum InstitutionStatusType {
 }
 
 export { SubscriptionPlanType, SubscriptionStatusType } from './subscription-types';
+
+// #region Organization Events
+
+export interface OrganizationCreatedEvent {
+    organizationId: string;
+    name: string;
+    registrationNumber?: string;
+    taxId?: string;
+    country?: string;
+    createdBy: string;
+    timestamp: string;
+}
+
+export interface OrganizationUpdatedEvent {
+    organizationId: string;
+    updatedFields: Record<string, any>;
+    updatedBy: string;
+    timestamp: string;
+}
+
+export interface OrganizationSyncRequestEvent {
+    organizationId: string;
+    requestedBy: string;
+    requestId: string;
+    timestamp: string;
+}
+
+export interface OrganizationSyncResponseEvent {
+    organizationId: string;
+    requestId: string;
+    found: boolean;
+    organizationData?: {
+        id: string;
+        name: string;
+        registrationNumber?: string;
+        taxId?: string;
+        vatNumber?: string;
+        address?: string;
+        city?: string;
+        country?: string;
+        phone?: string;
+        email?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    timestamp: string;
+}
+
+// #endregion
+
+// #region Customer Events (Financial Institutions)
+
+export interface CustomerCreatedEvent {
+    customerId: string;
+    name: string;
+    type: 'INSTITUTION' | 'SME'; // Distinguer institutions financières vs PME
+    registrationNumber?: string;
+    licenseNumber?: string;
+    taxId?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    createdBy: string;
+    timestamp: string;
+}
+
+export interface CustomerUpdatedEvent {
+    customerId: string;
+    type: 'INSTITUTION' | 'SME';
+    updatedFields: Record<string, any>;
+    updatedBy: string;
+    timestamp: string;
+}
+
+export interface CustomerSyncRequestEvent {
+    customerId: string;
+    requestedBy: string;
+    requestId: string;
+    timestamp: string;
+}
+
+export interface CustomerSyncResponseEvent {
+    customerId: string;
+    requestId: string;
+    found: boolean;
+    customerData?: {
+        id: string;
+        name: string;
+        type: 'INSTITUTION' | 'SME';
+        registrationNumber?: string;
+        licenseNumber?: string;
+        taxId?: string;
+        vatNumber?: string;
+        address?: string;
+        city?: string;
+        country?: string;
+        phone?: string;
+        email?: string;
+        website?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    timestamp: string;
+}
+
+// #endregion

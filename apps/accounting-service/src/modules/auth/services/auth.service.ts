@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, NotFoundException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -7,6 +7,9 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from '../entities/user.entity';
 import { TokenBlacklist } from '../entities/token-blacklist.entity';
+import { OrganizationService } from '../../organization/services/organization.service';
+import { ClientKafka } from '@nestjs/microservices';
+import { OrganizationEventTopics, OrganizationSyncRequestEvent } from '@wanzobe/shared/events/kafka-config';
 
 @Injectable()
 export class AuthService {
@@ -16,10 +19,12 @@ export class AuthService {
     private configService: ConfigService,
     private httpService: HttpService,
     private jwtService: JwtService,
+    private readonly organizationService: OrganizationService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(TokenBlacklist)
     private readonly tokenBlacklistRepository: Repository<TokenBlacklist>,
+    @Inject('KAFKA_CLIENT') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async validateUserById(userId: string): Promise<User | null> {
@@ -103,6 +108,113 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
+  }
+
+  /**
+   * Récupère le profil utilisateur avec les informations de son organisation
+   * RÈGLE MÉTIER : Un utilisateur DOIT avoir une organization créée depuis customer-service
+   */
+  async getUserProfileWithOrganization(userId: string): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+
+    // VALIDATION CRITIQUE : Un utilisateur DOIT avoir un organizationId
+    if (!user.organizationId) {
+      this.logger.error(`Utilisateur ${userId} sans organizationId - Accès refusé`);
+      throw new UnauthorizedException(
+        'Accès refusé : Utilisateur non associé à une organisation. ' +
+        'Veuillez compléter votre inscription via le service client.'
+      );
+    }
+
+    let organization: any = null;
+    
+    try {
+      // Rechercher l'organisation dans la base locale
+      organization = await this.organizationService.findById(user.organizationId);
+      
+      if (!organization) {
+        this.logger.warn(`Organisation ${user.organizationId} non trouvée localement - Synchronisation requise`);
+        
+        // Déclencher synchronisation OBLIGATOIRE depuis customer-service
+        await this.requestOrganizationSyncFromCustomerService(user.organizationId);
+        
+        // Rejeter temporairement l'accès en attendant la synchronisation
+        throw new UnauthorizedException(
+          'Organisation en cours de synchronisation. Veuillez réessayer dans quelques instants.'
+        );
+      }
+      
+      this.logger.log(`Organisation trouvée pour l'utilisateur ${userId}: ${organization.name}`);
+      
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error; // Re-lancer les erreurs d'autorisation
+      }
+      
+      this.logger.error(`Erreur lors de la récupération de l'organisation ${user.organizationId}:`, error);
+      throw new UnauthorizedException(
+        'Erreur lors de la vérification de l\'organisation. Veuillez contacter le support.'
+      );
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        organizationId: user.organizationId,
+        permissions: user.permissions || [],
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        registrationNumber: organization.registrationNumber,
+        taxId: organization.taxId,
+        vatNumber: organization.vatNumber,
+        address: organization.address,
+        city: organization.city,
+        country: organization.country,
+        phone: organization.phone,
+        email: organization.email,
+        currency: organization.currency,
+        accountingMode: organization.accountingMode,
+        fiscalYearStart: organization.fiscalYearStart,
+        fiscalYearEnd: organization.fiscalYearEnd,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
+      }
+    };
+  }
+
+  /**
+   * Demande la synchronisation d'une organisation depuis le customer service via Kafka
+   */
+  private async requestOrganizationSyncFromCustomerService(organizationId: string): Promise<void> {
+    try {
+      this.logger.log(`Demande de synchronisation pour l'organisation ${organizationId}`);
+      
+      const syncEvent: OrganizationSyncRequestEvent = {
+        organizationId: organizationId,
+        requestedBy: 'accounting-service',
+        requestId: `sync-${Date.now()}-${organizationId}`,
+        timestamp: new Date().toISOString()
+      };
+      
+      this.kafkaClient.emit(OrganizationEventTopics.ORGANIZATION_SYNC_REQUEST, syncEvent);
+      this.logger.log(`Événement de synchronisation émis pour l'organisation ${organizationId}`);
+      
+    } catch (error) {
+      this.logger.error(`Erreur lors de la demande de synchronisation pour l'organisation ${organizationId}:`, error);
+    }
   }
 
   async updateUserProfile(userId: string, updateData: Partial<User>): Promise<any> {

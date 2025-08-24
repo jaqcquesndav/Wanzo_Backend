@@ -138,9 +138,12 @@ export class AuthController {
     }
   })
   @ApiResponse({ status: 401, description: 'Non autorisé - Token manquant ou invalide' })
-  getProfile(@CurrentUser() user: User) {
-    // Return user data directly since password is not included in the User interface
-    return user;
+  async getProfile(@CurrentUser() user: User): Promise<any> {
+    const profileData = await this.authService.getUserProfileWithOrganization(user.id);
+    return {
+      success: true,
+      data: profileData
+    };
   }
 
   @Post('management-token')

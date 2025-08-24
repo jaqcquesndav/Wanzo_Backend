@@ -56,6 +56,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000', // Frontend classique
       'http://localhost:5173', // Frontend Vite dev server
+      'http://localhost:5175', // Frontend Accounting
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time', 'x-client-version'],

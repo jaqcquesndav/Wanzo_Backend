@@ -13,6 +13,9 @@ import { User, TokenBlacklist } from './entities';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { UserController } from './controllers/user.controller';
+import { OrganizationModule } from '../organization/organization.module';
+import { KafkaModule } from '../kafka/kafka.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -23,6 +26,26 @@ import { UserController } from './controllers/user.controller';
       maxRedirects: 5,
     }),
     ConfigModule,
+    OrganizationModule, // Ajout du module Organization
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_CLIENT',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.KAFKA,
+          options: {
+            client: {
+              clientId: configService.get<string>('KAFKA_CLIENT_ID', 'accounting-auth-producer'),
+              brokers: configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(','),
+            },
+            producer: {
+              allowAutoTopicCreation: configService.get<boolean>('KAFKA_ALLOW_AUTO_TOPIC_CREATION', true),
+            }
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

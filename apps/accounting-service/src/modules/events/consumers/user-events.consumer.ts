@@ -5,6 +5,10 @@ import {
   UserEventTopics,
   UserStatusChangedEvent,
   UserCreatedEvent, // Base event type
+  OrganizationEventTopics,
+  OrganizationSyncResponseEvent,
+  OrganizationCreatedEvent,
+  OrganizationUpdatedEvent,
   // Import other relevant event types from '@wanzobe/shared/events/kafka-config' as needed
 } from '@wanzobe/shared/events/kafka-config';
 import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzobe/shared/events/subscription-events';
@@ -208,5 +212,78 @@ export class UserEventsConsumer {
   // Add more handlers for other relevant UserEventTopics as needed
   // e.g., @MessagePattern(UserEventTopics.USER_DELETED)
   // async handleUserDeleted(@Payload() event: UserDeletedEvent): Promise<void> { ... }
+
+  // === ORGANIZATION EVENT HANDLERS ===
+
+  @MessagePattern(OrganizationEventTopics.ORGANIZATION_CREATED)
+  async handleOrganizationCreated(@Payload() event: OrganizationCreatedEvent): Promise<void> {
+    this.logger.log(`Received ${OrganizationEventTopics.ORGANIZATION_CREATED} event: ${JSON.stringify(event)}`);
+    try {
+      // Créer ou mettre à jour l'organisation dans le service accounting
+      const organizationData = {
+        id: event.organizationId,
+        name: event.name,
+        registrationNumber: event.registrationNumber,
+        taxId: event.taxId,
+        country: event.country,
+        createdAt: new Date(event.timestamp),
+        updatedAt: new Date(event.timestamp)
+      };
+
+      await this.organizationService.createOrUpdate(organizationData);
+      this.logger.log(`Organization ${event.organizationId} synchronized from customer service`);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error handling ${OrganizationEventTopics.ORGANIZATION_CREATED} for organization ${event.organizationId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
+  }
+
+  @MessagePattern(OrganizationEventTopics.ORGANIZATION_UPDATED)
+  async handleOrganizationUpdated(@Payload() event: OrganizationUpdatedEvent): Promise<void> {
+    this.logger.log(`Received ${OrganizationEventTopics.ORGANIZATION_UPDATED} event: ${JSON.stringify(event)}`);
+    try {
+      // Mettre à jour l'organisation dans le service accounting
+      await this.organizationService.updateFromEvent(event.organizationId, event.updatedFields);
+      this.logger.log(`Organization ${event.organizationId} updated from customer service`);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error handling ${OrganizationEventTopics.ORGANIZATION_UPDATED} for organization ${event.organizationId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
+  }
+
+  @MessagePattern(OrganizationEventTopics.ORGANIZATION_SYNC_RESPONSE)
+  async handleOrganizationSyncResponse(@Payload() event: OrganizationSyncResponseEvent): Promise<void> {
+    this.logger.log(`Received ${OrganizationEventTopics.ORGANIZATION_SYNC_RESPONSE} event: ${JSON.stringify(event)}`);
+    try {
+      if (event.found && event.organizationData) {
+        // Créer ou mettre à jour l'organisation avec les données reçues
+        const organizationData = {
+          id: event.organizationData.id,
+          name: event.organizationData.name,
+          registrationNumber: event.organizationData.registrationNumber,
+          taxId: event.organizationData.taxId,
+          vatNumber: event.organizationData.vatNumber,
+          address: event.organizationData.address,
+          city: event.organizationData.city,
+          country: event.organizationData.country,
+          phone: event.organizationData.phone,
+          email: event.organizationData.email,
+          createdAt: new Date(event.organizationData.createdAt),
+          updatedAt: new Date(event.organizationData.updatedAt)
+        };
+
+        await this.organizationService.createOrUpdate(organizationData);
+        this.logger.log(`Organization ${event.organizationId} synchronized successfully from customer service`);
+      } else {
+        this.logger.warn(`Organization ${event.organizationId} not found in customer service`);
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error handling ${OrganizationEventTopics.ORGANIZATION_SYNC_RESPONSE} for organization ${event.organizationId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+    }
+  }
 
 }

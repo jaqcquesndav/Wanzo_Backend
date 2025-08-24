@@ -423,4 +423,61 @@ export class InstitutionService {
     }
   }
 
+  /**
+   * Trouve une institution par son ID (version safe qui retourne null si non trouvée)
+   */
+  async findByIdSafe(id: string): Promise<Institution | null> {
+    return await this.institutionRepository.findOneBy({ id });
+  }
+
+  /**
+   * Trouve une institution par son ID (alias pour compatibilité)
+   */
+  async findByInstitutionId(institutionId: string): Promise<Institution | null> {
+    return this.findByIdSafe(institutionId);
+  }
+
+  /**
+   * Créer ou mettre à jour une institution à partir d'un événement Kafka
+   */
+  async createOrUpdate(institutionData: any): Promise<Institution> {
+    const existingInstitution = await this.findByIdSafe(institutionData.id);
+    
+    if (existingInstitution) {
+      // Mettre à jour l'institution existante
+      await this.institutionRepository.update(institutionData.id, {
+        ...institutionData,
+        updatedAt: new Date()
+      });
+      
+      // Récupérer l'institution mise à jour
+      const updatedInstitution = await this.findById(institutionData.id);
+      return updatedInstitution;
+    } else {
+      // Créer une nouvelle institution
+      const result = await this.institutionRepository.insert({
+        ...institutionData,
+        createdAt: institutionData.createdAt || new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Récupérer l'institution créée
+      const newInstitution = await this.findById(institutionData.id);
+      return newInstitution;
+    }
+  }
+
+  /**
+   * Mettre à jour une institution à partir d'un événement de mise à jour
+   */
+  async updateFromEvent(institutionId: string, updatedFields: Record<string, any>): Promise<Institution> {
+    const institution = await this.findById(institutionId);
+    if (!institution) {
+      throw new NotFoundException(`Institution with ID ${institutionId} not found`);
+    }
+    
+    Object.assign(institution, updatedFields, { updatedAt: new Date() });
+    return await this.institutionRepository.save(institution);
+  }
+
 }

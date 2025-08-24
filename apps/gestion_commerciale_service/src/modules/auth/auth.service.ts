@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common'; // Added forwardRef, Inject
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef, UnauthorizedException } from '@nestjs/common'; // Added UnauthorizedException
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm'; // Added EntityManager
 import { User, UserRole } from './entities/user.entity';
@@ -8,9 +8,10 @@ import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Company } from '../company/entities/company.entity'; // Corrected path
+import { CompanyService } from '../company/services/company.service'; // Import CompanyService
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { EventsService } from '../events/events.service'; // Import EventsService
-import { UserCreatedEventData, UserEventTopics, EventUserType } from '@wanzobe/shared/events/kafka-config'; // Import event data interface and topics
+import { UserCreatedEventData, UserEventTopics, EventUserType, OrganizationEventTopics, OrganizationSyncRequestEvent } from '@wanzobe/shared/events/kafka-config'; // Import event data interface and topics
 
 export interface AuthResponse {
   user: Omit<User, 'password' | 'hashPassword' | 'validatePassword'>;
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Company) 
     private readonly companyRepository: Repository<Company>,
+    private readonly companyService: CompanyService, // Add CompanyService
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -247,5 +249,106 @@ export class AuthService {
       resourceId,
       resourceType,
     };
+  }
+
+  /**
+   * Récupère le profil utilisateur avec les informations de son organisation/company
+   * RÈGLE MÉTIER : Un utilisateur DOIT avoir une company créée depuis customer-service
+   */
+  async getUserProfileWithOrganization(userId: string): Promise<any> {
+    const user = await this.userRepository.findOne({ 
+      where: { id: userId },
+      relations: ['company']
+    });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+
+    // VALIDATION CRITIQUE : Un utilisateur DOIT avoir un companyId
+    if (!user.companyId) {
+      this.logger.error(`Utilisateur ${userId} sans companyId - Accès refusé`);
+      throw new UnauthorizedException(
+        'Accès refusé : Utilisateur non associé à une entreprise. ' +
+        'Veuillez compléter votre inscription via le service client.'
+      );
+    }
+
+    let company: any = null;
+    
+    try {
+      // Rechercher l'entreprise dans la base locale
+      company = await this.companyService.findById(user.companyId);
+      
+      if (!company) {
+        this.logger.warn(`Entreprise ${user.companyId} non trouvée localement - Synchronisation requise`);
+        
+        // Déclencher synchronisation OBLIGATOIRE depuis customer-service
+        await this.requestCompanySyncFromCustomerService(user.companyId);
+        
+        // Rejeter temporairement l'accès en attendant la synchronisation
+        throw new UnauthorizedException(
+          'Entreprise en cours de synchronisation. Veuillez réessayer dans quelques instants.'
+        );
+      }
+      
+      this.logger.log(`Entreprise trouvée pour l'utilisateur ${userId}: ${company.name}`);
+      
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error; // Re-lancer les erreurs d'autorisation
+      }
+      
+      this.logger.error(`Erreur lors de la récupération de l'entreprise ${user.companyId}:`, error);
+      throw new UnauthorizedException(
+        'Erreur lors de la vérification de l\'entreprise. Veuillez contacter le support.'
+      );
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      company: {
+        id: company.id,
+        name: company.name,
+        registrationNumber: company.registrationNumber,
+        address: company.address,
+        phone: company.phone,
+        email: company.email,
+        website: company.website,
+        createdAt: company.createdAt,
+        updatedAt: company.updatedAt
+      }
+    };
+  }
+
+  /**
+   * Demande la synchronisation d'une entreprise depuis le customer service via Kafka
+   */
+  private async requestCompanySyncFromCustomerService(companyId: string): Promise<void> {
+    try {
+      const syncEvent: OrganizationSyncRequestEvent = {
+        organizationId: companyId,
+        requestId: `gestion_commerciale_${companyId}_${Date.now()}`,
+        requestedBy: 'gestion_commerciale_service',
+        timestamp: new Date().toISOString()
+      };
+      
+      // Utiliser EventsService pour émettre l'événement Kafka
+      await this.eventsService.publishOrganizationSyncRequest(syncEvent);
+      this.logger.log(`Événement de synchronisation émis pour l'entreprise ${companyId}`);
+      
+    } catch (error) {
+      this.logger.error(`Erreur lors de la demande de synchronisation pour l'entreprise ${companyId}:`, error);
+    }
   }
 }
