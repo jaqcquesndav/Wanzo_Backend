@@ -135,7 +135,8 @@ async function bootstrap() {
   // Add other global configurations: CORS, etc.
   const port = process.env.PORT || 3006; // Port unique pour gestion_commerciale_service
   await app.startAllMicroservices(); // Start Kafka client
-  await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  await app.listen(port, '0.0.0.0'); // Bind sur toutes les interfaces
+  console.log(`🚀 Gestion Commerciale Service is running on: http://0.0.0.0:${port}`);
+  console.log(`📱 Mobile access via API Gateway: http://192.168.1.65:8000/commerce`);
 }
 bootstrap();

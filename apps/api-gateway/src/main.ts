@@ -57,6 +57,13 @@ async function bootstrap() {
       'http://localhost:3000', // Frontend classique
       'http://localhost:5173', // Frontend Vite dev server
       'http://localhost:5175', // Frontend Accounting
+      'http://192.168.1.65:*', // Mobile IP spécifique
+      /^http:\/\/192\.168\.1\.\d+:\d+$/, // Pattern regex pour toutes IP locales
+      /^http:\/\/192\.168\.1\.\d+$/, // Pattern regex pour IP sans port
+      /^http:\/\/172\.\d+\.\d+\.\d+:\d+$/, // Pattern pour réseaux Docker
+      'capacitor://localhost', // Support Capacitor
+      'ionic://localhost', // Support Ionic
+      'http://localhost', // Support mobile local
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time', 'x-client-version', 'x-accounting-client', 'x-customer-client'],
@@ -88,8 +95,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 7) Démarrage sur le port 8000
-  await app.listen(8000);
-  logger.log(`API Gateway is running on port 8000`);
+  // 7) Démarrage sur le port 8000, binding sur toutes les interfaces
+  await app.listen(8000, '0.0.0.0');
+  logger.log(`🚀 API Gateway is running on http://0.0.0.0:8000`);
+  logger.log(`📱 Mobile access available at http://192.168.1.65:8000`);
 }
 bootstrap();
