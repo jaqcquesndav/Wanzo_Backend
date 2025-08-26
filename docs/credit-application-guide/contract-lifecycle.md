@@ -1,172 +1,230 @@
 # Cycle de Vie du Contrat de Crédit
 
-Ce document décrit les différentes étapes du cycle de vie d'un contrat de crédit, de la demande initiale jusqu'à la clôture, ainsi que les transitions d'état possibles et les actions à effectuer à chaque étape.
+Ce document décrit les différentes étapes du cycle de vie d'un contrat de crédit dans l'écosystème Wanzo, basé sur l'implémentation réelle du portfolio-institution-service.
 
 ## 1. Vue d'Ensemble du Cycle de Vie
 
 Le cycle de vie complet d'un contrat de crédit comprend les phases suivantes :
 
-1. **Soumission de la demande de crédit**
+1. **Soumission de la demande de crédit (Funding Request)**
 2. **Évaluation et approbation de la demande**
 3. **Création du contrat**
 4. **Activation du contrat**
-5. **Déboursement des fonds**
-6. **Suivi des remboursements**
+5. **Déboursement des fonds (Disbursement)**
+6. **Suivi des remboursements (Repayments)**
 7. **Gestion des incidents (optionnel)**
 8. **Clôture du contrat**
 
+```mermaid
+graph TD
+    A[Soumission Demande] --> B[Évaluation Manuelle]
+    B --> C{Décision}
+    C -->|Approuvé| D[Création Contrat]
+    C -->|Rejeté| E[Rejet]
+    D --> F[Activation Contrat]
+    F --> G[Déboursement]
+    G --> H[Suivi Remboursements]
+    H --> I[Clôture]
+    
+    H --> J[Incidents?]
+    J -->|Oui| K[Gestion Incidents]
+    K --> H
+    J -->|Non| I
+```
+
 ## 2. Étapes Détaillées
 
-### 2.1. Soumission de la Demande de Crédit
+### 2.1. Soumission de la Demande de Crédit (Funding Request)
 
-**État initial de la demande :** `pending`
+**État initial :** `PENDING`
 
-**Actions requises :**
-- L'application cliente doit soumettre une demande de crédit complète via l'API
+**Actions :**
+- L'utilisateur crée une demande via l'API REST
+- Le système génère automatiquement un numéro de demande (`REQ-YYYY-XXXX`)
+- La demande est assignée au créateur
 - Toutes les informations obligatoires doivent être fournies
-- Les documents justificatifs peuvent être joints à la demande
 
-**Prochaine étape :** La demande passe à l'état `under_review` lorsqu'un agent commence son traitement
+**Entité :** `FundingRequest`
+**Statuts possibles :** `PENDING`, `UNDER_REVIEW`, `APPROVED`, `REJECTED`, `CANCELED`, `DISBURSED`
+
+**Prochaine étape :** Un agent de crédit examine la demande manuellement
 
 ### 2.2. Évaluation et Approbation de la Demande
 
-**États possibles :** `under_review` → `approved` ou `rejected`
+**États possibles :** `PENDING` → `UNDER_REVIEW` → `APPROVED`/`REJECTED`
 
-**Actions requises :**
-- L'évaluation est effectuée par les agents de crédit
-- Des informations complémentaires peuvent être demandées au client
-- Une décision d'approbation ou de rejet est prise
+**Actions manuelles requises :**
+- Un agent de crédit examine la demande
+- Vérification des données financières
+- Évaluation des garanties proposées
+- Analyse de solvabilité (peut impliquer des consultations d'Adha-AI **déclenchées par l'utilisateur**)
+- Prise de décision d'approbation/rejet
 
-**Prochaine étape :** 
-- Si approuvée, la demande passe à l'état `approved` et un contrat peut être créé
-- Si rejetée, la demande passe à l'état `rejected` et le cycle s'arrête
+**Transitions valides :**
+- `PENDING` → `UNDER_REVIEW`, `CANCELED`
+- `UNDER_REVIEW` → `APPROVED`, `REJECTED`, `PENDING`
+- `APPROVED` → `DISBURSED`, `CANCELED`
+
+**Note importante :** Les interactions avec Adha-AI pour l'analyse sont déclenchées **manuellement par les utilisateurs**, pas automatiquement par le système.
 
 ### 2.3. Création du Contrat
 
-**État initial du contrat :** `draft`
+**État initial du contrat :** `DRAFT`
 
 **Actions requises :**
-- Un contrat est créé à partir de la demande approuvée
-- Les conditions du prêt sont définies (taux d'intérêt, durée, fréquence de remboursement, etc.)
-- Un échéancier de remboursement est généré automatiquement
+- Un contrat est créé manuellement à partir de la demande approuvée
+- Définition des conditions du prêt (taux d'intérêt, durée, etc.)
+- Création du calendrier de remboursement (PaymentSchedule)
+- Validation des termes contractuels
 
-**Prochaine étape :** Le contrat reste en état `draft` jusqu'à son activation
+**Entité :** `Contract`
+**Statuts possibles :** `DRAFT`, `ACTIVE`, `SUSPENDED`, `RESTRUCTURED`, `LITIGATION`, `DEFAULTED`, `COMPLETED`, `CANCELED`
 
 ### 2.4. Activation du Contrat
 
-**Transition d'état :** `draft` → `active`
+**État :** `DRAFT` → `ACTIVE`
 
 **Actions requises :**
-- Vérification que toutes les conditions préalables sont remplies
 - Signature du contrat par toutes les parties
-- Validation des garanties fournies
-
-**Prochaine étape :** Une fois activé, le contrat est prêt pour le déboursement
+- Constitution des garanties exigées
+- Vérification des conditions préalables
+- Activation manuelle par l'agent de crédit
 
 ### 2.5. Déboursement des Fonds
 
-**État du contrat :** reste `active`
+**État de la demande :** `APPROVED` → `DISBURSED`  
+**État du contrat :** `ACTIVE`
 
 **Actions requises :**
-- Enregistrement du déboursement dans le système
-- Mise à jour du solde restant dû du contrat
-- La demande de crédit passe à l'état `disbursed`
+- Création d'un ordre de déboursement (Disbursement)
+- Vérification finale des conditions contractuelles
+- Transfert des fonds vers le compte du bénéficiaire
+- Mise à jour du statut de la demande vers `DISBURSED`
 
-**Prochaine étape :** Suivi des remboursements selon l'échéancier
+**Entité :** `Disbursement`
+**Statuts possibles :** `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELED`
 
 ### 2.6. Suivi des Remboursements
 
-**État du contrat :** reste `active` tant que les remboursements sont effectués normalement
+**État du contrat :** `ACTIVE` (suivi continu)
 
-**Actions requises :**
-- Enregistrement des paiements reçus
-- Allocation des paiements aux échéances correspondantes
-- Mise à jour du statut des échéances
-- Mise à jour du solde restant dû du contrat
+**Actions de suivi :**
+- Monitoring des échéances de paiement
+- Génération d'alertes en cas de retard
+- Mise à jour du calendrier de remboursement
+- Calcul des intérêts et pénalités
 
-**Situations particulières :**
-- **Paiement anticipé :** Le client peut effectuer un paiement anticipé, qui sera alloué aux prochaines échéances
-- **Paiement partiel :** Le paiement ne couvre pas entièrement l'échéance, qui passe à l'état `partially_paid`
-- **Retard de paiement :** Si l'échéance n'est pas payée à la date due, elle passe à l'état `late`
+**Interactions possibles avec Adha-AI :**
+- **Déclenchées manuellement** par l'agent pour analyse de solvabilité
+- Consultation ponctuelle pour évaluation de risque
+- Demande d'analyse en cas de difficultés de paiement
 
-### 2.7. Gestion des Incidents (optionnel)
+### 2.7. Gestion des Incidents (Optionnel)
 
-**Transitions d'état possibles :**
-- `active` → `suspended` (suspension temporaire)
-- `active` → `defaulted` (défaut de paiement)
-- `active` → `litigation` (contentieux)
-- `active` → `restructured` (restructuration)
+**États possibles du contrat :** `SUSPENDED`, `LITIGATION`, `DEFAULTED`
 
-#### 2.7.1. Suspension du Contrat
+**Types d'incidents :**
+- Retards de paiement répétés
+- Défaut de paiement
+- Non-respect des conditions contractuelles
+- Dégradation de la situation financière
 
-**Actions requises :**
-- Enregistrement de la raison de la suspension
-- Enregistrement de la date de suspension
-- Notification au client
-
-**Transitions possibles :**
-- `suspended` → `active` (reprise normale)
-- `suspended` → `defaulted` (défaut confirmé)
-- `suspended` → `restructured` (restructuration du prêt)
-- `suspended` → `litigation` (passage en contentieux)
-
-#### 2.7.2. Défaut de Paiement
-
-**Actions requises :**
-- Enregistrement de la date de défaut
-- Mise à jour des échéances impayées à l'état `defaulted`
-- Notification au client et aux parties concernées
-
-**Transitions possibles :**
-- `defaulted` → `active` (régularisation de la situation)
-- `defaulted` → `restructured` (restructuration du prêt)
-- `defaulted` → `litigation` (passage en contentieux)
-- `defaulted` → `completed` (remboursement complet ou arrangement final)
-
-#### 2.7.3. Restructuration du Contrat
-
-**Actions requises :**
-- Enregistrement des nouvelles conditions du prêt
-- Génération d'un nouvel échéancier
-- Notification au client
-
-**Transitions possibles :**
-- `restructured` → `active` (suivi normal du nouveau plan)
-- `restructured` → `defaulted` (nouveau défaut)
-- `restructured` → `litigation` (passage en contentieux)
-- `restructured` → `completed` (remboursement complet)
-
-#### 2.7.4. Contentieux
-
-**Actions requises :**
-- Enregistrement de la raison du contentieux
-- Enregistrement de la date de passage en contentieux
-- Notification aux parties concernées
-
-**Transitions possibles :**
-- `litigation` → `active` (résolution et reprise normale)
-- `litigation` → `defaulted` (défaut confirmé)
-- `litigation` → `completed` (résolution finale)
+**Actions de résolution :**
+- Négociation avec le client
+- Restructuration du contrat (`RESTRUCTURED`)
+- Procédures de recouvrement
+- Mise en demeure légale
 
 ### 2.8. Clôture du Contrat
 
-**Transitions finales :**
-- `active` → `completed` (remboursement complet)
-- `draft` → `canceled` (annulation avant activation)
-- `active` → `canceled` (annulation exceptionnelle)
+**État final :** `COMPLETED` ou `CANCELED`
 
-**Actions requises pour un contrat complété :**
-- Vérification que toutes les échéances sont payées
-- Calcul des intérêts finaux si nécessaire
-- Enregistrement de la date de clôture
+**Conditions de clôture normale (`COMPLETED`) :**
+- Tous les remboursements effectués
+- Respect de toutes les obligations contractuelles
 - Libération des garanties
-- Notification au client
 
-## 3. Diagramme des Transitions d'État
+**Conditions de clôture anticipée (`CANCELED`) :**
+- Remboursement anticipé total
+- Résiliation amiable
+- Transfert vers un autre établissement
+
+## 3. Workflow des Statuts
+
+### 3.1. FundingRequest Status Flow
 
 ```
-┌───────────┐          ┌────────────┐         ┌────────────┐
-│           │          │            │         │            │
+PENDING → UNDER_REVIEW → APPROVED → DISBURSED
+    ↓           ↓            ↓
+ CANCELED   REJECTED    CANCELED
+```
+
+### 3.2. Contract Status Flow
+
+```
+DRAFT → ACTIVE → COMPLETED
+   ↓       ↓        ↑
+CANCELED   ↓        ↑
+           ↓        ↑
+       SUSPENDED → ACTIVE
+           ↓
+      RESTRUCTURED → ACTIVE
+           ↓
+       LITIGATION
+           ↓
+       DEFAULTED
+```
+
+### 3.3. Disbursement Status Flow
+
+```
+PENDING → PROCESSING → COMPLETED
+    ↓          ↓
+ CANCELED   FAILED
+```
+
+## 4. Intégration avec Adha-AI
+
+### 4.1. Interactions Manuelles
+
+**Important :** Toutes les interactions avec Adha-AI sont **déclenchées manuellement** par les utilisateurs (agents de crédit, gestionnaires de portefeuille).
+
+**Cas d'usage typiques :**
+- Demande d'analyse de solvabilité pendant l'évaluation
+- Consultation pour restructuration de contrat
+- Évaluation de risque en cas d'incident
+- Analyse de performance du portefeuille
+
+### 4.2. Communication via Kafka
+
+L'intégration se fait via les topics Kafka :
+- `portfolio.analysis.request` - Demandes d'analyse (déclenchées par l'utilisateur)
+- `portfolio.analysis.results` - Résultats d'analyse d'Adha-AI
+- `portfolio.monitoring.alerts` - Alertes de suivi (si configurées)
+
+## 5. Validation des Transitions
+
+### 5.1. Règles de Validation
+
+Le système implémente des règles strictes pour les transitions de statut via la méthode `validateStatusTransition()` :
+
+```typescript
+// Exemples de transitions valides
+PENDING → [UNDER_REVIEW, CANCELED]
+UNDER_REVIEW → [APPROVED, REJECTED, PENDING]
+APPROVED → [DISBURSED, CANCELED]
+```
+
+### 5.2. Contrôles d'Intégrité
+
+- Vérification des conditions préalables
+- Validation des données obligatoires
+- Contrôle des autorisations utilisateur
+- Audit trail de toutes les modifications
+
+---
+
+**Note :** Ce workflow reflète l'implémentation réelle du système où les interactions avec l'IA sont déclenchées manuellement par les utilisateurs selon leurs besoins d'analyse.
 │  pending  ├─────────►│under_review├────────►│  approved  │
 │           │          │            │         │            │
 └───────────┘          └────────────┘         └──────┬─────┘

@@ -480,4 +480,118 @@ export class InstitutionService {
     return await this.institutionRepository.save(institution);
   }
 
+  /**
+   * Gérer la connexion d'un utilisateur (événement user.login)
+   * Assure que l'utilisateur institution est synchronisé localement
+   */
+  async handleUserLogin(loginData: {
+    userId: string;
+    auth0Id: string;
+    email: string;
+    financialInstitutionId?: string;
+    userType?: string;
+    role?: string;
+    loginTime: string;
+    isFirstLogin: boolean;
+  }): Promise<void> {
+    this.logger.log(`Processing user login for institutional user: ${loginData.userId} (${loginData.email})`);
+
+    try {
+      // 1. Vérifier si l'utilisateur existe déjà dans notre base locale
+      let institutionUser = await this.institutionUserRepository.findOne({
+        where: { authUserId: loginData.auth0Id },
+        relations: ['institution']
+      });
+
+      // 2. Si l'utilisateur n'existe pas localement, le créer
+      if (!institutionUser) {
+        this.logger.log(`Creating local user profile for ${loginData.auth0Id}`);
+        
+        // Déterminer l'institution associée
+        let institution: Institution | null = null;
+        if (loginData.financialInstitutionId) {
+          institution = await this.institutionRepository.findOne({
+            where: { id: loginData.financialInstitutionId }
+          });
+        }
+
+        // Créer l'utilisateur local avec les champs requis
+        institutionUser = this.institutionUserRepository.create({
+          authUserId: loginData.auth0Id,
+          kiotaId: `KIOTA-USR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          email: loginData.email,
+          name: loginData.email.split('@')[0], // Utiliser la partie avant @ comme nom temporaire
+          phone: '', // Champ requis, sera rempli plus tard
+          role: this.mapUserRole(loginData.role),
+          institutionId: institution?.id || '',
+          permissions: [], // Permissions par défaut
+          active: true,
+          metadata: {
+            auth0Id: loginData.auth0Id,
+            lastLoginAt: loginData.loginTime,
+            isFirstLogin: loginData.isFirstLogin,
+            createdFromEvent: true
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        await this.institutionUserRepository.save(institutionUser);
+        this.logger.log(`Local user profile created for ${loginData.auth0Id}`);
+      } else {
+        // 3. Mettre à jour les informations de dernière connexion
+        institutionUser.metadata = {
+          ...institutionUser.metadata,
+          lastLoginAt: loginData.loginTime,
+          lastLogin: new Date().toISOString()
+        };
+        institutionUser.updatedAt = new Date();
+        
+        // Mettre à jour l'association institution si nécessaire
+        if (loginData.financialInstitutionId && !institutionUser.institutionId) {
+          const institution = await this.institutionRepository.findOne({
+            where: { id: loginData.financialInstitutionId }
+          });
+          if (institution) {
+            institutionUser.institutionId = institution.id;
+            this.logger.log(`Updated institution association for user ${loginData.auth0Id}`);
+          }
+        }
+
+        await this.institutionUserRepository.save(institutionUser);
+        this.logger.log(`Updated login timestamp for user ${loginData.auth0Id}`);
+      }
+
+      // 4. Si c'est la première connexion, enregistrer des métriques ou déclencher d'autres actions
+      if (loginData.isFirstLogin) {
+        this.logger.log(`First login detected for institutional user ${loginData.auth0Id}`);
+        // TODO: Ajouter des actions spécifiques pour la première connexion
+        // Par exemple : envoi d'email de bienvenue, initialisation du dashboard, etc.
+      }
+
+    } catch (error) {
+      this.logger.error(`Error handling user login for ${loginData.auth0Id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mapper les rôles Auth0 vers les rôles internes
+   */
+  private mapUserRole(auth0Role?: string): UserRole {
+    switch (auth0Role?.toLowerCase()) {
+      case 'admin':
+      case 'superadmin':
+        return UserRole.ADMIN;
+      case 'manager':
+        return UserRole.MANAGER;
+      case 'analyst':
+        return UserRole.ANALYST;
+      case 'viewer':
+        return UserRole.VIEWER;
+      default:
+        return UserRole.VIEWER; // Rôle par défaut
+    }
+  }
+
 }

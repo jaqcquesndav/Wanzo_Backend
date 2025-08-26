@@ -1,52 +1,150 @@
 # Formats de Données pour les Demandes de Crédit
 
-Ce document détaille les structures de données requises pour la soumission des demandes de crédit et la gestion des contrats.
+Ce document détaille les structures de données requises pour la soumission des demandes de crédit et la gestion des contrats dans l'écosystème Wanzo.
+
+## Vue d'Ensemble
+
+Le système de crédit de Wanzo utilise :
+- **API REST** pour les interactions client-serveur
+- **Kafka Events** pour l'analyse automatique via Adha-AI
+- **Format JSON** pour tous les échanges de données
+- **UUID v4** pour tous les identifiants
+- **ISO 8601** pour les dates et timestamps
 
 ## 1. Structure de la Demande de Crédit (Funding Request)
 
-Lors de la soumission d'une nouvelle demande de crédit, votre application doit envoyer les données suivantes :
+### 1.1 Données Obligatoires
 
 ```json
 {
   "portfolio_id": "uuid",              // ID du portefeuille (obligatoire)
-  "client_id": "uuid",                 // ID du client (obligatoire)
+  "client_id": "uuid",                 // ID du client (obligatoire) 
   "company_name": "string",            // Nom de l'entreprise (obligatoire)
   "product_type": "string",            // Type de produit financier (obligatoire)
-  "amount": 1000000.00,                // Montant demandé (obligatoire)
+  "amount": 1000000.00,                // Montant demandé en nombre décimal (obligatoire)
+  "duration": 12                       // Durée du prêt en entier (obligatoire)
+}
+```
+
+### 1.2 Structure Complète
+
+```json
+{
+  "portfolio_id": "uuid",              
+  "client_id": "uuid",                 
+  "company_name": "string",            
+  "product_type": "string",            
+  "amount": 1000000.00,                
   "currency": "XOF",                   // Devise (optionnel, par défaut "XOF")
   "purpose": "string",                 // Objet du financement (optionnel)
-  "duration": 12,                      // Durée du prêt (obligatoire)
-  "duration_unit": "months",           // Unité de durée (optionnel, valeurs: "days", "weeks", "months", "years", par défaut "months")
-  "proposed_start_date": "2025-08-01", // Date de début proposée (optionnel)
-  "financial_data": {                  // Données financières (optionnel)
-    "annual_revenue": 5000000.00,
-    "net_profit": 1000000.00,
-    "existing_debts": 500000.00,
-    "cash_flow": 800000.00,
-    "assets": 10000000.00,
-    "liabilities": 3000000.00
+  "duration": 12,                      
+  "duration_unit": "months",           // Unité de durée (optionnel, par défaut "months")
+  "proposed_start_date": "2025-08-26", // Date de début proposée (optionnel, format ISO 8601)
+  "financial_data": {                  // Données financières (optionnel mais recommandé)
+    "annual_revenue": 5000000.00,      // Chiffre d'affaires annuel
+    "net_profit": 1000000.00,          // Bénéfice net
+    "existing_debts": 500000.00,       // Dettes existantes
+    "cash_flow": 800000.00,            // Flux de trésorerie
+    "assets": 10000000.00,             // Actifs totaux
+    "liabilities": 3000000.00          // Passifs totaux
   },
   "proposed_guarantees": [             // Garanties proposées (optionnel)
     {
-      "type": "real_estate",           // Type de garantie
+      "type": "real_estate",           // Type de garantie (voir énumérations)
       "description": "Bâtiment commercial à Dakar",
-      "value": 5000000.00,             // Valeur de la garantie
+      "value": 5000000.00,             // Valeur estimée de la garantie
       "currency": "XOF"                // Devise de la garantie
     }
   ]
 }
 ```
 
-### Types de Garanties Acceptés
+### 2. Énumérations et Valeurs Valides
 
-- `real_estate` - Biens immobiliers
-- `movable_property` - Biens mobiliers
-- `financial_security` - Titres financiers
-- `personal_guarantee` - Caution personnelle
-- `third_party_guarantee` - Garantie tierce partie
-- `cash_collateral` - Garantie en espèces
-- `insurance` - Assurance
-- `other` - Autre (à préciser dans la description)
+#### 2.1 Statuts des Demandes de Crédit (FundingRequestStatus)
+```typescript
+enum FundingRequestStatus {
+  PENDING = 'pending',           // En attente de traitement
+  UNDER_REVIEW = 'under_review', // En cours d'examen
+  APPROVED = 'approved',         // Approuvée
+  REJECTED = 'rejected',         // Rejetée
+  CANCELED = 'canceled',         // Annulée
+  DISBURSED = 'disbursed'        // Fonds déboursés
+}
+```
+
+#### 2.2 Unités de Durée (DurationUnit)
+```typescript
+enum DurationUnit {
+  DAYS = 'days',       // Jours
+  WEEKS = 'weeks',     // Semaines  
+  MONTHS = 'months',   // Mois (par défaut)
+  YEARS = 'years'      // Années
+}
+```
+
+#### 2.3 Types de Garanties Acceptées
+```typescript
+enum GuaranteeType {
+  REAL_ESTATE = 'real_estate',           // Biens immobiliers
+  MOVABLE_PROPERTY = 'movable_property', // Biens mobiliers
+  FINANCIAL_SECURITY = 'financial_security', // Titres financiers
+  PERSONAL_GUARANTEE = 'personal_guarantee',  // Caution personnelle
+  THIRD_PARTY_GUARANTEE = 'third_party_guarantee', // Garantie tierce
+  CASH_COLLATERAL = 'cash_collateral',   // Garantie en espèces
+  INSURANCE = 'insurance',               // Assurance
+  OTHER = 'other'                        // Autre (à préciser)
+}
+```
+
+#### 2.4 Devises Supportées
+```typescript
+enum Currency {
+  XOF = 'XOF',    // Franc CFA Ouest-Africain (par défaut)
+  XAF = 'XAF',    // Franc CFA Centre-Africain
+  USD = 'USD',    // Dollar Américain
+  EUR = 'EUR',    // Euro
+  CDF = 'CDF'     // Franc Congolais
+}
+```
+
+### 3. Intégration avec Adha-AI
+
+Lorsqu'une demande est créée, le système déclenche automatiquement :
+
+#### 3.1 Événement Kafka (Automatique)
+```json
+{
+  "event_type": "portfolio.analysis.request",
+  "timestamp": "2025-08-26T12:34:56Z",
+  "data": {
+    "funding_request_id": "uuid",
+    "analysis_type": "credit_risk_assessment",
+    "financial_data": { /* données financières */ },
+    "requested_amount": 1000000.00,
+    "currency": "XOF",
+    "institution_id": "uuid"
+  }
+}
+```
+
+#### 3.2 Réponse Adha-AI (Automatique)
+```json
+{
+  "event_type": "portfolio.analysis.response", 
+  "timestamp": "2025-08-26T12:35:30Z",
+  "data": {
+    "funding_request_id": "uuid",
+    "risk_score": 0.75,
+    "recommendation": "APPROVE_WITH_CONDITIONS",
+    "analysis_details": {
+      "debt_to_income_ratio": 0.35,
+      "cash_flow_adequacy": "GOOD",
+      "collateral_coverage": 1.25
+    }
+  }
+}
+```
 
 ### Statuts d'une Demande de Crédit
 

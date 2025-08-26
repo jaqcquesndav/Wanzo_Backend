@@ -30,6 +30,10 @@ export class SyncUserDto {
 
   @IsString()
   @IsOptional()
+  financialInstitutionId?: string;
+
+  @IsString()
+  @IsOptional()
   userType?: string; // 'sme' or 'financial_institution'
 
   @IsOptional()

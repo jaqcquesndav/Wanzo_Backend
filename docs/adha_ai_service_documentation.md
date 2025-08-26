@@ -2,234 +2,654 @@
 
 ## 1. Introduction
 
-Le service Adha-ai-service est un microservice d'intelligence artificielle conçu pour fournir des capacités d'analyse et de traitement intelligent aux autres composants du système Wanzo. Ce document présente une analyse détaillée de son architecture, ses modes de fonctionnement, les flux de données et les interactions avec les autres microservices du système.
+Le service Adha-AI est un microservice d'intelligence artificielle conçu pour fournir des capacités d'analyse et de traitement intelligent aux autres composants du système Wanzo. Ce document présente une analyse détaillée de son architecture, ses modes de fonctionnement, les flux de données et les interactions avec les autres microservices du système via Kafka.
 
-## 2. Modes de fonctionnement
+## 2. Architecture Générale
+
+Le service Adha-AI est construit sur une architecture Django avec communication inter-services via Apache Kafka et agents IA spécialisés pour différents domaines.
+
+### 2.1 Composants Principaux
+
+**Framework de Base :**
+- **Django & DRF** : Framework backend avec API REST pour interfaces utilisateur
+- **Communication Kafka** : Messages asynchrones entre microservices
+- **Architecture Multi-Agents** : Agents spécialisés par domaine métier
+- **Base de Connaissances Étendues** : 9 domaines spécialisés en format Markdown
+
+### 2.2 Modes de Fonctionnement
 
 Le service Adha AI fonctionne selon trois modes principaux, chacun correspondant à un type de traitement différent :
 
-### 2.1 Mode Analyse de Chat
+#### Mode Analyse de Chat
+- **Objectif** : Interface conversationnelle pour utilisateurs finaux
+- **Communication** : Via endpoints API REST (interface utilisateur)
+- **Traitement** : Requêtes en langage naturel avec maintien du contexte
+- **IA** : GPT-4 avec accès aux bases de connaissances spécialisées
 
-Ce mode permet aux utilisateurs d'interagir avec le système via une interface conversationnelle. Le service utilise des modèles de langage pour comprendre les requêtes des utilisateurs et y répondre de manière contextuelle.
+#### Mode Traitement Comptable  
+- **Objectif** : Transformation d'opérations commerciales en écritures comptables
+- **Communication** : Via Kafka (topic `commerce.operation.created`)
+- **Traitement** : Application des règles SYSCOHADA et validation métier
+- **Sortie** : Publication sur topic `accounting.journal.entry`
 
-**Caractéristiques principales :**
-- Traitement des requêtes en langage naturel
-- Maintien du contexte de la conversation
-- Génération de réponses pertinentes basées sur le contexte utilisateur
-- Intégration avec les données métier (opérations comptables, portefeuilles, etc.)
+#### Mode Analyse de Portefeuille
+- **Objectif** : Analyses approfondies des portefeuilles d'institutions financières
+- **Communication** : Via Kafka (topic `portfolio.analysis.request`)
+- **Traitement** : Analyses multidimensionnelles (financière, risque, performance)
+- **Sortie** : Résultats et recommandations via Kafka
 
-### 2.2 Mode Traitement Comptable
+### 2.3 Agents IA Spécialisés
 
-Dans ce mode, le service traite les opérations commerciales et les convertit en écritures comptables. Il applique des règles métier pour garantir la conformité des écritures et les envoie au service comptable.
+#### Agent de Routage des Tâches (TaskRouter)
+- **Rôle** : Analyse et routage automatique des messages Kafka
+- **Fonctionnalités** : Détermination du type de tâche, distribution vers agents spécialisés
+- **Gestion** : Erreurs, retry automatique, métriques de performance
 
-**Caractéristiques principales :**
-- Transformation des opérations commerciales en écritures comptables
-- Application de règles métier spécifiques selon le type d'opération
-- Gestion des statuts de traitement des écritures
-- Support de différents types d'opérations (ventes, dépenses, financements, inventaire)
+#### Agent de Traitement Comptable (AccountingProcessor)
+- **Rôle** : Conversion d'opérations commerciales en écritures comptables
+- **Règles** : Conformité SYSCOHADA, validation métier
+- **Types supportés** : SALE, PURCHASE, EXPENSE, INVENTORY, FINANCING
 
-### 2.3 Mode Analyse de Portefeuille
+#### Agent d'Analyse de Portefeuille (PortfolioAnalyzer)
+- **Rôle** : Analyses multidimensionnelles de portefeuilles
+- **Types d'analyse** : Financière, marché, opérationnelle, risque
+- **Portefeuilles supportés** : Crédit, épargne, investissement, micro-finance
 
-Ce mode permet l'analyse approfondie des portefeuilles des institutions financières. Il applique des algorithmes d'analyse pour évaluer différents aspects des portefeuilles et générer des recommandations.
+### 2.4 Base de Connaissances Étendues
 
-**Caractéristiques principales :**
-- Analyses multidimensionnelles (financière, marché, opérationnelle, risque)
-- Support de différents types de portefeuilles (crédit, épargne, investissement, micro-finance)
-- Génération de recommandations basées sur les analyses
-- Calcul d'indicateurs de performance et de risque
+Le service Adha-AI dispose d'une base de connaissances spécialisées couvrant 9 domaines clés :
 
-## 3. Flux de données et Traitement
+#### Domaines Spécialisés :
+1. **Comptabilité SYSCOHADA** : Règles comptables, plan comptable, écritures standards
+2. **Institutions Financières** : Réglementations bancaires, ratios prudentiels
+3. **Microfinance** : Spécificités sectorielles, indicateurs de performance
+4. **Finance Islamique** : Principes Sharia, produits conformes
+5. **Agriculture & Agrobusiness** : Comptabilité sectorielle, cycles de production
+6. **PME/TPE** : Besoins spécifiques, simplifications comptables
+7. **Administrations Publiques** : Comptabilité publique, IPSAS
+8. **Assurances** : Réglementations, provisions techniques
+9. **Coopératives** : Statuts spéciaux, comptabilité mutualiste
 
-### 3.1 Architecture générale
+#### Architecture de Récupération :
+- **KnowledgeRetriever** : Mapping automatique domaines/fichiers
+- **Recherche Vectorielle** : ChromaDB pour similarité sémantique
+- **Recherche Textuelle** : Extraction de sections pertinentes
+- **Format** : Fichiers Markdown optimisés pour IA
 
-```
-┌─────────────────┐    ┌────────────────────┐    ┌────────────────────┐
-│                 │    │                    │    │                    │
-│  Microservices  ├───►│ Kafka Message Bus  ├───►│  Unified Consumer  │
-│                 │    │                    │    │                    │
-└─────────────────┘    └────────────────────┘    └──────────┬─────────┘
-                                                           │
-                                                           ▼
-┌─────────────────┐    ┌────────────────────┐    ┌────────────────────┐
-│                 │    │                    │    │                    │
-│  Kafka Producer │◄───┤   Service Logic    │◄───┤    Task Router     │
-│                 │    │                    │    │                    │
-└─────────────────┘    └────────────────────┘    └────────────────────┘
-       │                                                  ▲
-       │                                                  │
-       ▼                                                  │
-┌─────────────────┐                             ┌────────────────────┐
-│                 │                             │                    │
-│  Microservices  │                             │   AI Components    │
-│                 │                             │                    │
-└─────────────────┘                             └────────────────────┘
-```
+## 3. Communication Inter-Services via Kafka
 
-### 3.2 Flux de traitement des données
+Le service Adha-AI communique avec les autres microservices exclusivement via Apache Kafka pour garantir la robustesse et la scalabilité du système.
 
-1. **Réception des messages**
-   - Les messages sont reçus via Kafka depuis différents microservices
-   - Le `UnifiedConsumer` écoute plusieurs topics et standardise les messages
+### 3.1 Architecture de Messaging
 
-2. **Routage des tâches**
-   - Le `TaskRouter` analyse les messages et détermine leur type
-   - Il dirige chaque message vers le service approprié (chat, comptabilité, analyse)
+#### UnifiedConsumer (Consommateur Central)
+- **Rôle** : Point d'entrée unique pour tous les messages Kafka
+- **Topics écoutés** :
+  - `adha_ai_events` : Messages d'événements généraux
+  - `commerce.operation.created` : Nouvelles opérations commerciales  
+  - `portfolio.analysis.request` : Demandes d'analyse de portefeuille
+  - `accounting.journal.status` : Statuts des écritures comptables
+- **Traitement** : Routage automatique vers TaskRouter
+- **Fiabilité** : Gestion d'erreurs, retry automatique, logging complet
 
-3. **Traitement par les services spécialisés**
-   - Les processeurs spécialisés traitent les messages selon leur domaine
-   - L'IA est appliquée selon le contexte (génération de texte, analyse, etc.)
+#### TaskRouter (Routeur de Tâches)
+- **Rôle** : Analyse et distribution des messages vers les agents appropriés
+- **Types de tâches** :
+  - `ACCOUNTING_TASK` : Traitement comptable
+  - `PORTFOLIO_ANALYSIS` : Analyse de portefeuille
+  - `CHAT_TASK` : Traitement conversationnel
+  - `GENERAL_AI_TASK` : Tâches IA générales
+- **Fonctionnalités** : Détection automatique du type, validation, métriques
 
-4. **Publication des résultats**
-   - Les résultats sont publiés sur Kafka pour les microservices concernés
-   - Des mécanismes de robustesse gèrent les erreurs et les retries
+### 3.2 Producteurs Spécialisés
 
-### 3.3 Diagramme de flux de données
+#### AccountingProducer
+- **Topic de sortie** : `accounting.journal.entry`
+- **Fonction** : Publication des écritures comptables générées
+- **Format** : Messages standardisés avec validation
+- **Gestion** : Retry automatique, confirmation de livraison
 
-```
-┌────────────────┐  Opérations   ┌─────────────┐
-│   Gestion      │───Commerciales─►             │   Écritures   ┌─────────────┐
-│  Commerciale   │               │  Adha AI    ├──Comptables───►  Accounting  │
-└────────────────┘               │  Service    │               │   Service   │
-                                 │             │               └─────────────┘
-┌────────────────┐  Demandes     │             │
-│   Portfolio    │───d'Analyse───►             │   Résultats   ┌─────────────┐
-│  Institution   │               │             ├──d'Analyse────►  Portfolio   │
-└────────────────┘               │             │               │  Institution │
-                                 │             │               └─────────────┘
-                                 │             │
-┌────────────────┐  Requêtes     │             │   Réponses    ┌─────────────┐
-│  Utilisateurs  │───de Chat─────►             ├──de Chat──────►Utilisateurs  │
-└────────────────┘               └─────────────┘               └─────────────┘
-```
+#### PortfolioProducer  
+- **Topic de sortie** : `portfolio.analysis.response`
+- **Fonction** : Publication des résultats d'analyse de portefeuille
+- **Format** : Analyses structurées avec recommandations
+- **Gestion** : Compression pour gros volumes, partition par institution
 
-## 4. Implémentation de l'Intelligence Artificielle
+### 3.3 Consommateurs par Service
 
-### 4.1 Technologies et Frameworks
+#### Commerce Consumer
+- **Topic** : `commerce.operation.created`
+- **Traitement** : Réception d'opérations commerciales
+- **Processus** : Transformation en écritures comptables SYSCOHADA
+- **Sortie** : Publication vers service comptable
 
-Le service Adha AI utilise plusieurs technologies d'IA pour accomplir ses tâches :
+#### Portfolio Consumer
+- **Topic** : `portfolio.analysis.request`
+- **Traitement** : Demandes d'analyse de portefeuille
+- **Processus** : Analyses multidimensionnelles
+- **Sortie** : Résultats et recommandations
 
-- **LLM (Large Language Models)**
-  - OpenAI API (GPT-4) pour le traitement du langage naturel
-  - SentenceTransformers pour la génération d'embeddings
+## 3. Domaines de Connaissances
 
-- **Bases de données vectorielles**
-  - ChromaDB pour le stockage et la recherche d'embeddings
-  - Support pour Pinecone (alternative)
+Le système intègre 9 domaines de connaissances spécialisés :
 
-- **Frameworks d'IA**
-  - LangChain pour l'orchestration des chaînes de traitement LLM
-  - PyTorch (préinstallé dans l'image Docker) pour les modèles ML
+### 3.1 Domaines Financiers de Base
+- **Fiscal RDC** : Réglementation fiscale congolaise (TVA, IPP, IPR)
+- **Comptabilité SYSCOHADA** : Normes comptables africaines
+- **Mathématiques Financières** : Formules et calculs financiers
+- **Économétrie** : Modèles statistiques et analyses quantitatives
 
-### 4.2 Algorithmes et techniques utilisés
+### 3.2 Domaines d'Évaluation et Audit
+- **Valorisation d'Entreprises** : DCF, multiples, méthodes patrimoniales
+- **Due Diligence** : Processus d'audit et vérification
+- **Analyse de Crédit** : Évaluation risque client par segment (Micro/PME/ME)
+- **Audit de Portefeuille** : Contrôles qualité et conformité
+- **Performance de Portefeuille** : KPIs, benchmarking, ROA/RORWA
 
-#### 4.2.1 Traitement du langage naturel
-- **Modèles de génération de texte** pour les réponses aux questions des utilisateurs
-- **Embeddings sémantiques** pour la recherche contextuelle et la similarité
-- **Extraction d'entités** pour identifier les éléments importants dans les requêtes
+## 4. Système de Calculs Financiers
 
-#### 4.2.2 Analyse financière
-- **Algorithmes d'analyse de risque** pour évaluer les portefeuilles
-- **Calcul d'indicateurs financiers** (ratio de prêts non performants, profitabilité)
-- **Génération de recommandations** basées sur des règles métier et le contexte
+### 4.1 Configuration Dynamique par Pays
 
-#### 4.2.3 Transformation comptable
-- **Règles de transformation** pour convertir les opérations en écritures comptables
-- **Validation métier** pour assurer la conformité des écritures générées
+Le service utilise un système de configuration dynamique qui s'adapte automatiquement au pays de l'utilisateur :
 
-### 4.3 Flux de traitement IA
+**Pays Supportés :**
+- **République Démocratique du Congo (RDC)** - Configuration par défaut
+- **Extensible** à d'autres pays africains (OHADA)
 
-```
-┌─────────────────┐      ┌───────────────────┐      ┌──────────────────┐
-│                 │      │                   │      │                  │
-│  Prétraitement  ├─────►│  Traitement par   ├─────►│ Post-traitement  │
-│  des données    │      │  modèles d'IA     │      │ et formatage     │
-│                 │      │                   │      │                  │
-└─────────────────┘      └───────────────────┘      └──────────────────┘
-```
+**Éléments Configurables :**
+- Taux d'imposition (TVA, IPP, IPR)
+- Règles comptables spécifiques
+- Formules de calcul localisées
+- Seuils réglementaires
 
-1. **Prétraitement**
-   - Extraction du contexte pertinent
-   - Normalisation des données
-   - Préparation du prompt ou des données d'entrée
+### 4.2 Types de Calculs Disponibles
 
-2. **Traitement par les modèles d'IA**
-   - Appel aux APIs OpenAI pour la génération de texte
-   - Utilisation de SentenceTransformers pour les embeddings
-   - Application d'algorithmes d'analyse spécifiques au domaine
+#### Calculs Fiscaux
+- **TVA** : Calcul automatique selon taux RDC (16%)
+- **Impôt Professionnel (IPP)** : Barème progressif entreprises
+- **Impôt Cédulaire sur Revenus (IPR)** : Calcul salaires et revenus
+- **Charges Sociales** : CNSS et autres cotisations
 
-3. **Post-traitement**
-   - Structuration des résultats
-   - Validation et enrichissement
-   - Formatage pour la réponse
+#### Calculs d'Évaluation
+- **DCF (Discounted Cash Flow)** : Valorisation par actualisation
+- **Méthode des Multiples** : Comparaison sectorielle
+- **Méthode Patrimoniale** : Évaluation actif net
+- **EVA (Economic Value Added)** : Création de valeur
 
-## 5. Interactions avec les autres microservices
+#### Calculs Financiers
+- **NPV/VAN** : Valeur actuelle nette projets
+- **IRR/TRI** : Taux de rentabilité interne
+- **Ratios Financiers** : Liquidité, solvabilité, rentabilité
+- **Besoin en Fonds de Roulement** : Optimisation trésorerie
 
-### 5.1 Interaction avec le service Gestion Commerciale
+#### Calculs de Crédit et Portefeuille
+- **Scoring de Crédit** : Évaluation risque par segment (Micro/PME/ME)
+- **Capacité de Remboursement** : Analyse flux de trésorerie
+- **Analyse de Garanties** : Évaluation collatéraux
+## 4. Flux de Données et Interactions
 
-- **Réception des opérations commerciales** via Kafka (topic `commerce.operation.created`)
-- **Transformation** des opérations en écritures comptables
-- **Envoi** des écritures au service comptable
+### 4.1 Flux Comptable (Commerce → Adha-AI → Accounting)
 
-**Flux de données :**
-```
-┌─────────────────┐     ┌────────────────────────┐     ┌─────────────────┐
-│     Gestion     │     │                        │     │                 │
-│    Commerciale  ├────►│   Adha AI - Module     ├────►│   Accounting    │
-│                 │     │   Comptable            │     │                 │
-└─────────────────┘     └────────────────────────┘     └─────────────────┘
-```
+```mermaid
+sequenceDiagram
+    participant CS as Commerce Service
+    participant K as Kafka
+    participant AI as Adha-AI Service  
+    participant AS as Accounting Service
 
-### 5.2 Interaction avec le service Accounting
-
-- **Envoi des écritures comptables** générées à partir des opérations commerciales
-- **Réception des statuts de traitement** des écritures (réussite ou échec)
-- **Gestion des erreurs** et des tentatives de re-traitement
-
-**Flux de données :**
-```
-┌─────────────────┐     ┌────────────────────────┐     ┌─────────────────┐
-│    Adha AI -    │     │     Journal Entry      │     │                 │
-│    Module       ├────►│     (écritures)        ├────►│   Accounting    │
-│    Comptable    │     │                        │     │                 │
-└─────────────────┘     └────────────────────────┘     └─────────────────┘
-       ▲                                                       │
-       │                                                       │
-       │                ┌────────────────────────┐            │
-       └────────────────┤     Status Update      │◄───────────┘
-                        │                        │
-                        └────────────────────────┘
+    CS->>K: Publish operation (commerce.operation.created)
+    K->>AI: Consume operation
+    AI->>AI: AccountingProcessor (SYSCOHADA rules)
+    AI->>K: Publish journal entry (accounting.journal.entry)
+    K->>AS: Consume journal entry
+    AS->>K: Publish status (accounting.journal.status)
+    K->>AI: Status confirmation
 ```
 
-### 5.3 Interaction avec le service Portfolio Institution
+**Types d'opérations supportées :**
+- `SALE` : Ventes avec TVA, remises, commissions
+- `PURCHASE` : Achats fournisseurs, charges déductibles
+- `EXPENSE` : Charges d'exploitation, amortissements
+- `INVENTORY` : Mouvements de stock, valorisation
+- `FINANCING` : Emprunts, crédits, garanties
 
-- **Réception des demandes d'analyse** de portefeuille
-- **Application des algorithmes d'analyse** selon le type de portefeuille
-- **Envoi des résultats d'analyse** et des recommandations
+### 4.2 Flux d'Analyse de Portefeuille (Portfolio → Adha-AI → Portfolio)
 
-**Flux de données :**
+```mermaid
+sequenceDiagram
+    participant PS as Portfolio Service
+    participant K as Kafka
+    participant AI as Adha-AI Service
+
+    PS->>K: Request analysis (portfolio.analysis.request)
+    K->>AI: Consume request
+    AI->>AI: PortfolioAnalyzer (multi-dimensional analysis)
+    AI->>K: Publish results (portfolio.analysis.response)
+    K->>PS: Consume analysis results
 ```
-┌─────────────────┐    ┌────────────────────────┐    ┌─────────────────┐
-│                 │    │     Portfolio Data      │    │                 │
-│    Portfolio    ├───►│                        ├───►│    Adha AI -    │
-│   Institution   │    │                        │    │    Analyse      │
-│                 │    └────────────────────────┘    │                 │
-└─────────────────┘                                  └────────┬────────┘
-       ▲                                                      │
-       │                                                      │
-       │                ┌────────────────────────┐            │
-       └────────────────┤     Analysis Results   │◄───────────┘
-                        │                        │
-                        └────────────────────────┘
+
+**Types d'analyses disponibles :**
+- **Analyse Financière** : Ratios, performance, rentabilité
+- **Analyse de Risque** : PAR, concentration, stress tests
+- **Analyse de Marché** : Positionnement concurrentiel
+- **Analyse Opérationnelle** : Efficacité processus
+
+### 4.3 Interface Utilisateur (Applications → Adha-AI)
+
+```mermaid
+sequenceDiagram
+    participant UI as Application Frontend
+    participant AI as Adha-AI Service
+    participant KB as Knowledge Base
+
+    UI->>AI: POST /api/chat/message/
+    AI->>KB: Retrieve relevant knowledge
+    KB->>AI: Return domain expertise
+    AI->>UI: AI response with references
 ```
 
-## 6. Résumé technique
+**Endpoints disponibles pour interfaces utilisateur :**
+- `/api/chat/` : Interface conversationnelle
+- `/api/documents/` : Gestion documents
+- `/api/knowledge/` : Accès base de connaissances
+- `/api/health/` : Monitoring et statut
 
-Le service Adha-ai-service est un composant d'intelligence artificielle central dans l'architecture de Wanzo. Il utilise des technologies modernes d'IA comme les LLM et les bases de données vectorielles pour offrir des capacités avancées de traitement du langage naturel, d'analyse financière et de transformation comptable.
+## 5. Configuration et Sécurité
 
-L'architecture est conçue pour être robuste, avec une gestion des erreurs complète et des mécanismes de retry. Les communications entre services sont assurées par Kafka, permettant un découplage efficace et une haute disponibilité.
+### 5.1 Configuration Kafka
 
-Les trois modes principaux de fonctionnement (chat, comptabilité, analyse de portefeuille) permettent au service de répondre à différents besoins métier tout en centralisant l'expertise en IA.
+```python
+# Configuration du client Kafka robuste
+KAFKA_CONFIG = {
+    'bootstrap_servers': ['kafka:9092'],
+    'group_id': 'adha-ai-consumer-group',
+    'auto_offset_reset': 'earliest',
+    'enable_auto_commit': True,
+    'max_poll_records': 100,
+    'session_timeout_ms': 30000,
+    'heartbeat_interval_ms': 10000,
+    'retry_backoff_ms': 1000,
+    'max_poll_interval_ms': 300000
+}
+
+# Topics standardisés
+TOPICS = {
+    'INPUT': [
+        'adha_ai_events',
+        'commerce.operation.created', 
+        'portfolio.analysis.request',
+        'accounting.journal.status'
+    ],
+    'OUTPUT': [
+        'accounting.journal.entry',
+        'portfolio.analysis.response'
+    ]
+}
+```
+
+### 5.2 Gestion des Erreurs et Retry
+
+- **Retry Policy** : Backoff exponentiel avec jitter
+- **Dead Letter Queue** : Messages non-traités après N tentatives
+- **Circuit Breaker** : Protection contre les défaillances en cascade
+- **Monitoring** : Métriques Kafka, latence, throughput
+
+### 5.3 Sécurité
+
+#### Authentification Inter-Services
+- **SASL/SCRAM** : Authentification Kafka sécurisée
+- **TLS** : Chiffrement des communications
+- **JWT Tokens** : Validation des requêtes API utilisateur
+
+#### Validation des Messages
+- **Schema Registry** : Validation structure messages Kafka
+- **Message Sanitization** : Nettoyage et validation inputs
+- **Rate Limiting** : Protection contre surcharge
+
+## 6. Monitoring et Observabilité
+
+### 6.1 Métriques Kafka
+
+```python
+# Métriques collectées automatiquement
+KAFKA_METRICS = {
+    'consumer_lag': 'Retard consommation par topic',
+    'throughput': 'Messages/seconde traités',
+    'error_rate': 'Taux d\'erreur par type de message',
+    'processing_time': 'Temps de traitement moyen'
+}
+```
+
+### 6.2 Health Checks
+
+- **Kafka Connectivity** : Vérification connexion brokers
+- **Consumer Status** : État des consommateurs par topic  
+- **Producer Health** : Capacité d'envoi de messages
+- **AI Agents Status** : Disponibilité des agents IA
+
+### 6.3 Logging et Tracing
+
+- **Structured Logging** : JSON avec correlation IDs
+- **Distributed Tracing** : Suivi messages bout-en-bout
+- **Error Tracking** : Centralisation et alerting
+- **Performance Monitoring** : APM integration
+
+## 7. Déploiement et Scalabilité
+
+### 7.1 Architecture de Déploiement
+
+```yaml
+# docker-compose.yml (extrait)
+services:
+  adha-ai:
+    image: adha-ai:latest
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - CONSUMER_GROUP=adha-ai-consumer-group
+    depends_on:
+      - kafka
+      - postgresql
+    volumes:
+      - ./data/knowledge_base:/app/data/knowledge_base
+```
+
+### 7.2 Scalabilité Horizontale
+
+- **Consumer Groups** : Parallélisation par partitions Kafka
+- **Stateless Processing** : Agents sans état pour scaling
+- **Load Balancing** : Distribution automatique des charges
+- **Auto-scaling** : Basé sur consumer lag et CPU
+
+### 7.3 Haute Disponibilité
+
+- **Multi-AZ Deployment** : Réplication géographique
+- **Kafka Replication** : Factor 3 minimum
+- **Graceful Shutdown** : Finalisation propre des messages
+- **Backup Strategy** : Sauvegarde connaissances et configurations
+
+**Avantages du format Markdown :**
+- Structuration claire avec headers
+- Blocs de code Python intégrés  
+- Formatage riche (gras, listes, tableaux)
+- Parsing optimisé pour vectorisation
+- +40% précision recherche sémantique vs fichiers texte
+
+### 5.3 Gestion par Segment d'Entreprise
+
+**Micro-Entreprises (CA < 50M CDF) :**
+- Critères simplifiés, analyse comportementale
+- Documentation réduite, garanties personnelles
+- Scoring automatique, process accéléré
+
+**Petites Entreprises (50M-500M CDF) :**
+- États financiers détaillés, business plan
+- Gouvernance formalisée, début audit externe
+- Analyse sectorielle de base
+
+**Moyennes Entreprises (500M-5Mrd CDF) :**
+- États audités obligatoires, projections 3 ans
+- Gouvernance complète, analyse sectorielle approfondie
+- Benchmarking concurrentiel
+
+## 6. API et Intégrations
+
+### 6.1 Architecture API REST
+
+Le service expose une API REST Django/DRF pour les intégrations :
+
+**Endpoints Principaux :**
+- `/api/v1/calculations/` - Exécution de calculs financiers
+- `/api/v1/analysis/` - Analyses comptables et financières  
+- `/api/v1/knowledge/` - Accès aux bases de connaissances
+- `/api/v1/documents/` - Traitement de documents (OCR, extraction)
+
+### 6.2 Intégration avec autres Services
+
+**Communication :**
+- **API REST** : Interface principale pour autres microservices
+- **Format JSON** : Échange de données standardisé
+- **Authentification** : JWT/OAuth2 selon architecture générale
+
+**Services Clients Potentiels :**
+- Service Comptable (accounting-service)
+- Service Gestion Commerciale 
+- Service Portfolio Institution
+- Interfaces utilisateur (frontends)
+
+### 6.3 Exemple d'Intégration
+
+```python
+# Appel API pour calcul TVA
+import requests
+
+response = requests.post('http://adha-ai-service/api/v1/calculations/', {
+    'type': 'tva',
+    'country': 'CD',
+    'data': {
+        'montant': 1000000,
+        'type_montant': 'ht'
+    }
+})
+
+result = response.json()
+# {
+#   "tva_amount": 160000,
+#   "montant_ttc": 1160000,
+#   "taux_applicable": 0.16,
+#   "explanation": "Calcul TVA selon taux RDC..."
+# }
+```
+
+## 7. Technologies et Infrastructure
+
+### 7.1 Stack Technologique
+
+**Backend Framework :**
+- **Django 4.x** : Framework web robuste
+- **Django REST Framework** : API REST 
+- **Python 3.9+** : Langage principal
+
+**Intelligence Artificielle :**
+- **OpenAI GPT-4** : Modèle de langage principal (gpt-4o-2024-08-06)
+- **SentenceTransformers** : Génération d'embeddings vectoriels
+- **ChromaDB** : Base de données vectorielle (optionnel)
+- **tiktoken** : Gestion tokens OpenAI
+
+**Traitement de Documents :**
+- **PyMuPDF** : Analyse PDF avancée
+- **Pillow** : Traitement d'images
+- **OpenCV** : Vision par ordinateur
+
+**Données et Cache :**
+- **Django Cache Framework** : Cache configuration pays
+- **JSON/Markdown** : Stockage connaissances
+- **PostgreSQL/SQLite** : Base de données principale
+
+### 7.2 Configuration et Déploiement
+
+**Variables d'Environnement :**
+```bash
+OPENAI_API_KEY=sk-...
+DEFAULT_COUNTRY=CD
+CACHE_TIMEOUT=3600
+DEBUG=False
+```
+
+**Docker :**
+- Image Django optimisée
+- Dépendances IA pré-installées
+- Configuration multi-stage
+
+### 7.3 Monitoring et Logs
+
+**Logging :**
+- Traçabilité complète des calculs
+- Logs d'erreurs IA spécialisés
+- Métriques de performance
+
+**Monitoring :**
+- Temps de réponse API
+- Utilisation tokens OpenAI
+- Succès/échecs calculs
+
+## 8. Cas d'Usage et Exemples
+
+### 8.1 Analyse de Dossier de Crédit
+
+**Scénario :** Évaluation d'une PME pour crédit d'investissement
+
+```python
+# 1. Analyse du dossier
+credit_analysis = adha_service.analyze_credit_application({
+    'client_info': {
+        'segment': 'pme',
+        'chiffre_affaires': 200_000_000,  # CDF
+        'secteur': 'commerce_general'
+    },
+    'financial_data': {
+        'actif_circulant': 80_000_000,
+        'passif_circulant': 45_000_000,
+        'capitaux_propres': 120_000_000
+    },
+    'credit_request': {
+        'montant': 50_000_000,
+        'duree': 36,  # mois
+        'objet': 'equipement'
+    }
+})
+
+# Résultat
+# {
+#   'score_credit': 75,
+#   'decision_recommandee': 'ACCORD_CONDITIONNEL',
+#   'ratio_endettement': 0.42,
+#   'capacite_remboursement': 'ADEQUATE',
+#   'garanties_requises': 35_000_000,
+#   'conditions_specifiques': ['audit_annuel', 'reporting_trimestriel']
+# }
+```
+
+### 8.2 Calcul Fiscal Automatisé
+
+**Scénario :** Calcul charges fiscales mensuelles entreprise
+
+```python
+# Calculs fiscaux multiples
+fiscal_calculations = adha_service.calculate_fiscal_package({
+    'country': 'CD',
+    'company_data': {
+        'ca_mensuel': 25_000_000,  # CDF
+        'salaires_bruts': 8_000_000,
+        'achats_ht': 15_000_000
+    }
+})
+
+# Résultats automatiques
+# {
+#   'tva_collectee': 4_000_000,  # 16% sur CA
+#   'tva_deductible': 2_400_000,  # 16% sur achats
+#   'tva_a_payer': 1_600_000,
+#   'impot_professionnel': 250_000,  # 1% CA
+#   'charges_sociales': 720_000,    # 9% salaires
+#   'total_charges_fiscales': 2_570_000
+# }
+```
+
+### 8.3 Audit de Portefeuille
+
+**Scénario :** Analyse qualité portefeuille crédit micro-finance
+
+```python
+# Audit automatisé portefeuille
+portfolio_audit = adha_service.audit_portfolio({
+    'segment': 'micro',
+    'portfolio_data': portfolio_credits,
+    'analysis_type': 'quality_assessment'
+})
+
+# Indicateurs calculés
+# {
+#   'par_30': 0.08,  # 8% - Acceptable pour micro
+#   'portfolio_size': 1_250_000_000,  # CDF
+#   'nb_credits': 2_450,
+#   'ticket_moyen': 510_204,
+#   'concentration_risks': {
+#     'secteur_max': 0.15,  # Commerce 15%
+#     'geographic_hhi': 0.12  # Concentration modérée
+#   },
+#   'recommendations': [
+#     'diversifier_secteur_agriculture',
+#     'renforcer_recouvrement_kinshasa'
+#   ]
+# }
+```
+
+## 9. Flux de Traitement Complet
+
+### 9.1 Architecture de Traitement
+
+```
+┌──────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│                  │    │                 │    │                  │
+│   API Request    ├───►│  Agent Router   ├───►│  Specialized     │
+│   (REST/JSON)    │    │                 │    │  Agent (DDE/AA)  │
+│                  │    │                 │    │                  │
+└──────────────────┘    └─────────────────┘    └────────┬─────────┘
+                                                       │
+                                                       ▼
+┌──────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│                  │    │                 │    │                  │
+│  Knowledge       │◄───┤  Financial      │◄───┤  Context         │
+│  Retrieval       │    │  Calculator     │    │  Analysis        │
+│                  │    │                 │    │                  │
+└──────────────────┘    └─────────────────┘    └──────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌──────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│                  │    │                 │    │                  │
+│  AI Processing   │    │  Result         │    │  API Response    │
+│  (GPT-4/Embeddings) │    │  Validation     │    │  (JSON)          │
+│                  │    │                 │    │                  │
+└──────────────────┘    └─────────────────┘    └──────────────────┘
+```
+
+### 9.2 Gestion des Erreurs et Robustesse
+
+**Mécanismes de Sécurité :**
+- Validation stricte des entrées
+- Gestion des limites tokens OpenAI
+- Fallback sur calculs hors-ligne si API indisponible
+- Cache intelligent pour optimiser performances
+
+**Logging et Audit :**
+- Traçabilité complète des calculs
+- Logs d'erreurs avec contexte métier
+- Métriques de performance par type d'opération
+
+## 10. Évolutions et Roadmap
+
+### 10.1 Fonctionnalités en Développement
+
+**Court Terme (Q3-Q4 2025) :**
+- Extension support autres pays OHADA
+- Amélioration précision scoring crédit
+- Interface graphique intégrée
+- Optimisation performance calculs
+
+**Moyen Terme (2026) :**
+- Agents IA spécialisés sectoriels
+- Intégration bases de données externes
+- Analyses prédictives avancées
+- Support multi-devises automatique
+
+### 10.2 Architecture Évolutive
+
+Le service est conçu pour évoluer :
+- **Modularité** : Ajout facile de nouveaux calculateurs
+- **Extensibilité** : Support nouveaux pays/réglementations
+- **Scalabilité** : Architecture micro-services ready
+- **Interopérabilité** : APIs standards RESTful
 
 ---
 
-Document généré le 6 août 2025.
+**Document mis à jour le 26 août 2025** - Version alignée sur l'implémentation actuelle

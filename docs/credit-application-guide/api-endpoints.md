@@ -1,19 +1,44 @@
 # Points d'API pour la Gestion des Demandes de Crédit
 
-Ce document présente les différents points d'API disponibles pour interagir avec le microservice portfolio-institution-service concernant les demandes de crédit et la gestion des contrats.
+Ce document présente les différents points d'API disponibles pour interagir avec le microservice **portfolio-institution-service** concernant les demandes de crédit et la gestion des contrats dans l'écosystème Wanzo.
 
-## Base URL
+## Configuration d'Accès
 
+### URLs de Base
+
+#### Production
 ```
-https://api.wanzobe.com/portfolio_inst/portfolios/traditional/
+Base URL: https://api.wanzo.com
+Portfolio API: https://api.wanzo.com/portfolio_inst/portfolios/traditional/
 ```
 
-## Authentification
-
-Toutes les requêtes doivent inclure un token JWT valide dans l'en-tête d'autorisation :
-
+#### Développement (via API Gateway)
 ```
-Authorization: Bearer <token>
+Base URL: http://localhost:8000
+Portfolio API: http://localhost:8000/portfolio_inst/portfolios/traditional/
+```
+
+#### Développement (Direct)
+```
+Service Direct: http://localhost:3005/portfolio_inst/portfolios/traditional/
+```
+
+### Authentification
+
+Toutes les requêtes doivent inclure un token JWT Auth0 valide dans l'en-tête :
+
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+### Headers Recommandés
+
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+User-Agent: YourApp/1.0
+X-Client-Version: 1.0.0
 ```
 
 ## 1. API pour les Demandes de Crédit (Funding Requests)
@@ -22,11 +47,13 @@ Authorization: Bearer <token>
 
 **Endpoint :** `POST /funding-requests`
 
+**Description :** Crée une nouvelle demande de financement qui sera automatiquement analysée par le système Adha-AI via Kafka pour l'évaluation des risques.
+
 **Corps de la requête :**
 ```json
 {
   "portfolio_id": "uuid",
-  "client_id": "uuid",
+  "client_id": "uuid", 
   "company_name": "string",
   "product_type": "string",
   "amount": 1000000.00,
@@ -54,7 +81,7 @@ Authorization: Bearer <token>
 }
 ```
 
-**Réponse :**
+**Réponse de succès (201) :**
 ```json
 {
   "success": true,
@@ -63,7 +90,7 @@ Authorization: Bearer <token>
     "request_number": "FR-2025-0001",
     "portfolio_id": "uuid",
     "client_id": "uuid",
-    "company_name": "string",
+    "company_name": "string", 
     "product_type": "string",
     "amount": 1000000.00,
     "currency": "XOF",
@@ -72,7 +99,19 @@ Authorization: Bearer <token>
     "duration_unit": "months",
     "proposed_start_date": "2025-08-01",
     "status": "pending",
-    "created_at": "2025-07-29T12:34:56Z",
+    "ai_analysis_requested": true,
+    "created_at": "2025-08-26T12:34:56Z",
+    "updated_at": "2025-08-26T12:34:56Z"
+  }
+}
+```
+
+**Codes de réponse :**
+- `201` : Demande créée avec succès
+- `400` : Données invalides
+- `401` : Non authentifié  
+- `403` : Non autorisé
+- `422` : Erreur de validation
     "updated_at": "2025-07-29T12:34:56Z"
   }
 }

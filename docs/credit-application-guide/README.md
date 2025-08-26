@@ -1,29 +1,67 @@
-# Guide d'Intégration pour l'Application de Soumission des Demandes de Crédit
+# Guide d'Intégration pour l'Application de Gestion des Demandes de Crédit
 
 ## Introduction
 
-Ce dossier contient la documentation nécessaire pour l'intégration de l'application de soumission des demandes de crédit avec le microservice portfolio-institution-service. Il explique les formats de données requis, les API à utiliser, et le cycle de vie des contrats de crédit.
+Ce dossier contient la documentation nécessaire pour l'intégration de l'application de gestion des demandes de crédit avec le microservice **portfolio-institution-service** dans l'écosystème Wanzo. Cette documentation couvre les formats de données, les API REST, l'architecture événementielle Kafka, et le cycle de vie complet des demandes de crédit.
+
+## Architecture du Système
+
+L'écosystème Wanzo utilise une architecture microservices avec communication via **Apache Kafka** pour les événements inter-services et **API REST** pour les interactions client-serveur.
+
+### Services Impliqués
+- **Portfolio-Institution-Service** : Gestion des portefeuilles et demandes de crédit
+- **Adha-AI-Service** : Analyse intelligente des demandes via Kafka
+- **Customer-Service** : Gestion centralisée des utilisateurs
+- **API Gateway** : Point d'entrée unifié (Port 8000)
 
 ## Contenu du Dossier
 
-1. **[Formats de Données](./data-formats.md)** - Définit les structures de données à utiliser lors de la soumission des demandes de crédit.
+1. **[Formats de Données](./data-formats.md)** - Structures de données pour les demandes de crédit et contrats
 
-2. **[Cycle de Vie du Contrat](./contract-lifecycle.md)** - Explique les différentes étapes du cycle de vie d'un contrat, de la demande initiale jusqu'à la clôture.
+2. **[Cycle de Vie du Contrat](./contract-lifecycle.md)** - Étapes complètes du processus de crédit
 
-3. **[Points d'API](./api-endpoints.md)** - Liste tous les points d'entrée API nécessaires pour interagir avec le service de demande de crédit.
+3. **[Points d'API](./api-endpoints.md)** - Endpoints REST pour l'intégration client
 
-4. **[Guide d'Implémentation](./implementation-guide.md)** - Fournit des exemples concrets et des bonnes pratiques pour l'implémentation.
+## URLs d'Accès
 
-5. **[Gestion des Erreurs](./error-handling.md)** - Explique comment gérer les erreurs et les cas exceptionnels.
+### Environnement de Production
+```
+Base URL: https://api.wanzo.com
+Portfolio Service: https://api.wanzo.com/portfolio_inst/
+```
 
-## Compatibilité avec l'Implémentation Actuelle
+### Environnement de Développement  
+```
+Base URL: http://localhost:8000 (via API Gateway)
+Portfolio Service: http://localhost:8000/portfolio_inst/
+Service Direct: http://localhost:3005/ (pour développement uniquement)
+```
 
-Cette documentation est conçue pour assurer la compatibilité avec l'implémentation actuelle du système de demande de crédit dans le microservice portfolio-institution-service. En suivant les directives présentées ici, vous garantirez que votre application s'intègrera parfaitement avec notre système existant.
+## Authentification
 
-## Début Rapide
+Toutes les requêtes nécessitent un token JWT Auth0 valide :
+```
+Authorization: Bearer <jwt_token>
+```
 
-Pour commencer rapidement, consultez le [Guide d'Implémentation](./implementation-guide.md) qui contient des exemples de code et des instructions étape par étape pour intégrer votre application.
+## Démarrage Rapide
 
-## Support
+1. **Obtenir un token Auth0** avec les scopes appropriés
+2. **Consulter les [API Endpoints](./api-endpoints.md)** pour les opérations de base
+3. **Vérifier les [Formats de Données](./data-formats.md)** pour les structures requises
+4. **Suivre le [Cycle de Vie](./contract-lifecycle.md)** pour comprendre le processus
 
-Si vous avez des questions ou rencontrez des problèmes lors de l'intégration, veuillez contacter l'équipe technique à [support@wanzobe.com](mailto:support@wanzobe.com).
+## Intégration avec Adha-AI
+
+Les demandes de crédit peuvent bénéficier d'une analyse automatique via le service Adha-AI :
+- Évaluation automatique des risques
+- Scoring de crédit intelligent  
+- Recommandations personnalisées
+- Communication via Kafka (transparent pour les clients REST)
+
+## Support Technique
+
+Pour toute question ou problème d'intégration :
+- **Email** : support@wanzo.com
+- **Documentation Technique** : [Architecture Kafka](../VERIFICATION_KAFKA_ARCHITECTURE.md)
+- **Slack** : #support-integration (équipe interne)

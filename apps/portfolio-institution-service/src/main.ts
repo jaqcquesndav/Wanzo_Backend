@@ -85,6 +85,9 @@ async function bootstrap() {
     credentials: true,
     maxAge: 3600,
   });
+
+  // 4.5) Set global prefix for API versioning (to match frontend expectations)
+  app.setGlobalPrefix('api/v1');
   
   // 5) Global validation pipe
   app.useGlobalPipes(

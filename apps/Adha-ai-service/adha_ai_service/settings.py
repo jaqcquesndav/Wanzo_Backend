@@ -53,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.enhanced_isolation.EnhancedIsolationMiddleware',  # 🔒 ISOLATION CRITIQUE
     'api.middleware.JSONResponseMiddleware',  # Add custom middleware
     'api.middleware.company_isolation.CompanyIsolationMiddleware',
     'api.middleware.subscription_middleware.SubscriptionMiddleware',  # Add the subscription middleware
@@ -246,6 +247,26 @@ KNOWLEDGE_BASE_PATH = BASE_DIR / 'data' / 'knowledge_base'
 
 # Path to your embeddings directory (if using ChromaDB locally)
 EMBEDDINGS_PATH = BASE_DIR / 'data' / 'embeddings'
+
+# 🔗 CUSTOMER SERVICE INTEGRATION
+CUSTOMER_SERVICE_URL = os.environ.get('CUSTOMER_SERVICE_URL', 'http://kiota-customer-service:3011')
+
+# 🚀 PERFORMANCE SETTINGS
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'adha_ai',
+        'TIMEOUT': 3600,  # 1 heure par défaut
+    }
+}
+
+# 📊 ISOLATION CACHE SETTINGS
+ISOLATION_CACHE_TTL = 3600  # 1 heure pour les contextes d'isolation
+SESSION_CACHE_TTL = 14400   # 4 heures pour les sessions actives
 
 # Ensure directories exist
 os.makedirs(KNOWLEDGE_BASE_PATH, exist_ok=True)

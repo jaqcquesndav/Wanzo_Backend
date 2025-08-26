@@ -10,6 +10,7 @@ from drf_yasg import openapi
 from django.shortcuts import get_object_or_404
 from django.http import StreamingHttpResponse
 import uuid
+import json
 
 from api.models.chat import ChatConversation, ChatMessage
 from agents.logic.history_agent import HistoryAgent
@@ -115,8 +116,14 @@ class ChatView(APIView):
             # Merge with user supplied context, user's context takes precedence
             merged_context = {**company_context, **context}
                 
-            # Initialisation de l'agent d'historique avec l'ID de l'utilisateur actuel
-            history_agent = HistoryAgent(user_id=request.user.id)
+            # Initialisation de l'agent d'historique avec contexte d'isolation complet
+            isolation_context = getattr(request.user, 'isolation_context', {})
+            history_agent = HistoryAgent(
+                user_id=request.user.id,
+                company_id=isolation_context.get('company_id'),
+                institution_id=isolation_context.get('financial_institution_id'),
+                customer_type=isolation_context.get('customer_type', 'sme')
+            )
             
             # Ajouter des informations utilisateur au contexte
             user_context = {
@@ -166,27 +173,68 @@ class ChatView(APIView):
                 # Publier l'écriture vers accounting-service (format journal)
                 send_journal_entry_to_accounting(ecriture)
                 # Publier la consommation de tokens (PME/institution)
-                publish_token_usage(request.user, getattr(request.user, 'company_id', None), getattr(request.user, 'institution_id', None), token_counter.usage_data['total_tokens'], conversation.conversation_id, mode)
+                token_counter = get_token_counter()
+                publish_token_usage(request.user, getattr(request.user, 'company_id', None), getattr(request.user, 'institution_id', None), token_counter.usage_data.get('total_tokens', 0), conversation.conversation_id, mode)
                 return Response(chat_response)
             else:
-                # Mode chat normal : streaming LLM
-                def stream_llm():
-                    for chunk in history_agent.chat_stream(
-                        prompt=message,
-                        conversation_id=conversation.conversation_id,
-                        user_context=user_context
-                    ):
-                        yield chunk
+                # Mode chat normal : streaming LLM avec outils intégrés
+                def stream_llm_with_tools():
+                    """Streaming optimisé avec outils LLM intégrés."""
+                    try:
+                        # Le LLM gère maintenant les calculs via ses outils
+                        # Pas de détection préalable - le LLM décide quand utiliser les outils
+                        
+                        chunk_count = 0
+                        for chunk in history_agent.chat_stream(
+                            prompt=message,
+                            conversation_id=conversation.conversation_id,
+                            user_context=user_context
+                        ):
+                            chunk_count += 1
+                            
+                            # Formatter le chunk pour un meilleur rendu
+                            formatted_chunk = {
+                                'type': 'text',
+                                'content': chunk,
+                                'chunk_id': chunk_count,
+                                'timestamp': uuid.uuid1().hex,
+                                'tools_enabled': True  # Indiquer que les outils sont disponibles
+                            }
+                            
+                            yield f"data: {json.dumps(formatted_chunk)}\n\n"
+                        
+                        # Signal de fin de stream
+                        yield f"data: {json.dumps({'type': 'end', 'total_chunks': chunk_count, 'llm_tools_used': True})}\n\n"
+                        
+                    except Exception as stream_error:
+                        error_chunk = {
+                            'type': 'error',
+                            'content': f"Erreur lors du streaming: {str(stream_error)}",
+                            'timestamp': uuid.uuid1().hex
+                        }
+                        yield f"data: {json.dumps(error_chunk)}\n\n"
+                
                 # Publier l'événement sur Kafka (début de chat)
                 send_event('adha-ai-events', {
-                    'type': 'chat_message',
+                    'type': 'chat_message_stream',
                     'user_id': str(request.user.id),
                     'conversation_id': conversation.conversation_id,
-                    'payload': {'message': message, 'context': user_context}
+                    'payload': {'message': message, 'context': user_context, 'streaming': True}
                 })
                 # Publier la consommation de tokens (PME/institution)
-                publish_token_usage(request.user, getattr(request.user, 'company_id', None), getattr(request.user, 'institution_id', None), token_counter.usage_data['total_tokens'], conversation.conversation_id, mode)
-                return StreamingHttpResponse(stream_llm(), content_type='text/plain; charset=utf-8')
+                token_counter = get_token_counter()
+                publish_token_usage(request.user, getattr(request.user, 'company_id', None), getattr(request.user, 'institution_id', None), token_counter.usage_data.get('total_tokens', 0), conversation.conversation_id, mode)
+                
+                # Retourner le streaming response avec headers appropriés
+                response = StreamingHttpResponse(
+                    stream_llm_with_tools(), 
+                    content_type='text/event-stream'
+                )
+                response['Cache-Control'] = 'no-cache'
+                response['Connection'] = 'keep-alive'
+                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Headers'] = 'Cache-Control'
+                return response
         except Exception as e:
             return error_response(f"Erreur lors du traitement du message: {str(e)}")
 

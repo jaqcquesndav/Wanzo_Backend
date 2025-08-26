@@ -36,6 +36,7 @@ export class CustomerSyncService {
               'Content-Type': 'application/json',
               'x-service-name': 'portfolio-institution-service',
               'x-service-version': '1.0.0',
+              'x-sync-source': 'cross-service-login',
             },
             timeout: 5000,
           },

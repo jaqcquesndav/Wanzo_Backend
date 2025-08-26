@@ -15,16 +15,23 @@ from sentence_transformers import SentenceTransformer
 from api.models import JournalEntry, ChatConversation, ChatMessage
 from agents.vector_databases.chromadb_connector import ChromaDBConnector
 from agents.logic.retriever_agent import RetrieverAgent
+from agents.utils.llm_tool_system import LLMToolSystem
 
 class HistoryAgent:
     """
     Agent responsable de la gestion de l'historique des écritures et des conversations.
     Permet d'interroger l'historique comptable et de maintenir le contexte des conversations.
     """
-    def __init__(self, user_id=None):
+    def __init__(self, user_id=None, company_id=None, institution_id=None, customer_type='sme'):
         self.client = OpenAI()
         self.user_id = user_id
+        self.company_id = company_id
+        self.institution_id = institution_id
+        self.customer_type = customer_type
         self.conversation_storage = {}  # Stockage en mémoire (fallback)
+        
+        # Initialiser le système d'outils LLM
+        self.tool_system = LLMToolSystem()
         
         # Initialisation de la base de données vectorielle pour l'historique
         try:
@@ -83,14 +90,17 @@ class HistoryAgent:
                 # Créer l'embedding
                 embedding = self.embedding_model.encode([entry_text])[0].tolist()
                 
-                # Préparer les métadonnées incluant les données source
+                # Préparer les métadonnées incluant les données source avec isolation stricte
                 metadata = {
                     "date": entry.get("date", ""),
                     "description": entry.get("description", ""),
                     "piece_reference": entry.get("piece_reference", ""),
                     "type": "journal_entry",
                     "entry_data": json.dumps(entry),
-                    "user_id": str(self.user_id) if self.user_id else "global"  # Associer l'utilisateur
+                    "user_id": str(self.user_id) if self.user_id else "global",
+                    "company_id": str(self.company_id) if self.company_id else None,
+                    "institution_id": str(self.institution_id) if self.institution_id else None,
+                    "customer_type": self.customer_type
                 }
                 
                 # Ajouter les données source si disponibles
@@ -229,10 +239,25 @@ class HistoryAgent:
                 # Créer l'embedding de la requête
                 query_embedding = self.embedding_model.encode([query])[0].tolist()
                 
-                # Rechercher dans la base vectorielle
+                # Filtrage strict par isolation - CRITIQUE pour la sécurité
+                where_clause = {
+                    "$and": [
+                        {"user_id": str(self.user_id)} if self.user_id else {"user_id": {"$ne": None}},
+                    ]
+                }
+                
+                # Ajouter filtrage par company_id ou institution_id selon le type d'utilisateur
+                if self.customer_type == 'institution' and self.institution_id:
+                    where_clause["$and"].append({"institution_id": str(self.institution_id)})
+                elif self.company_id:
+                    where_clause["$and"].append({"company_id": str(self.company_id)})
+                
+                # Rechercher dans la base vectorielle avec isolation stricte
                 results = self.entries_collection.query(
                     query_embeddings=[query_embedding],
-                    n_results=max_entries
+                    n_results=max_entries,
+                    where=where_clause,
+                    include=['metadatas', 'documents', 'distances']
                 )
                 
                 # Récupérer les entrées pertinentes
@@ -394,12 +419,17 @@ class HistoryAgent:
             
             {company_context}répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
             
+            IMPORTANT - Outils de calcul disponibles:
+            Vous avez accès à des outils de calcul précis. Utilisez-les OBLIGATOIREMENT pour tous les calculs (TVA, arithmétique, soldes comptables, pourcentages, etc.).
+            Ne faites JAMAIS de calculs manuels - utilisez toujours les outils appropriés pour garantir la précision.
+            
             Règles importantes:
             1. Soyez précis et factuel dans vos réponses en vous basant sur les données comptables.
             2. Restez professionnel tout en étant cordial et naturel dans le dialogue en français.
             3. Identifiez les écritures pertinentes pour répondre à la question.
-            4. Si la question est hors sujet ou nécessite des données non disponibles, proposez une redirection constructive.
+            4. UTILISEZ LES OUTILS DE CALCUL pour toute opération arithmétique ou comptable.
             5. Expliquez toujours votre raisonnement de manière pédagogique.
+            6. Présentez les résultats de calculs de manière claire et formatée.
             
             Pour toute question sur un compte, utilisez le format SYSCOHADA: Numéro + Nom du compte (ex: "512 - Banque").
             """
@@ -467,19 +497,56 @@ class HistoryAgent:
             
             debug_info["full_prompt"] = messages
             
-            # Appeler le modèle de langage
+            # Appeler le modèle de langage avec les outils de calcul
             try:
                 response = self.client.chat.completions.create(
                     model="gpt-4o-2024-08-06",
                     messages=messages,
+                    tools=self.tool_system.get_openai_function_definitions(),
+                    tool_choice="auto",  # Le LLM décide quand utiliser les outils
                     temperature=0.7,
-                    max_tokens=1000,
+                    max_tokens=1500,
                     top_p=1.0,
                     frequency_penalty=0.0,
                     presence_penalty=0.0
                 )
                 
-                ai_response = response.choices[0].message.content
+                response_message = response.choices[0].message
+                
+                # Traiter les appels d'outils si présents
+                if response_message.tool_calls:
+                    # Le LLM veut utiliser des outils de calcul
+                    messages.append(response_message)
+                    
+                    # Exécuter chaque outil demandé
+                    for tool_call in response_message.tool_calls:
+                        function_name = tool_call.function.name
+                        function_args = json.loads(tool_call.function.arguments)
+                        
+                        # Exécuter l'outil
+                        tool_result = self.tool_system.execute_tool(function_name, function_args)
+                        
+                        # Ajouter le résultat du calcul au contexte
+                        tool_message = {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": json.dumps(tool_result)
+                        }
+                        messages.append(tool_message)
+                    
+                    # Demander au LLM de formuler une réponse finale avec les résultats des calculs
+                    final_response = self.client.chat.completions.create(
+                        model="gpt-4o-2024-08-06",
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=1500
+                    )
+                    
+                    ai_response = final_response.choices[0].message.content
+                else:
+                    # Pas d'outils utilisés, réponse directe
+                    ai_response = response_message.content
                 
                 # Personnaliser la réponse avec le nom d'utilisateur si disponible
                 if user_greeting and not any(greeting in ai_response.lower() for greeting in ["bonjour", "salut", "hello"]):
@@ -551,7 +618,8 @@ class HistoryAgent:
 
     def chat_stream(self, prompt, conversation_id=None, user_context=None):
         """
-        Version streaming de chat: yield chaque chunk de la réponse LLM (OpenAI).
+        Version streaming de chat avec support des outils de calcul.
+        Le LLM peut appeler des outils pendant le streaming.
         """
         debug_info = {"etape": "debut_chat_stream", "prompt": prompt, "conversation_id": conversation_id}
         try:
@@ -567,37 +635,156 @@ class HistoryAgent:
                     company_context = f"En tant que comptable de {company_name}, "
                 if is_new_conversation:
                     user_greeting += "ravi de vous assister aujourd'hui! "
+            
             conversation_history = []
             if conversation_id:
                 try:
                     conversation_history = self._get_conversation_history(conversation_id)
                 except Exception as history_error:
                     debug_info["conversation_history_error"] = str(history_error)
+            
             relevant_entries = self._get_relevant_accounting_entries(prompt, max_entries=5)
-            system_prompt = f"""Vous êtes un assistant comptable expert SYSCOHADA qui aide l'utilisateur à comprendre et analyser ses écritures comptables.\n\n{company_context}répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.\n\nRègles importantes:\n1. Soyez précis et factuel dans vos réponses en vous basant sur les données comptables.\n2. Restez professionnel tout en étant cordial et naturel dans le dialogue en français.\n3. Identifiez les écritures pertinentes pour répondre à la question.\n4. Si la question est hors sujet ou nécessite des données non disponibles, proposez une redirection constructive.\n5. Expliquez toujours votre raisonnement de manière pédagogique.\n\nPour toute question sur un compte, utilisez le format SYSCOHADA: Numéro + Nom du compte (ex: "512 - Banque").\n"""
+            
+            system_prompt = f"""Vous êtes un assistant comptable expert SYSCOHADA qui aide l'utilisateur à comprendre et analyser ses écritures comptables.
+
+{company_context}répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
+
+IMPORTANT - Outils de calcul disponibles:
+Vous avez accès à des outils de calcul précis. Utilisez-les OBLIGATOIREMENT pour tous les calculs (TVA, arithmétique, soldes comptables, pourcentages, etc.).
+Ne faites JAMAIS de calculs manuels - utilisez toujours les outils appropriés pour garantir la précision.
+
+Règles importantes:
+1. Soyez précis et factuel dans vos réponses en vous basant sur les données comptables.
+2. Restez professionnel tout en étant cordial et naturel dans le dialogue en français.
+3. Identifiez les écritures pertinentes pour répondre à la question.
+4. UTILISEZ LES OUTILS DE CALCUL pour toute opération arithmétique ou comptable.
+5. Expliquez toujours votre raisonnement de manière pédagogique.
+6. Présentez les résultats de calculs de manière claire et formatée.
+
+Pour toute question sur un compte, utilisez le format SYSCOHADA: Numéro + Nom du compte (ex: "512 - Banque").
+"""
+            
             messages = [{"role": "system", "content": system_prompt}]
+            
+            # Ajouter l'historique et contexte
             recent_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
             for message in recent_history:
                 role = "user" if message.get("is_user", False) else "assistant"
                 messages.append({"role": role, "content": message.get("content", "")})
+            
+            # Ajouter le contexte des écritures pertinentes
             if relevant_entries:
-                entries_context = "\n\nVoici les écritures comptables pertinentes de la base de données:\n"
+                entries_context = "\\n\\nVoici les écritures comptables pertinentes de la base de données:\\n"
                 for i, entry in enumerate(relevant_entries[:5]):
-                    entries_context += f"\nÉcriture {i+1}:\n"
-                    entries_context += f"Date: {entry.get('date', 'N/A')}\n"
-                    entries_context += f"Description: {entry.get('description', 'N/A')}\n"
-                    entries_context += f"Référence: {entry.get('piece_reference', 'N/A')}\n"
+                    entries_context += f"\\nÉcriture {i+1}:\\n"
+                    entries_context += f"Date: {entry.get('date', 'N/A')}\\n"
+                    entries_context += f"Description: {entry.get('description', 'N/A')}\\n"
+                    entries_context += f"Référence: {entry.get('piece_reference', 'N/A')}\\n"
+                    
                     debits = entry.get('debit', [])
-                    entries_context += "Débit:\n"
+                    entries_context += "Débit:\\n"
                     for debit in debits:
-                        entries_context += f"- {debit.get('compte', 'N/A')}: {debit.get('montant', 0)} ({debit.get('libelle', 'N/A')})\n"
+                        entries_context += f"- {debit.get('compte', 'N/A')}: {debit.get('montant', 0)} ({debit.get('libelle', 'N/A')})\\n"
+                    
                     credits = entry.get('credit', [])
-                    entries_context += "Crédit:\n"
+                    entries_context += "Crédit:\\n"
                     for credit in credits:
-                        entries_context += f"- {credit.get('compte', 'N/A')}: {credit.get('montant', 0)} ({credit.get('libelle', 'N/A')})\n"
-                    entries_context += "\n"
-                messages.append({"role": "assistant", "content": "Pour répondre à votre question, j'ai consulté l'historique des écritures comptables. Voici les écritures pertinentes que j'ai trouvées:"})
+                        entries_context += f"- {credit.get('compte', 'N/A')}: {credit.get('montant', 0)} ({credit.get('libelle', 'N/A')})\\n"
+                    
+                    entries_context += "\\n"
+                
                 messages.append({"role": "assistant", "content": entries_context})
+            
+            # Ajouter la demande actuelle
+            messages.append({"role": "user", "content": prompt})
+            
+            # Streaming avec support des outils
+            stream = self.client.chat.completions.create(
+                model="gpt-4o-2024-08-06",
+                messages=messages,
+                tools=self.tool_system.get_openai_function_definitions(),
+                tool_choice="auto",
+                temperature=0.7,
+                max_tokens=1500,
+                stream=True
+            )
+            
+            # Variables pour gérer les appels d'outils en streaming
+            current_tool_calls = {}
+            accumulated_content = ""
+            
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    # Contenu de réponse normale
+                    content = chunk.choices[0].delta.content
+                    accumulated_content += content
+                    yield content
+                
+                elif chunk.choices[0].delta.tool_calls:
+                    # Le LLM veut utiliser un outil
+                    for tool_call_delta in chunk.choices[0].delta.tool_calls:
+                        if tool_call_delta.id:
+                            # Début d'un nouvel appel d'outil
+                            current_tool_calls[tool_call_delta.id] = {
+                                'function': {
+                                    'name': tool_call_delta.function.name if tool_call_delta.function.name else '',
+                                    'arguments': tool_call_delta.function.arguments if tool_call_delta.function.arguments else ''
+                                }
+                            }
+                        else:
+                            # Continuation des arguments de l'outil
+                            for call_id, call_data in current_tool_calls.items():
+                                if tool_call_delta.function.arguments:
+                                    call_data['function']['arguments'] += tool_call_delta.function.arguments
+                
+                elif chunk.choices[0].finish_reason == "tool_calls":
+                    # Le LLM a terminé les appels d'outils, les exécuter
+                    yield "\\n\\n🔧 *Exécution des calculs...*\\n\\n"
+                    
+                    tool_results = []
+                    for call_id, call_data in current_tool_calls.items():
+                        function_name = call_data['function']['name']
+                        function_args = json.loads(call_data['function']['arguments'])
+                        
+                        # Exécuter l'outil
+                        tool_result = self.tool_system.execute_tool(function_name, function_args)
+                        tool_results.append(tool_result)
+                        
+                        # Streamer le résultat du calcul
+                        if tool_result.get('success'):
+                            yield f"✅ **{function_name}**: {tool_result.get('formatted_result', 'Calcul effectué')}\\n\\n"
+                        else:
+                            yield f"❌ **Erreur de calcul**: {tool_result.get('error', 'Erreur inconnue')}\\n\\n"
+                    
+                    # Maintenant demander au LLM de formuler une réponse finale
+                    yield "📝 *Formulation de la réponse...*\\n\\n"
+                    
+                    # Ajouter les résultats des outils au contexte
+                    for i, (call_id, call_data) in enumerate(current_tool_calls.items()):
+                        messages.append({
+                            "tool_call_id": call_id,
+                            "role": "tool", 
+                            "name": call_data['function']['name'],
+                            "content": json.dumps(tool_results[i])
+                        })
+                    
+                    # Demander la réponse finale en streaming
+                    final_stream = self.client.chat.completions.create(
+                        model="gpt-4o-2024-08-06",
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=1000,
+                        stream=True
+                    )
+                    
+                    for final_chunk in final_stream:
+                        if final_chunk.choices[0].delta.content:
+                            yield final_chunk.choices[0].delta.content
+                    
+                    break
+                
+        except Exception as e:
+            yield f"\\n\\n❌ Erreur lors du streaming: {str(e)}"
             # Appel OpenAI en mode stream
             try:
                 response = self.client.chat.completions.create(

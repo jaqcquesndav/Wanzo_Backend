@@ -66,9 +66,9 @@ export class UserService {
    * Companies are created later via company/institution endpoints after user profile completion
    */
   async syncUser(syncUserDto: SyncUserDto): Promise<UserResponseDto> {
-    const { auth0Id, email, name, firstName, lastName, picture, companyId, userType, metadata } = syncUserDto;
+    const { auth0Id, email, name, firstName, lastName, picture, companyId, financialInstitutionId, userType, metadata } = syncUserDto;
     
-    console.log('🔄 [UserService] Starting syncUser for:', { auth0Id, email, companyId, userType });
+    console.log('🔄 [UserService] Starting syncUser for:', { auth0Id, email, companyId, financialInstitutionId, userType });
 
     // Check if user already exists by auth0Id
     let user = await this.userRepository.findOne({ 
@@ -86,6 +86,15 @@ export class UserService {
       user.picture = picture || user.picture;
       user.lastLogin = new Date();
       user.updatedAt = new Date();
+      
+      // Update association fields if provided
+      if (companyId && !user.companyId) {
+        user.companyId = companyId;
+        user.customerId = companyId;
+      }
+      if (financialInstitutionId && !user.financialInstitutionId) {
+        user.financialInstitutionId = financialInstitutionId;
+      }
       
       const updatedUser = await this.userRepository.save(user);
       
@@ -135,7 +144,8 @@ export class UserService {
       role: UserRole.CUSTOMER_ADMIN, // Default role, can be updated later
       userType: userType === 'financial_institution' ? UserType.FINANCIAL_INSTITUTION : UserType.SME,
       customerId: savedCustomer?.id || null, // Only set if company exists
-      companyId: savedCustomer?.id || null, // Only set if company exists
+      companyId: savedCustomer?.id || companyId || null, // Set companyId even if customer doesn't exist yet
+      financialInstitutionId: financialInstitutionId || null, // Set financialInstitutionId if provided
       status: UserStatus.ACTIVE,
       picture: picture,
       isCompanyOwner: savedCustomer ? false : true, // Will be owner when company is created later

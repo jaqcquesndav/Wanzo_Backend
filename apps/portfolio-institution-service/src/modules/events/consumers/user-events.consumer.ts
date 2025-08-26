@@ -59,18 +59,19 @@ export class UserEventsConsumer implements OnModuleInit {
     
     if (hasAccess && (event.userType === 'FINANCIAL_INSTITUTION' || event.role === 'ADMIN' || event.role === 'SUPERADMIN')) {
       try {
-        // TODO: Implémenter handleUserLogin dans InstitutionService
-        // Créer/mettre à jour le profil utilisateur local si nécessaire
-        // await this.institutionService.handleUserLogin({
-        //   userId: event.userId,
-        //   auth0Id: event.auth0Id,
-        //   email: event.email,
-        //   financialInstitutionId: event.financialInstitutionId,
-        //   loginTime: event.loginTime,
-        //   isFirstLogin: event.isFirstLogin,
-        // });
+        // Appel de la méthode handleUserLogin implémentée
+        await this.institutionService.handleUserLogin({
+          userId: event.userId,
+          auth0Id: event.auth0Id,
+          email: event.email,
+          financialInstitutionId: event.financialInstitutionId,
+          userType: event.userType,
+          role: event.role,
+          loginTime: event.loginTime,
+          isFirstLogin: event.isFirstLogin,
+        });
         
-        this.logger.log(`User login processed for institutional user ${event.userId} - method not implemented yet`);
+        this.logger.log(`User login processed successfully for institutional user ${event.userId}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.stack : String(error);
         this.logger.error(`Error processing user.login for user ${event.userId}: ${errorMessage}`);

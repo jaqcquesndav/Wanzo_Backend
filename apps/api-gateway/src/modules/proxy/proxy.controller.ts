@@ -96,6 +96,80 @@ export class ProxyController {
     }
   }
 
+  @All('adha/api/v1/*')
+  @ApiOperation({ 
+    summary: 'Proxy to Adha AI Service',
+    description: 'Routes all requests starting with adha/api/v1 to the adha-ai service'
+  })
+  @ApiResponse({ status: 200, description: 'Request successfully proxied' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async proxyToAdhaAiService(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { method, path, headers, body } = req;
+    const startTime = Date.now();
+    
+    this.logger.log(`🤖 ADHA AI SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
+    }
+    
+    try {
+      // Extract path after 'adha/api/v1' and add /api prefix for the adha-ai service
+      const targetPath = path.replace('/adha/api/v1', '/api');
+      const targetUrl = `http://kiota-adha-ai-service:8000${targetPath}`;
+      
+      this.logger.log(`📡 Forwarding to: ${targetUrl}`);
+      
+      // Prepare headers - ensure Authorization header is properly forwarded
+      const forwardHeaders = {
+        ...headers,
+        host: 'kiota-adha-ai-service:8000'
+      };
+      delete forwardHeaders['content-length'];
+      
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`🔑 Authorization header set in forward headers`);
+      }
+      
+      // Make the request
+      const response: AxiosResponse = await axios({
+        method: method.toLowerCase() as any,
+        url: targetUrl,
+        headers: forwardHeaders,
+        data: body,
+        timeout: 30000,
+        validateStatus: () => true
+      });
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`✅ Adha AI service responded: ${response.status} (${duration}ms)`);
+      
+      // Forward response headers
+      if (response.headers) {
+        Object.keys(response.headers).forEach(key => {
+          if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+            res.set(key, response.headers[key]);
+          }
+        });
+      }
+      
+      res.status(response.status).send(response.data);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.handleError(error, req, res, duration);
+    }
+  }
+
   @All('accounting/api/v1/*')
   @ApiOperation({ 
     summary: 'Proxy to Accounting Service',
@@ -152,6 +226,80 @@ export class ProxyController {
       
       const duration = Date.now() - startTime;
       this.logger.log(`✅ Accounting service responded: ${response.status} (${duration}ms)`);
+      
+      // Forward response headers
+      if (response.headers) {
+        Object.keys(response.headers).forEach(key => {
+          if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+            res.set(key, response.headers[key]);
+          }
+        });
+      }
+      
+      res.status(response.status).send(response.data);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.handleError(error, req, res, duration);
+    }
+  }
+
+  @All('portfolio/api/v1/*')
+  @ApiOperation({ 
+    summary: 'Proxy to Portfolio Institution Service',
+    description: 'Routes all requests starting with portfolio/api/v1 to the portfolio-institution service'
+  })
+  @ApiResponse({ status: 200, description: 'Request successfully proxied' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async proxyToPortfolioInstitutionService(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { method, path, headers, body } = req;
+    const startTime = Date.now();
+    
+    this.logger.log(`🏦 PORTFOLIO INSTITUTION SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
+    }
+    
+    try {
+      // Extract path after 'portfolio/api/v1' and add /api/v1 prefix for the portfolio service
+      const targetPath = path.replace('/portfolio/api/v1', '/api/v1');
+      const targetUrl = `http://kiota-portfolio-institution-service:3005${targetPath}`;
+      
+      this.logger.log(`📡 Forwarding to: ${targetUrl}`);
+      
+      // Prepare headers - ensure Authorization header is properly forwarded
+      const forwardHeaders = {
+        ...headers,
+        host: 'kiota-portfolio-institution-service:3005'
+      };
+      delete forwardHeaders['content-length'];
+      
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`🔑 Authorization header set in forward headers`);
+      }
+      
+      // Make the request
+      const response: AxiosResponse = await axios({
+        method: method.toLowerCase() as any,
+        url: targetUrl,
+        headers: forwardHeaders,
+        data: body,
+        timeout: 30000,
+        validateStatus: () => true
+      });
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`✅ Portfolio Institution service responded: ${response.status} (${duration}ms)`);
       
       // Forward response headers
       if (response.headers) {
@@ -263,6 +411,8 @@ export class ProxyController {
       availableRoutes: [
         'GET /health - API Gateway health check',
         'ANY /land/api/v1/* - Customer service routes',
+        'ANY /portfolio/api/v1/* - Portfolio Institution service routes',
+        'ANY /adha/api/v1/* - Adha AI service routes',
         'ANY /accounting/api/v1/* - Accounting service routes (full path)',
         'ANY /accounting/* - Accounting service routes (short path)'
       ]

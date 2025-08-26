@@ -20,6 +20,7 @@ class KnowledgeEmbedder:
     def load_and_chunk_documents(self, directory: str) -> List[str]:
         """
         Charge les documents du répertoire et les divise en chunks.
+        Support unifié pour .md et .txt avec traitement markdown.
         """
         chunks = []
         for filename in os.listdir(directory):
@@ -27,8 +28,9 @@ class KnowledgeEmbedder:
             if filepath.endswith(".pdf"):
                 loader = PyPDFLoader(filepath)
                 documents = loader.load()
-            elif filepath.endswith(".txt"):
-                loader = TextLoader(filepath)
+            elif filepath.endswith((".txt", ".md")):
+                # Traitement unifié pour .txt et .md
+                loader = TextLoader(filepath, encoding='utf-8')
                 documents = loader.load()
             elif filepath.endswith(".docx"):
                 loader = Docx2txtLoader(filepath)
