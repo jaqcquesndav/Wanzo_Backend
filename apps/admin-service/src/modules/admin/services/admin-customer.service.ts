@@ -78,4 +78,70 @@ export class AdminCustomerService {
       throw error;
     }
   }
+
+  /**
+   * Récupère les utilisateurs d'un client
+   */
+  async getCustomerUsers(customerId: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.customerServiceUrl}/customers/${customerId}/users`, {
+          headers: {
+            'X-Service-ID': 'admin-service',
+            'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+          },
+        }),
+      );
+      
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to fetch users for customer ${customerId}: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les abonnements d'un client
+   */
+  async getCustomerSubscriptions(customerId: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.customerServiceUrl}/customers/${customerId}/subscriptions`, {
+          headers: {
+            'X-Service-ID': 'admin-service',
+            'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+          },
+        }),
+      );
+      
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to fetch subscriptions for customer ${customerId}: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère l'utilisation des services par un client
+   */
+  async getCustomerUsage(customerId: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.customerServiceUrl}/customers/${customerId}/usage`, {
+          headers: {
+            'X-Service-ID': 'admin-service',
+            'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+          },
+        }),
+      );
+      
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to fetch usage for customer ${customerId}: ${err.message}`);
+      throw error;
+    }
+  }
 }

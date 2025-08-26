@@ -72,4 +72,51 @@ export class AuthService {
     console.log(userId);
     return { message: 'Session invalidée avec succès' };
   }
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
+    // TODO: Implement token refresh logic with Auth0
+    console.log(refreshToken);
+    return {
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      expiresIn: 3600
+    };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    // TODO: Implement logout logic - invalidate tokens, clear sessions
+    console.log(userId);
+    return { message: 'Déconnexion réussie' };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    // TODO: Implement password change logic
+    console.log(userId, currentPassword, newPassword);
+    return { message: 'Mot de passe modifié avec succès' };
+  }
+
+  async enable2FA(userId: string): Promise<{ qrCode: string; secret: string; message: string }> {
+    // TODO: Implement 2FA enablement logic
+    console.log(userId);
+    return {
+      qrCode: 'data:image/png;base64,mock-qr-code',
+      secret: 'mock-2fa-secret',
+      message: '2FA activé avec succès'
+    };
+  }
+
+  async disable2FA(userId: string): Promise<{ message: string }> {
+    // TODO: Implement 2FA disabling logic
+    console.log(userId);
+    return { message: '2FA désactivé avec succès' };
+  }
+
+  async verify2FA(userId: string, code: string): Promise<{ valid: boolean; message: string }> {
+    // TODO: Implement 2FA verification logic
+    console.log(userId, code);
+    return {
+      valid: true,
+      message: 'Code 2FA vérifié avec succès'
+    };
+  }
 }

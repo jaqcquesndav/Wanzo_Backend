@@ -66,4 +66,25 @@ export class AdminCustomerController {
       action: 'reactivate',
     });
   }
+
+  @Get(':id/users')
+  @ApiOperation({ summary: 'Liste tous les utilisateurs d\'un client' })
+  @ApiResponse({ status: 200, description: 'Liste des utilisateurs récupérée avec succès' })
+  async getCustomerUsers(@Param('id') id: string) {
+    return this.adminCustomerService.getCustomerUsers(id);
+  }
+
+  @Get(':id/subscriptions')
+  @ApiOperation({ summary: 'Liste tous les abonnements d\'un client' })
+  @ApiResponse({ status: 200, description: 'Liste des abonnements récupérée avec succès' })
+  async getCustomerSubscriptions(@Param('id') id: string) {
+    return this.adminCustomerService.getCustomerSubscriptions(id);
+  }
+
+  @Get(':id/usage')
+  @ApiOperation({ summary: 'Récupère l\'utilisation des services par un client' })
+  @ApiResponse({ status: 200, description: 'Statistiques d\'utilisation récupérées avec succès' })
+  async getCustomerUsage(@Param('id') id: string) {
+    return this.adminCustomerService.getCustomerUsage(id);
+  }
 }

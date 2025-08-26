@@ -392,6 +392,75 @@ export class ProxyController {
     }
   }
 
+  @All('admin/*')
+  @ApiOperation({ 
+    summary: 'Proxy to Admin Service',
+    description: 'Routes all requests starting with admin/ to the admin service'
+  })
+  @ApiResponse({ status: 200, description: 'Request successfully proxied' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async proxyToAdminService(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { method, path, headers, body } = req;
+    const startTime = Date.now();
+    
+    this.logger.log(`🚀 ADMIN SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
+    }
+    
+    try {
+      // Extract path after 'admin'
+      const targetPath = path.startsWith('/admin/api/') 
+        ? path.substring('/admin/api'.length) 
+        : path.substring('/admin'.length);
+      
+      const adminServiceUrl = process.env.ADMIN_SERVICE_URL || 'http://localhost:3001';
+      const targetUrl = `${adminServiceUrl}/api${targetPath}`;
+      
+      this.logger.log(`🎯 Target URL: ${targetUrl}`);
+      
+      // Prepare headers for forwarding
+      const forwardHeaders = { ...headers };
+      delete forwardHeaders.host;
+      delete forwardHeaders['content-length'];
+      
+      this.logger.log(`📤 Forwarding ${method} request to admin service...`);
+      
+      const response = await axios({
+        method: method.toLowerCase() as any,
+        url: targetUrl,
+        headers: forwardHeaders,
+        data: body,
+        timeout: 30000,
+        validateStatus: () => true // Accept all status codes
+      });
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`✅ ADMIN SERVICE RESPONSE: ${response.status} (${duration}ms)`);
+      
+      // Forward response headers
+      Object.entries(response.headers).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'transfer-encoding') {
+          res.set(key, value as string);
+        }
+      });
+      
+      res.status(response.status).send(response.data);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.handleError(error, req, res, duration);
+    }
+  }
+
   @All('*')
   @ApiOperation({ 
     summary: 'Catch-All Route',
@@ -410,6 +479,7 @@ export class ProxyController {
       timestamp: new Date().toISOString(),
       availableRoutes: [
         'GET /health - API Gateway health check',
+        'ANY /admin/* - Admin service routes',
         'ANY /land/api/v1/* - Customer service routes',
         'ANY /portfolio/api/v1/* - Portfolio Institution service routes',
         'ANY /adha/api/v1/* - Adha AI service routes',
