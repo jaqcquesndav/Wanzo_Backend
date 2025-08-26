@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DashboardService } from './services/dashboard.service';
 import { TraditionalDashboardService } from './services/traditional-dashboard.service';
+import { OHADAMetricsService } from './services/ohada-metrics.service';
+import { OHADAOrchestrationService } from './services/ohada-orchestration.service';
+import { OHADACalculatorService } from './calculators/ohada-calculator.service';
+import { DashboardPreferencesService } from './services/dashboard-preferences.service';
 import { DashboardController } from './controllers/dashboard.controller';
 import { InstitutionModule } from '../institution/institution.module';
 import { ProspectionModule } from '../prospection/prospection.module';
@@ -11,6 +16,7 @@ import { FinancialProduct } from '../portfolios/entities/financial-product.entit
 import { FundingRequest } from '../portfolios/entities/funding-request.entity';
 import { Contract } from '../portfolios/entities/contract.entity';
 import { Repayment } from '../portfolios/entities/repayment.entity';
+import { OHADAMetric, OHADASnapshot } from './entities/ohada-metric.entity';
 
 @Module({
   imports: [
@@ -19,14 +25,33 @@ import { Repayment } from '../portfolios/entities/repayment.entity';
       FinancialProduct,
       FundingRequest,
       Contract,
-      Repayment
+      Repayment,
+      OHADAMetric,
+      OHADASnapshot
     ]),
+    ScheduleModule.forRoot(), // Pour les tâches cron
     InstitutionModule,
     ProspectionModule,
     PortfoliosModule,
   ],
-  providers: [DashboardService, TraditionalDashboardService],
+  providers: [
+    // Services legacy
+    DashboardService, 
+    TraditionalDashboardService,
+    
+    // Nouveaux services OHADA
+    OHADAMetricsService,
+    OHADAOrchestrationService,
+    OHADACalculatorService,
+    DashboardPreferencesService
+  ],
   controllers: [DashboardController],
-  exports: [DashboardService, TraditionalDashboardService],
+  exports: [
+    DashboardService, 
+    TraditionalDashboardService,
+    OHADAMetricsService,
+    OHADAOrchestrationService,
+    DashboardPreferencesService
+  ],
 })
 export class DashboardModule {}

@@ -179,6 +179,7 @@ export class CustomersService implements CustomerDocumentMethods {
         customerId: savedCustomer.id,
         name: savedCustomer.name,
         email: savedCustomer.email,
+        type: 'SME', // Type par défaut pour les PME
         createdBy: 'admin', // Placeholder
         timestamp: new Date().toISOString(),
       });
@@ -210,6 +211,7 @@ export class CustomersService implements CustomerDocumentMethods {
     await this.eventsService.publishCustomerUpdated({
       customerId: updatedCustomer.id,
       updatedFields: updateCustomerDto,
+      type: 'SME', // Type par défaut pour les PME
       updatedBy: 'admin', // Placeholder
       timestamp: new Date().toISOString(),
     });

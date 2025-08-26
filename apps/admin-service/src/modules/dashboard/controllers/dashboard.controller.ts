@@ -14,12 +14,12 @@ import {
   UserStatisticDto, 
   SystemHealthDto, 
   NotificationDto,
-  DashboardQueryParamsDto,
   WidgetResponseDto,
   DashboardCompleteDataDto,
   DashboardConfigurationDto,
   UpdateDashboardConfigurationDto
 } from '../dtos';
+import { DashboardQueryParamsDto } from '../dto/dashboard-query-params.dto';
 import { Request as ExpressRequest } from 'express';
 import { APIResponse } from '../../../common/interfaces';
 
