@@ -14,6 +14,30 @@ import { UserType } from '../entities/user.entity';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Post('sync-test')
+  @ApiOperation({ summary: 'TEST: Synchroniser utilisateur sans auth (DÉVELOPPEMENT SEULEMENT)' })
+  @ApiResponse({ status: 201, description: 'Utilisateur synchronisé avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
+  async syncUserTest(@Body() syncUserDto: SyncUserDto): Promise<ApiResponseDto<UserResponseDto>> {
+    console.log('🧪 [TEST] Sync user test called with data:', JSON.stringify(syncUserDto, null, 2));
+    
+    if (!syncUserDto.auth0Id) {
+      throw new BadRequestException('auth0Id est requis');
+    }
+    
+    try {
+      const user = await this.userService.syncUser(syncUserDto);
+      console.log('✅ [TEST] User synced successfully:', user?.id);
+      return {
+        success: true,
+        data: user
+      };
+    } catch (error) {
+      console.error('❌ [TEST] Sync failed:', error);
+      throw error;
+    }
+  }
+
   @Post('sync')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Synchroniser l\'utilisateur depuis Auth0 (gère la première connexion)' })
@@ -80,20 +104,52 @@ export class UserController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Récupérer le profil utilisateur courant' })
+  @ApiOperation({ summary: 'Récupérer le profil utilisateur courant (avec sync automatique)' })
   @ApiResponse({ status: 200, description: 'Profil utilisateur récupéré', type: ApiResponseDto })
   @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
   async getCurrentUser(@Req() req: any): Promise<ApiResponseDto<UserResponseDto>> {
+    console.log('🎯 [UserController.getCurrentUser] ENTRY POINT - Endpoint /users/me accessed');
+    console.log('📋 [UserController.getCurrentUser] Request user data:', JSON.stringify(req.user, null, 2));
+    
     const auth0Id = req.user?.sub;
     if (!auth0Id) {
+      console.log('❌ [UserController.getCurrentUser] No auth0Id found in req.user');
       throw new UnauthorizedException('Utilisateur non authentifié');
     }
     
-    const user = await this.userService.findByAuth0Id(auth0Id);
+    console.log('🔍 [UserController.getCurrentUser] Looking for user with Auth0 ID:', auth0Id);
+    let user = await this.userService.findByAuth0Id(auth0Id);
+    console.log('👤 [UserController.getCurrentUser] User found in database:', user ? 'YES' : 'NO');
+
+    // Si l'utilisateur n'existe pas, le synchroniser automatiquement depuis Auth0
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      console.log('🔄 [UserController.getCurrentUser] User not found, auto-syncing from Auth0:', auth0Id);
+      console.log('📄 [UserController.getCurrentUser] JWT user data:', JSON.stringify(req.user, null, 2));      const syncData = {
+        auth0Id,
+        email: req.user?.email || `temp-${auth0Id.replace('|', '-')}@wanzo.temp`,
+        name: req.user?.name || req.user?.given_name || req.user?.family_name || `User-${auth0Id.split('|')[1]?.substring(0, 8) || 'Unknown'}`,
+        firstName: req.user?.given_name,
+        lastName: req.user?.family_name,
+        picture: req.user?.picture,
+        // Par défaut SME, sauf si userType spécifié dans les métadonnées
+        userType: req.user?.['https://wanzo.com/user_type'] || 'sme'
+      };
+      
+      console.log('📤 [UserController.getCurrentUser] Sync data prepared:', JSON.stringify(syncData, null, 2));
+      
+      try {
+        console.log('🚀 [UserController.getCurrentUser] Starting user auto-sync...');
+        user = await this.userService.syncUser(syncData);
+        console.log('✅ [UserController.getCurrentUser] User auto-synced successfully:', user?.id);
+        console.log('📊 [UserController.getCurrentUser] Synced user details:', JSON.stringify(user, null, 2));
+      } catch (error) {
+        console.error('❌ [UserController.getCurrentUser] Auto-sync failed:', error);
+        console.error('🔍 [UserController.getCurrentUser] Error details:', error instanceof Error ? error.stack : 'Unknown error');
+        throw error;
+      }
     }
-    
+
+    console.log('📤 [UserController.getCurrentUser] Returning user data:', user ? 'SUCCESS' : 'NULL');
     return {
       success: true,
       data: user

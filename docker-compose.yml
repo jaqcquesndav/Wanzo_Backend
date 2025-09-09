@@ -123,7 +123,7 @@ services:
       - ./apps/api-gateway/src:/app/apps/api-gateway/src
       - ./packages/shared/src:/app/packages/shared/src
       - /app/apps/api-gateway/node_modules
-    command: yarn start:dev
+    command: yarn workspace @kiota-suit/api-gateway dev
     depends_on:
       - admin-service-dev
       - accounting-service-dev
@@ -641,7 +641,7 @@ services:
       - ./apps/customer-service/src:/app/apps/customer-service/src
       - ./packages/shared/src:/app/packages/shared/src
       - /app/apps/customer-service/node_modules # Anonymous volume
-    command: yarn start:dev
+    command: yarn workspace @wanzobe/customer-service dev
     depends_on:
       - postgres
       - kafka

@@ -1,6 +1,7 @@
 import { Controller, All, Get, Req, Res, Logger, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 
 @ApiTags('proxy')
@@ -8,7 +9,7 @@ import axios, { AxiosResponse } from 'axios';
 export class ProxyController {
   private readonly logger = new Logger(ProxyController.name);
   
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.logger.log('🚀 ProxyController initialized - Ready to handle requests');
   }
 
@@ -49,22 +50,33 @@ export class ProxyController {
     try {
       // Extract path after 'land/api/v1'
       const targetPath = path.replace('/land/api/v1', '');
-      const targetUrl = `http://kiota-customer-service:3011${targetPath}`;
+      const customerServiceUrl = this.configService.get('CUSTOMER_SERVICE_URL', 'http://kiota-customer-service-dev:3011');
+      const targetUrl = `${customerServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers - ensure Authorization header is properly forwarded
-      const forwardHeaders = {
-        ...headers,
-        host: 'kiota-customer-service:3011'
-      };
-      delete forwardHeaders['content-length'];
+      const forwardHeaders: Record<string, any> = {};
       
-      // Ensure Authorization header is preserved (case sensitive handling)
+      // Copy all headers except problematic ones
+      Object.keys(headers).forEach(key => {
+        if (!['host', 'content-length', 'connection'].includes(key.toLowerCase())) {
+          forwardHeaders[key] = headers[key];
+        }
+      });
+      
+      // Ensure Authorization header is explicitly set (both cases)
       if (authHeader) {
-        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-        this.logger.log(`🔑 Authorization header set in forward headers`);
+        const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        forwardHeaders['Authorization'] = authValue;
+        forwardHeaders['authorization'] = authValue; // Sometimes lowercase is needed
+        this.logger.log(`🔑 Authorization header explicitly set in forward headers: ${authValue.substring(0, 20)}...`);
       }
+      
+      // Set correct host for the target service
+      forwardHeaders['host'] = customerServiceUrl.replace('http://', '').replace('https://', '');
+      
+      this.logger.log(`📤 Forward headers keys: ${JSON.stringify(Object.keys(forwardHeaders))}`);
       
       // Make the request
       const response: AxiosResponse = await axios({
@@ -78,6 +90,10 @@ export class ProxyController {
       
       const duration = Date.now() - startTime;
       this.logger.log(`✅ Customer service responded: ${response.status} (${duration}ms)`);
+      
+      if (response.status !== 200) {
+        this.logger.warn(`⚠️ Non-200 response from customer service: ${response.status} - ${JSON.stringify(response.data)}`);
+      }
       
       // Forward response headers
       if (response.headers) {
@@ -123,14 +139,16 @@ export class ProxyController {
     try {
       // Extract path after 'adha/api/v1' and add /api prefix for the adha-ai service
       const targetPath = path.replace('/adha/api/v1', '/api');
-      const targetUrl = `http://kiota-adha-ai-service:8000${targetPath}`;
+      const adhaServiceUrl = this.configService.get('ADHA_AI_SERVICE_URL', 'http://kiota-adha-ai-service:8002');
+      const targetUrl = `${adhaServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = adhaServiceUrl.replace('http://', '').replace('https://', '');
       const forwardHeaders = {
         ...headers,
-        host: 'kiota-adha-ai-service:8000'
+        host: serviceHost
       };
       delete forwardHeaders['content-length'];
       
@@ -197,14 +215,16 @@ export class ProxyController {
     try {
       // Extract path after 'accounting/api/v1' and add /v1 prefix for the accounting service
       const targetPath = path.replace('/accounting/api/v1', '/v1');
-      const targetUrl = `http://kiota-accounting-service:3003${targetPath}`;
+      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service-dev:3003');
+      const targetUrl = `${accountingServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = accountingServiceUrl.replace('http://', '').replace('https://', '');
       const forwardHeaders = {
         ...headers,
-        host: 'kiota-accounting-service:3003'
+        host: serviceHost
       };
       delete forwardHeaders['content-length'];
       
@@ -271,14 +291,16 @@ export class ProxyController {
     try {
       // Extract path after 'portfolio/api/v1' and add /api/v1 prefix for the portfolio service
       const targetPath = path.replace('/portfolio/api/v1', '/api/v1');
-      const targetUrl = `http://kiota-portfolio-institution-service:3005${targetPath}`;
+      const portfolioServiceUrl = this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://kiota-portfolio-institution-service-dev:3005');
+      const targetUrl = `${portfolioServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = portfolioServiceUrl.replace('http://', '').replace('https://', '');
       const forwardHeaders = {
         ...headers,
-        host: 'kiota-portfolio-institution-service:3005'
+        host: serviceHost
       };
       delete forwardHeaders['content-length'];
       
@@ -345,14 +367,16 @@ export class ProxyController {
     try {
       // Extract path after 'accounting' and add /v1 prefix for the accounting service
       const targetPath = path.replace('/accounting', '/v1');
-      const targetUrl = `http://kiota-accounting-service:3003${targetPath}`;
+      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service-dev:3003');
+      const targetUrl = `${accountingServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
       // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = accountingServiceUrl.replace('http://', '').replace('https://', '');
       const forwardHeaders = {
         ...headers,
-        host: 'kiota-accounting-service:3003'
+        host: serviceHost
       };
       delete forwardHeaders['content-length'];
       
@@ -422,7 +446,7 @@ export class ProxyController {
         ? path.substring('/admin/api'.length) 
         : path.substring('/admin'.length);
       
-      const adminServiceUrl = process.env.ADMIN_SERVICE_URL || 'http://localhost:3001';
+      const adminServiceUrl = this.configService.get('ADMIN_SERVICE_URL', 'http://kiota-admin-service-dev:3001');
       const targetUrl = `${adminServiceUrl}/api${targetPath}`;
       
       this.logger.log(`🎯 Target URL: ${targetUrl}`);
@@ -506,6 +530,7 @@ export class ProxyController {
         timestamp: new Date().toISOString()
       });
     } else {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`❌ Unexpected error: ${method} ${path} (${duration}ms)`, error);
       
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
