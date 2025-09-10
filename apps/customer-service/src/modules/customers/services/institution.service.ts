@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Customer, CustomerStatus, CustomerType } from '../entities/customer.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 import { FinancialInstitutionSpecificData, InstitutionType, InstitutionCategory } from '../entities/financial-institution-specific-data.entity';
+import { User, UserType, AccountType } from '../../system-users/entities/user.entity';
 import { 
   CreateFinancialInstitutionDto, 
   UpdateFinancialInstitutionDto, 
@@ -33,6 +34,8 @@ export class InstitutionService {
     private readonly customerRepository: Repository<Customer>,
     @InjectRepository(FinancialInstitutionSpecificData)
     private readonly financialDataRepository: Repository<FinancialInstitutionSpecificData>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly customerEventsProducer: CustomerEventsProducer,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
@@ -64,7 +67,39 @@ export class InstitutionService {
     return this.mapToFinancialInstitutionDto(customer);
   }
 
-  async create(createDto: CreateFinancialInstitutionDto): Promise<FinancialInstitutionResponseDto> {
+  async create(createDto: CreateFinancialInstitutionDto, auth0Id?: string): Promise<FinancialInstitutionResponseDto> {
+    // Validate that an owner is provided
+    if (!auth0Id) {
+      throw new BadRequestException('Un utilisateur authentifié est requis pour créer une institution financière');
+    }
+
+    // Verify that the creating user exists in our system
+    const creatingUser = await this.userRepository.findOne({ where: { auth0Id } });
+    if (!creatingUser) {
+      throw new BadRequestException(`L'utilisateur avec l'ID Auth0 ${auth0Id} n'existe pas dans le système`);
+    }
+
+    // Validate required fields
+    if (!createDto.contacts?.general?.email) {
+      throw new BadRequestException('Email de contact général requis');
+    }
+    if (!createDto.contacts?.general?.phone) {
+      throw new BadRequestException('Téléphone de contact général requis');
+    }
+
+    // Ensure leadership information includes the creating user
+    const leadership = createDto.leadership || {};
+    if (!leadership.ceo && !leadership.executiveTeam?.length && !leadership.boardMembers?.length) {
+      // Set the creating user as CEO by default
+      leadership.ceo = {
+        name: creatingUser.name,
+        email: creatingUser.email,
+        phone: creatingUser.phone,
+        bio: `CEO et fondateur de ${createDto.name}`,
+        title: 'Chief Executive Officer',
+      };
+    }
+
     // Create financial data entity
     const financialData = this.financialDataRepository.create({
       type: createDto.type as InstitutionType,
@@ -72,23 +107,40 @@ export class InstitutionService {
       licenseNumber: createDto.licenseNumber,
       establishedDate: createDto.establishedDate ? new Date(createDto.establishedDate) : undefined,
       contacts: createDto.contacts,
-      leadership: createDto.leadership,
+      leadership: leadership, // Use the enhanced leadership
     });
     
     const savedFinancialData = await this.financialDataRepository.save(financialData);
     
-    // Create base customer entity
+    // Create base customer entity with owner information
     const customer = this.customerRepository.create({
       name: createDto.name,
       type: CustomerType.FINANCIAL,
       status: CustomerStatus.PENDING,
-      email: createDto.contacts?.general?.email || 'no-email@example.com',
-      phone: createDto.contacts?.general?.phone || 'N/A',
+      email: createDto.contacts.general.email,
+      phone: createDto.contacts.general.phone,
       address: createDto.address?.headquarters,
       financialData: savedFinancialData,
+      createdBy: auth0Id,
+      ownerId: creatingUser.id,
+      ownerEmail: creatingUser.email,
+      owner: {
+        id: creatingUser.id,
+        name: creatingUser.name,
+        email: creatingUser.email,
+        phone: creatingUser.phone,
+      },
     });
     
     const savedCustomer = await this.customerRepository.save(customer);
+    
+    // Associate the creating user with the institution as OWNER
+    creatingUser.customerId = savedCustomer.id;
+    creatingUser.financialInstitutionId = savedCustomer.id;
+    creatingUser.userType = UserType.FINANCIAL_INSTITUTION;
+    creatingUser.isCompanyOwner = true;
+    creatingUser.accountType = AccountType.OWNER;
+    await this.userRepository.save(creatingUser);
     
     // Publish event to Kafka
     await this.customerEventsProducer.emitInstitutionCreated({
@@ -100,6 +152,43 @@ export class InstitutionService {
     });
     
     return this.mapToFinancialInstitutionDto(savedCustomer);
+  }
+
+  /**
+   * Validation method to ensure all financial institutions have valid owners
+   */
+  async validateInstitutionOwnership(): Promise<{ valid: boolean, issues: string[] }> {
+    const issues: string[] = [];
+    
+    // Find all financial institutions without ownerId
+    const institutionsWithoutOwner = await this.customerRepository.find({
+      where: { 
+        type: CustomerType.FINANCIAL, 
+        ownerId: IsNull() 
+      }
+    });
+    
+    institutionsWithoutOwner.forEach(institution => {
+      issues.push(`Financial Institution "${institution.name}" (ID: ${institution.id}) has no owner assigned`);
+    });
+    
+    // Find all institutions where ownerId doesn't correspond to an existing user
+    const institutionsWithInvalidOwner = await this.customerRepository
+      .createQueryBuilder('customer')
+      .leftJoin('users', 'user', 'user.id = customer.ownerId')
+      .where('customer.type = :type', { type: CustomerType.FINANCIAL })
+      .andWhere('customer.ownerId IS NOT NULL')
+      .andWhere('user.id IS NULL')
+      .getMany();
+    
+    institutionsWithInvalidOwner.forEach(institution => {
+      issues.push(`Financial Institution "${institution.name}" (ID: ${institution.id}) has invalid owner ID: ${institution.ownerId}`);
+    });
+    
+    return {
+      valid: issues.length === 0,
+      issues
+    };
   }
 
   async update(id: string, updateDto: UpdateFinancialInstitutionDto): Promise<FinancialInstitutionResponseDto> {

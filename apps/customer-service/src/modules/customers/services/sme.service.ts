@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Like } from 'typeorm';
+import { Repository, FindOptionsWhere, Like, IsNull } from 'typeorm';
 import { Customer, CustomerStatus, CustomerType } from '../entities/customer.entity';
 import { Sme } from '../entities/sme.entity';
 import { SmeSpecificData } from '../entities/sme-specific-data.entity';
+import { User, UserType, AccountType } from '../../system-users/entities/user.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { 
@@ -13,7 +14,11 @@ import {
   LocationDto, 
   AssociateDto 
 } from '../dto/company.dto';
-import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to generate UUID-like ID
+const generateId = () => {
+  return 'id-' + Math.random().toString(36).substr(2, 16);
+};
 
 @Injectable()
 export class SmeService {
@@ -24,6 +29,8 @@ export class SmeService {
     private readonly smeRepository: Repository<Sme>,
     @InjectRepository(SmeSpecificData)
     private readonly smeDataRepository: Repository<SmeSpecificData>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly customerEventsProducer: CustomerEventsProducer,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
@@ -91,6 +98,22 @@ export class SmeService {
     if (!createCompanyDto.contacts?.phone) {
       throw new BadRequestException('Téléphone de contact requis');
     }
+    if (!auth0Id) {
+      throw new BadRequestException('Un utilisateur authentifié est requis pour créer une entreprise');
+    }
+
+    // Verify that the creating user exists in our system
+    const creatingUser = await this.userRepository.findOne({ where: { auth0Id } });
+    if (!creatingUser) {
+      throw new BadRequestException(`L'utilisateur avec l'ID Auth0 ${auth0Id} n'existe pas dans le système`);
+    }
+
+    // Ensure owner information is provided or use creating user
+    const ownerInfo = createCompanyDto.owner || {
+      name: creatingUser.name,
+      email: creatingUser.email,
+      id: creatingUser.id
+    };
 
     // Create base customer entity
     const customer = this.customerRepository.create({
@@ -100,6 +123,9 @@ export class SmeService {
       type: CustomerType.SME,
       status: CustomerStatus.PENDING,
       createdBy: auth0Id,
+      ownerId: creatingUser.id, // Ensure owner is set
+      ownerEmail: creatingUser.email,
+      owner: ownerInfo,
     });
     
     const savedCustomerResult = await this.customerRepository.save(customer);
@@ -127,7 +153,7 @@ export class SmeService {
       // Map from createCompanyDto to SmeSpecificData fields
       address: createCompanyDto.address,
       contacts: createCompanyDto.contacts,
-      owner: createCompanyDto.owner,
+      owner: ownerInfo, // Use the validated owner info
     });
     
     const savedSmeDataResult = await this.smeDataRepository.save(smeData);
@@ -136,6 +162,14 @@ export class SmeService {
     // Update customer with SME data reference
     savedCustomer.smeData = savedSmeData;
     await this.customerRepository.save(savedCustomer);
+
+    // Associate the creating user with the company as OWNER
+    creatingUser.customerId = savedCustomer.id;
+    creatingUser.companyId = savedCustomer.id;
+    creatingUser.userType = UserType.SME;
+    creatingUser.isCompanyOwner = true;
+    creatingUser.accountType = AccountType.OWNER;
+    await this.userRepository.save(creatingUser);
     
     // Publish event to Kafka
     await this.customerEventsProducer.emitSmeCreated({
@@ -150,6 +184,43 @@ export class SmeService {
         smeData: savedSmeData
       }
     });
+  }
+
+  /**
+   * Validation method to ensure all companies have valid owners
+   */
+  async validateCompanyOwnership(): Promise<{ valid: boolean, issues: string[] }> {
+    const issues: string[] = [];
+    
+    // Find all companies without ownerId
+    const companiesWithoutOwner = await this.customerRepository.find({
+      where: { 
+        type: CustomerType.SME, 
+        ownerId: IsNull() 
+      }
+    });
+    
+    companiesWithoutOwner.forEach(company => {
+      issues.push(`Company "${company.name}" (ID: ${company.id}) has no owner assigned`);
+    });
+    
+    // Find all companies where ownerId doesn't correspond to an existing user
+    const companiesWithInvalidOwner = await this.customerRepository
+      .createQueryBuilder('customer')
+      .leftJoin('users', 'user', 'user.id = customer.ownerId')
+      .where('customer.type = :type', { type: CustomerType.SME })
+      .andWhere('customer.ownerId IS NOT NULL')
+      .andWhere('user.id IS NULL')
+      .getMany();
+    
+    companiesWithInvalidOwner.forEach(company => {
+      issues.push(`Company "${company.name}" (ID: ${company.id}) has invalid owner ID: ${company.ownerId}`);
+    });
+    
+    return {
+      valid: issues.length === 0,
+      issues
+    };
   }
 
   async update(id: string, updateCompanyDto: UpdateCompanyDto): Promise<CompanyResponseDto> {
@@ -280,7 +351,7 @@ export class SmeService {
     // Add locationId to the location
     const newLocation = {
       ...locationDto,
-      id: uuidv4(), // Generate a unique ID for the location
+      id: generateId(), // Generate a unique ID for the location
     };
     
     // Add the new location
@@ -343,7 +414,7 @@ export class SmeService {
     // Add associateId to the associate
     const newAssociate = {
       ...associateDto,
-      id: uuidv4(), // Generate a unique ID for the associate
+      id: generateId(), // Generate a unique ID for the associate
     };
     
     // Add the new associate

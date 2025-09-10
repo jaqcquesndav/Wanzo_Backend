@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UploadedFile, UseInterceptors, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UploadedFile, UseInterceptors, HttpCode, HttpStatus, ParseUUIDPipe, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { InstitutionService } from '../services/institution.service';
@@ -42,8 +42,9 @@ export class FinancialInstitutionController {
   })
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createFinancialInstitutionDto: CreateFinancialInstitutionDto): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
-    const institution = await this.institutionService.create(createFinancialInstitutionDto);
+  async create(@Body() createFinancialInstitutionDto: CreateFinancialInstitutionDto, @Req() req: any): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
+    const auth0Id = req.user?.sub;
+    const institution = await this.institutionService.create(createFinancialInstitutionDto, auth0Id);
     return {
       success: true,
       data: institution
