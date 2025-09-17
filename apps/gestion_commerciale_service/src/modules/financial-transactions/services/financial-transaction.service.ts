@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, Repository, Between, Like, In, FindOptionsWhere } from 'typeorm';
 import { FinancialTransaction, TransactionType, TransactionStatus } from '../entities/financial-transaction.entity';
 import { TransactionCategory } from '../entities/transaction-category.entity';
@@ -16,6 +16,7 @@ export class FinancialTransactionService {
     private transactionRepository: Repository<FinancialTransaction>,
     @InjectRepository(TransactionCategory)
     private categoryRepository: Repository<TransactionCategory>,
+    @InjectDataSource()
     private dataSource: DataSource,
   ) {}
 

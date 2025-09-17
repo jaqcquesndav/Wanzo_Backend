@@ -12,13 +12,16 @@ import { JwtBlacklistGuard } from './guards/jwt-blacklist.guard';
 import { HttpModule } from '@nestjs/axios';
 import { SharedModule } from '../shared/shared.module';
 import { EventsModule } from '../events/events.module';
+import { CompanyModule } from '../company/company.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User, TokenBlacklist } from './entities';
+import { Company } from '../company/entities/company.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, TokenBlacklist]),
+    TypeOrmModule.forFeature([User, TokenBlacklist, Company]),
     SharedModule,
+    CompanyModule, // Ajouter le CompanyModule pour CompanyService
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

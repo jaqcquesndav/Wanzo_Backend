@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, Repository, DeepPartial, FindOptionsWhere, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Sale, SaleStatus } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
@@ -25,6 +25,7 @@ export class SalesService {
     private readonly productRepository: Repository<Product>,
     @Inject(forwardRef(() => CustomersService))
     private readonly customersService: CustomersService,
+    @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
 

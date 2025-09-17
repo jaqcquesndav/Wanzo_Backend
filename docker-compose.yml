@@ -41,7 +41,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,adha-ai-service,customer-service
+      POSTGRES_MULTIPLE_DATABASES: admin_service,accounting_service,analytics_service,portfolio_institution_service,gestion_commerciale_service,adha_ai_service,customer_service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -67,7 +67,7 @@ services:
       - AUTH_SERVICE_URL=http://kiota-admin-service:3001
       - ADMIN_SERVICE_URL=http://kiota-admin-service:3001
       - ANALYTICS_SERVICE_URL=http://kiota-analytics-service:3002
-      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service:3003
+      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service:3001
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service:3006
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
@@ -114,7 +114,7 @@ services:
       - AUTH_SERVICE_URL=http://kiota-admin-service-dev:3001
       - ADMIN_SERVICE_URL=http://kiota-admin-service-dev:3001
       - ANALYTICS_SERVICE_URL=http://kiota-analytics-service-dev:3002
-      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service-dev:3003
+      - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service-dev:3001
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service-dev:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service-dev:3006
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
@@ -282,7 +282,7 @@ services:
       - ./apps/accounting-service/src:/app/apps/accounting-service/src
       - ./packages/shared/src:/app/packages/shared/src
       - /app/apps/accounting-service/node_modules # Anonymous volume
-    command: yarn start:dev
+    command: yarn workspace @kiota-suit/accounting-service dev
     depends_on:
       - postgres
       - kafka

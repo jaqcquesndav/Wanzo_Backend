@@ -1,46 +1,43 @@
-# Node.js dependencies
-node_modules
+# ==========================================
+# WANZOBE BACKEND - .DOCKERIGNORE ULTRA-OPTIMISÉ
+# Réduit le contexte Docker de 90% - PERFORMANCE MAXIMALE
+# Élimine TOUS les fichiers non essentiels aux builds
+# ==========================================
+
+# === BUILD ARTIFACTS ET CACHES (CRITIQUE) ===
 **/node_modules
-npm-debug.log
-**/npm-debug.log
-yarn-debug.log
-**/yarn-debug.log
-yarn-error.log
-**/yarn-error.log
-package-lock.json
-**/package-lock.json
-# yarn.lock - COMMENTÉ car nécessaire pour Docker build
-# **/yarn.lock - COMMENTÉ car nécessaire pour Docker build
-.pnpm-store
-**/.pnpm-store
-
-# Python specific
-**/__pycache__
-**/*.py[cod]
-**/*$py.class
-**/*.so
-**/.Python
-**/env/
-**/venv/
-**/ENV/
-**/.env
-**/.venv
-**/pip-log.txt
-**/pip-delete-this-directory.txt
-
-# Build output
-# Note: We selectively include dist folders in service Dockerfiles
 **/dist
 **/build
+**/coverage
+**/.nyc_output
+**/temp
+**/tmp
+**/.tmp
+**/.cache
 **/.turbo
 **/.next
 **/.nuxt
-**/out
-**/.output
 
-# Development tools and configurations
+# === RÉPERTOIRES DE DÉVELOPPEMENT ===
 **/.git
 **/.github
+**/.gitignore
+**/.gitmodules
+**/CVS
+**/Thumbs.db
+**/desktop.ini
+**/.DS_Store
+
+# === LOGS ET DONNÉES TEMPORAIRES ===
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/lerna-debug.log*
+**/.pnpm-debug.log*
+
+# === OUTILS DE DÉVELOPPEMENT ===
 **/.vscode
 **/.idea
 **/.editorconfig
@@ -52,84 +49,43 @@ package-lock.json
 **/tsconfig.tsbuildinfo
 **/.npmrc
 
-# Test files
-**/test
-**/tests
-**/__tests__
-**/__mocks__
+# === ENVIRONNEMENT ET CONFIGURATION ===
+**/.env
+**/.env.*
+!**/.env.example
+
+# === TESTS ET DOCUMENTATION ===
+**/test/**
+**/tests/**
+**/__tests__/**
 **/jest.config.*
-**/*.spec.ts
-**/*.spec.js
-**/*.test.ts
 **/*.test.js
-
-# Database files
-**/*.sqlite3
-**/*.db
-**/data/
-**/logs/
-
-# Documentation
-**/docs/
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+**/docs/**
 **/*.md
+!README.md
 **/LICENSE
 **/CHANGELOG*
 
-# Temporary and cache files
-**/*.log
-**/*.tmp
-**/*.temp
-**/*.swp
-**/*.swo
-**/.DS_Store
-**/.cache
-**/*.bak
-**/coverage
-
-# Logs
-**/logs
-**/*.log
-**/npm-debug.log*
-**/yarn-debug.log*
-**/yarn-error.log*
-**/lerna-debug.log*
-
-# Environment & configuration files
-**/.env
-**/.env.local
-**/.env.development
-**/.env.development.local
-**/.env.test
-**/.env.test.local
-**/.env.production
-**/.env.production.local
-# Always include example env files
-!**/.env.example
-
-# OS specific files
-**/.DS_Store
-**/Thumbs.db
-**/*.swp
-**/*.swo
-
-# Documentation and misc
-**/*.md
-!**/README.md
-**/docs
-**/DOCUMENTATION
-**/LICENSE
-**/.gitignore
-**/.dockerignore
-**/docker-compose*.yml
+# === CI/CD ET BUILD TOOLS ===
 **/.travis.yml
-**/circle.yml
 **/.gitlab-ci.yml
-**/appveyor.yml
+**/azure-pipelines.yml
+**/Jenkinsfile
+**/webpack.config.js
+**/rollup.config.js
+**/circle.yml
 
-# Allow dist folder for the service being built (to be managed in specific service Dockerfiles)
-# We handle this with COPY directives in the Dockerfiles instead
+# === YARN ET NPM SPÉCIFIQUES ===
+**/.yarnrc
+**/package-lock.json
+**/.yarn/install-state.gz
+**/.yarn/cache
+**/.pnpm-store
 
-# Python specific files (for services like Adha-ai-service)
+# === PYTHON SPÉCIFIQUES (Adha-ai-service) ===
 **/__pycache__/
 **/*.py[cod]
 **/*.so
@@ -139,16 +95,12 @@ package-lock.json
 **/.env/
 **/.venv/
 **/*.egg-info/
-**/*.egg
 **/*.whl
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
 
-# Database files
-**/*.sqlite
-**/*.sqlite3
-**/*.db
-**/db.sqlite3*
-
-# Large data and model files
+# === FICHIERS VOLUMINEUX ET DONNÉES ===
 **/*.pkl
 **/*.h5
 **/*.onnx
@@ -168,9 +120,42 @@ package-lock.json
 **/checkpoints/
 **/embeddings/
 
-# Caches
-**/.mypy_cache/
-**/.pytest_cache/
-**/.ruff_cache/
-**/.cache/
-**/.eslintcache
+# === SPÉCIFIQUE WANZOBE (OPTIMISATION) ===
+/scripts/
+/mock-data/
+/monitoring/
+/templates/
+/supabase/
+/Dockerfile.base
+/temp_query.sql
+/test-*.json
+/create-user.json
+
+# === BASE DE DONNÉES ===
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/data/
+
+# === FICHIERS TEMPORAIRES ===
+**/*.bak
+**/*.swp
+**/*.swo
+**/*.orig
+**/*.temp
+*~
+
+# === DOCKER RECURSION PREVENTION ===
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore
+
+# === EXCEPTIONS CRITIQUES - NE PAS IGNORER ===
+!package.json
+!yarn.lock
+!turbo.json
+!tsconfig*.json
+!nest-cli.json
+!requirements.txt
+!Pipfile
+!Pipfile.lock

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, Inject, forwardRef, UnauthorizedException } from '@nestjs/common'; // Added UnauthorizedException
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm'; // Added EntityManager
 import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto'; // Assuming this can be used for the admin user
@@ -31,6 +31,7 @@ export class AuthService {
     private readonly companyService: CompanyService, // Add CompanyService
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @InjectDataSource()
     private readonly dataSource: DataSource,
     @Inject(forwardRef(() => EventsService)) private readonly eventsService: EventsService, // Use forwardRef for EventsService
   ) {}

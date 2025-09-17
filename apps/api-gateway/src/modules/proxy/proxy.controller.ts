@@ -215,7 +215,7 @@ export class ProxyController {
     try {
       // Extract path after 'accounting/api/v1' and add /v1 prefix for the accounting service
       const targetPath = path.replace('/accounting/api/v1', '/v1');
-      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service-dev:3003');
+      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service:3001');
       const targetUrl = `${accountingServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);
@@ -367,7 +367,7 @@ export class ProxyController {
     try {
       // Extract path after 'accounting' and add /v1 prefix for the accounting service
       const targetPath = path.replace('/accounting', '/v1');
-      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service-dev:3003');
+      const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service:3001');
       const targetUrl = `${accountingServiceUrl}${targetPath}`;
       
       this.logger.log(`📡 Forwarding to: ${targetUrl}`);

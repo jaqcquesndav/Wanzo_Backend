@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 // Interface pour les métriques de risque temporelles
 export interface RiskMetric {
@@ -60,6 +60,7 @@ export class TimeseriesRiskService {
   private readonly logger = new Logger(TimeseriesRiskService.name);
 
   constructor(
+    @InjectDataSource()
     private dataSource: DataSource
   ) {}
 

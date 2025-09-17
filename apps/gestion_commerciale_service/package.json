@@ -5,8 +5,8 @@
   "scripts": {
     "build:docker": "echo \"Bypassing build for Docker\" && mkdir -p dist/src && echo \"console.log(\\\"Mock service running\\\")\" > dist/src/main.js",
     "build": "nest build",
-    "start": "node dist/main.js",
-    "dev": "nest build && node dist/main.js",
+    "start": "node dist/apps/gestion_commerciale_service/src/main.js",
+    "dev": "nest build && node dist/apps/gestion_commerciale_service/src/main.js",
     "start:dev": "nest start --watch",
     "debug": "nest start --debug --watch",
     "test": "jest --passWithNoTests",

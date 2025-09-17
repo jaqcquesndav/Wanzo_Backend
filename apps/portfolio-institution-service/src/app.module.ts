@@ -46,7 +46,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         port: configService.get<number>('DB_PORT', 5432),
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'password'),
-        database: configService.get('DB_DATABASE', 'portfolio_institution_service'),
+        database: configService.get('DB_DATABASE', 'portfolio-institution-service'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('NODE_ENV') === 'development',
       }),

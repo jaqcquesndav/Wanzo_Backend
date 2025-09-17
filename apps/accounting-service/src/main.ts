@@ -1,7 +1,7 @@
 // main.ts
 import './tracing';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe, VersioningType, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
@@ -73,7 +73,14 @@ async function bootstrap() {
   });
 
   // Set global prefix to ensure all routes are properly accessible via API gateway
-  app.setGlobalPrefix('v1');
+  // BUT exclude health endpoints to keep them accessible at /health for Docker health checks
+  app.setGlobalPrefix('v1', {
+    exclude: [
+      { path: 'health', method: RequestMethod.ALL },
+      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'metrics', method: RequestMethod.ALL }
+    ],
+  });
 
   // 3) Security middleware
   app.use(helmet());
@@ -121,10 +128,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 7) Démarre l'app sur le port 3003
-  await app.listen(3003);
+  // 7) Démarre l'app sur le port configuré
+  const port = process.env.PORT || 3003;
+  await app.listen(port);
 
-  // ➜ TON endpoint `/metrics` se trouvera sur http://localhost:3003/metrics
+  console.log(`🚀 Accounting Service started on port ${port}`);
+  console.log(`📊 Metrics available at http://localhost:${port}/metrics`);
+  console.log(`📖 API Documentation at http://localhost:${port}/api`);
+
+  // ➜ TON endpoint `/metrics` se trouvera sur http://localhost:${port}/metrics
   //    Parce que dans AppModule -> MonitoringModule -> PrometheusController
 }
 bootstrap();

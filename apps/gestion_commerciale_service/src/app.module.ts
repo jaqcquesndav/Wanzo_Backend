@@ -12,7 +12,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
 // Souscriptions gérées exclusivement par customer-service
 import { AuthModule as ExistingAuthModule } from './modules/auth/auth.module';
-// import { CompanyModule } from './modules/company/company.module'; // Temporairement désactivé
+import { CompanyModule } from './modules/company/company.module'; // Activé maintenant
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { AdhaModule } from './modules/adha/adha.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
@@ -30,6 +30,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 // Nouveau module d'authentification avec intégration à la plateforme
 import { AuthModule } from './auth/auth.module';
 import { FinancialTransactionsModule } from './modules/financial-transactions/financial-transactions.module';
+import { CommonModule } from './common/common.module';
 
 // Gardes, intercepteurs et middleware pour l'intégration avec la plateforme
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -52,28 +53,37 @@ import { TokenBlacklist } from './modules/auth/entities';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DATABASE_HOST', 'localhost'),
-        port: configService.get<number>('DATABASE_PORT', 5432),
-        username: configService.get<string>('DATABASE_USER', 'postgres'),
-        password: configService.get<string>('DATABASE_PASSWORD', 'postgres_password'),
-        database: configService.get<string>('DATABASE_NAME', 'wanzo_gestion_commerciale_db'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Force synchronize to true to create tables
-        logging: true,     // Enable logging for debugging
-        autoLoadEntities: true,
-        entitySkipConstructor: true,
-        connectTimeoutMS: 10000,
-        retryAttempts: 20,
-        retryDelay: 3000,
-        maxQueryExecutionTime: 10000
-      }),
+      useFactory: (configService: ConfigService) => {
+        const config = {
+          type: 'postgres' as const,
+          host: configService.get<string>('DATABASE_HOST', 'localhost'),
+          port: configService.get<number>('DATABASE_PORT', 5432),
+          username: configService.get<string>('DATABASE_USER', 'postgres'),
+          password: configService.get<string>('DATABASE_PASSWORD', 'Root12345'),
+          database: configService.get<string>('DATABASE_NAME', 'gestion_commerciale_service'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: true, // Force synchronize to true to create tables
+          logging: true,     // Enable logging for debugging
+          autoLoadEntities: true,
+          entitySkipConstructor: true,
+          connectTimeoutMS: 10000,
+          retryAttempts: 20,
+        };
+        console.log('Database configuration:', {
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          database: config.database,
+          password: config.password ? '[REDACTED]' : 'EMPTY'
+        });
+        return config;
+      },
       inject: [ConfigService],
     }),
     // Modules d'intégration avec la plateforme
     AuthModule, // Nouveau module d'authentification avec la plateforme
     MonitoringModule, // Module de monitoring Prometheus
+    CommonModule, // Module pour les services communs (SubscriptionService, etc.)
     
     // Modules existants
     SharedModule,
@@ -84,7 +94,7 @@ import { TokenBlacklist } from './modules/auth/entities';
     FinancialTransactionsModule,  // Module pour les transactions financières
     // SubscriptionsModule,       // Temporairement désactivé - à réintégrer après adaptation
     ExistingAuthModule,           // Ancien module d'auth renommé en import
-    // CompanyModule,             // Temporairement désactivé - à réintégrer après adaptation
+    CompanyModule,                // Activé maintenant pour les dépendances AuthService
     SuppliersModule,
     EntitiesModule,
     AdhaModule,

@@ -112,7 +112,12 @@ export class AppModule implements NestModule {
     // Application de tes middlewares
     consumer
       .apply(LoggerMiddleware, RateLimitMiddleware, AuthMiddleware)
-      .exclude('health(.*)')
+      .exclude(
+        'health',
+        'health/(.*)',
+        'metrics',
+        'metrics/(.*)'
+      )
       .forRoutes('*');
   }
 }
