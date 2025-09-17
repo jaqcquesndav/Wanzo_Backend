@@ -3,16 +3,22 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./",
+    "moduleResolution": "node",
     "paths": {
       "@/*": ["src/*"],
       "@wanzobe/shared/*": ["../../packages/shared/src/*"],
       "@wanzobe/types": ["../../packages/types"]
     },
     "typeRoots": [
-      "../../node_modules/@types"
+      "../../node_modules/@types",
+      "node_modules/@types"
     ],
     "skipLibCheck": true,
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "target": "ES2020"
   },
   "include": ["src/**/*", "../../packages/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]

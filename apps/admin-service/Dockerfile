@@ -9,17 +9,24 @@ FROM wanzo-deps-base AS builder
 
 LABEL service="admin-service" version="2.0-optimized"
 
+# Code source des packages partagés (nécessaires pour la compilation)
+COPY packages/ ./packages/
+
 # Code source du service SEULEMENT
 COPY apps/admin-service/src ./apps/admin-service/src/
 COPY apps/admin-service/tsconfig*.json apps/admin-service/nest-cli.json ./apps/admin-service/
 
-# Build du service (shared packages déjà buildés)
+# Build des packages partagés d'abord
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build
+
+# Build du service (maintenant que les packages shared sont disponibles)
 RUN yarn workspace @kiota-suit/admin-service build
 
 # ======== STAGE 2: PRODUCTION ultra-léger ========
 FROM wanzo-production-base AS production
 
-# Service-specific package.json
+# Service-specific package.json (already installed in base)
 COPY --chown=nodeuser:nodeuser apps/admin-service/package.json ./apps/admin-service/
 
 # Artefacts buildés du service uniquement
@@ -35,7 +42,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
 
 EXPOSE 3001
 
-# Point d'entrée optimisé
+# Démarrage optimisé
 WORKDIR /app/apps/admin-service
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/apps/admin-service/src/main.js"]

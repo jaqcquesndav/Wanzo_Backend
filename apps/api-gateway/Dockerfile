@@ -9,18 +9,25 @@ FROM wanzo-deps-base AS builder
 
 LABEL service="api-gateway" version="2.0-optimized"
 
+# Code source des packages partagés (nécessaires pour la compilation)
+COPY packages/ ./packages/
+
 # Code source du service SEULEMENT
 COPY apps/api-gateway/src ./apps/api-gateway/src/
 COPY apps/api-gateway/tsconfig*.json ./apps/api-gateway/
 COPY apps/api-gateway/nest-cli.json ./apps/api-gateway/
 
-# Build du service (shared packages déjà buildés)
+# Build des packages partagés d'abord
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build
+
+# Build du service (maintenant que les packages shared sont disponibles)
 RUN yarn workspace @kiota-suit/api-gateway build
 
 # ======== STAGE 2: PRODUCTION ultra-léger ========
 FROM wanzo-production-base AS production
 
-# Service-specific package.json
+# Service-specific package.json (already installed in base)
 COPY --chown=nodeuser:nodeuser apps/api-gateway/package.json ./apps/api-gateway/
 
 # Artefacts buildés du service uniquement

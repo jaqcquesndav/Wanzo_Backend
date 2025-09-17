@@ -1,4 +1,41 @@
 services:
+  # ===========================================
+  # WANZOBE BASE IMAGES - OPTIMISATION CRITIQUE
+  # Élimine 16 installations yarn dupliquées
+  # ===========================================
+  
+  # Base image avec toutes les dépendances
+  wanzo-base:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.base
+      target: wanzo-deps-base
+    image: wanzo-deps-base:latest
+    profiles:
+      - build-base
+      - all
+    networks:
+      - wanzo
+
+  # Base image de production
+  wanzo-production:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.base
+      target: wanzo-production-base
+    image: wanzo-production-base:latest
+    depends_on:
+      - wanzo-base
+    profiles:
+      - build-base
+      - all
+    networks:
+      - wanzo
+
+  # ===========================================
+  # INFRASTRUCTURE SERVICES
+  # ===========================================
+
   # Kafka and Zookeeper services
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -53,6 +90,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # ===========================================
+  # MICROSERVICES - OPTIMISÉS AVEC BASE COMMUNE
+  # ===========================================
 
   # Service API Gateway - Point d'entrée unique
   api-gateway:

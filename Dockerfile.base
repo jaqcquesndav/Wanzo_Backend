@@ -74,7 +74,16 @@ COPY --chown=nodeuser:nodeuser packages/customer-sync/package.json ./packages/cu
 COPY --chown=nodeuser:nodeuser packages/types/package.json ./packages/types/
 COPY --chown=nodeuser:nodeuser packages/tsconfig/package.json ./packages/tsconfig/
 
-# Installation production uniquement (pas de dev dependencies)
+# Service package.json files for complete dependency resolution
+COPY --chown=nodeuser:nodeuser apps/accounting-service/package.json ./apps/accounting-service/
+COPY --chown=nodeuser:nodeuser apps/admin-service/package.json ./apps/admin-service/
+COPY --chown=nodeuser:nodeuser apps/analytics-service/package.json ./apps/analytics-service/
+COPY --chown=nodeuser:nodeuser apps/api-gateway/package.json ./apps/api-gateway/
+COPY --chown=nodeuser:nodeuser apps/customer-service/package.json ./apps/customer-service/
+COPY --chown=nodeuser:nodeuser apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
+COPY --chown=nodeuser:nodeuser apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
+
+# Installation complète pour toutes les dépendances (production uniquement)
 RUN yarn config set network-timeout 600000 && \
     yarn install --frozen-lockfile --production=true --ignore-engines && \
     yarn cache clean && \

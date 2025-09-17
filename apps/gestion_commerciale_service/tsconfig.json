@@ -18,7 +18,11 @@
       "node_modules/@types"
     ],
     "moduleResolution": "node",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "target": "ES2020"
   },
   "include": ["src/**/*", "globals.d.ts", "../../packages/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]

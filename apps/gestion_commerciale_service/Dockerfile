@@ -9,18 +9,25 @@ FROM wanzo-deps-base AS builder
 
 LABEL service="gestion-commerciale-service" version="2.0-optimized"
 
+# Code source des packages partagés (nécessaires pour la compilation)
+COPY packages/ ./packages/
+
 # Code source du service SEULEMENT
 COPY apps/gestion_commerciale_service/src ./apps/gestion_commerciale_service/src/
 COPY apps/gestion_commerciale_service/tsconfig*.json ./apps/gestion_commerciale_service/
 COPY apps/gestion_commerciale_service/nest-cli.json ./apps/gestion_commerciale_service/
 
-# Build du service (shared packages déjà buildés)
+# Build des packages partagés d'abord
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build
+
+# Build du service (maintenant que les packages shared sont disponibles)
 RUN yarn workspace @wanzobe/gestion-commerciale-service build
 
 # ======== STAGE 2: PRODUCTION ultra-léger ========
 FROM wanzo-production-base AS production
 
-# Service-specific package.json
+# Service-specific package.json (already installed in base)
 COPY --chown=nodeuser:nodeuser apps/gestion_commerciale_service/package.json ./apps/gestion_commerciale_service/
 
 # Artefacts buildés du service uniquement
@@ -38,4 +45,4 @@ EXPOSE 3006
 # Démarrage optimisé
 WORKDIR /app/apps/gestion_commerciale_service
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/apps/gestion_commerciale_service/src/main.js"]

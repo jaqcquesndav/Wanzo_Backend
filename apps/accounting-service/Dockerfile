@@ -9,18 +9,25 @@ FROM wanzo-deps-base AS builder
 
 LABEL service="accounting-service" version="2.0-optimized"
 
+# Code source des packages partagés (nécessaires pour la compilation)
+COPY packages/ ./packages/
+
 # Code source du service SEULEMENT (packages déjà dans base)
 COPY apps/accounting-service/src ./apps/accounting-service/src/
 COPY apps/accounting-service/tsconfig*.json ./apps/accounting-service/
 COPY apps/accounting-service/nest-cli.json ./apps/accounting-service/
 
-# Build du service (shared packages déjà buildés dans base)
+# Build des packages partagés d'abord
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build
+
+# Build du service (maintenant que les packages shared sont disponibles)
 RUN yarn workspace @kiota-suit/accounting-service build
 
 # ======== STAGE 2: PRODUCTION ultra-léger ========
 FROM wanzo-production-base AS production
 
-# Service-specific package.json
+# Service-specific package.json (already installed in base)
 COPY --chown=nodeuser:nodeuser apps/accounting-service/package.json ./apps/accounting-service/
 
 # Artefacts buildés du service uniquement

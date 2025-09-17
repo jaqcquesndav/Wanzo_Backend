@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database pour standalone
+  postgres-standalone:
+    image: postgres:14
+    container_name: accounting-postgres-standalone
+    ports:
+      - "5433:5432"  # Port différent pour éviter les conflits
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: accounting_service
+    volumes:
+      - postgres_standalone_data:/var/lib/postgresql/data
+    networks:
+      - accounting-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Kafka et Zookeeper pour standalone
+  zookeeper-standalone:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: accounting-zookeeper-standalone
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2182  # Port différent
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2182"
+    networks:
+      - accounting-standalone
+    restart: unless-stopped
+
+  kafka-standalone:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: accounting-kafka-standalone
+    depends_on:
+      - zookeeper-standalone
+    ports:
+      - "9093:9092"  # Port différent
+      - "29093:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-standalone:2182
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-standalone:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - accounting-standalone
+    restart: unless-stopped
+
+  # Accounting Service Standalone
+  accounting-service-standalone:
+    build:
+      context: ../..  # Build depuis la racine du projet
+      dockerfile: ./apps/accounting-service/Dockerfile
+    container_name: accounting-service-standalone
+    ports:
+      - "3004:3001"  # Port différent pour éviter les conflits
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres-standalone
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password123
+      - DB_DATABASE=accounting_service
+      - KAFKA_BROKERS=kafka-standalone:29092
+      - KAFKA_CLIENT_ID=accounting-service-standalone
+      - KAFKA_GROUP_ID=accounting-service-standalone-group
+      # Pas d'Auth0 pour le standalone - on simplifie
+    volumes:
+      - ./src:/app/apps/accounting-service/src
+      - ../../packages/shared/src:/app/packages/shared/src
+      - /app/apps/accounting-service/node_modules
+    command: yarn workspace @kiota-suit/accounting-service dev
+    depends_on:
+      postgres-standalone:
+        condition: service_healthy
+      kafka-standalone:
+        condition: service_started
+    networks:
+      - accounting-standalone
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_standalone_data:
+
+networks:
+  accounting-standalone:
+    driver: bridge

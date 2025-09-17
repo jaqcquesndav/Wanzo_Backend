@@ -9,18 +9,25 @@ FROM wanzo-deps-base AS builder
 
 LABEL service="customer-service" version="2.0-optimized"
 
+# Code source des packages partagés (nécessaires pour la compilation)
+COPY packages/ ./packages/
+
 # Code source du service SEULEMENT
 COPY apps/customer-service/src ./apps/customer-service/src/
 COPY apps/customer-service/tsconfig*.json ./apps/customer-service/
 COPY apps/customer-service/nest-cli.json ./apps/customer-service/
 
-# Build du service (shared packages déjà buildés)
+# Build des packages partagés d'abord
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzobe/customer-sync build
+
+# Build du service (maintenant que les packages shared sont disponibles)
 RUN yarn workspace @wanzobe/customer-service build
 
 # ======== STAGE 2: PRODUCTION ultra-léger ========
 FROM wanzo-production-base AS production
 
-# Service-specific package.json
+# Service-specific package.json (already installed in base)
 COPY --chown=nodeuser:nodeuser apps/customer-service/package.json ./apps/customer-service/
 
 # Artefacts buildés du service uniquement  
