@@ -134,7 +134,7 @@ services:
       - analytics-service
       - portfolio-institution-service
       - gestion-commerciale-service
-      - adha-ai-service
+      # - adha-ai-service  # Temporairement désactivé pour éviter le build PyTorch/CUDA
       - customer-service
     networks:
       - wanzo

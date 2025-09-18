@@ -38,5 +38,7 @@ pytest-asyncio>=0.21.0
 pytest-mock>=3.11.1
 pytest-cov>=4.1.0
 
-# REMARQUE: torch, torchvision, torchaudio sont EXCLUS
-# car ils sont déjà présents dans l'image pytorch/pytorch:2.2.0-cpu
+# PyTorch CPU version (beaucoup plus léger que CUDA)
+torch>=2.0.0,<2.3.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.15.0,<0.18.0 --index-url https://download.pytorch.org/whl/cpu
+torchaudio>=2.0.0,<2.3.0 --index-url https://download.pytorch.org/whl/cpu

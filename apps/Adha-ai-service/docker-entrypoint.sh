@@ -36,3 +36,4 @@ else
   echo "Exécution de la commande: $@"
   exec "$@"
 fi
+
