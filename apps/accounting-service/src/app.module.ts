@@ -53,10 +53,9 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'password'),
         database: configService.get('DB_DATABASE', 'accounting'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        autoLoadEntities: true,
         synchronize: true, // Force synchronize to true to create tables
         logging: true,     // Enable logging for debugging
-        autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),    // 3) Import de tous tes modules métier
@@ -114,9 +113,9 @@ export class AppModule implements NestModule {
       .apply(LoggerMiddleware, RateLimitMiddleware, AuthMiddleware)
       .exclude(
         'health',
-        'health/(.*)',
+        'v1/health',
         'metrics',
-        'metrics/(.*)'
+        'v1/metrics'
       )
       .forRoutes('*');
   }

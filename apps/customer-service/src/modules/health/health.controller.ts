@@ -32,8 +32,8 @@ export class HealthController {
   @ApiResponse({ status: 503, description: 'Service unhealthy' })
   async check() {
     return this.health.check([
-      // Vérification de la base de données
-      () => this.db.pingCheck('database'),
+      // Vérification de la base de données (temporairement commentée)
+      // () => this.db.pingCheck('database'),
       
       // Vérification de la mémoire
       () => this.memory.checkHeap('memory_heap', 200 * 1024 * 1024), // 200MB

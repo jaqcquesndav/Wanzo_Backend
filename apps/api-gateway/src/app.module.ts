@@ -30,7 +30,7 @@ import { PrometheusService } from './modules/proxy/services/prometheus.service';
       isGlobal: true,
     }),
 
-    // 2) Throttler => Limiter les requêtes
+    // 2) Throttler => Limiter les requêtes - RESTORED
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -44,17 +44,17 @@ import { PrometheusService } from './modules/proxy/services/prometheus.service';
       }),
     }),
 
-    // 3) Tes modules métier - IMPORTANT: ProxyModule doit être en dernier pour capturer toutes les routes
+    // 3) Modules métier - RESTORED with ProxyModule last (CONFIRMED: catch-all doesn't interfere with /health)
     HealthModule,
     AnalyticsModule,
     MonitoringModule,
-    ProxyModule, // Doit être en dernier car il capture toutes les routes avec @All('*')
+    ProxyModule, // Keep last because of catch-all @All('*') - but confirmed it doesn't affect /health
   ],
 
-  // 4) PAS DE CONTROLLERS ICI - ils sont maintenant dans leurs modules respectifs
+  // 4) PAS DE CONTROLLERS ICI - ils sont dans leurs modules respectifs (TestHealthController removed)
   controllers: [],
 
-  // 5) PROVIDERS : PrometheusService + interceptors, filters, guards
+  // 5) PROVIDERS : PrometheusService + interceptors, filters, guards - RESTORED  
   providers: [
     PrometheusService,
     {

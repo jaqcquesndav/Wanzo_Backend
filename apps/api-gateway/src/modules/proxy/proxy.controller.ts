@@ -13,15 +13,8 @@ export class ProxyController {
     this.logger.log('🚀 ProxyController initialized - Ready to handle requests');
   }
 
-  @Get('health')
-  @ApiOperation({ summary: 'API Gateway Health Check' })
-  async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    this.logger.log('🔍 Health check requested');
-    return {
-      status: 'healthy',
-      timestamp: new Date().toISOString()
-    };
-  }
+  // Health endpoint removed to avoid conflict with HealthModule
+  // The dedicated HealthController in HealthModule handles /health requests
 
   @All('land/api/v1/*')
   @ApiOperation({ 

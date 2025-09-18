@@ -66,21 +66,19 @@ async function bootstrap() {
   // Start all microservices
   await app.startAllMicroservices();
   
-  // 2) Enable versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
+  // TEMPORARY: Disable versioning to test health endpoint
+  // app.enableVersioning({
+  //   type: VersioningType.URI,
+  //   defaultVersion: '1',
+  // });
 
-  // Set global prefix to ensure all routes are properly accessible via API gateway
-  // BUT exclude health endpoints to keep them accessible at /health for Docker health checks
-  app.setGlobalPrefix('v1', {
-    exclude: [
-      { path: 'health', method: RequestMethod.ALL },
-      { path: 'health/(.*)', method: RequestMethod.ALL },
-      { path: 'metrics', method: RequestMethod.ALL }
-    ],
-  });
+  // TEMPORARY: Remove global prefix to test health endpoint
+  // app.setGlobalPrefix('v1', {
+  //   exclude: [
+  //     { path: 'health', method: RequestMethod.GET },
+  //     { path: 'metrics', method: RequestMethod.GET }
+  //   ],
+  // });
 
   // 3) Security middleware
   app.use(helmet());

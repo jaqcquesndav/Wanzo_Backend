@@ -34,7 +34,7 @@ import { EventsModule } from './modules/events/events.module';
         database: configService.get('DB_DATABASE', 'customer_service'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
-        logging: configService.get<boolean>('DB_LOGGING', false),
+        logging: true,  // Force logging pour debug
       }),
     }),
     ClientsModule.registerAsync([

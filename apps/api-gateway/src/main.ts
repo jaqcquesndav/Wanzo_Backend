@@ -1,4 +1,4 @@
-import './tracing';
+import './tracing'; // RESTORED - tracing confirmed not the cause of 503
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
