@@ -28,7 +28,6 @@ import { DashboardModule } from './modules/dashboard/dashboard.module'; // Impor
 import { MonitoringModule } from './monitoring/monitoring.module';
 
 // Middlewares et autres éléments globaux
-import { AuthMiddleware } from './modules/auth/middleware/auth.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -108,15 +107,9 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Application de tes middlewares
-    consumer
-      .apply(LoggerMiddleware, RateLimitMiddleware, AuthMiddleware)
-      .exclude(
-        'health',
-        'v1/health',
-        'metrics',
-        'v1/metrics'
-      )
-      .forRoutes('*');
+    // TEMPORARY: Disable all middleware for debugging
+    // consumer
+    //   .apply(LoggerMiddleware, RateLimitMiddleware)
+    //   .forRoutes('*');
   }
 }

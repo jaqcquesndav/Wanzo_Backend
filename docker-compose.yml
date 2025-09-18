@@ -278,6 +278,10 @@ services:
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
       - PROMETHEUS_PORT=9464
+      # Service URLs for health checks
+      - AUTH_SERVICE_URL=http://kiota-admin-service:3001
+      - ADMIN_SERVICE_URL=http://kiota-admin-service:3001
+      - ANALYTICS_SERVICE_URL=http://kiota-analytics-service:3002
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
@@ -572,7 +576,7 @@ services:
     container_name: kiota-adha-ai-service
     ports:
       - "8002:8002"
-      - "9464:9464" # Port Prometheus standardisé
+      - "9467:9464" # Port Prometheus (résolution conflit avec admin-service)
     environment:
       - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
       - PORT=8002

@@ -358,8 +358,8 @@ export class ProxyController {
     }
     
     try {
-      // Extract path after 'accounting' and add /v1 prefix for the accounting service
-      const targetPath = path.replace('/accounting', '/v1');
+      // Extract path after 'accounting' without adding /v1 prefix since accounting service routes are at root level
+      const targetPath = path.replace('/accounting', '');
       const accountingServiceUrl = this.configService.get('ACCOUNTING_SERVICE_URL', 'http://kiota-accounting-service:3001');
       const targetUrl = `${accountingServiceUrl}${targetPath}`;
       

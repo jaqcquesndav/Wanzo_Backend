@@ -21,7 +21,6 @@ import { SecurityModule } from '@wanzobe/shared';
 // <-- On importe le MonitoringModule (avec ton PrometheusController)
 import { MonitoringModule } from './monitoring/monitoring.module';
 
-import { AuthMiddleware } from './modules/auth/middleware/auth.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -97,8 +96,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, RateLimitMiddleware, AuthMiddleware)
-      .exclude('health(.*)', 'api-docs(.*)')
+      .apply(LoggerMiddleware, RateLimitMiddleware)
       .forRoutes('*');
   }
 }

@@ -1,4 +1,4 @@
-// main.ts
+// TEMPORARY: Re-enable to test tracing disable
 import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType, RequestMethod } from '@nestjs/common';
@@ -127,8 +127,8 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   // 7) Démarre l'app sur le port configuré
-  const port = process.env.PORT || 3003;
-  await app.listen(port);
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Accounting Service started on port ${port}`);
   console.log(`📊 Metrics available at http://localhost:${port}/metrics`);
