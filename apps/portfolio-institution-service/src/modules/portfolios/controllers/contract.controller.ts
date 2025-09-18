@@ -7,7 +7,7 @@ import { ContractService, CreateContractFromRequestParams, ContractFilterDto } f
 import { ContractStatus } from '../entities/contract.entity';
 
 @ApiTags('credit-contracts')
-@Controller('portfolio_inst/portfolios/traditional/credit-contracts')
+@Controller('portfolios/traditional/credit-contracts')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ContractController {

@@ -282,8 +282,8 @@ export class ProxyController {
     }
     
     try {
-      // Extract path after 'portfolio/api/v1' and add /api/v1 prefix for the portfolio service
-      const targetPath = path.replace('/portfolio/api/v1', '/api/v1');
+      // Extract path after 'portfolio/api/v1' and route directly to service root (no /api/v1 prefix)  
+      const targetPath = path.replace('/portfolio/api/v1', '');
       const portfolioServiceUrl = this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://kiota-portfolio-institution-service-dev:3005');
       const targetUrl = `${portfolioServiceUrl}${targetPath}`;
       

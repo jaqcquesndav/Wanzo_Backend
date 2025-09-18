@@ -7,7 +7,7 @@ import { RepaymentService } from '../services/repayment.service';
 import { RepaymentStatus } from '../entities/repayment.entity';
 
 @ApiTags('repayments')
-@Controller('portfolio_inst/portfolios/traditional/repayments')
+@Controller('portfolios/traditional/repayments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class RepaymentController {

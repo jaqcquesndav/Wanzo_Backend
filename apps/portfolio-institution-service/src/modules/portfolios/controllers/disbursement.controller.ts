@@ -7,7 +7,7 @@ import { DisbursementService } from '../services/disbursement.service';
 import { DisbursementStatus } from '../entities/disbursement.entity';
 
 @ApiTags('disbursements')
-@Controller('portfolio_inst/portfolios/traditional/disbursements')
+@Controller('portfolios/traditional/disbursements')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class DisbursementController {

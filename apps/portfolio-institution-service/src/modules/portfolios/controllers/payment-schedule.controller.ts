@@ -5,7 +5,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { PaymentScheduleService, ScheduleGenerationParams } from '../services/payment-schedule.service';
 
 @ApiTags('payment-schedules')
-@Controller('portfolio_inst/portfolios/traditional/payment-schedules')
+@Controller('portfolios/traditional/payment-schedules')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class PaymentScheduleController {

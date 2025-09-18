@@ -33,14 +33,14 @@ COPY --chown=nodeuser:nodeuser apps/api-gateway/package.json ./apps/api-gateway/
 # Artefacts buildés du service uniquement
 COPY --from=builder --chown=nodeuser:nodeuser /app/apps/api-gateway/dist ./apps/api-gateway/dist
 
-# Configuration service (port différent pour gateway)
-ENV PORT=3000
+# Configuration service (port 8000 pour API Gateway)
+ENV PORT=8000
 
 # Health check optimisé
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
-EXPOSE 3000
+EXPOSE 8000
 
 # Démarrage optimisé
 WORKDIR /app/apps/api-gateway
