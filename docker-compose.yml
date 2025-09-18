@@ -193,7 +193,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=admin-service
+      - DB_DATABASE=admin_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=admin-service
       - KAFKA_GROUP_ID=admin-service-group
@@ -237,7 +237,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=admin-service
+      - DB_DATABASE=admin_service
       - KAFKA_BROKERS=kafka:29092
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
@@ -273,7 +273,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=accounting-service
+      - DB_DATABASE=accounting_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=accounting-service
       - KAFKA_GROUP_ID=accounting-service-group
@@ -317,7 +317,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=accounting-service
+      - DB_DATABASE=accounting_service
       - KAFKA_BROKERS=kafka:29092
     volumes:
       - ./apps/accounting-service/src:/app/apps/accounting-service/src
@@ -348,7 +348,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=analytics-service
+      - DB_DATABASE=analytics_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=analytics-service
       - KAFKA_GROUP_ID=analytics-service-group
@@ -392,7 +392,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=analytics-service
+      - DB_DATABASE=analytics_service
       - KAFKA_BROKERS=kafka:29092
     volumes:
       - ./apps/analytics-service/src:/app/apps/analytics-service/src
@@ -425,7 +425,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=portfolio-institution-service
+      - DB_DATABASE=portfolio_institution_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=portfolio-institution-service
       - KAFKA_GROUP_ID=portfolio-institution-service-group
@@ -469,7 +469,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=portfolio-institution-service
+      - DB_DATABASE=portfolio_institution_service
       - KAFKA_BROKERS=kafka:29092
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
@@ -627,7 +627,7 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - DB_DATABASE=customer-service
+      - DB_DATABASE=customer_service
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=customer-service
       - KAFKA_GROUP_ID=customer-service-group
