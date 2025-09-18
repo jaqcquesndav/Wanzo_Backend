@@ -17,7 +17,7 @@ import {
   InstitutionStatusChangedEventData,
   InstitutionStatusType // Added import for InstitutionStatusType
 } from '@wanzobe/shared';
-import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from '../../events/events.module'; // Import the constant
+import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from '../../events/kafka-client.module'; // Import the constant
 
 @Injectable()
 export class InstitutionService {

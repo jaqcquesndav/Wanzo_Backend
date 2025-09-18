@@ -11,7 +11,7 @@ import { PortfoliosModule } from './modules/portfolios/portfolios.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { HealthModule } from './modules/health/health.module';
-import { EventsModule } from './modules/events/events.module';
+import { EventsConsumerModule } from './modules/events/events-consumer.module';
 import { VirementsModule } from './modules/virements/virements.module';
 import { ChatModule } from './modules/chat/chat.module';
 
@@ -64,7 +64,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     NotificationsModule,
     SettingsModule,
     HealthModule,
-    EventsModule, // Added
+    EventsConsumerModule, // Added
     ChatModule, // Added for Adha AI integration
 
     // 4) Ajout du MonitoringModule pour /metrics

@@ -87,7 +87,9 @@ async function bootstrap() {
   });
 
   // 4.5) Set global prefix for API versioning (to match frontend expectations)
-  app.setGlobalPrefix('api/v1');
+  // app.setGlobalPrefix('api/v1', {
+  //   exclude: ['/health', '/health/simple', '/metrics'], // Exclude health and monitoring endpoints
+  // });
   
   // 5) Global validation pipe
   app.useGlobalPipes(

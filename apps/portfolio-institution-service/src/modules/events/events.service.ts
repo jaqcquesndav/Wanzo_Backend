@@ -21,7 +21,7 @@ import {
   DocumentUpdatedEvent,
   DocumentStatusChangedEvent
 } from '@wanzobe/shared';
-import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './events.module';
+import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-client.module';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {

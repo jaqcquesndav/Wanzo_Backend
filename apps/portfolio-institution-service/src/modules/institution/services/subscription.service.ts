@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Institution, SubscriptionStatus, SubscriptionPlan } from '../entities/institution.entity';
@@ -14,7 +14,6 @@ export class SubscriptionService {
     @InjectRepository(Institution)
     private institutionRepository: Repository<Institution>,
     private readonly tokenEventHandler: TokenEventHandler,
-    @Inject(forwardRef(() => EventsService))
     private readonly eventsService: EventsService,
   ) {}
 

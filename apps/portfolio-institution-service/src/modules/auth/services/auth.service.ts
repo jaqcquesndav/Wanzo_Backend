@@ -8,7 +8,7 @@ import { User } from '../../users/entities/user.entity';
 import { InstitutionService } from '../../institution/services/institution.service';
 import { CustomerEventTopics, CustomerSyncRequestEvent } from '@wanzobe/shared/events/kafka-config';
 import { ClientKafka } from '@nestjs/microservices';
-import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from '../../events/events.module';
+import { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from '../../events/kafka-client.module';
 
 @Injectable()
 export class AuthService {

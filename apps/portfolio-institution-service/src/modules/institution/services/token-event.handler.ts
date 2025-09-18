@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { TokenTransactionEvent } from '@wanzobe/shared';
 import { EntityType } from '@wanzobe/shared';
 import { EventsService } from '../../events/events.service';
@@ -6,7 +6,6 @@ import { EventsService } from '../../events/events.service';
 @Injectable()
 export class TokenEventHandler {
   constructor(
-    @Inject(forwardRef(() => EventsService))
     private readonly eventsService: EventsService
   ) {}
 

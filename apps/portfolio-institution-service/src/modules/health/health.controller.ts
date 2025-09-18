@@ -5,6 +5,7 @@ import {
   HealthCheckService,
   TypeOrmHealthIndicator,
   MemoryHealthIndicator,
+  HealthCheckResult,
 } from '@nestjs/terminus';
 import { HealthService } from './health.service';
 
@@ -23,17 +24,23 @@ export class HealthController {
   @ApiOperation({ summary: 'Check service health' })
   @ApiResponse({ status: 200, description: 'Health check passed' })
   @ApiResponse({ status: 503, description: 'Service unhealthy' })
-  async check() {
-    const checks = [
+  async check(): Promise<HealthCheckResult> {
+    return this.health.check([
       () => this.db.pingCheck('database'),
-      () => this.memory.checkHeap('memory_heap', 200 * 1024 * 1024),
-      () => this.memory.checkRSS('memory_rss', 3000 * 1024 * 1024),
-      () => this.healthService.checkAuthService(),
-      () => this.healthService.checkAnalyticsService(),
-      () => this.healthService.checkAdminService(),
-      () => this.healthService.checkAccountingService(),
-    ];
+      () => this.memory.checkHeap('memory_heap', 1 * 1024 * 1024 * 1024), // 1GB
+      () => this.memory.checkRSS('memory_rss', 1.5 * 1024 * 1024 * 1024), // 1.5GB
+      // Removed external service checks to avoid circular dependencies and timeouts
+    ]);
+  }
 
-    return this.health.check(checks);
+  @Get('simple')
+  @ApiOperation({ summary: 'Simple health check without dependencies' })
+  @ApiResponse({ status: 200, description: 'Service is alive' })
+  async simpleCheck() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'portfolio-institution-service',
+    };
   }
 }

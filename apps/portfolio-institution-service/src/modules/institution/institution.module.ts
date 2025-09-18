@@ -16,11 +16,13 @@ import { InstitutionUserController } from './controllers/institution-user.contro
 import { SubscriptionController } from './controllers/subscription.controller';
 import { TokenAnalyticsController } from './controllers/token-analytics.controller';
 import { EventsModule } from '../events/events.module';
+import { KafkaClientModule } from '../events/kafka-client.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Institution, InstitutionUser, InstitutionDocument]),
-    forwardRef(() => EventsModule), // Use forwardRef to break circular dependency
+    EventsModule, // Import direct sans forwardRef
+    KafkaClientModule, // Ajout pour KAFKA_PRODUCER_SERVICE
     JwtModule.register({}), // Ajoutez JwtModule.register({}) aux imports
     HttpModule, // Ajoutez HttpModule aux imports
   ],
