@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { EncryptedJsonTransformer, EncryptionService } from '@wanzobe/shared';
+import { PaymentOrder } from '../../payment-orders/entities/payment-order.entity';
 
 export enum DisbursementStatus {
   PENDING = 'en attente',
@@ -107,6 +108,13 @@ export class Disbursement {
 
   @Column({ nullable: true })
   createdBy?: string;
+
+  @Column({ nullable: true })
+  paymentOrderId?: string;
+
+  @ManyToOne(() => PaymentOrder, paymentOrder => paymentOrder.disbursements, { nullable: true })
+  @JoinColumn({ name: 'paymentOrderId' })
+  paymentOrder?: PaymentOrder;
 
   @CreateDateColumn()
   createdAt!: Date;

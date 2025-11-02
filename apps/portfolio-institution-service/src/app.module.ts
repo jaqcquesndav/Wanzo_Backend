@@ -14,6 +14,7 @@ import { HealthModule } from './modules/health/health.module';
 import { EventsConsumerModule } from './modules/events/events-consumer.module';
 import { VirementsModule } from './modules/virements/virements.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { PaymentOrderModule } from './modules/payment-orders/payment-orders.module';
 
 // Security Module
 import { SecurityModule } from '@wanzobe/shared';
@@ -61,6 +62,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     ProspectionModule,
     PortfoliosModule,
     VirementsModule, // Added
+    PaymentOrderModule, // Added for generic payment orders
     NotificationsModule,
     SettingsModule,
     HealthModule,
