@@ -50,7 +50,7 @@ Envoie un message au système de chat.
 #### Requête
 
 ```
-POST /chat/messages
+POST /portfolio/api/v1/chat/messages
 ```
 
 #### Corps de la requête
@@ -99,7 +99,7 @@ Récupère l'historique des messages pour un contexte spécifique.
 #### Requête
 
 ```
-GET /chat/contexts/{contextId}/messages
+GET /portfolio/api/v1/chat/contexts/{contextId}/messages
 ```
 
 #### Paramètres de chemin
@@ -153,7 +153,7 @@ Crée un nouveau contexte de conversation.
 #### Requête
 
 ```
-POST /chat/contexts
+POST /portfolio/api/v1/chat/contexts
 ```
 
 #### Corps de la requête
@@ -192,7 +192,7 @@ Récupère les détails d'un contexte de chat par son ID.
 #### Requête
 
 ```
-GET /chat/contexts/{id}
+GET /portfolio/api/v1/chat/contexts/{id}
 ```
 
 #### Paramètres de chemin
@@ -227,7 +227,7 @@ Récupère tous les contextes de chat de l'utilisateur.
 #### Requête
 
 ```
-GET /chat/contexts
+GET /portfolio/api/v1/chat/contexts
 ```
 
 #### Paramètres de requête
@@ -289,7 +289,7 @@ Met à jour les détails d'un contexte de chat existant.
 #### Requête
 
 ```
-PUT /chat/contexts/{id}
+PUT /portfolio/api/v1/chat/contexts/{id}
 ```
 
 #### Paramètres de chemin
@@ -329,7 +329,7 @@ Supprime un contexte de chat et tous ses messages.
 #### Requête
 
 ```
-DELETE /chat/contexts/{id}
+DELETE /portfolio/api/v1/chat/contexts/{id}
 ```
 
 #### Paramètres de chemin
@@ -348,7 +348,7 @@ Récupère des suggestions de questions ou de sujets basés sur le contexte actu
 #### Requête
 
 ```
-GET /chat/suggestions
+GET /portfolio/api/v1/chat/suggestions
 ```
 
 #### Paramètres de requête
@@ -392,7 +392,7 @@ Génère un rapport basé sur les conversations de chat.
 #### Requête
 
 ```
-POST /chat/reports
+POST /portfolio/api/v1/chat/reports
 ```
 
 #### Corps de la requête
@@ -426,7 +426,7 @@ Récupère des réponses prédéfinies pour le chat, optionnellement filtrées p
 #### Requête
 
 ```
-GET /chat/predefined-responses
+GET /portfolio/api/v1/chat/predefined-responses
 ```
 
 #### Paramètres de requête
@@ -463,7 +463,7 @@ Enregistre une évaluation pour une réponse de chat.
 #### Requête
 
 ```
-POST /chat/messages/{messageId}/rating
+POST /portfolio/api/v1/chat/messages/{messageId}/rating
 ```
 
 #### Paramètres de chemin
@@ -497,7 +497,7 @@ Ajoute une pièce jointe à un message.
 #### Requête
 
 ```
-POST /chat/messages/{messageId}/attachments
+POST /portfolio/api/v1/chat/messages/{messageId}/attachments
 ```
 
 #### Paramètres de chemin

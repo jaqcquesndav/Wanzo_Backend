@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
-import { Prospect } from './prospect.entity';
+import { Company } from './company.entity';
 
 @Entity('contact_history')
 export class ContactHistory {
@@ -21,12 +21,12 @@ export class ContactHistory {
   @Column()
   createdBy: string;
 
-  @ManyToOne(() => Prospect, (prospect: any) => prospect.contactHistory)
-  @JoinColumn({ name: 'prospectId' })
-  prospect: Prospect;
+  @ManyToOne(() => Company)
+  @JoinColumn({ name: 'companyId' })
+  company: Company;
 
   @Column()
-  prospectId: string;
+  companyId: string;
 
   @CreateDateColumn()
   createdAt: Date;

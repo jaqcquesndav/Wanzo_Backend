@@ -184,6 +184,16 @@ export class RepaymentService {
     return repayment;
   }
 
+  async update(id: string, updateData: Partial<Repayment>): Promise<Repayment> {
+    const repayment = await this.findOne(id);
+    
+    // Appliquer les mises à jour
+    Object.assign(repayment, updateData);
+    
+    // Sauvegarder les changements
+    return await this.repaymentRepository.save(repayment);
+  }
+
   private async processStandardPayment(
     repayment: Repayment, 
     scheduleIds: string[] | undefined, 

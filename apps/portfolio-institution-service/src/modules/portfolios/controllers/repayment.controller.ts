@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -12,23 +12,6 @@ import { RepaymentStatus } from '../entities/repayment.entity';
 @ApiBearerAuth()
 export class RepaymentController {
   constructor(private readonly repaymentService: RepaymentService) {}
-
-  @Post()
-  @ApiOperation({ summary: 'Record a new repayment for a contract' })
-  @ApiResponse({ status: 201, description: 'Repayment recorded successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input or contract not in active status' })
-  @ApiResponse({ status: 404, description: 'Contract not found' })
-  async create(@Body() createRepaymentDto: any, @Req() req: any) {
-    const repayment = await this.repaymentService.create(
-      createRepaymentDto,
-      req.user.id
-    );
-    
-    return {
-      success: true,
-      data: repayment,
-    };
-  }
 
   @Get()
   @ApiOperation({ summary: 'Get all repayments' })
@@ -52,6 +35,36 @@ export class RepaymentController {
   @ApiResponse({ status: 404, description: 'Repayment not found' })
   async findOne(@Param('id') id: string) {
     const repayment = await this.repaymentService.findOne(id);
+    return {
+      success: true,
+      data: repayment,
+    };
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Record a new repayment for a contract' })
+  @ApiResponse({ status: 201, description: 'Repayment recorded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or contract not in active status' })
+  @ApiResponse({ status: 404, description: 'Contract not found' })
+  async create(@Body() createRepaymentDto: any, @Req() req: any) {
+    const repayment = await this.repaymentService.create(
+      createRepaymentDto,
+      req.user.id
+    );
+    
+    return {
+      success: true,
+      data: repayment,
+    };
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update repayment' })
+  @ApiParam({ name: 'id', description: 'Repayment ID' })
+  @ApiResponse({ status: 200, description: 'Repayment updated successfully' })
+  @ApiResponse({ status: 404, description: 'Repayment not found' })
+  async update(@Param('id') id: string, @Body() updateRepaymentDto: any) {
+    const repayment = await this.repaymentService.update(id, updateRepaymentDto);
     return {
       success: true,
       data: repayment,

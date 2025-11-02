@@ -128,4 +128,24 @@ export class PortfolioController {
       data: result,
     };
   }
+
+  @Post(':id/status')
+  @Roles('admin', 'portfolio_manager')
+  @ApiOperation({ summary: 'Change portfolio status' })
+  @ApiParam({ name: 'id', description: 'Portfolio ID' })
+  @ApiResponse({ status: 200, description: 'Portfolio status updated successfully' })
+  @ApiResponse({ status: 404, description: 'Portfolio not found' })
+  @ApiResponse({ status: 400, description: 'Invalid status change' })
+  async changeStatus(
+    @Param('id') id: string, 
+    @Body() statusData: { status: 'active' | 'inactive' | 'pending' | 'archived' }
+  ) {
+    const result = await this.portfolioService.updateStatus(id, statusData.status);
+    return {
+      id: result.id,
+      name: result.name,
+      status: result.status,
+      updated_at: result.updated_at,
+    };
+  }
 }

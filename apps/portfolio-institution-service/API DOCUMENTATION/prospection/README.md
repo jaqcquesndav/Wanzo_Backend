@@ -4,13 +4,22 @@ Cette documentation détaille les formats de requêtes et réponses attendus pou
 
 ## Routes et endpoints
 
-### Page principale de prospection
+### Opportunités de prospection
+
+#### Récupération de toutes les opportunités
 
 ```
-GET /app/:portfolioType/prospection
+GET /prospection/opportunities
 ```
 
-Où `:portfolioType` peut être `traditional`, `investment` ou `leasing`.
+#### Paramètres de requête optionnels
+
+| Paramètre   | Type   | Description                   |
+|-------------|--------|-------------------------------|
+| status      | string | Filtre par statut (lead, qualified, proposal, etc.) |
+| sector      | string | Filtre par secteur d'activité |
+| region      | string | Filtre par région géographique |
+| searchTerm  | string | Recherche par nom ou description |
 
 ## API Entreprises
 
@@ -19,7 +28,7 @@ Où `:portfolioType` peut être `traditional`, `investment` ou `leasing`.
 #### Requête
 
 ```
-GET /api/companies
+GET /companies
 ```
 
 #### Paramètres de requête optionnels
@@ -84,7 +93,7 @@ GET /api/companies
 #### Requête
 
 ```
-GET /api/companies/:id
+GET /companies/{id}
 ```
 
 #### Format de réponse attendu
@@ -129,7 +138,7 @@ GET /api/companies/:id
 #### Requête
 
 ```
-POST /api/companies
+POST /companies
 ```
 
 #### Corps de la requête
@@ -176,7 +185,7 @@ Retourne l'objet entreprise créé avec l'ID généré et les timestamps.
 #### Requête
 
 ```
-POST /api/prospection/contact
+POST /prospection/contact
 ```
 
 #### Corps de la requête
@@ -208,7 +217,7 @@ POST /api/prospection/contact
 #### Requête
 
 ```
-POST /api/prospection/meetings
+POST /prospection/meetings
 ```
 
 #### Corps de la requête

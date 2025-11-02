@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PaymentSchedule } from '../entities/payment-schedule.entity';
 import { AmortizationType } from '../entities/contract.entity';
 
 export interface ScheduleGenerationParams {
@@ -23,6 +26,45 @@ export interface ScheduleItem {
 
 @Injectable()
 export class PaymentScheduleService {
+  constructor(
+    @InjectRepository(PaymentSchedule)
+    private readonly paymentScheduleRepository: Repository<PaymentSchedule>,
+  ) {}
+
+  async findAll(contractId?: string) {
+    const queryBuilder = this.paymentScheduleRepository.createQueryBuilder('schedule');
+    
+    if (contractId) {
+      queryBuilder.where('schedule.contract_id = :contractId', { contractId });
+    }
+    
+    queryBuilder.orderBy('schedule.due_date', 'ASC');
+    
+    return await queryBuilder.getMany();
+  }
+
+  async findOne(id: string): Promise<PaymentSchedule> {
+    const schedule = await this.paymentScheduleRepository.findOne({
+      where: { id }
+    });
+
+    if (!schedule) {
+      throw new Error('Payment schedule not found');
+    }
+
+    return schedule;
+  }
+
+  async create(scheduleData: Partial<PaymentSchedule>): Promise<PaymentSchedule> {
+    const schedule = this.paymentScheduleRepository.create(scheduleData);
+    return await this.paymentScheduleRepository.save(schedule);
+  }
+
+  async update(id: string, updateData: Partial<PaymentSchedule>): Promise<PaymentSchedule> {
+    const schedule = await this.findOne(id);
+    Object.assign(schedule, updateData);
+    return await this.paymentScheduleRepository.save(schedule);
+  }
 
   /**
    * Génère un échéancier de remboursement en fonction des paramètres du contrat

@@ -50,14 +50,9 @@ Gestion de la prospection commerciale
 - **Fonctionnalités** : Leads, opportunités, suivi commercial
 
 ### 💰 [Paiements](./paiements/README.md)
-Gestion des paiements et transactions
+Gestion des ordres de paiement génériques
 - **Endpoint** : `/payments`
-- **Fonctionnalités** : Ordres de paiement, suivi, historique
-
-### 🔄 [Virements](./virements/README.md)
-Gestion des virements et décaissements
-- **Endpoint** : `/disbursements`
-- **Fonctionnalités** : Création, validation, suivi des virements
+- **Fonctionnalités** : Ordres de paiement pour tous types de portefeuilles
 
 ### ⚙️ [Paramètres](./parametres/README.md)
 Configuration système et paramètres

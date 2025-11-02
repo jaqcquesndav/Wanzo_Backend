@@ -2,6 +2,10 @@
 
 Cette API permet de gérer les ordres de paiement dans l'application, quelle que soit la nature du portefeuille (traditionnel, investissement, leasing).
 
+> **Scope** : Ordres de paiement génériques pour tous types de transactions sortantes (Institution → Externe).  
+> **Usage** : Utilisé chaque fois qu'un gestionnaire de portefeuille veut créditer le compte d'un bénéficiaire.  
+> **Relations** : Pour les déboursements spécifiques aux crédits traditionnels, voir [Virements/Déboursements](../portefeuilles/virements/README.md).
+
 ## Documentation complète
 
 Pour une documentation détaillée de cette API, consultez les sections suivantes :
@@ -49,7 +53,7 @@ interface PaymentOrderData {
 ### Récupérer tous les ordres de paiement
 
 ```
-GET /payments
+GET /portfolio/api/v1/payments
 ```
 
 **Paramètres de requête:**
@@ -88,7 +92,7 @@ GET /payments
 ### Récupérer un ordre de paiement par ID
 
 ```
-GET /payments/{id}
+GET /portfolio/api/v1/payments/{id}
 ```
 
 **Réponse:**
@@ -119,7 +123,7 @@ GET /payments/{id}
 ### Créer un nouvel ordre de paiement
 
 ```
-POST /payments
+POST /portfolio/api/v1/payments
 ```
 
 **Corps de la requête:**
@@ -150,7 +154,7 @@ Retourne l'ordre de paiement créé avec un ID généré.
 ### Mettre à jour un ordre de paiement
 
 ```
-PUT /payments/{id}
+PUT /portfolio/api/v1/payments/{id}
 ```
 
 **Corps de la requête:**
@@ -168,7 +172,7 @@ Retourne l'ordre de paiement mis à jour.
 ### Mettre à jour le statut d'un ordre de paiement
 
 ```
-PUT /payments/{id}/status
+PUT /portfolio/api/v1/payments/{id}/status
 ```
 
 **Corps de la requête:**
@@ -185,7 +189,7 @@ Retourne l'ordre de paiement avec le statut mis à jour.
 ### Annuler un ordre de paiement
 
 ```
-PUT /payments/{id}/cancel
+PUT /portfolio/api/v1/payments/{id}/cancel
 ```
 
 **Corps de la requête:**
@@ -201,7 +205,7 @@ Retourne l'ordre de paiement avec le statut mis à jour à "rejected".
 ### Récupérer l'historique d'un ordre de paiement
 
 ```
-GET /payments/{id}/history
+GET /portfolio/api/v1/payments/{id}/history
 ```
 
 **Réponse:**
@@ -225,7 +229,7 @@ GET /payments/{id}/history
 ### Générer un rapport de paiement
 
 ```
-POST /payments/reports
+POST /portfolio/api/v1/payments/reports
 ```
 
 **Corps de la requête:**
@@ -257,7 +261,7 @@ POST /payments/reports
 ### Récupérer les ordres de paiement par bénéficiaire
 
 ```
-GET /payments/beneficiary/{beneficiaryName}
+GET /portfolio/api/v1/payments/beneficiary/{beneficiaryName}
 ```
 
 **Réponse:**

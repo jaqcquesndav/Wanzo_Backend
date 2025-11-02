@@ -172,4 +172,38 @@ export class PortfolioService {
 
     return await this.portfolioRepository.save(portfolio);
   }
+
+  async updateStatus(id: string, status: 'active' | 'inactive' | 'pending' | 'archived'): Promise<Portfolio> {
+    const portfolio = await this.findById(id);
+
+    // Validation des changements de statut
+    const statusMap = {
+      'active': PortfolioStatus.ACTIVE,
+      'inactive': PortfolioStatus.SUSPENDED,
+      'pending': PortfolioStatus.PENDING,
+      'archived': PortfolioStatus.CLOSED
+    };
+
+    const newStatus = statusMap[status];
+    if (!newStatus) {
+      throw new BadRequestException(`Invalid status: ${status}`);
+    }
+
+    // Vérifications métier pour certains changements de statut
+    if (newStatus === PortfolioStatus.CLOSED) {
+      // Si on veut archiver (fermer), vérifier qu'il n'y a pas d'activité
+      const activeContracts = await this.contractRepository.count({
+        where: { portfolio_id: id, status: ContractStatus.ACTIVE }
+      });
+
+      if (activeContracts > 0) {
+        throw new BadRequestException('Cannot archive portfolio with active contracts');
+      }
+    }
+
+    portfolio.status = newStatus;
+    portfolio.updated_at = new Date();
+
+    return await this.portfolioRepository.save(portfolio);
+  }
 }

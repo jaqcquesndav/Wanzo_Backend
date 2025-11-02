@@ -61,4 +61,30 @@ export class RiskApiService {
     
     return riskEntry;
   }
+
+  async getCreditRiskByCompany(companyId: string) {
+    const creditRisks = await this.creditRiskRepository.find({
+      where: { companyId },
+      relations: ['company'],
+    });
+    
+    return {
+      companyId,
+      creditRisks,
+      totalCount: creditRisks.length,
+    };
+  }
+
+  async getLeasingRiskByCompany(companyId: string) {
+    const leasingRisks = await this.leasingRiskRepository.find({
+      where: { companyId },
+      relations: ['company'],
+    });
+    
+    return {
+      companyId,
+      leasingRisks,
+      totalCount: leasingRisks.length,
+    };
+  }
 }

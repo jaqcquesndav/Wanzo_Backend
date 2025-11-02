@@ -1,51 +1,38 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Prospect } from './entities/prospect.entity';
-import { Document } from './entities/document.entity';
+import { Company } from './entities/company.entity';
 import { ContactHistory } from './entities/contact-history.entity';
-import { ProspectAnalysis } from './entities/prospect-analysis.entity';
-import { Campaign } from './entities/campaign.entity';
-import { ProspectService } from './services/prospect.service';
-import { ProspectAnalysisService } from './services/prospect-analysis.service';
-import { CampaignService } from './services/campaign.service';
-import { LeadsService } from './services/leads.service';
-import { StatsService } from './services/stats.service';
-import { ProspectController } from './controllers/prospect.controller';
-import { ProspectAnalysisController } from './controllers/prospect-analysis.controller';
-import { CampaignController } from './controllers/campaign.controller';
-import { LeadsController } from './controllers/leads.controller';
-import { StatsController } from './controllers/stats.controller';
+import { Meeting } from './entities/meeting.entity';
+import { SecurityOpportunity } from './entities/security-opportunity.entity';
+import { CompaniesController } from './controllers/companies.controller';
+import { ProspectionController } from './controllers/prospection.controller';
+import { SMEIntegrationController } from './controllers/sme-integration.controller';
+import { CompanyService } from './services/company.service';
+import { ProspectionService } from './services/prospection.service';
+import { AccountingIntegrationModule } from '../integration/accounting-integration.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Prospect,
-      Document,
+      Company,
       ContactHistory,
-      ProspectAnalysis,
-      Campaign,
+      Meeting,
+      SecurityOpportunity,
     ]),
+    AccountingIntegrationModule,
   ],
   providers: [
-    ProspectService,
-    ProspectAnalysisService,
-    CampaignService,
-    LeadsService,
-    StatsService,
+    CompanyService,
+    ProspectionService,
   ],
   controllers: [
-    ProspectController,
-    ProspectAnalysisController,
-    CampaignController,
-    LeadsController,
-    StatsController,
+    CompaniesController,
+    ProspectionController,
+    SMEIntegrationController,
   ],
   exports: [
-    ProspectService,
-    ProspectAnalysisService,
-    CampaignService,
-    LeadsService,
-    StatsService,
+    CompanyService,
+    ProspectionService,
   ],
 })
 export class ProspectionModule {}

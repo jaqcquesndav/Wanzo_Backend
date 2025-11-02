@@ -33,6 +33,20 @@ Tous les endpoints du microservice sont accessibles via l'API Gateway à l'adres
 - **Endpoint**: `/<votre-endpoint>`
 - **URL finale**: `http://localhost:8000/portfolio/api/v1/<votre-endpoint>`
 
+### ⚠️ Important : Construction des URLs
+
+Dans la documentation qui suit, tous les endpoints sont listés **sans le préfixe**. Pour construire l'URL complète, vous devez **toujours ajouter le préfixe** :
+
+- **Documentation** : `/portfolios/traditional/credit-contracts`
+- **URL réelle** : `http://localhost:8000/portfolio/api/v1/portfolios/traditional/credit-contracts`
+
+**Exemples de construction** :
+```javascript
+const baseUrl = 'http://localhost:8000/portfolio/api/v1';
+const endpoint = '/portfolios/traditional/credit-contracts';
+const fullUrl = baseUrl + endpoint; // URL complète à utiliser
+```
+
 ## Format des réponses
 
 Les réponses suivent un format standardisé:
@@ -70,48 +84,94 @@ Les réponses suivent un format standardisé:
 }
 ```
 
+## Relations hiérarchiques et workflow
+
+Le système suit une hiérarchie stricte pour organiser les entités et leurs relations :
+
+```
+🏢 Institution
+  └── 📁 Portefeuille Traditionnel
+      ├── ⚙️ Paramètres du portefeuille
+      ├── 💰 Produits financiers du portefeuille
+      ├── 📄 Demandes de crédit
+      └── 📝 Contrats de crédit
+          ├── 💸 Déboursements/Virements
+          ├── 💳 Remboursements
+          ├── 🛡️ Garanties
+          └── 📊 Échéanciers de paiement
+```
+
+### Workflow principal
+
+1. **Création du portefeuille** → Configuration des paramètres et produits
+2. **Demande de crédit** → Évaluation → Approbation
+3. **Création du contrat** → À partir de la demande approuvée
+4. **Déboursement** → Virement des fonds vers le client
+5. **Remboursements** → Paiements selon l'échéancier
+6. **Gestion des garanties** → Tout au long du cycle de vie du contrat
+
+### Règles importantes
+
+- **Tous les contrats, produits et paramètres sont associés à un portefeuille spécifique**
+- **Les déboursements, remboursements et garanties sont liés à des contrats**
+- **Les demandes de crédit précèdent la création des contrats**
+- **La structure URL reflète cette hiérarchie** : `/portfolios/traditional/{portfolioId}/...`
+
 ## Endpoints disponibles
 
 ### 1. Portefeuilles traditionnels
 
+#### Gestion des portefeuilles
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolios/traditional/contracts/${id}` | API pour les contrats de crédit/ export const creditApi = { / Récupère un contrat de crédit par son  |
-| GET | `/portfolios/traditional/contracts/${contractId}/schedule` | Récupère l'échéancier d'un contrat de crédit |
-| GET | `/portfolios/traditional/${portfolioId}/settings` | Type pour les paramètres de portefeuille traditionnel/ export interface TraditionalPortfolioSettings |
-| PUT | `/portfolios/traditional/${portfolioId}/settings` | Met à jour les paramètres d'un portefeuille |
-| POST | `/portfolios/traditional/${portfolioId}/settings/reset` | Réinitialise les paramètres d'un portefeuille aux valeurs par défaut |
+| GET | `/portfolios/traditional` | Récupère tous les portefeuilles traditionnels |
+| GET | `/portfolios/traditional/${id}` | Récupère un portefeuille traditionnel par son ID |
+| POST | `/portfolios/traditional` | Crée un nouveau portefeuille traditionnel |
+| PUT | `/portfolios/traditional/${id}` | Met à jour un portefeuille traditionnel |
+| DELETE | `/portfolios/traditional/${id}` | Supprime un portefeuille traditionnel |
+| POST | `/portfolios/traditional/${id}/status` | Change le statut d'un portefeuille traditionnel |
+| GET | `/portfolios/traditional/${id}/performance` | Récupère les performances d'un portefeuille traditionnel |
+| GET | `/portfolios/traditional/${id}/activities` | Récupère l'historique des activités d'un portefeuille traditionnel |
+
+#### Produits financiers (associés à un portefeuille)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
 | GET | `/portfolios/traditional/${portfolioId}/products` | Récupère tous les produits financiers d'un portefeuille |
 | GET | `/portfolios/traditional/${portfolioId}/products/${productId}` | Récupère un produit financier par son ID |
-| POST | `/portfolios/traditional/${portfolioId}/products` | Crée un nouveau produit financier |
+| POST | `/portfolios/traditional/${portfolioId}/products` | Crée un nouveau produit financier dans le portefeuille |
 | PUT | `/portfolios/traditional/${portfolioId}/products/${productId}` | Met à jour un produit financier |
 | DELETE | `/portfolios/traditional/${portfolioId}/products/${productId}` | Supprime un produit financier |
-| GET | `/portfolios/traditional?${params.toString()}` | API pour les portefeuilles traditionnels/ export const traditionalPortfolioApi = { / Récupère tous l |
-| GET | `/portfolios/traditional/${id}` | Récupère un portefeuille traditionnel par son ID |
-| POST | `/portfolios/traditional/${id}` | Crée un nouveau portefeuille traditionnel |
-| POST | `/portfolios/traditional/${id}/status` | Change le statut d'un portefeuille traditionnel |
-| DELETE | `/portfolios/traditional/${id}` | Supprime un portefeuille traditionnel |
-| GET | `/portfolios/traditional/${id}/performance?period=${period}` | Récupère les performances d'un portefeuille traditionnel |
-| GET | `/portfolios/traditional/${id}/activities?page=${page}&limit=${limit}` | Récupère l'historique des activités d'un portefeuille traditionnel |
+
+#### Paramètres du portefeuille
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/portfolios/traditional/${portfolioId}/settings` | Récupère les paramètres d'un portefeuille traditionnel |
+| PUT | `/portfolios/traditional/${portfolioId}/settings` | Met à jour les paramètres d'un portefeuille |
+| POST | `/portfolios/traditional/${portfolioId}/settings/reset` | Réinitialise les paramètres d'un portefeuille aux valeurs par défaut |
 
 ### 2. Contrats de crédit
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolio_inst/portfolios/traditional/credit-contracts?${params.toString()}` | API pour les contrats de crédit/ export const creditContractApi = { / Récupère tous les contrats de  |
-| GET | `/portfolio_inst/portfolios/traditional/credit-contracts/${id}` | Récupère un contrat de crédit par son ID |
-| POST | `/portfolios/traditional/credit-contracts/${id}` | Crée un nouveau contrat de crédit |
+| GET | `/portfolios/traditional/credit-contracts` | Récupère tous les contrats de crédit |
+| GET | `/portfolios/traditional/credit-contracts/${id}` | Récupère un contrat de crédit par son ID |
+| POST | `/portfolios/traditional/credit-contracts/from-request` | Crée un nouveau contrat de crédit à partir d'une demande |
 | POST | `/portfolios/traditional/credit-contracts/${id}/generate-document` | Génère le document du contrat de crédit |
 | POST | `/portfolios/traditional/credit-contracts/${id}/default` | Marque un contrat comme défaillant |
 | POST | `/portfolios/traditional/credit-contracts/${id}/restructure` | Restructure un contrat de crédit |
-| PUT | `/portfolios/traditional/credit-contracts/${id}` | PUT /portfolios/traditional/credit-contracts/${id} |
-| GET | `/portfolios/traditional/credit-contracts/${contractId}/payment-schedule` | Télécharge une pièce justificative pour un paiement @param paymentId ID du paiement @param file Fich |
+| PUT | `/portfolios/traditional/credit-contracts/${id}` | Met à jour un contrat de crédit |
+| GET | `/portfolios/traditional/credit-contracts/${contractId}/payment-schedule` | Récupère l'échéancier de paiement d'un contrat |
 
 ### 3. Demandes de crédit
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolios/traditional/credit-requests/${id}` | API pour les demandes de crédit/ export const creditRequestApi = { / Récupère toutes les demandes de |
+| GET | `/portfolios/traditional/credit-requests` | Récupère toutes les demandes de crédit |
+| GET | `/portfolios/traditional/credit-requests/${id}` | Récupère une demande de crédit par son ID |
+| POST | `/portfolios/traditional/credit-requests` | Crée une nouvelle demande de crédit |
 | PATCH | `/portfolios/traditional/credit-requests/${id}/status` | Met à jour le statut d'une demande de crédit |
 | PATCH | `/portfolios/traditional/credit-requests/${id}` | Met à jour une demande de crédit |
 | DELETE | `/portfolios/traditional/credit-requests/${id}` | Supprime une demande de crédit |
@@ -120,10 +180,10 @@ Les réponses suivent un format standardisé:
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolio_inst/portfolios/traditional/disbursements?portfolioId=${portfolioId}` | API pour les virements et déboursements/ export const disbursementApi = { / Récupère tous les vireme |
-| GET | `/portfolio_inst/portfolios/traditional/disbursements?contractId=${contractId}` | Récupère tous les virements pour un contrat |
-| GET | `/portfolio_inst/portfolios/traditional/disbursements/${id}` | Récupère un virement par son ID |
-| PUT | `/portfolio_inst/portfolios/traditional/disbursements/${id}` | Met à jour un virement existant |
+| GET | `/portfolios/traditional/disbursements` | Récupère tous les virements et déboursements |
+| GET | `/portfolios/traditional/disbursements/${id}` | Récupère un virement par son ID |
+| POST | `/portfolios/traditional/disbursements` | Crée un nouveau virement |
+| PUT | `/portfolios/traditional/disbursements/${id}` | Met à jour un virement existant |
 | POST | `/portfolios/traditional/disbursements/${id}/confirm` | Confirme un virement (change son statut en "effectué") |
 | POST | `/portfolios/traditional/disbursements/${id}/cancel` | Annule un virement |
 
@@ -131,23 +191,28 @@ Les réponses suivent un format standardisé:
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/payments/${id}` | GET /payments/${id} |
-| GET | `/payments/beneficiary/${encodeURIComponent(beneficiaryName)}` | GET /payments/beneficiary/${encodeURIComponent(beneficiaryName)} |
-| PUT | `/payments/${id}` | PUT /payments/${id} |
-| PUT | `/payments/${id}/status` | PUT /payments/${id}/status |
-| PUT | `/payments/${id}/cancel` | PUT /payments/${id}/cancel |
-| GET | `/portfolio_inst/portfolios/traditional/repayments?contractId=${contractId}` | API pour les paiements de crédit/ export const paymentApi = { / Récupère tous les paiements pour un  |
-| GET | `/portfolio_inst/portfolios/traditional/repayments?portfolioId=${portfolioId}` | Récupère tous les paiements pour un portefeuille |
-| GET | `/portfolio_inst/portfolios/traditional/repayments?portfolioId=${portfolioId}&status=late` | Récupère tous les paiements en retard pour un portefeuille |
-| GET | `/portfolio_inst/portfolios/traditional/repayments/${id}` | Récupère un paiement par son ID |
-| GET | `/portfolios/traditional/payments/${paymentId}/receipt` | Récupère un document justificatif par son ID de paiement |
-| GET | `/portfolios/traditional/payments/${paymentId}/receipt/download` | Télécharge un document justificatif |
-| POST | `/portfolios/traditional/payments/${id}` | Enregistre un nouveau paiement |
-| POST | `/portfolios/traditional/payments/${id}/cancel` | Annule un paiement |
-| POST | `/portfolios/traditional/payments/${id}/generate-receipt` | Génère un reçu de paiement |
-| GET | `/portfolios/traditional/payments/${id}/has-receipt` | Vérifie si un paiement possède un justificatif |
-| GET | `/portfolios/traditional/payments/${paymentId}/supporting-document` | Télécharge un justificatif de paiement |
-| PUT | `/portfolios/traditional/payments/${id}` | PUT /portfolios/traditional/payments/${id} |
+| GET | `/portfolios/traditional/repayments` | Récupère tous les paiements de crédit |
+| GET | `/portfolios/traditional/repayments/${id}` | Récupère un paiement par son ID |
+| POST | `/portfolios/traditional/repayments` | Enregistre un nouveau paiement |
+| PUT | `/portfolios/traditional/repayments/${id}` | Met à jour un paiement |
+| POST | `/portfolios/traditional/repayments/${id}/cancel` | Annule un paiement |
+| POST | `/portfolios/traditional/repayments/${id}/generate-receipt` | Génère un reçu de paiement |
+| GET | `/portfolios/traditional/repayments/${paymentId}/receipt` | Récupère un document justificatif par son ID de paiement |
+| GET | `/portfolios/traditional/repayments/${paymentId}/receipt/download` | Télécharge un document justificatif |
+| GET | `/portfolios/traditional/repayments/${id}/has-receipt` | Vérifie si un paiement possède un justificatif |
+| GET | `/portfolios/traditional/repayments/${paymentId}/supporting-document` | Télécharge un justificatif de paiement |
+
+#### Ordres de paiement généraux
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/payments` | Récupère tous les ordres de paiement |
+| GET | `/payments/${id}` | Récupère un ordre de paiement par son ID |
+| POST | `/payments` | Crée un nouvel ordre de paiement |
+| PUT | `/payments/${id}` | Met à jour un ordre de paiement |
+| PUT | `/payments/${id}/status` | Met à jour le statut d'un ordre de paiement |
+| PUT | `/payments/${id}/cancel` | Annule un ordre de paiement |
+| GET | `/payments/beneficiary/${encodeURIComponent(beneficiaryName)}` | Récupère les ordres par bénéficiaire |
 
 ### 6. Documents
 
@@ -217,18 +282,15 @@ Les réponses suivent un format standardisé:
 | POST | `/chat/messages/${messageId}/rating` | POST /chat/messages/${messageId}/rating |
 | DELETE | `/chat/contexts/${id}` | DELETE /chat/contexts/${id} |
 
-### 14. Autres
+### 14. Autres endpoints
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| DELETE | `${API_CONFIG.endpoints.messages.deleteConversation}/${conversationId}` | DELETE ${API_CONFIG.endpoints.messages.deleteConversation}/${conversationId} |
-| PUT | `/institution/managers/${id}` | PUT /institution/managers/${id} |
-| DELETE | `/institution/managers/${id}` | DELETE /institution/managers/${id} |
-| GET | `/portfolios?type=${type}` | GET /portfolios?type=${type} |
-| GET | `/portfolios/${id}` | GET /portfolios/${id} |
-| DELETE | `/portfolios/${id}` | DELETE /portfolios/${id} |
-| POST | `req-${Date.now()}` | Crée une nouvelle demande de crédit |
-| POST | `DISB-${Date.now()}-${Math.floor(Math.random() * 1000)}` | Crée un nouveau virement |
+| GET | `/portfolios` | Récupère tous les portefeuilles (tous types) |
+| GET | `/portfolios/${id}` | Récupère un portefeuille par son ID |
+| DELETE | `/portfolios/${id}` | Supprime un portefeuille |
+| PUT | `/institution/managers/${id}` | Met à jour un gestionnaire d'institution |
+| DELETE | `/institution/managers/${id}` | Supprime un gestionnaire d'institution |
 
 ## Exemples d'utilisation
 
@@ -309,6 +371,97 @@ const recordRepayment = async (repaymentData) => {
     }
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement du remboursement:', error);
+    throw error;
+  }
+};
+```
+
+### Créer un produit financier dans un portefeuille
+
+```javascript
+const createFinancialProduct = async (portfolioId, productData) => {
+  try {
+    const response = await fetch(`http://localhost:8000/portfolio/api/v1/portfolios/traditional/${portfolioId}/products`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(productData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      return result.data;
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création du produit:', error);
+    throw error;
+  }
+};
+```
+
+### Workflow complet : De la demande au remboursement
+
+```javascript
+const completeWorkflow = async () => {
+  try {
+    // 1. Créer une demande de crédit
+    const creditRequest = await fetch('http://localhost:8000/portfolio/api/v1/portfolios/traditional/credit-requests', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberId: 'client-123',
+        productId: 'prod-456',
+        requestAmount: 50000,
+        reason: 'Expansion commerciale'
+      })
+    }).then(res => res.json());
+
+    // 2. Approuver la demande
+    await fetch(`http://localhost:8000/portfolio/api/v1/portfolios/traditional/credit-requests/${creditRequest.data.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'approved' })
+    });
+
+    // 3. Créer le contrat à partir de la demande
+    const contract = await fetch('http://localhost:8000/portfolio/api/v1/portfolios/traditional/credit-contracts/from-request', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creditRequestId: creditRequest.data.id })
+    }).then(res => res.json());
+
+    // 4. Effectuer le déboursement
+    const disbursement = await fetch('http://localhost:8000/portfolio/api/v1/portfolios/traditional/disbursements', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contractReference: contract.data.contract_number,
+        amount: 50000,
+        beneficiary: { /* détails du bénéficiaire */ }
+      })
+    }).then(res => res.json());
+
+    // 5. Enregistrer un remboursement
+    const repayment = await fetch('http://localhost:8000/portfolio/api/v1/portfolios/traditional/repayments', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contract_id: contract.data.id,
+        amount: 4583.33,
+        payment_method: 'bank_transfer'
+      })
+    }).then(res => res.json());
+
+    console.log('Workflow complet terminé avec succès');
+    return { creditRequest, contract, disbursement, repayment };
+    
+  } catch (error) {
+    console.error('Erreur dans le workflow:', error);
     throw error;
   }
 };

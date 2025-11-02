@@ -9,7 +9,7 @@ Récupère les informations détaillées concernant l'institution financière ac
 ### Requête
 
 ```
-GET /institution
+GET /portfolio/api/v1/institution
 ```
 
 ### Réponse
@@ -62,7 +62,7 @@ Met à jour les informations de l'institution financière.
 ### Requête
 
 ```
-PUT /institution
+PUT /portfolio/api/v1/institution
 ```
 
 ### Corps de la requête
@@ -122,7 +122,7 @@ Récupère la liste de tous les gestionnaires associés à l'institution.
 #### Requête
 
 ```
-GET /institution/managers
+GET /portfolio/api/v1/institution/managers
 ```
 
 #### Réponse
@@ -161,7 +161,7 @@ Ajoute un nouveau gestionnaire à l'institution.
 #### Requête
 
 ```
-POST /institution/managers
+POST /portfolio/api/v1/institution/managers
 ```
 
 #### Corps de la requête
@@ -203,7 +203,7 @@ Met à jour le rôle d'un gestionnaire existant.
 #### Requête
 
 ```
-PUT /institution/managers/:id
+PUT /portfolio/api/v1/institution/managers/:id
 ```
 
 #### Paramètres
@@ -249,7 +249,7 @@ Supprime un gestionnaire de l'institution.
 #### Requête
 
 ```
-DELETE /institution/managers/:id
+DELETE /portfolio/api/v1/institution/managers/:id
 ```
 
 #### Paramètres
@@ -282,7 +282,7 @@ Téléverse un nouveau document institutionnel (licence, certificat, etc.).
 #### Requête
 
 ```
-POST /institution/documents
+POST /portfolio/api/v1/institution/documents
 ```
 
 #### Corps de la requête
@@ -320,7 +320,7 @@ Récupère tous les documents associés à l'institution.
 #### Requête
 
 ```
-GET /institution/documents
+GET /portfolio/api/v1/institution/documents
 ```
 
 #### Réponse
@@ -363,7 +363,7 @@ Valide et active une institution nouvellement créée en fournissant les informa
 ### Requête
 
 ```
-POST /institution/validate
+POST /portfolio/api/v1/institution/validate
 ```
 
 ### Corps de la requête
