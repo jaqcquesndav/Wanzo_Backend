@@ -5,7 +5,7 @@ import { Chat } from '../entities/chat.entity';
 import { ChatMessage, MessageDirection, MessageRole } from '../entities/chat-message.entity';
 import { CreateChatDto, CreateMessageDto, ChatFilterDto } from '../dtos/chat.dto';
 import { PortfolioService } from '../../portfolios/services/portfolio.service';
-import { ProspectService } from '../../prospection/services/prospect.service';
+import { ProspectionService } from '../../prospection/services/prospection.service';
 import { AdhaAIIntegrationService } from '../../integration/adha-ai-integration.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -19,7 +19,7 @@ export class ChatService {
     @InjectRepository(ChatMessage)
     private messageRepository: Repository<ChatMessage>,
     private portfolioService: PortfolioService,
-    private prospectService: ProspectService,
+    private prospectionService: ProspectionService,
     @Inject(forwardRef(() => AdhaAIIntegrationService))
     private adhaAIService: AdhaAIIntegrationService,
     private eventEmitter: EventEmitter2,
@@ -212,7 +212,7 @@ export class ChatService {
   // Méthode pour récupérer le contexte agrégé du chat (données portfolio et prospection)
   async getAggregatedContext(institutionId: string): Promise<Record<string, any>> {
     const portfolioData = await this.portfolioService.findAll({ institutionId }, 1, 10);
-    const prospectData = await this.prospectService.findAll({ institutionId }, 1, 10);
+    const prospectData = await this.prospectionService.getOpportunities({}, institutionId);
 
     return {
       portfolio: {
@@ -225,13 +225,13 @@ export class ChatService {
         total: portfolioData.total,
       },
       prospection: {
-        prospects: prospectData.prospects.map(p => ({
-          id: p.id,
-          name: p.name,
-          status: p.status,
-          sector: p.sector,
+        opportunities: prospectData.data.map(opp => ({
+          id: opp.id,
+          companyName: opp.companyName,
+          status: opp.status,
+          sector: opp.sector,
         })),
-        total: prospectData.total,
+        total: prospectData.meta.total,
       },
     };
   }

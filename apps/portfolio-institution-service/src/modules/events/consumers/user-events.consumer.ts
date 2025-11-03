@@ -8,7 +8,7 @@ import {
 } from '@wanzobe/shared';
 import { SubscriptionChangedEvent, SubscriptionEventTopics } from '@wanzobe/shared';
 import { InstitutionService } from '../../institution/services/institution.service';
-import { ProspectService } from '../../prospection/services/prospect.service';
+import { ProspectionService } from '../../prospection/services/prospection.service';
 
 @Controller() // Added @Controller() decorator
 @Injectable()
@@ -17,7 +17,7 @@ export class UserEventsConsumer implements OnModuleInit {
 
   constructor(
     private readonly institutionService: InstitutionService,
-    private readonly prospectService: ProspectService,
+    private readonly prospectionService: ProspectionService,
   ) {}
 
   onModuleInit() {

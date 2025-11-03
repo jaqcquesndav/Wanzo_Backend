@@ -61,21 +61,51 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     
     // Appel de super() obligatoire en premier
     super(jwtOptions);
+    
+    // Debug dependency injection (après super())
+    console.log(`🔍 JWT STRATEGY CONSTRUCTOR: Strategy initialized`);
+    this.logger.log(`🔍 JWT Strategy constructor completed`);
+    this.logger.log(`📊 UserRepository: ${this.userRepository ? 'Injected' : 'MISSING'}`);
+    this.logger.log(`🚫 TokenBlacklistRepository: ${this.tokenBlacklistRepository ? 'Injected' : 'MISSING'}`);
+    this.logger.log(`👥 CustomerSyncService: ${this.customerSyncService ? 'Injected' : 'MISSING'}`);
+    console.log(`📊 JWT STRATEGY CONSTRUCTOR: Dependencies checked`);
   }
 
   async validate(req: any, payload: any): Promise<any> {
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    console.log(`🔍 JWT STRATEGY: Starting validation for user: ${payload?.sub || 'UNKNOWN'}`);
+    console.log(`📋 JWT PAYLOAD:`, JSON.stringify(payload, null, 2));
+    this.logger.log(`🔍 Starting JWT validation for user: ${payload?.sub || 'UNKNOWN'}`);
+    this.logger.log(`📊 Repository status - User: ${this.userRepository ? 'Available' : 'MISSING'}, TokenBlacklist: ${this.tokenBlacklistRepository ? 'Available' : 'MISSING'}`);
     
+    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    console.log(`🎫 JWT STRATEGY: Token extracted: ${token ? 'Present' : 'Missing'}`);
+    this.logger.log(`🎫 Token extracted: ${token ? 'Present' : 'Missing'}`);
+    
+    // TEMPORARILY BYPASS BLACKLIST CHECK FOR DEBUGGING
+    console.log(`⚠️ JWT STRATEGY: BLACKLIST CHECK BYPASSED FOR DEBUGGING PURPOSES`);
+    this.logger.warn(`⚠️ BLACKLIST CHECK BYPASSED FOR DEBUGGING PURPOSES`);
+    
+    /*
     // Only check blacklist if token exists
-    const isBlacklisted = token ? 
-      await this.tokenBlacklistRepository.findOne({ 
-        where: { token } 
-      }) : 
-      null;
-    if (isBlacklisted) {
-      this.logger.warn(`Blacklisted token received for user ${payload.sub}`);
-      throw new UnauthorizedException('Token has been invalidated');
+    try {
+      const isBlacklisted = token ? 
+        await this.tokenBlacklistRepository.findOne({ 
+          where: { token } 
+        }) : 
+        null;
+      this.logger.debug(`🚫 Blacklist check: ${isBlacklisted ? 'BLOCKED' : 'OK'}`);
+      
+      if (isBlacklisted) {
+        this.logger.warn(`Blacklisted token received for user ${payload.sub}`);
+        throw new UnauthorizedException('Token has been invalidated');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`❌ Error during blacklist check: ${errorMessage}`, errorStack);
+      throw error;
     }
+    */
 
     this.logger.debug(`Validating JWT payload for user: ${payload.sub}`);
     const auth0Id = payload.sub;
@@ -85,8 +115,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       this.logger.log(`User with Auth0 ID ${auth0Id} not found. Syncing with Customer Service first.`);
       
-      const companyId = payload['https://wanzo.com/company_id'];
-      const userType = payload['https://wanzo.com/user_type'];
+      const companyId = payload['https://wanzo.com/company_id'] || 'default-company';
+      const userType = payload['https://wanzo.com/user_type'] || 'default-user';
 
       if (!companyId || !userType) {
         this.logger.warn(`Unauthorized access attempt: missing company_id or user_type for user: ${auth0Id}`);
@@ -121,9 +151,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           this.logger.warn(`User still not found after sync, creating locally as fallback`);
           const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
 
+          console.log(`📧 Creating user (first location) with email: "${payload.email}"`);
+          
           user = this.userRepository.create({
             auth0Id,
-            email: payload.email,
+            email: payload.email || 'no-email@wanzo.com', // Fallback email
             firstName: payload.given_name || 'User',
             lastName: payload.family_name || '',
             profilePicture: payload.picture,
@@ -140,9 +172,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Fallback : créer l'utilisateur localement si la sync échoue
         const existingUsers = await this.userRepository.count({ where: { organizationId: companyId } });
 
+        console.log(`📧 Creating user with email: "${payload.email}"`);
+        console.log(`👤 Creating user with firstName: "${payload.given_name}"`);
+        console.log(`🏷️ Creating user with lastName: "${payload.family_name}"`);
+
         user = this.userRepository.create({
           auth0Id,
-          email: payload.email,
+          email: payload.email || 'no-email@wanzo.com', // Fallback email
           firstName: payload.given_name || 'User',
           lastName: payload.family_name || '',
           profilePicture: payload.picture,

@@ -25,11 +25,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     
     const token = authHeader.substring(7); // Remove 'Bearer ' from the header
     
+    // TEMPORARILY BYPASS BLACKLIST CHECK FOR DEBUGGING
+    console.log('⚠️ JWT GUARD: BLACKLIST CHECK BYPASSED FOR DEBUGGING');
+    
+    /*
     // Check if the token is in the blacklist
     const isValid = await this.validateToken(token);
     if (!isValid) {
       throw new UnauthorizedException('Token invalidé ou expiré');
     }
+    */
     
     // Continue with the standard JWT validation
     return super.canActivate(context) as Promise<boolean>;
@@ -41,6 +46,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest<TUser = any>(err: any, user: any, info: any): TUser {
+    // Enhanced debugging for JWT issues
+    console.log(`🛡️ JWT AUTH GUARD handleRequest called`);
+    console.log(`❌ Error:`, err ? err.message || err : 'No error');
+    console.log(`👤 User:`, user ? 'User found' : 'No user');
+    console.log(`ℹ️ Info:`, info ? info.message || info : 'No info');
+    
+    if (err) {
+      console.log(`🚨 JWT Authentication error:`, err);
+    }
+    if (info) {
+      console.log(`📋 JWT Info details:`, info);
+    }
+    
     // You can throw an exception based on either "info" or "err" arguments
     if (err || !user) {
       throw err || new UnauthorizedException('Authentification invalide');

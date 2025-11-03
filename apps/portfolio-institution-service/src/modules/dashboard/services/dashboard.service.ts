@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { InstitutionService } from '../../institution/services/institution.service';
-import { ProspectService } from '../../prospection/services/prospect.service';
+import { ProspectionService } from '../../prospection/services/prospection.service';
 import { PortfolioService } from '../../portfolios/services/portfolio.service';
 import { DashboardData, TraditionalDashboardMetrics, BasePerformanceMetrics, TraditionalAssetMetrics, TraditionalRiskMetrics, BaseClientMetrics } from '../interfaces/dashboard.interface';
 import { Portfolio } from '../../portfolios/entities/portfolio.entity';
@@ -15,7 +15,7 @@ import { Repayment, RepaymentStatus } from '../../portfolios/entities/repayment.
 export class DashboardService {
   constructor(
     private institutionService: InstitutionService,
-    private prospectService: ProspectService,
+    private prospectionService: ProspectionService,
     private portfolioService: PortfolioService,
     @InjectRepository(Portfolio)
     private portfolioRepository: Repository<Portfolio>,
@@ -101,21 +101,21 @@ export class DashboardService {
   }
 
   private async getProspectStatistics(institutionId: string) {
-    const prospects = await this.prospectService.findAll({ institutionId });
+    const prospects = await this.prospectionService.getOpportunities({}, institutionId);
     
     return {
-      totalProspects: prospects.total,
-      byStatus: this.groupProspectsByStatus(prospects.prospects),
-      byIndustry: this.groupProspectsByIndustry(prospects.prospects),
-      conversionRate: this.calculateConversionRate(prospects.prospects),
+      totalProspects: prospects.meta.total,
+      byStatus: this.groupProspectsByStatus(prospects.data),
+      byIndustry: this.groupProspectsByIndustry(prospects.data),
+      conversionRate: this.calculateConversionRate(prospects.data),
     };
   }
   
   private async getRecentActivity(institutionId: string) {
     // Only get prospect activities
-    const recentProspects = await this.prospectService.findAll({ institutionId }, 1, 10);
+    const recentProspects = await this.prospectionService.getOpportunities({}, institutionId);
 
-    return this.formatProspectActivities(recentProspects.prospects);
+    return this.formatProspectActivities(recentProspects.data);
   }
 
   private groupPortfoliosByType(portfolios: any[]): Record<string, number> {
@@ -177,9 +177,9 @@ export class DashboardService {
     return prospects.map(prospect => ({
       type: 'prospect',
       id: prospect.id,
-      title: prospect.name,
+      title: prospect.companyName,
       description: `Prospect ${prospect.status}`,
-      timestamp: prospect.updatedAt,
+      timestamp: new Date(prospect.updated_at),
       metadata: {
         status: prospect.status,
         sector: prospect.sector,
