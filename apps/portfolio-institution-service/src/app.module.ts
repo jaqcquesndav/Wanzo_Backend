@@ -48,8 +48,9 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'password'),
         database: configService.get('DB_DATABASE', 'portfolio-institution-service'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        autoLoadEntities: true,
+        synchronize: true, // Force synchronize to true to create tables
+        logging: true,     // Enable logging for debugging
       }),
       inject: [ConfigService],
     }),
