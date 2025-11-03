@@ -4,7 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
-import { User } from '../../users/entities/user.entity';
+import { AuthUser } from '../entities';
 import { InstitutionService } from '../../institution/services/institution.service';
 import { CustomerEventTopics, CustomerSyncRequestEvent } from '@wanzobe/shared/events/kafka-config';
 import { ClientKafka } from '@nestjs/microservices';
@@ -17,8 +17,8 @@ export class AuthService {
   constructor(
     private configService: ConfigService,
     private httpService: HttpService,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @InjectRepository(AuthUser)
+    private readonly userRepository: Repository<AuthUser>,
     private readonly institutionService: InstitutionService,
     @Inject(PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE) 
     private readonly kafkaClient: ClientKafka,
@@ -122,9 +122,7 @@ export class AuthService {
         role: user.role,
         status: user.status,
         institutionId: user.institutionId,
-        kiotaId: user.kiotaId,
         auth0Id: user.auth0Id,
-        isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       },

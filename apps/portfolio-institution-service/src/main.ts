@@ -60,11 +60,11 @@ async function bootstrap() {
     logger.warn('Failed to connect to Kafka, continuing without it: ' + (error.message || 'Unknown error'));
   }
   
-  // 2) Enable versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
+  // 2) Enable versioning - DISABLED: API Gateway handles versioning
+  // app.enableVersioning({
+  //   type: VersioningType.URI,
+  //   defaultVersion: '1',
+  // });
 
   // 3) Security middleware
   app.use(helmet());

@@ -84,6 +84,7 @@ describe('AccountService', () => {
         code: '100',
         name: 'Cash Account',
         type: AccountType.ASSET,
+        class: '1',
         companyId: 'company-1',
         fiscalYearId: 'fy-2024',
         description: 'Cash and cash equivalents'
@@ -117,6 +118,7 @@ describe('AccountService', () => {
         code: '100',
         name: 'Cash Account',
         type: AccountType.ASSET,
+        class: '1',
         companyId: 'company-1',
         fiscalYearId: 'fy-2024'
       };
@@ -139,6 +141,7 @@ describe('AccountService', () => {
         code: '110',
         name: 'Savings Account',
         type: AccountType.ASSET,
+        class: '1',
         companyId: 'company-1',
         fiscalYearId: 'fy-2024',
         parentId: 'non-existent-parent'

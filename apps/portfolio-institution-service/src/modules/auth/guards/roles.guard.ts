@@ -12,6 +12,8 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
+    
+    // Direct role comparison - no mapping needed
     return requiredRoles.includes(user.role);
   }
 }

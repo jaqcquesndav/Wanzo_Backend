@@ -21,6 +21,9 @@ export class AccountController {
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 409, description: 'Account code already exists' })
   async create(@Body() createAccountDto: CreateAccountDto, @Req() req: any) {
+    console.log('📝 CREATE ACCOUNT - Received DTO:', JSON.stringify(createAccountDto, null, 2));
+    console.log('👤 CREATE ACCOUNT - User:', req.user);
+    
     const account = await this.accountService.create(createAccountDto, req.user.id);
     return {
       success: true,

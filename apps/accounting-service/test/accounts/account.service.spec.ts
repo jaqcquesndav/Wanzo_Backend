@@ -51,6 +51,9 @@ describe('AccountService', () => {
       code: '411000',
       name: 'Clients',
       type: AccountType.ASSET,
+      class: '4',
+      companyId: 'test-company-id',
+      fiscalYearId: 'test-fiscal-year-id',
       isAnalytic: false,
     };
 
@@ -188,6 +191,7 @@ describe('AccountService', () => {
       const mockQueryBuilder = {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue(mockHierarchy),

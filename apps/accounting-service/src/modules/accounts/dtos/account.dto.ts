@@ -16,6 +16,11 @@ export class CreateAccountDto {
   @IsEnum(AccountType)
   type!: AccountType;
 
+  @ApiPropertyOptional({ description: 'Account class (single character based on account code first digit)' })
+  @IsOptional()
+  @IsString()
+  class?: string;
+
   @ApiPropertyOptional({ description: 'Accounting standard', enum: AccountingStandard })
   @IsOptional()
   @IsEnum(AccountingStandard)

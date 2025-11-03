@@ -15,6 +15,7 @@ import { EventsConsumerModule } from './modules/events/events-consumer.module';
 import { VirementsModule } from './modules/virements/virements.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { PaymentOrderModule } from './modules/payment-orders/payment-orders.module';
+import { UsersModule } from './modules/users/users.module';
 
 // Security Module
 import { SecurityModule } from '@wanzobe/shared';
@@ -68,6 +69,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     HealthModule,
     EventsConsumerModule, // Added
     ChatModule, // Added for Adha AI integration
+    UsersModule, // Added Users module
 
     // 4) Ajout du MonitoringModule pour /metrics
     MonitoringModule,

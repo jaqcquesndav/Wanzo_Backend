@@ -25,16 +25,28 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     
     const token = authHeader.substring(7); // Remove 'Bearer ' from the header
     
-    // TEMPORARILY BYPASS BLACKLIST CHECK FOR DEBUGGING
-    console.log('⚠️ JWT GUARD: BLACKLIST CHECK BYPASSED FOR DEBUGGING');
-    
-    /*
     // Check if the token is in the blacklist
-    const isValid = await this.validateToken(token);
-    if (!isValid) {
-      throw new UnauthorizedException('Token invalidé ou expiré');
+    try {
+      console.log(`🚫 JWT GUARD: Checking blacklist for token...`);
+      const isBlacklisted = await this.tokenBlacklistRepository.findOne({ 
+        where: { token } 
+      });
+      console.log(`🚫 JWT GUARD: Blacklist result: ${isBlacklisted ? 'BLOCKED' : 'OK'}`);
+      
+      if (isBlacklisted) {
+        console.log(`🚫 JWT GUARD: Token is blacklisted!`);
+        throw new UnauthorizedException('Token invalidé ou expiré');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(`❌ JWT GUARD: Blacklist check error:`, errorMessage);
+      // If it's our specific UnauthorizedException, re-throw it
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // For other errors (DB issues), log but don't block
+      console.log(`⚠️ JWT GUARD: Blacklist check failed, allowing request to continue`);
     }
-    */
     
     // Continue with the standard JWT validation
     return super.canActivate(context) as Promise<boolean>;

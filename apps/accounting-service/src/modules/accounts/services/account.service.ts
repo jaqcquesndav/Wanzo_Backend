@@ -15,6 +15,11 @@ export class AccountService {
   ) {}
 
   async create(createAccountDto: CreateAccountDto, userId: string): Promise<Account> {
+    // Auto-extract class from account code if not provided
+    if (!createAccountDto.class) {
+      createAccountDto.class = createAccountDto.code.charAt(0);
+    }
+
     // Vérifier si le code existe déjà pour cette companyId et fiscalYearId
     const existingAccount = await this.accountRepository.findOne({
       where: { 
@@ -286,6 +291,7 @@ export class AccountService {
             code: accDto.code,
             name: accDto.name || 'Unnamed Account',
             type: accDto.type || AccountType.EXPENSE, // Default to a type if undefined, though should be set
+            class: accDto.code.charAt(0), // Extract class from first digit of account code
             companyId: companyId,
             fiscalYearId: accDto.fiscalYearId || currentFiscalYearId, // Ensure fiscalYearId is set
             // kiotaId: '', // kiotaId is not part of Account entity, and not in CreateAccountDto based on previous context

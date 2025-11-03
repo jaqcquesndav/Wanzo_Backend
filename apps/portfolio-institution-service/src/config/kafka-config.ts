@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 export const getLocalKafkaConfig = (configService: ConfigService): KafkaOptions => {
   const clientId = 'portfolio-institution-service';
   const groupId = 'portfolio-institution-group';
-  const brokers = [configService.get<string>('KAFKA_BROKER', 'localhost:9092')];
+  const brokers = configService.get<string>('KAFKA_BROKERS', 'kafka:29092').split(',');
 
   console.log(`Configuring Kafka with: clientId=${clientId}, groupId=${groupId}, brokers=${brokers}`);
 

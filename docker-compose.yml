@@ -130,7 +130,7 @@ services:
       - api-gateway-logs:/app/apps/api-gateway/logs
     depends_on:
       - admin-service
-      - accounting-service
+      - kiota-accounting-service
       - analytics-service
       - portfolio-institution-service
       - gestion-commerciale-service
@@ -167,7 +167,7 @@ services:
     command: yarn workspace @kiota-suit/api-gateway dev
     depends_on:
       - admin-service-dev
-      - accounting-service-dev
+      - kiota-accounting-service-dev
       - analytics-service-dev
       - portfolio-institution-service-dev
       - gestion-commerciale-service-dev
@@ -258,7 +258,7 @@ services:
       - dev
 
   # Accounting Service (Production)
-  accounting-service:
+  kiota-accounting-service:
     build:
       context: .
       dockerfile: ./apps/accounting-service/Dockerfile
@@ -285,8 +285,8 @@ services:
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
-      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      - AUTH0_CLIENT_ID=23zGhr9Kr1TP4mTU7AvlPqgeV0cA09j2
+      - AUTH0_CLIENT_SECRET=U8j2Nb2ZFOLZZuPTji9HwAZQWgtdmy5dbfY4XMKLvN6YDJ3YThBrHMM1wcHNw1lN
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       # Auth0 M2M Configuration
@@ -306,7 +306,7 @@ services:
       - prod
 
   # Accounting Service (Development)
-  accounting-service-dev:
+  kiota-accounting-service-dev:
     build:
       context: .
       dockerfile: ./apps/accounting-service/Dockerfile

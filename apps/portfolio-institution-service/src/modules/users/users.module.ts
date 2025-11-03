@@ -17,6 +17,9 @@ import { UserSessionService } from './services/user-session.service';
 import { UserController } from './controllers/user.controller';
 import { AdminUserController } from './controllers/admin-user.controller';
 
+// Events Module
+import { EventsModule } from '../events/events.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,7 +27,8 @@ import { AdminUserController } from './controllers/admin-user.controller';
       UserActivity,
       UserPreference,
       UserSession
-    ])
+    ]),
+    EventsModule, // Add EventsModule to provide EventsService
   ],
   providers: [
     UserService,
