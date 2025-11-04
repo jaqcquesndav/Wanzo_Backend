@@ -56,6 +56,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000', // Frontend classique
       'http://localhost:5173', // Frontend Vite dev server
+      'http://localhost:5174', // Frontend Vite dev server (port alternatif)
       'http://localhost:5175', // Frontend Accounting
       'http://192.168.1.65:*', // Mobile IP spécifique
       /^http:\/\/192\.168\.1\.\d+:\d+$/, // Pattern regex pour toutes IP locales

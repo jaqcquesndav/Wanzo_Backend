@@ -78,6 +78,10 @@ async function bootstrap() {
       'http://localhost:3003',
       'http://localhost:3004',
       'http://localhost:3005',
+      'http://localhost:5173',  // Vite dev server (React/Vue)
+      'http://localhost:5174',  // Vite dev server (alternative port)
+      'http://localhost:4200',  // Angular dev server
+      'http://localhost:8080',  // Vue CLI dev server
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-request-time'],
