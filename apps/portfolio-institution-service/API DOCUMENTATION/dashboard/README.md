@@ -1,204 +1,518 @@
-# Documentation du Dashboard Portefeuille Traditionnel
+# Dashboard API
 
-Cette section détaille les endpoints de l'API spécifiques au tableau de bord pour les portefeuilles traditionnels (crédit classique) de la plateforme Wanzo Portfolio Institution.
+Ce document décrit les endpoints pour la gestion des tableaux de bord et métriques dans l'API Wanzo Portfolio Institution.
 
-## Structure du Dashboard Traditionnel
+## Types de données
 
-Le dashboard pour les portefeuilles traditionnels se concentre sur les métriques suivantes :
-- Performance des crédits accordés
-- Répartition par type de crédit
-- Analyse des risques et retards de paiement
-- Indicateurs clés de performance (KPIs)
-
-## Types de Données Principaux
-
-Les types de données principaux utilisés dans les API sont les suivants:
+Les types principaux utilisés dans l'API de dashboard:
 
 ```typescript
-interface TraditionalDashboardMetrics {
-  assets: TraditionalAssetMetrics;
-  performance: BasePerformanceMetrics;
-  risk: TraditionalRiskMetrics;
-  clients: BaseClientMetrics;
-  paymentStatus?: {
-    onTime: number;
-    late30Days: number;
-    late60Days: number;
-    late90Days: number;
-  };
-}
-
-interface TraditionalAssetMetrics extends BaseAssetMetrics {
-  distribution: {
-    credit: number;
-    microfinance: number;
-    treasury: number;
-  };
-  creditUtilization: number;
-}
-
-interface TraditionalRiskMetrics extends BaseRiskMetrics {
-  delinquencyRate: number;
-  provisionRate: number;
-  concentrationRisk: number;
-}
-
-interface BasePerformanceMetrics {
-  global: number;
-  change: number;
-  monthly: Array<{
-    month: string;
+interface DashboardMetrics {
+  // Métriques financières générales
+  totalValue: number;
+  monthlyGrowth: number;
+  yearlyGrowth: number;
+  riskScore: number;
+  
+  // Répartition par secteur
+  sectorDistribution: Array<{
+    sector: string;
+    percentage: number;
     value: number;
-    benchmark: number;
+  }>;
+  
+  // Performance historique
+  performanceHistory: Array<{
+    date: string;
+    value: number;
+    benchmark?: number;
   }>;
 }
+
+interface TraditionalDashboardMetrics extends DashboardMetrics {
+  // Métriques spécifiques aux portefeuilles traditionnels
+  totalCredits: number;
+  activeCredits: number;
+  totalDisbursed: number;
+  totalRepaid: number;
+  
+  // Indicateurs de qualité du portefeuille
+  portfolioAtRisk: number;  // PAR
+  defaultRate: number;
+  
+  // Statuts des crédits
+  creditsByStatus: Array<{
+    status: string;
+    count: number;
+    amount: number;
+  }>;
+  
+  // Échéances
+  upcomingDueDates: Array<{
+    date: string;
+    amount: number;
+    count: number;
+  }>;
+}
+
+interface OHADAMetrics {
+  // Métriques de conformité OHADA
+  complianceScore: number;
+  regulatoryRatio: number;
+  capitalAdequacy: number;
+  liquidityRatio: number;
+  
+  // Ratios prudentiels
+  prudentialRatios: Array<{
+    name: string;
+    value: number;
+    threshold: number;
+    status: 'compliant' | 'warning' | 'breach';
+  }>;
+}
+
+interface WidgetPreference {
+  id: string;
+  type: 'chart' | 'metric' | 'table' | 'list';
+  title: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  isVisible: boolean;
+  configuration: Record<string, any>;
+}
 ```
 
-## Endpoints spécifiques
+## Endpoints
 
-### Récupération des KPIs du portefeuille traditionnel
+### Récupérer les métriques du tableau de bord principal
 
-Récupère les indicateurs clés de performance (KPIs) spécifiques aux portefeuilles traditionnels.
+Récupère les métriques générales du tableau de bord.
 
-#### Requête
+**Endpoint** : `GET /portfolio/api/v1/dashboard`
 
-```
-GET /portfolio/api/v1/dashboard
-```
+**Paramètres de requête** :
+- `portfolioId` (optionnel) : Filtre par ID de portefeuille
+- `dateRange` (optionnel) : Période ('7d', '30d', '90d', '1y')
 
-#### Réponse
+**Réponse** :
 
 ```json
 {
-  "type": "traditional",
-  "count": 12,
-  "totalValue": 5000000,
-  "growth": 2.8,
-  "avgRiskScore": 2.4,
-  "performance": {
-    "monthly": 0.8,
-    "quarterly": 2.1,
-    "yearly": 7.5
+  "totalValue": 125000000,
+  "monthlyGrowth": 3.2,
+  "yearlyGrowth": 15.8,
+  "riskScore": 7.2,
+  "sectorDistribution": [
+    {
+      "sector": "Commerce",
+      "percentage": 35,
+      "value": 43750000
+    },
+    {
+      "sector": "Services",
+      "percentage": 25,
+      "value": 31250000
+    },
+    {
+      "sector": "Agriculture",
+      "percentage": 20,
+      "value": 25000000
+    },
+    {
+      "sector": "Industrie",
+      "percentage": 20,
+      "value": 25000000
+    }
+  ],
+  "performanceHistory": [
+    {
+      "date": "2025-07-01",
+      "value": 120000000,
+      "benchmark": 118000000
+    },
+    {
+      "date": "2025-08-01",
+      "value": 122500000,
+      "benchmark": 119500000
+    },
+    {
+      "date": "2025-09-01",
+      "value": 125000000,
+      "benchmark": 121000000
+    }
+  ]
+}
+```
+
+### Récupérer les métriques globales
+
+Récupère les métriques agrégées de tous les portefeuilles.
+
+**Endpoint** : `GET /portfolio/api/v1/dashboard/metrics/global`
+
+**Réponse** :
+
+```json
+{
+  "totalPortfolios": 15,
+  "totalValue": 500000000,
+  "totalClients": 1250,
+  "averagePortfolioSize": 33333333,
+  "topPerformingPortfolio": {
+    "id": "port-123",
+    "name": "Portefeuille PME Nord",
+    "performance": 18.5
   },
-  "topPortfolios": [
-    {
-      "id": "port-456",
-      "name": "Portefeuille PME",
-      "value": 1800000,
-      "growth": 1.8
-    },
-    {
-      "id": "port-789",
-      "name": "Portefeuille Micro-finance",
-      "value": 1200000,
-      "growth": 3.2
-    }
-  ],
-  "metrics": {
-    "delinquencyRate": 3.2,
-    "provisionRate": 2.5,
-    "concentrationRisk": 12.4,
-    "creditUtilization": 75
+  "riskDistribution": {
+    "low": 60,
+    "medium": 30,
+    "high": 10
   }
 }
 ```
 
-### Récupération des données de performance pour un portefeuille
+### Récupérer les métriques d'un portefeuille
 
-Récupère les données de performance pour un portefeuille traditionnel spécifique.
+Récupère les métriques détaillées d'un portefeuille spécifique.
 
-#### Requête
+**Endpoint** : `GET /portfolio/api/v1/dashboard/metrics/portfolio/{portfolioId}`
 
-```
-GET /portfolio/api/v1/dashboard/portfolio/{portfolioId}/performance?type={type}&period={period}
-```
+**Paramètres de chemin** :
+- `portfolioId` : Identifiant unique du portefeuille
 
-#### Paramètres de requête
-
-| Paramètre   | Type   | Description | Requis |
-|-------------|--------|-------------|--------|
-| portfolioId | string | ID du portefeuille | Oui |
-| type        | string | Type de portefeuille (doit être 'traditional' ici) | Oui |
-| period      | string | Période d'analyse ('daily', 'weekly', 'monthly', 'quarterly', 'yearly') | Oui |
-
-#### Réponse
+**Réponse** (pour un portefeuille traditionnel) :
 
 ```json
 {
-  "id": "port-456",
-  "name": "Portefeuille PME",
-  "type": "traditional",
-  "period": "monthly",
-  "data": [
-    { "date": "2025-01-01", "value": 1750000 },
-    { "date": "2025-02-01", "value": 1760000 },
-    { "date": "2025-03-01", "value": 1770000 },
-    { "date": "2025-04-01", "value": 1780000 },
-    { "date": "2025-05-01", "value": 1790000 },
-    { "date": "2025-06-01", "value": 1800000 }
+  "totalValue": 125000000,
+  "monthlyGrowth": 3.2,
+  "yearlyGrowth": 15.8,
+  "riskScore": 7.2,
+  "totalCredits": 85,
+  "activeCredits": 72,
+  "totalDisbursed": 98000000,
+  "totalRepaid": 23000000,
+  "portfolioAtRisk": 4.5,
+  "defaultRate": 2.1,
+  "creditsByStatus": [
+    {
+      "status": "active",
+      "count": 72,
+      "amount": 89500000
+    },
+    {
+      "status": "completed",
+      "count": 10,
+      "amount": 8000000
+    },
+    {
+      "status": "defaulted",
+      "count": 3,
+      "amount": 2500000
+    }
   ],
-  "metrics": {
-    "totalReturn": 2.8,
-    "annualizedReturn": 5.6,
-    "volatility": 0.5,
-    "sharpeRatio": 2.1,
-    "maxDrawdown": 0.2
-  }
+  "upcomingDueDates": [
+    {
+      "date": "2025-11-15",
+      "amount": 2500000,
+      "count": 15
+    },
+    {
+      "date": "2025-11-30",
+      "amount": 3200000,
+      "count": 18
+    }
+  ]
 }
 ```
 
-### Récupération des tendances de portefeuille
+### Récupérer les métriques OHADA
 
-Récupère les données de tendance pour tous les portefeuilles, y compris le type traditionnel.
+Récupère les métriques de conformité réglementaire OHADA.
 
-#### Requête
+**Endpoint** : `GET /portfolio/api/v1/dashboard/metrics/ohada`
 
-```
-GET /portfolio/api/v1/dashboard/trends?period={period}
-```
-
-#### Paramètres de requête
-
-| Paramètre | Type   | Description | Requis |
-|-----------|--------|-------------|--------|
-| period    | string | Période d'analyse ('daily', 'weekly', 'monthly', 'quarterly', 'yearly') | Oui |
-
-#### Réponse
+**Réponse** :
 
 ```json
 {
-  "period": "monthly",
-  "trends": {
-    "traditional": {
-      "growth": 2.8,
-      "data": [
-        { "date": "2025-01-01", "value": 4850000 },
-        { "date": "2025-02-01", "value": 4880000 },
-        { "date": "2025-03-01", "value": 4910000 },
-        { "date": "2025-04-01", "value": 4940000 },
-        { "date": "2025-05-01", "value": 4970000 },
-        { "date": "2025-06-01", "value": 5000000 }
-      ]
+  "complianceScore": 92.5,
+  "regulatoryRatio": 15.8,
+  "capitalAdequacy": 12.5,
+  "liquidityRatio": 25.3,
+  "prudentialRatios": [
+    {
+      "name": "Ratio de fonds propres",
+      "value": 12.5,
+      "threshold": 8.0,
+      "status": "compliant"
     },
-    "investment": {
-      "growth": 7.5,
-      "data": [/* ... */]
+    {
+      "name": "Ratio de liquidité",
+      "value": 25.3,
+      "threshold": 20.0,
+      "status": "compliant"
     },
-    "leasing": {
-      "growth": 3.5,
-      "data": [/* ... */]
+    {
+      "name": "Ratio de division des risques",
+      "value": 18.5,
+      "threshold": 25.0,
+      "status": "warning"
     }
+  ],
+  "lastUpdated": "2025-11-04T10:30:00.000Z"
+}
+```
+
+### Récupérer le résumé de conformité
+
+Récupère un résumé de la conformité réglementaire.
+
+**Endpoint** : `GET /portfolio/api/v1/dashboard/compliance/summary`
+
+**Réponse** :
+
+```json
+{
+  "overallScore": 85.2,
+  "categories": [
+    {
+      "name": "Ratios prudentiels",
+      "score": 92.5,
+      "status": "compliant",
+      "issues": 0,
+      "warnings": 1
+    },
+    {
+      "name": "Reporting réglementaire",
+      "score": 78.0,
+      "status": "warning",
+      "issues": 0,
+      "warnings": 3
+    },
+    {
+      "name": "Gestion des risques",
+      "score": 88.5,
+      "status": "compliant",
+      "issues": 0,
+      "warnings": 0
+    }
+  ],
+  "recentAlerts": [
+    {
+      "id": "alert-001",
+      "level": "warning",
+      "message": "Ratio de division des risques proche du seuil",
+      "timestamp": "2025-11-04T09:15:00.000Z",
+      "category": "prudentiel"
+    }
+  ]
+}
+```
+
+### Récupérer les données de risque de la banque centrale
+
+Récupère les données de risque provenant de la banque centrale.
+
+**Endpoint** : `GET /portfolio/api/v1/dashboard/risk/central-bank`
+
+**Réponse** :
+
+```json
+{
+  "totalExposure": 45000000,
+  "riskWeightedAssets": 38250000,
+  "concentrationRisk": {
+    "largestExposure": 8500000,
+    "top5Exposures": 28750000,
+    "concentrationRatio": 18.9
+  },
+  "sectorConcentration": [
+    {
+      "sector": "Commerce",
+      "exposure": 15750000,
+      "percentage": 35.0,
+      "riskWeight": 100
+    },
+    {
+      "sector": "Agriculture",
+      "exposure": 11250000,
+      "percentage": 25.0,
+      "riskWeight": 75
+    }
+  ],
+  "lastUpdate": "2025-11-04T08:00:00.000Z"
+}
+```
+
+### Récupérer l'analyse de risque d'un portefeuille
+
+Récupère l'analyse détaillée des risques d'un portefeuille.
+
+**Endpoint** : `GET /portfolio/api/v1/dashboard/risk/portfolios/{id}`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du portefeuille
+
+**Réponse** :
+
+```json
+{
+  "portfolioId": "port-123",
+  "overallRiskScore": 7.2,
+  "riskLevel": "medium",
+  "factors": [
+    {
+      "name": "Concentration sectorielle",
+      "score": 6.5,
+      "weight": 0.3,
+      "description": "Concentration élevée dans le secteur commerce"
+    },
+    {
+      "name": "Qualité du portefeuille",
+      "score": 8.2,
+      "weight": 0.4,
+      "description": "PAR à 30 jours acceptable"
+    },
+    {
+      "name": "Diversification géographique",
+      "score": 7.8,
+      "weight": 0.2,
+      "description": "Bonne répartition géographique"
+    }
+  ],
+  "recommendations": [
+    "Diversifier les secteurs d'activité",
+    "Renforcer le suivi des créances"
+  ],
+  "var": {
+    "var95": 1250000,
+    "var99": 2100000,
+    "expectedShortfall": 2850000
   }
 }
 ```
 
-## Composants UI associés
+### Récupérer les préférences du tableau de bord
 
-Les principaux composants UI utilisés pour afficher les données du dashboard traditionnel sont :
+Récupère les préférences de configuration du tableau de bord pour un utilisateur.
 
-- `PortfolioPerformanceChart` - Affiche la performance des portefeuilles traditionnels
-- `CreditDistributionPieChart` - Montre la répartition des crédits par type
-- `DelinquencyRateChart` - Montre l'évolution du taux de retard de paiement
-- `PaymentStatusDashboard` - Affiche les statuts de paiement (à temps, retards)
+**Endpoint** : `GET /portfolio/api/v1/dashboard/preferences/{userId}`
 
-Ces composants utilisent les données fournies par les endpoints API décrits ci-dessus.
+**Paramètres de chemin** :
+- `userId` : Identifiant unique de l'utilisateur
+
+**Réponse** :
+
+```json
+{
+  "userId": "user-123",
+  "dashboardLayout": "grid",
+  "widgets": [
+    {
+      "id": "widget-001",
+      "type": "metric",
+      "title": "Valeur totale du portefeuille",
+      "position": { "x": 0, "y": 0 },
+      "size": { "width": 4, "height": 2 },
+      "isVisible": true,
+      "configuration": {
+        "portfolioId": "port-123",
+        "metric": "totalValue",
+        "format": "currency"
+      }
+    },
+    {
+      "id": "widget-002",
+      "type": "chart",
+      "title": "Performance mensuelle",
+      "position": { "x": 4, "y": 0 },
+      "size": { "width": 8, "height": 4 },
+      "isVisible": true,
+      "configuration": {
+        "chartType": "line",
+        "dataSource": "performanceHistory",
+        "timeRange": "12m"
+      }
+    }
+  ],
+  "refreshInterval": 300,
+  "lastUpdated": "2025-11-04T10:15:00.000Z"
+}
+```
+
+### Mettre à jour un widget du tableau de bord
+
+Met à jour la configuration d'un widget spécifique.
+
+**Endpoint** : `PUT /portfolio/api/v1/dashboard/preferences/{userId}/widget/{widgetId}`
+
+**Paramètres de chemin** :
+- `userId` : Identifiant unique de l'utilisateur
+- `widgetId` : Identifiant unique du widget
+
+**Corps de la requête** :
+
+```json
+{
+  "position": { "x": 0, "y": 4 },
+  "size": { "width": 6, "height": 3 },
+  "isVisible": false,
+  "configuration": {
+    "timeRange": "6m"
+  }
+}
+```
+
+**Réponse** :
+
+```json
+{
+  "id": "widget-002",
+  "type": "chart",
+  "title": "Performance mensuelle",
+  "position": { "x": 0, "y": 4 },
+  "size": { "width": 6, "height": 3 },
+  "isVisible": false,
+  "configuration": {
+    "chartType": "line",
+    "dataSource": "performanceHistory",
+    "timeRange": "6m"
+  },
+  "updatedAt": "2025-11-04T11:00:00.000Z"
+}
+```
+
+### Réinitialiser les préférences du tableau de bord
+
+Remet les préférences du tableau de bord aux valeurs par défaut.
+
+**Endpoint** : `POST /portfolio/api/v1/dashboard/preferences/{userId}/reset`
+
+**Paramètres de chemin** :
+- `userId` : Identifiant unique de l'utilisateur
+
+**Réponse** :
+
+```json
+{
+  "success": true,
+  "message": "Préférences réinitialisées avec succès",
+  "defaultLayout": "grid",
+  "widgetCount": 6
+}
+```
+
+## Codes d'erreur
+
+| Code HTTP | Code d'erreur                | Description                                           |
+|-----------|------------------------------|-------------------------------------------------------|
+| 400       | INVALID_DATE_RANGE           | Plage de dates invalide                              |
+| 403       | INSUFFICIENT_PERMISSIONS     | Permissions insuffisantes pour accéder aux métriques |
+| 404       | PORTFOLIO_NOT_FOUND          | Portefeuille non trouvé                              |
+| 404       | WIDGET_NOT_FOUND             | Widget non trouvé                                     |
+| 422       | INVALID_WIDGET_CONFIGURATION | Configuration de widget invalide                      |
+
+---
+
+*Documentation mise à jour le 4 novembre 2025 pour correspondre aux endpoints du code source*

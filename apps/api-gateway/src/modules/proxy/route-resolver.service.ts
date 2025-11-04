@@ -38,7 +38,7 @@ export class RouteResolverService {
       {
         service: 'portfolio-institution',
         baseUrl: this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://localhost:3005'),
-        prefix: 'portfolio/institution',
+        prefix: 'portfolio/api/v1',
       },
       {
         service: 'customer',

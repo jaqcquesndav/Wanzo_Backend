@@ -1,73 +1,55 @@
 import { IsString, IsNumber, IsEnum, IsOptional, IsDateString, IsObject, ValidateNested, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentOrderType, PaymentOrderStatus } from '../entities/payment-order.entity';
-
-export class BeneficiaryDto {
-  @ApiProperty({ description: 'Beneficiary name' })
-  @IsString()
-  name: string;
-
-  @ApiPropertyOptional({ description: 'Account number' })
-  @IsOptional()
-  @IsString()
-  accountNumber?: string;
-
-  @ApiPropertyOptional({ description: 'Bank code' })
-  @IsOptional()
-  @IsString()
-  bankCode?: string;
-
-  @ApiPropertyOptional({ description: 'IBAN' })
-  @IsOptional()
-  @IsString()
-  iban?: string;
-
-  @ApiPropertyOptional({ description: 'Address' })
-  @IsOptional()
-  @IsString()
-  address?: string;
-}
+import { TraditionalFundingType, PaymentOrderStatus, PortfolioType } from '../entities/payment-order.entity';
 
 export class CreatePaymentOrderDto {
-  @ApiProperty({ description: 'Type of payment order', enum: PaymentOrderType })
-  @IsEnum(PaymentOrderType)
-  type: PaymentOrderType;
+  @ApiProperty({ description: 'Portfolio type', enum: PortfolioType, default: PortfolioType.TRADITIONAL })
+  @IsEnum(PortfolioType)
+  portfolioType: PortfolioType = PortfolioType.TRADITIONAL;
+
+  @ApiProperty({ description: 'Type of funding for traditional portfolio', enum: TraditionalFundingType })
+  @IsEnum(TraditionalFundingType)
+  fundingType: TraditionalFundingType;
 
   @ApiProperty({ description: 'Payment amount', minimum: 0.01 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount: number;
 
-  @ApiPropertyOptional({ description: 'Payment currency', default: 'XOF' })
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
-  @ApiPropertyOptional({ description: 'Due date for the payment' })
-  @IsOptional()
+  @ApiProperty({ description: 'Payment date' })
   @IsDateString()
-  dueDate?: string;
+  date: string;
+
+  @ApiProperty({ description: 'Company/Beneficiary name' })
+  @IsString()
+  company: string;
+
+  @ApiProperty({ description: 'Reference number for the payment' })
+  @IsString()
+  reference: string;
 
   @ApiPropertyOptional({ description: 'Description of the payment order' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Beneficiary information' })
-  @ValidateNested()
-  @Type(() => BeneficiaryDto)
-  beneficiary: BeneficiaryDto;
+  @ApiProperty({ description: 'Related contract reference' })
+  @IsString()
+  contractReference: string;
 
-  @ApiPropertyOptional({ description: 'Related portfolio ID' })
+  @ApiProperty({ description: 'Product name/type' })
+  @IsString()
+  product: string;
+
+  @ApiPropertyOptional({ description: 'Related credit request ID' })
   @IsOptional()
   @IsString()
-  portfolioId?: string;
+  requestId?: string;
 
-  @ApiPropertyOptional({ description: 'Related contract reference' })
-  @IsOptional()
+  @ApiProperty({ description: 'Related portfolio ID' })
   @IsString()
-  contractReference?: string;
+  portfolioId: string;
 
   @ApiPropertyOptional({ description: 'Additional metadata' })
   @IsOptional()
@@ -76,27 +58,36 @@ export class CreatePaymentOrderDto {
 }
 
 export class UpdatePaymentOrderDto {
+  @ApiPropertyOptional({ description: 'Type of funding for traditional portfolio', enum: TraditionalFundingType })
+  @IsOptional()
+  @IsEnum(TraditionalFundingType)
+  fundingType?: TraditionalFundingType;
+
   @ApiPropertyOptional({ description: 'Payment amount', minimum: 0.01 })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount?: number;
 
-  @ApiPropertyOptional({ description: 'Due date for the payment' })
+  @ApiPropertyOptional({ description: 'Payment date' })
   @IsOptional()
   @IsDateString()
-  dueDate?: string;
+  date?: string;
+
+  @ApiPropertyOptional({ description: 'Company/Beneficiary name' })
+  @IsOptional()
+  @IsString()
+  company?: string;
 
   @ApiPropertyOptional({ description: 'Description of the payment order' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Beneficiary information' })
+  @ApiPropertyOptional({ description: 'Product name/type' })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => BeneficiaryDto)
-  beneficiary?: BeneficiaryDto;
+  @IsString()
+  product?: string;
 
   @ApiPropertyOptional({ description: 'Additional metadata' })
   @IsOptional()
@@ -113,4 +104,9 @@ export class UpdatePaymentOrderStatusDto {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  @ApiPropertyOptional({ description: 'Comments for status change' })
+  @IsOptional()
+  @IsString()
+  comments?: string;
 }

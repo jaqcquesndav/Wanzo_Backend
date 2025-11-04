@@ -18,34 +18,37 @@ Pour une documentation détaillée de cette API, consultez les sections suivante
 ## Structure d'un Ordre de Paiement
 
 ```typescript
-interface PaymentOrderData {
+// Interface commune pour toutes les sorties de fonds
+interface PaymentOrderBase {
   id: string;
-  orderNumber: string;
-  date: string;
+  portfolioType: 'traditional';
   amount: number;
-  currency: string;
-  beneficiary: {
-    name: string;
-    accountNumber: string;
-    bankName: string;
-    swiftCode?: string;
-    address?: string;
-  };
+  date: Date;
+  company: string;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
   reference: string;
-  description: string;
-  portfolioId: string;
-  portfolioName: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid';
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedBy?: string;
-  rejectedAt?: string;
-  paidBy?: string;
-  paidAt?: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
+  contractReference?: string; // Référence du contrat associé
 }
+
+// Ordre de paiement pour le portefeuille traditionnel
+interface TraditionalPaymentOrder extends PaymentOrderBase {
+  portfolioType: 'traditional';
+  fundingType: TraditionalFundingType;
+  product: string;
+  requestId?: string;
+  contractReference: string; // Référence obligatoire du contrat
+}
+
+// Types de sortie de fonds pour le portefeuille traditionnel
+type TraditionalFundingType = 
+  | 'octroi_crédit' 
+  | 'complément_crédit' 
+  | 'restructuration' 
+  | 'autres';
+
+// Type union pour tous les ordres de paiement
+type PaymentOrder = TraditionalPaymentOrder;
 ```
 
 ## Points d'accès

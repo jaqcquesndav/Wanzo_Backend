@@ -25,10 +25,31 @@ GET /settings
     "primaryColor": "#336699",
     "secondaryColor": "#99CCFF",
     "tertiaryColor": "#FFFFFF",
-    "currency": "EUR",
+    "currency": "CDF",
     "language": "fr",
+    "theme": "light",
+    "twoFactorEnabled": true,
+    "notificationsEnabled": true,
     "dateFormat": "DD/MM/YYYY",
-    "timeFormat": "24h"
+    "timeFormat": "24h",
+    "subscription": {
+      "plan": "premium",
+      "status": "active",
+      "expiryDate": "2025-12-31T23:59:59Z",
+      "autoRenew": true
+    },
+    "paymentMethods": {
+      "mobileMoney": {
+        "airtel": true,
+        "orange": true,
+        "mpesa": false
+      },
+      "cards": {
+        "visa": true,
+        "mastercard": true,
+        "paypal": false
+      }
+    }
   },
   "security": {
     "passwordPolicy": {
@@ -708,3 +729,51 @@ DELETE /settings/system/maintenance
 | 403  | Accès interdit - Droits insuffisants |
 | 404  | Aucune maintenance planifiée |
 | 500  | Erreur serveur interne |
+
+## Modèles de données
+
+### Interface AppSettings
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| currency | string | Devise principale de l'application ('CDF', 'USD') |
+| language | string | Langue de l'interface utilisateur |
+| theme | string | Thème de l'interface ('light', 'dark') |
+| twoFactorEnabled | boolean | Activation de l'authentification à deux facteurs |
+| notificationsEnabled | boolean | Activation des notifications générales |
+| subscription | object | Informations sur l'abonnement |
+| subscription.plan | string | Plan d'abonnement ('basic', 'premium', 'enterprise') |
+| subscription.status | string | Statut de l'abonnement ('active', 'inactive', 'trial') |
+| subscription.expiryDate | string | Date d'expiration de l'abonnement (format ISO) |
+| subscription.autoRenew | boolean | Renouvellement automatique activé |
+| paymentMethods | object | Configuration des méthodes de paiement |
+| paymentMethods.mobileMoney | object | Configuration du paiement mobile |
+| paymentMethods.mobileMoney.airtel | boolean | Support d'Airtel Money |
+| paymentMethods.mobileMoney.orange | boolean | Support d'Orange Money |
+| paymentMethods.mobileMoney.mpesa | boolean | Support de M-Pesa |
+| paymentMethods.cards | object | Configuration des cartes de paiement |
+| paymentMethods.cards.visa | boolean | Support des cartes Visa |
+| paymentMethods.cards.mastercard | boolean | Support des cartes Mastercard |
+| paymentMethods.cards.paypal | boolean | Support de PayPal |
+
+### Interface PaymentProvider
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | string | Identifiant unique du fournisseur |
+| name | string | Nom du fournisseur de paiement |
+| type | string | Type de fournisseur ('mobile_money', 'card') |
+| logo_url | string | URL du logo du fournisseur |
+| enabled | boolean | Indique si le fournisseur est actif |
+
+### Interface SubscriptionPlan
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | string | Identifiant unique du plan |
+| name | string | Nom du plan d'abonnement |
+| price | object | Tarification du plan |
+| price.CDF | number | Prix en francs congolais |
+| price.USD | number | Prix en dollars américains |
+| features | array | Liste des fonctionnalités incluses |
+| duration | number | Durée du plan en jours |

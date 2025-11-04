@@ -6,8 +6,8 @@ import { Disbursement, DisbursementStatus } from '../entities/disbursement.entit
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 
-@ApiTags('virements')
-@Controller('virements')
+@ApiTags('disbursements')
+@Controller('portfolios/traditional/disbursements')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class VirementsController {

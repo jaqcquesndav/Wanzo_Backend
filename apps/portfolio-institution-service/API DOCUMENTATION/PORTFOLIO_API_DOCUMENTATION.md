@@ -224,71 +224,154 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/users/${id}` | GET /users/${id} |
-| POST | `/users/${id}/reset-password` | POST /users/${id}/reset-password |
-| POST | `/users/${userId}/portfolios` | POST /users/${userId}/portfolios |
-| PUT | `/users/${id}` | PUT /users/${id} |
-| DELETE | `/users/${id}` | DELETE /users/${id} |
-| DELETE | `/users/${userId}/portfolios/${portfolioId}` | DELETE /users/${userId}/portfolios/${portfolioId} |
+| GET | `/users` | Récupère tous les utilisateurs |
+| GET | `/users/${id}` | Récupère un utilisateur par son ID |
+| POST | `/users` | Crée un nouvel utilisateur |
+| PUT | `/users/${id}` | Met à jour un utilisateur |
+| DELETE | `/users/${id}` | Supprime un utilisateur |
+| GET | `/users/me` | Récupère le profil de l'utilisateur courant |
+| GET | `/users/me/preferences` | Récupère les préférences utilisateur |
+| PUT | `/users/me/preferences` | Met à jour les préférences utilisateur |
+| POST | `/users/${id}/reset-password` | Réinitialise le mot de passe d'un utilisateur |
+| POST | `/users/${userId}/portfolios` | Assigne un portefeuille à un utilisateur |
+| DELETE | `/users/${userId}/portfolios/${portfolioId}` | Retire l'assignation d'un portefeuille |
+| GET | `/users/roles` | Récupère la liste des rôles disponibles |
+| GET | `/users/permissions` | Récupère la liste des permissions |
+| GET | `/users/activity` | Récupère l'historique d'activité des utilisateurs |
 
 ### 8. Entreprises
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/companies/${id}` | GET /companies/${id} |
-| GET | `/companies/search?q=${encodeURIComponent(searchTerm)}` | GET /companies/search?q=${encodeURIComponent(searchTerm)} |
-| PUT | `/companies/${id}` | PUT /companies/${id} |
-| DELETE | `/companies/${id}` | DELETE /companies/${id} |
+| GET | `/companies` | Récupère toutes les entreprises |
+| GET | `/companies/${id}` | Récupère une entreprise par son ID |
+| POST | `/companies` | Crée une nouvelle entreprise |
+| PUT | `/companies/${id}` | Met à jour une entreprise |
+| DELETE | `/companies/${id}` | Supprime une entreprise |
+| GET | `/companies/search?q=${encodeURIComponent(searchTerm)}` | Recherche d'entreprises par terme |
+| GET | `/companies/${id}/financials` | Récupère les données financières d'une entreprise |
+| GET | `/companies/${id}/valuation` | Récupère l'évaluation d'une entreprise |
 
 ### 9. Gestion des risques
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/risk/central/company/${companyId}` | GET /risk/central/company/${companyId} |
-| PUT | `/risk/central/entries/${id}` | PUT /risk/central/entries/${id} |
-| GET | `/risk/credit/${companyId}` | GET /risk/credit/${companyId} |
-| GET | `/risk/leasing/${companyId}` | GET /risk/leasing/${companyId} |
-| GET | `/risk/investment/${companyId}` | GET /risk/investment/${companyId} |
-| POST | `/risk/${type}` | POST /risk/${type} |
-| PUT | `/risk/${type}/${id}` | PUT /risk/${type}/${id} |
+| GET | `/risk/central/company/${companyId}` | Récupère les informations de risque de la centrale des risques |
+| POST | `/risk/central` | Crée une nouvelle entrée de risque central |
+| PUT | `/risk/central/entries/${id}` | Met à jour une entrée de risque central |
+| GET | `/risk/credit/${companyId}` | Récupère l'évaluation de risque crédit d'une entreprise |
+| GET | `/risk/leasing/${companyId}` | Récupère l'évaluation de risque leasing d'une entreprise |
+| GET | `/risk/investment/${companyId}` | Récupère l'évaluation de risque investissement d'une entreprise |
+| POST | `/risk/${type}` | Crée une nouvelle évaluation de risque (type: credit, leasing, investment) |
+| PUT | `/risk/${type}/${id}` | Met à jour une évaluation de risque |
+| GET | `/risk/portfolios/${portfolioId}` | Récupère l'analyse de risque d'un portefeuille |
 
 ### 10. Paiements
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/payments?${params.toString()}` | GET /payments?${params.toString()} |
+| GET | `/payments` | Récupère tous les ordres de paiement |
+| GET | `/payments/${id}` | Récupère un ordre de paiement par son ID |
+| POST | `/payments` | Crée un nouvel ordre de paiement |
+| PUT | `/payments/${id}` | Met à jour un ordre de paiement |
+| PUT | `/payments/${id}/status` | Met à jour le statut d'un ordre de paiement |
+| PUT | `/payments/${id}/cancel` | Annule un ordre de paiement |
+| GET | `/payments/beneficiary/${encodeURIComponent(beneficiaryName)}` | Récupère les ordres par bénéficiaire |
+| GET | `/payments?${params.toString()}` | Récupère les paiements avec filtres (page, limit, status, etc.) |
 
 ### 11. Paramètres
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| POST | `/settings/webhooks/${id}/test` | POST /settings/webhooks/${id}/test |
-| PUT | `/settings/webhooks/${id}` | PUT /settings/webhooks/${id} |
-| DELETE | `/settings/api-keys/${id}` | DELETE /settings/api-keys/${id} |
-| DELETE | `/settings/webhooks/${id}` | DELETE /settings/webhooks/${id} |
+| GET | `/settings` | Récupère tous les paramètres système |
+| PUT | `/settings` | Met à jour les paramètres système |
+| GET | `/settings/system` | Récupère les paramètres système globaux |
+| PUT | `/settings/system` | Met à jour les paramètres système globaux |
+| GET | `/settings/notifications` | Récupère les paramètres de notifications |
+| PUT | `/settings/notifications` | Met à jour les paramètres de notifications |
+| GET | `/settings/security` | Récupère les paramètres de sécurité |
+| PUT | `/settings/security` | Met à jour les paramètres de sécurité |
+| GET | `/settings/appearance` | Récupère les paramètres d'apparence |
+| PUT | `/settings/appearance` | Met à jour les paramètres d'apparence |
+| GET | `/settings/integrations` | Récupère les paramètres d'intégrations |
+| PUT | `/settings/integrations` | Met à jour les paramètres d'intégrations |
+| GET | `/settings/webhooks` | Récupère la liste des webhooks |
+| POST | `/settings/webhooks` | Crée un nouveau webhook |
+| PUT | `/settings/webhooks/${id}` | Met à jour un webhook |
+| DELETE | `/settings/webhooks/${id}` | Supprime un webhook |
+| POST | `/settings/webhooks/${id}/test` | Teste un webhook |
+| GET | `/settings/api-keys` | Récupère la liste des clés API |
+| POST | `/settings/api-keys` | Crée une nouvelle clé API |
+| DELETE | `/settings/api-keys/${id}` | Supprime une clé API |
 
 ### 12. Prospection
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| POST | `/prospection/opportunities/${opportunityId}/activities` | POST /prospection/opportunities/${opportunityId}/activities |
-| PUT | `/prospection/opportunities/${id}` | PUT /prospection/opportunities/${id} |
-| DELETE | `/prospection/opportunities/${id}` | DELETE /prospection/opportunities/${id} |
+| GET | `/prospection/opportunities` | Récupère toutes les opportunités de prospection |
+| GET | `/prospection/opportunities/${id}` | Récupère une opportunité par son ID |
+| POST | `/prospection/opportunities` | Crée une nouvelle opportunité |
+| PUT | `/prospection/opportunities/${id}` | Met à jour une opportunité |
+| DELETE | `/prospection/opportunities/${id}` | Supprime une opportunité |
+| POST | `/prospection/opportunities/${opportunityId}/activities` | Ajoute une activité à une opportunité |
+| GET | `/prospection/opportunities/${opportunityId}/activities` | Récupère les activités d'une opportunité |
+| POST | `/prospection/opportunities/${opportunityId}/documents` | Ajoute un document à une opportunité |
+| GET | `/prospection/opportunities/${opportunityId}/documents` | Récupère les documents d'une opportunité |
+| GET | `/prospection/leads` | Récupère tous les leads |
+| POST | `/prospection/leads` | Crée un nouveau lead |
+| PUT | `/prospection/leads/${id}` | Met à jour un lead |
 
 ### 13. Chat et notifications
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| POST | `/chat/messages/${messageId}/rating` | POST /chat/messages/${messageId}/rating |
-| DELETE | `/chat/contexts/${id}` | DELETE /chat/contexts/${id} |
+| GET | `/chat/conversations` | Récupère toutes les conversations |
+| GET | `/chat/conversations/${id}` | Récupère une conversation par son ID |
+| POST | `/chat/conversations` | Crée une nouvelle conversation |
+| DELETE | `/chat/conversations/${id}` | Supprime une conversation |
+| GET | `/chat/messages` | Récupère tous les messages |
+| GET | `/chat/messages/${conversationId}` | Récupère les messages d'une conversation |
+| POST | `/chat/messages` | Envoie un nouveau message |
+| PUT | `/chat/messages/${messageId}` | Met à jour un message |
+| POST | `/chat/messages/${messageId}/rating` | Évalue un message |
+| DELETE | `/chat/contexts/${id}` | Supprime un contexte de chat |
+| GET | `/notifications` | Récupère toutes les notifications |
+| POST | `/notifications` | Crée une nouvelle notification |
+| PUT | `/notifications/${id}/read` | Marque une notification comme lue |
 
-### 14. Autres endpoints
+### 14. Dashboard et métriques
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/dashboard` | Récupère les données du tableau de bord principal |
+| GET | `/dashboard/metrics/global` | Récupère les métriques globales |
+| GET | `/dashboard/metrics/portfolio/${portfolioId}` | Récupère les métriques d'un portefeuille |
+| GET | `/dashboard/metrics/ohada` | Récupère les métriques de conformité OHADA |
+| GET | `/dashboard/compliance/summary` | Récupère le résumé de conformité |
+| GET | `/dashboard/risk/central-bank` | Récupère les données de risque de la banque centrale |
+| GET | `/dashboard/risk/portfolios/${id}` | Récupère l'analyse de risque d'un portefeuille |
+| GET | `/dashboard/preferences/${userId}` | Récupère les préférences du tableau de bord |
+| PUT | `/dashboard/preferences/${userId}/widget/${widgetId}` | Met à jour un widget du tableau de bord |
+| POST | `/dashboard/preferences/${userId}/reset` | Réinitialise les préférences du tableau de bord |
+
+### 15. Synchronisation
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/sync/status` | Récupère le statut de synchronisation |
+| POST | `/sync/pull` | Récupère les changements du serveur |
+| POST | `/sync/push` | Envoie les changements locaux |
+| POST | `/sync/reset` | Réinitialise l'état de synchronisation |
+
+### 16. Autres endpoints généraux
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/portfolios` | Récupère tous les portefeuilles (tous types) |
 | GET | `/portfolios/${id}` | Récupère un portefeuille par son ID |
 | DELETE | `/portfolios/${id}` | Supprime un portefeuille |
+| GET | `/institution/managers` | Récupère tous les gestionnaires d'institution |
+| POST | `/institution/managers` | Crée un nouveau gestionnaire |
 | PUT | `/institution/managers/${id}` | Met à jour un gestionnaire d'institution |
 | DELETE | `/institution/managers/${id}` | Supprime un gestionnaire d'institution |
 

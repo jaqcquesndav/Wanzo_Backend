@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PaymentOrder, PaymentOrderStatus } from '../entities/payment-order.entity';
+import { PaymentOrder, PaymentOrderStatus, TraditionalFundingType } from '../entities/payment-order.entity';
 import { CreatePaymentOrderDto, UpdatePaymentOrderDto, UpdatePaymentOrderStatusDto } from '../dtos';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class PaymentOrderService {
     institutionId: string,
     filters: {
       status?: PaymentOrderStatus;
-      type?: string;
+      fundingType?: TraditionalFundingType;
       portfolioId?: string;
       contractReference?: string;
     } = {},
@@ -30,8 +30,8 @@ export class PaymentOrderService {
       queryBuilder.andWhere('paymentOrder.status = :status', { status: filters.status });
     }
 
-    if (filters.type) {
-      queryBuilder.andWhere('paymentOrder.type = :type', { type: filters.type });
+    if (filters.fundingType) {
+      queryBuilder.andWhere('paymentOrder.fundingType = :fundingType', { fundingType: filters.fundingType });
     }
 
     if (filters.portfolioId) {
@@ -84,7 +84,7 @@ export class PaymentOrderService {
       reference,
       institutionId,
       createdBy: userId,
-      dueDate: createPaymentOrderDto.dueDate ? new Date(createPaymentOrderDto.dueDate) : null,
+      date: new Date(createPaymentOrderDto.date),
     });
 
     return this.paymentOrderRepository.save(paymentOrder);
@@ -93,15 +93,15 @@ export class PaymentOrderService {
   async update(id: string, updatePaymentOrderDto: UpdatePaymentOrderDto, institutionId: string, userId: string): Promise<PaymentOrder> {
     const paymentOrder = await this.findById(id, institutionId);
 
-    // Prevent updates on completed, failed or cancelled orders
-    if ([PaymentOrderStatus.COMPLETED, PaymentOrderStatus.FAILED, PaymentOrderStatus.CANCELLED].includes(paymentOrder.status)) {
+    // Prevent updates on paid orders
+    if (paymentOrder.status === PaymentOrderStatus.PAID) {
       throw new BadRequestException(`Cannot update payment order with status: ${paymentOrder.status}`);
     }
 
     Object.assign(paymentOrder, {
       ...updatePaymentOrderDto,
       modifiedBy: userId,
-      dueDate: updatePaymentOrderDto.dueDate ? new Date(updatePaymentOrderDto.dueDate) : paymentOrder.dueDate,
+      date: updatePaymentOrderDto.date ? new Date(updatePaymentOrderDto.date) : paymentOrder.date,
     });
 
     return this.paymentOrderRepository.save(paymentOrder);
@@ -163,24 +163,15 @@ export class PaymentOrderService {
       [PaymentOrderStatus.PENDING]: [
         PaymentOrderStatus.APPROVED,
         PaymentOrderStatus.REJECTED,
-        PaymentOrderStatus.CANCELLED,
       ],
       [PaymentOrderStatus.APPROVED]: [
-        PaymentOrderStatus.PROCESSING,
-        PaymentOrderStatus.CANCELLED,
+        PaymentOrderStatus.PAID,
+        PaymentOrderStatus.REJECTED,
       ],
       [PaymentOrderStatus.REJECTED]: [
         PaymentOrderStatus.PENDING, // Allow resubmission
       ],
-      [PaymentOrderStatus.PROCESSING]: [
-        PaymentOrderStatus.COMPLETED,
-        PaymentOrderStatus.FAILED,
-      ],
-      [PaymentOrderStatus.COMPLETED]: [], // Final state
-      [PaymentOrderStatus.FAILED]: [
-        PaymentOrderStatus.PENDING, // Allow retry
-      ],
-      [PaymentOrderStatus.CANCELLED]: [], // Final state
+      [PaymentOrderStatus.PAID]: [], // Final state
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;

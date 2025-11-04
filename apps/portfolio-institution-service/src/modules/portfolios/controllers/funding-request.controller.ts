@@ -8,7 +8,7 @@ import { FundingRequestService } from '../services/funding-request.service';
 import { FundingRequestStatus } from '../entities/funding-request.entity';
 
 @ApiTags('funding-requests')
-@Controller('funding-requests')
+@Controller('portfolios/traditional/credit-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class FundingRequestController {

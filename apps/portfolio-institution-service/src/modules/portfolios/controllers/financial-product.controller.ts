@@ -8,7 +8,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { ProductStatus, ProductType } from '../entities/financial-product.entity';
 
 @ApiTags('financial-products')
-@Controller('financial-products')
+@Controller('portfolios/traditional/products')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class FinancialProductController {

@@ -32,20 +32,20 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
   {
     "id": "trad-1",
     "name": "Portefeuille PME Nord-Kivu",
-    "description": "Portefeuille de crédits pour PME",
-    "manager_id": "mgr-123",
-    "institution_id": "inst-456",
     "type": "traditional",
     "status": "active",
     "target_amount": 500000000,
     "target_return": 12,
     "target_sectors": ["Commerce", "Services", "Agriculture"],
     "risk_profile": "moderate",
+    "description": "Portefeuille de crédits pour PME",
+    "manager_id": "mgr-123",
+    "institution_id": "inst-456",
     "products": [
       {
         "id": "prod-1",
         "name": "Crédit PME Standard",
-        "type": "credit",
+        "type": "credit_professionnel",
         "description": "Crédit pour petites et moyennes entreprises",
         "minAmount": 1000000,
         "maxAmount": 50000000,
@@ -65,11 +65,30 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
         "updated_at": "2024-03-15T00:00:00.000Z"
       }
     ],
+    "bank_accounts": [
+      {
+        "id": "bank-1",
+        "name": "Compte Principal PME",
+        "bank_name": "Banque Centrale",
+        "account_number": "12345678901",
+        "currency": "CDF",
+        "balance": 45000000,
+        "is_default": true,
+        "status": "active"
+      }
+    ],
     "manager": {
       "id": "mgr-123",
       "name": "Jean Dupont",
       "email": "jean.dupont@exemple.com",
-      "phone": "+243810123456"
+      "phone": "+243810123456",
+      "role": "Gestionnaire de Portefeuille",
+      "department": "Crédit Traditionnel"
+    },
+    "management_fees": {
+      "setup_fee": 250000,
+      "annual_fee": 500000,
+      "performance_fee": 2.5
     },
     "metrics": {
       "net_value": 450000000,
@@ -85,6 +104,8 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
         { "type": "Trésorerie", "percentage": 25 }
       ],
       "performance_curve": [100, 110, 120, 115, 130, 128, 140],
+      "returns": [100, 110, 120, 115, 130, 128, 140],
+      "benchmark": [100, 108, 115, 112, 125, 122, 135],
       "balance_AGE": {
         "total": 120000000,
         "echeance_0_30": 70000000,
@@ -93,7 +114,14 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
         "echeance_91_plus": 5000000
       },
       "taux_impayes": 2.1,
-      "taux_couverture": 98.5
+      "taux_couverture": 98.5,
+      "nb_credits": 45,
+      "total_credits": 450000000,
+      "avg_credit": 10000000,
+      "nb_clients": 35,
+      "taux_rotation": 15.5,
+      "taux_provision": 2.5,
+      "taux_recouvrement": 97.8
     },
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-03-15T00:00:00.000Z"
@@ -362,3 +390,135 @@ Change le statut d'un portefeuille traditionnel.
 | 403       | INSUFFICIENT_PERMISSIONS        | Permissions insuffisantes                           |
 | 409       | PORTFOLIO_REFERENCE_EXISTS      | Référence de portefeuille déjà existante            |
 | 400       | INVALID_PORTFOLIO_STATUS_CHANGE | Changement de statut de portefeuille invalide       |
+
+---
+
+## 📝 Structure de Données TypeScript
+
+### Interface TraditionalPortfolio
+
+```typescript
+interface TraditionalPortfolio extends Portfolio {
+  description: string;
+  manager_id: string;
+  institution_id: string;
+}
+
+interface Portfolio {
+  id: string;
+  name: string;
+  type: 'traditional';
+  status: 'active' | 'inactive' | 'pending' | 'archived';
+  target_amount: number;
+  target_return: number;
+  target_sectors: string[];
+  risk_profile: 'conservative' | 'moderate' | 'aggressive';
+  products: FinancialProduct[];
+  bank_accounts?: BankAccount[];
+  manager?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    role?: string;
+    department?: string;
+  };
+  management_fees?: {
+    setup_fee?: number;
+    annual_fee?: number;
+    performance_fee?: number;
+  };
+  metrics: PortfolioMetrics;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Interface FinancialProduct
+
+```typescript
+interface FinancialProduct {
+  id: string;
+  name: string;
+  type: 'credit_personnel' | 'credit_immobilier' | 'credit_auto' | 'credit_professionnel' | 'microcredit' | 'credit_consommation';
+  description: string;
+  minAmount: number;
+  maxAmount: number;
+  duration: {
+    min: number;
+    max: number;
+  };
+  interestRate: {
+    type: 'fixed' | 'variable';
+    value?: number;
+    min?: number;
+    max?: number;
+  };
+  requirements: string[];
+  acceptedGuarantees?: string[];
+  isPublic: boolean;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Interface BankAccount
+
+```typescript
+interface BankAccount {
+  id: string;
+  name: string;
+  bank_name: string;
+  account_number: string;
+  currency: string;
+  balance: number;
+  is_default: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Interface PortfolioMetrics
+
+```typescript
+interface PortfolioMetrics {
+  net_value: number;
+  average_return: number;
+  risk_portfolio: number;
+  sharpe_ratio: number;
+  volatility: number;
+  alpha: number;
+  beta: number;
+  asset_allocation: Array<{
+    type: string;
+    percentage: number;
+  }>;
+  performance_curve?: number[];
+  returns?: number[];
+  benchmark?: number[];
+  // Indicateurs spécifiques crédit
+  balance_AGE?: {
+    total: number;
+    echeance_0_30: number;
+    echeance_31_60: number;
+    echeance_61_90: number;
+    echeance_91_plus: number;
+  };
+  taux_impayes?: number;
+  taux_couverture?: number;
+  // Métriques métier crédit/traditionnel
+  nb_credits?: number;
+  total_credits?: number;
+  avg_credit?: number;
+  nb_clients?: number;
+  taux_rotation?: number;
+  taux_provision?: number;
+  taux_recouvrement?: number;
+}
+```
+
+---
+
+*Documentation mise à jour le 4 novembre 2025 pour correspondre aux types TypeScript du code source*

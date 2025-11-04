@@ -4,6 +4,7 @@ import { Portfolio } from './entities/portfolio.entity';
 import { FinancialProduct } from './entities/financial-product.entity';
 import { FundingRequest } from './entities/funding-request.entity';
 import { CreditRequest } from './entities/credit-request.entity';
+import { CreditDistribution } from './entities/credit-distribution.entity';
 import { Contract } from './entities/contract.entity';
 import { Disbursement } from './entities/disbursement.entity';
 import { TraditionalDisbursement } from './entities/traditional-disbursement.entity';
@@ -21,6 +22,8 @@ import { RepaymentService } from './services/repayment.service';
 import { PaymentScheduleService } from './services/payment-schedule.service';
 import { DocumentService } from './services/document.service';
 import { PortfolioController } from './controllers/portfolio.controller';
+import { PortfolioProductsController } from './controllers/portfolio-products.controller';
+import { PortfolioSettingsController } from './controllers/portfolio-settings.controller';
 import { FinancialProductController } from './controllers/financial-product.controller';
 import { FundingRequestController } from './controllers/funding-request.controller';
 import { CreditRequestController } from './controllers/credit-request.controller';
@@ -39,6 +42,7 @@ import { MulterModule } from '@nestjs/platform-express';
       FinancialProduct, 
       FundingRequest,
       CreditRequest,
+      CreditDistribution,
       Contract, 
       Disbursement,
       TraditionalDisbursement,
@@ -65,6 +69,8 @@ import { MulterModule } from '@nestjs/platform-express';
   ],
   controllers: [
     PortfolioController,
+    PortfolioProductsController,
+    PortfolioSettingsController,
     FinancialProductController,
     FundingRequestController,
     CreditRequestController,

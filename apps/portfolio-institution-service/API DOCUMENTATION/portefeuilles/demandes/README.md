@@ -381,26 +381,26 @@ Remet les demandes de crédit aux données d'exemple initiales.
 ```typescript
 interface CreditRequest {
   id: string;
-  memberId: string;
-  productId: string;
-  receptionDate: string;
-  requestAmount: number;
+  memberId: string;                    // ID du membre/client
+  productId: string;                   // ID du produit financier
+  receptionDate: string;               // Date de réception de la demande
+  requestAmount: number;               // Montant demandé
   periodicity: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
-  interestRate: number;
-  reason: string;
-  scheduleType: 'constant' | 'degressive';
-  schedulesCount: number;
-  deferredPaymentsCount: number;
-  gracePeriod?: number;
-  financingPurpose: string;
-  creditManagerId: string;
-  status: CreditRequestStatus;
-  isGroup: boolean;
-  groupId?: string;
-  distributions?: CreditDistribution[];
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt?: string;
+  interestRate: number;                // Taux d'intérêt
+  reason: string;                      // Motif de la demande
+  scheduleType: 'constant' | 'degressive';  // Type d'échéancier
+  schedulesCount: number;              // Nombre d'échéances
+  deferredPaymentsCount: number;       // Nombre de paiements différés
+  gracePeriod?: number;                // Période de grâce (optionnel)
+  financingPurpose: string;            // Objet du financement
+  creditManagerId: string;             // ID du gestionnaire de crédit
+  status: CreditRequestStatus;         // Statut de la demande
+  isGroup: boolean;                    // Demande de groupe ou individuelle
+  groupId?: string;                    // ID du groupe (si applicable)
+  distributions?: CreditDistribution[]; // Distributions (si groupe)
+  rejectionReason?: string;            // Raison du rejet (si applicable)
+  createdAt: string;                   // Date de création (ISO)
+  updatedAt?: string;                  // Date de mise à jour (ISO)
 }
 
 interface CreditDistribution {
@@ -431,6 +431,15 @@ type CreditRequestStatus =
   | 'restructured'    // Restructurée
   | 'consolidated'    // Consolidée
   | 'in_litigation';  // En litige
+
+type CreditPeriodicity = 
+  | 'daily'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'semiannual'
+  | 'annual';
 ```
 
 ## Gestion des erreurs

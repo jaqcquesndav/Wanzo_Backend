@@ -27,12 +27,12 @@ import {
   UpdatePaymentOrderDto, 
   UpdatePaymentOrderStatusDto 
 } from '../dtos';
-import { PaymentOrder, PaymentOrderStatus, PaymentOrderType } from '../entities/payment-order.entity';
+import { PaymentOrder, PaymentOrderStatus, TraditionalFundingType } from '../entities/payment-order.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 
-@ApiTags('payment-orders')
-@Controller('payment-orders')
+@ApiTags('payments')
+@Controller('payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class PaymentOrderController {
@@ -48,7 +48,7 @@ export class PaymentOrderController {
   @ApiQuery({ name: 'page', required: false, description: 'Page number', type: 'number' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: 'number' })
   @ApiQuery({ name: 'status', required: false, description: 'Filter by status', enum: PaymentOrderStatus })
-  @ApiQuery({ name: 'type', required: false, description: 'Filter by type', enum: PaymentOrderType })
+  @ApiQuery({ name: 'fundingType', required: false, description: 'Filter by funding type', enum: TraditionalFundingType })
   @ApiQuery({ name: 'portfolioId', required: false, description: 'Filter by portfolio ID' })
   @ApiQuery({ name: 'contractReference', required: false, description: 'Filter by contract reference' })
   async findAll(
@@ -56,14 +56,14 @@ export class PaymentOrderController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('status') status?: PaymentOrderStatus,
-    @Query('type') type?: PaymentOrderType,
+    @Query('fundingType') fundingType?: TraditionalFundingType,
     @Query('portfolioId') portfolioId?: string,
     @Query('contractReference') contractReference?: string,
   ) {
     const filters: any = {};
     
     if (status) filters.status = status;
-    if (type) filters.type = type;
+    if (fundingType) filters.fundingType = fundingType;
     if (portfolioId) filters.portfolioId = portfolioId;
     if (contractReference) filters.contractReference = contractReference;
     

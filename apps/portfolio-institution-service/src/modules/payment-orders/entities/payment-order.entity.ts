@@ -12,22 +12,25 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Institution } from '../../institution/entities/institution.entity';
 import { Disbursement } from '../../virements/entities/disbursement.entity';
 
-export enum PaymentOrderType {
-  DISBURSEMENT = 'disbursement',
-  TRANSFER = 'transfer',
-  REFUND = 'refund',
-  FEE = 'fee',
-  OTHER = 'other',
+// Types de financement pour portefeuille traditionnel selon documentation
+export enum TraditionalFundingType {
+  OCTROI_CREDIT = 'octroi_crédit',
+  COMPLEMENT_CREDIT = 'complément_crédit', 
+  RESTRUCTURATION = 'restructuration',
+  AUTRES = 'autres',
 }
 
+// Statuts alignés avec la documentation
 export enum PaymentOrderStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
+  PAID = 'paid',
+}
+
+// Types de portefeuille selon documentation
+export enum PortfolioType {
+  TRADITIONAL = 'traditional',
 }
 
 @Entity('payment_orders')
@@ -36,21 +39,33 @@ export class PaymentOrder {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ApiProperty({ description: 'Type of payment order', enum: PaymentOrderType })
+  @ApiProperty({ description: 'Portfolio type', enum: PortfolioType })
   @Column({
     type: 'enum',
-    enum: PaymentOrderType,
-    default: PaymentOrderType.TRANSFER,
+    enum: PortfolioType,
+    default: PortfolioType.TRADITIONAL,
   })
-  type: PaymentOrderType;
+  portfolioType: PortfolioType;
+
+  @ApiProperty({ description: 'Type of funding for traditional portfolio', enum: TraditionalFundingType })
+  @Column({
+    type: 'enum',
+    enum: TraditionalFundingType,
+    default: TraditionalFundingType.OCTROI_CREDIT,
+  })
+  fundingType: TraditionalFundingType;
 
   @ApiProperty({ description: 'Payment amount' })
   @Column('decimal', { precision: 15, scale: 2 })
   amount: number;
 
-  @ApiProperty({ description: 'Payment currency', default: 'XOF' })
-  @Column({ default: 'XOF' })
-  currency: string;
+  @ApiProperty({ description: 'Payment date' })
+  @Column({ type: 'date' })
+  date: Date;
+
+  @ApiProperty({ description: 'Company/Beneficiary name' })
+  @Column()
+  company: string;
 
   @ApiProperty({ description: 'Current status of the payment order', enum: PaymentOrderStatus })
   @Column({
@@ -60,27 +75,25 @@ export class PaymentOrder {
   })
   status: PaymentOrderStatus;
 
-  @ApiProperty({ description: 'Due date for the payment' })
-  @Column({ type: 'date', nullable: true })
-  dueDate: Date | null;
-
-  @ApiProperty({ description: 'Description of the payment order' })
-  @Column({ type: 'text', nullable: true })
-  description: string;
-
-  @ApiProperty({ description: 'Beneficiary information' })
-  @Column({ type: 'json', nullable: true })
-  beneficiary: {
-    name: string;
-    accountNumber?: string;
-    bankCode?: string;
-    iban?: string;
-    address?: string;
-  };
-
   @ApiProperty({ description: 'Reference number for the payment' })
   @Column({ unique: true })
   reference: string;
+
+  @ApiProperty({ description: 'Description of the payment order' })
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @ApiProperty({ description: 'Related contract reference' })
+  @Column()
+  contractReference: string;
+
+  @ApiProperty({ description: 'Product name/type' })
+  @Column()
+  product: string;
+
+  @ApiProperty({ description: 'Related credit request ID', required: false })
+  @Column({ nullable: true })
+  requestId?: string;
 
   @ApiProperty({ description: 'Institution ID' })
   @Column()
@@ -90,13 +103,9 @@ export class PaymentOrder {
   @JoinColumn({ name: 'institutionId' })
   institution: Institution;
 
-  @ApiProperty({ description: 'Related portfolio ID', required: false })
-  @Column({ nullable: true })
+  @ApiProperty({ description: 'Related portfolio ID' })
+  @Column()
   portfolioId: string;
-
-  @ApiProperty({ description: 'Related contract reference', required: false })
-  @Column({ nullable: true })
-  contractReference: string;
 
   @ApiProperty({ description: 'Additional metadata' })
   @Column({ type: 'json', nullable: true })

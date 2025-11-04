@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Portfolio } from './portfolio.entity';
+import { CreditDistribution } from './credit-distribution.entity';
 
 export enum CreditRequestStatus {
   DRAFT = 'draft',
@@ -22,9 +23,10 @@ export enum CreditRequestStatus {
 export enum Periodicity {
   DAILY = 'daily',
   WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
   MONTHLY = 'monthly',
   QUARTERLY = 'quarterly',
-  SEMI_ANNUAL = 'semi_annual',
+  SEMIANNUAL = 'semiannual',
   ANNUAL = 'annual'
 }
 
@@ -89,6 +91,12 @@ export class CreditRequest {
   @Column('boolean', { default: false })
   isGroup!: boolean;
 
+  @Column({ nullable: true })
+  groupId?: string;
+
+  @Column('text', { nullable: true })
+  rejectionReason?: string;
+
   @Column({
     type: 'enum',
     enum: CreditRequestStatus,
@@ -103,6 +111,9 @@ export class CreditRequest {
   @ManyToOne(() => Portfolio, { nullable: true })
   @JoinColumn({ name: 'portfolioId' })
   portfolio?: Portfolio;
+
+  @OneToMany(() => CreditDistribution, distribution => distribution.creditRequest)
+  distributions?: CreditDistribution[];
 
   @Column({ default: 'XOF' })
   currency!: string;

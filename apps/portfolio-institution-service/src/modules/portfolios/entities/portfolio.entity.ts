@@ -42,6 +42,50 @@ interface BalanceAGE {
   echeance_91_plus: number;
 }
 
+interface BankAccount {
+  id: string;
+  name: string;
+  bank_name: string;
+  account_number: string;
+  currency: string;
+  balance: number;
+  is_default: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface FinancialProduct {
+  id: string;
+  name: string;
+  type: 'credit_personnel' | 'credit_immobilier' | 'credit_auto' | 'credit_professionnel' | 'microcredit' | 'credit_consommation';
+  description: string;
+  minAmount: number;
+  maxAmount: number;
+  duration: {
+    min: number;
+    max: number;
+  };
+  interestRate: {
+    type: 'fixed' | 'variable';
+    value?: number;
+    min?: number;
+    max?: number;
+  };
+  requirements: string[];
+  acceptedGuarantees?: string[];
+  isPublic: boolean;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
+interface ManagementFees {
+  setup_fee?: number;
+  annual_fee?: number;
+  performance_fee?: number;
+}
+
 interface PortfolioMetrics {
   net_value: number;
   average_return: number;
@@ -51,10 +95,20 @@ interface PortfolioMetrics {
   alpha: number;
   beta: number;
   asset_allocation: AssetAllocation[];
-  performance_curve: number[];
-  balance_AGE: BalanceAGE;
-  taux_impayes: number;
-  taux_couverture: number;
+  performance_curve?: number[];
+  returns?: number[];
+  benchmark?: number[];
+  balance_AGE?: BalanceAGE;
+  taux_impayes?: number;
+  taux_couverture?: number;
+  // Métriques métier crédit/traditionnel
+  nb_credits?: number;
+  total_credits?: number;
+  avg_credit?: number;
+  nb_clients?: number;
+  taux_rotation?: number;
+  taux_provision?: number;
+  taux_recouvrement?: number;
 }
 
 class ManagerInfo {
@@ -121,6 +175,15 @@ export class Portfolio {
 
   @Column('simple-array', { default: [] })
   products!: string[];
+
+  @Column('jsonb', { nullable: true })
+  bank_accounts?: BankAccount[];
+
+  @Column('jsonb', { nullable: true })
+  financial_products?: FinancialProduct[];
+
+  @Column('jsonb', { nullable: true })
+  management_fees?: ManagementFees;
 
   @Column('jsonb', { nullable: true })
   metrics?: PortfolioMetrics;

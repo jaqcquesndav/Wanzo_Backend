@@ -8,7 +8,7 @@ Cette API permet de gérer les contrats de crédit dans le cadre des portefeuill
 
 Récupère la liste des contrats de crédit pour un portefeuille traditionnel spécifique.
 
-**Endpoint** : `GET /portfolios/traditional/credit-contracts`
+**Endpoint** : `GET /api/portfolio/traditional/credit-contracts`
 
 **Paramètres de requête** :
 - `portfolioId` (optionnel) : Identifiant unique du portefeuille traditionnel
@@ -62,7 +62,7 @@ Récupère la liste des contrats de crédit pour un portefeuille traditionnel sp
 
 Récupère les détails complets d'un contrat de crédit spécifique.
 
-**Endpoint** : `GET /portfolios/traditional/credit-contracts/{id}`
+**Endpoint** : `GET /api/portfolio/traditional/credit-contracts/{id}`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du contrat de crédit
@@ -156,7 +156,7 @@ Récupère les détails complets d'un contrat de crédit spécifique.
 
 Crée un nouveau contrat de crédit dans un portefeuille traditionnel.
 
-**Endpoint** : `POST /portfolios/traditional/credit-contracts`
+**Endpoint** : `POST /api/portfolio/traditional/credit-contracts`
 
 **Corps de la requête** :
 
@@ -278,7 +278,7 @@ Met à jour les informations d'un contrat de crédit existant.
 
 Génère un document PDF pour un contrat de crédit spécifique.
 
-**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/generate-document`
+**Endpoint** : `POST /api/portfolio/traditional/credit-contracts/{id}/generate-document`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du contrat de crédit
@@ -296,7 +296,7 @@ Génère un document PDF pour un contrat de crédit spécifique.
 
 Marque un contrat de crédit comme étant en défaut de paiement.
 
-**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/default`
+**Endpoint** : `POST /api/portfolio/traditional/credit-contracts/{id}/default`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du contrat de crédit
@@ -337,7 +337,7 @@ Marque un contrat de crédit comme étant en défaut de paiement.
 
 Restructure un contrat de crédit existant (modification des termes, taux ou échéances).
 
-**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/restructure`
+**Endpoint** : `POST /api/portfolio/traditional/credit-contracts/{id}/restructure`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du contrat de crédit
