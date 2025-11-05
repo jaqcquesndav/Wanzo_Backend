@@ -16,6 +16,7 @@ import { VirementsModule } from './modules/virements/virements.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { PaymentOrderModule } from './modules/payment-orders/payment-orders.module';
 import { UsersModule } from './modules/users/users.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 // Security Module
 import { SecurityModule } from '@wanzobe/shared';
@@ -67,6 +68,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     PaymentOrderModule, // Added for generic payment orders
     NotificationsModule,
     SettingsModule,
+    DashboardModule, // Added Dashboard module
     HealthModule,
     EventsConsumerModule, // Added
     ChatModule, // Added for Adha AI integration
