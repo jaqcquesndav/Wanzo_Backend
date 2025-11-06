@@ -54,12 +54,48 @@ docker-compose --profile prod down -v
 ### Rebuild Service Spécifique
 ```powershell
 # Rebuild d'un service modifié
-docker-compose --profile prod build accounting-service
-docker-compose --profile prod up -d --force-recreate accounting-service
+docker-compose build accounting-service
+
+# Redémarrage du service
+docker-compose up -d --force-recreate accounting-service
 
 # Vérification des logs
-docker-compose --profile prod logs -f accounting-service
+docker-compose logs -f accounting-service
 ```
+
+---
+
+## ⚠️ AVERTISSEMENTS IMPORTANTS
+
+### 🚨 Ne JAMAIS Modifier les Dockerfiles de Service Sans Vérification
+
+**DANGER** : Certaines modifications peuvent causer le **crash de Docker Desktop** et la **corruption de WSL** !
+
+**❌ Anti-patterns qui peuvent crasher Docker :**
+```dockerfile
+# ❌ INTERDIT : Réinstaller les dépendances
+RUN yarn install --frozen-lockfile
+
+# ❌ INTERDIT : Copier les node_modules
+COPY --from=builder /app/node_modules ./node_modules
+
+# ❌ INTERDIT : Ajouter des packages individuellement
+RUN yarn add package-name
+```
+
+**✅ Pattern correct (voir autres services comme exemple) :**
+```dockerfile
+FROM wanzo-deps-base AS builder
+# Juste le build, pas d'installation
+RUN yarn workspace @wanzobe/shared build
+RUN yarn workspace @kiota-suit/service build
+
+FROM wanzo-production-base AS production  
+# Juste le code compilé, pas les node_modules
+COPY --from=builder /app/apps/service/dist ./apps/service/dist
+```
+
+**📚 Pour plus de détails :** Voir `DOCKER_BUILD_LESSONS_LEARNED.md`
 
 ---
 

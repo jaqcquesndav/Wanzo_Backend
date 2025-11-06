@@ -15,8 +15,8 @@ export class ChatConversation {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  userId!: string;
+  @Column({ nullable: true })
+  userId?: string;
 
   @Column({ nullable: true })
   title?: string;

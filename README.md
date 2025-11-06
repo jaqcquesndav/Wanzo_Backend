@@ -29,6 +29,22 @@ docker-compose --profile prod build
 docker-compose --profile prod up -d
 ```
 
+### ⚠️ Checklist avant Modification de Dockerfile
+
+**IMPORTANT** : Avant de modifier un Dockerfile de service, vérifiez :
+
+- [ ] ✅ Utilise `FROM wanzo-deps-base AS builder`
+- [ ] ✅ Utilise `FROM wanzo-production-base AS production`  
+- [ ] ❌ **AUCUN** `yarn install` ou `npm install` dans le service
+- [ ] ❌ **AUCUNE** copie de `node_modules` depuis le builder
+- [ ] ❌ **AUCUN** `yarn add` ou `npm add` de packages
+- [ ] ✅ Copie **UNIQUEMENT** le code compilé (`dist/`)
+- [ ] ✅ Structure similaire aux autres services (accounting, admin, etc.)
+
+**📚 Pourquoi c'est important :** Les violations de ces règles peuvent causer le crash de Docker et la corruption de WSL. Voir `DOCKER_BUILD_LESSONS_LEARNED.md` pour un cas réel documenté.
+
+---
+
 ### Utilisation Quotidienne
 ```powershell
 # Démarrage rapide

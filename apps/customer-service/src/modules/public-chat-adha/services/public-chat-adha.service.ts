@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -55,14 +56,19 @@ export class PublicChatAdhaService {
     }
   }
 
-  async sendMessage(sendMessageDto: SendMessageDto, userId: string): Promise<MessageResponseDto> {
+  async sendMessage(sendMessageDto: SendMessageDto, userId: string | null): Promise<MessageResponseDto> {
     try {
       let conversation: ChatConversation;
 
       // Récupérer ou créer la conversation
       if (sendMessageDto.conversationId) {
+        // Pour les conversations existantes
+        const whereClause = userId 
+          ? { id: sendMessageDto.conversationId, userId }
+          : { id: sendMessageDto.conversationId };
+        
         const existingConversation = await this.conversationRepository.findOne({
-          where: { id: sendMessageDto.conversationId, userId },
+          where: whereClause,
           relations: ['messages']
         });
 
@@ -71,9 +77,9 @@ export class PublicChatAdhaService {
         }
         conversation = existingConversation;
       } else {
-        // Créer une nouvelle conversation
+        // Créer une nouvelle conversation (avec ou sans userId)
         conversation = this.conversationRepository.create({
-          userId,
+          userId: userId || undefined,
           title: sendMessageDto.content.substring(0, 50) + '...',
           status: ConversationStatus.ACTIVE,
           lastMessageAt: new Date(),
@@ -126,6 +132,98 @@ export class PublicChatAdhaService {
     }
   }
 
+  /**
+   * Envoyer un message avec streaming SSE
+   */
+  async sendMessageStream(sendMessageDto: SendMessageDto, userId: string | null, res: Response): Promise<void> {
+    try {
+      let conversation: ChatConversation;
+
+      // Récupérer ou créer la conversation
+      if (sendMessageDto.conversationId) {
+        const whereClause = userId 
+          ? { id: sendMessageDto.conversationId, userId }
+          : { id: sendMessageDto.conversationId };
+        
+        const existingConversation = await this.conversationRepository.findOne({
+          where: whereClause,
+          relations: ['messages']
+        });
+
+        if (!existingConversation) {
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'Conversation non trouvée' })}\n\n`);
+          res.end();
+          return;
+        }
+        conversation = existingConversation;
+      } else {
+        conversation = this.conversationRepository.create({
+          userId: userId || undefined,
+          title: sendMessageDto.content.substring(0, 50) + '...',
+          status: ConversationStatus.ACTIVE,
+          lastMessageAt: new Date(),
+        });
+        conversation = await this.conversationRepository.save(conversation);
+      }
+
+      // Enregistrer le message utilisateur
+      const userMessage = this.messageRepository.create({
+        conversation,
+        content: sendMessageDto.content,
+        role: MessageRole.USER,
+        status: MessageStatus.SENT,
+        createdAt: new Date(),
+      });
+      await this.messageRepository.save(userMessage);
+
+      // Envoyer l'ID de conversation au client
+      res.write(`data: ${JSON.stringify({ 
+        type: 'conversation', 
+        conversationId: conversation.id 
+      })}\n\n`);
+
+      // Préparer l'historique des messages
+      const messageHistory = await this.buildMessageHistory(conversation.id);
+
+      // Stream la réponse d'OpenAI
+      let fullResponse = '';
+      await this.streamAdhaResponse(sendMessageDto.content, messageHistory, res, (chunk) => {
+        fullResponse += chunk;
+      });
+
+      // Enregistrer la réponse complète d'Adha
+      const assistantMessage = this.messageRepository.create({
+        conversation,
+        content: fullResponse || 'Je rencontre actuellement des difficultés techniques. Veuillez contacter un conseiller humain pour une assistance immédiate.',
+        role: MessageRole.ASSISTANT,
+        status: MessageStatus.SENT,
+        createdAt: new Date(),
+      });
+      await this.messageRepository.save(assistantMessage);
+
+      // Mettre à jour la conversation
+      conversation.lastMessageAt = new Date();
+      await this.conversationRepository.save(conversation);
+
+      // Envoyer le message final avec l'ID
+      res.write(`data: ${JSON.stringify({ 
+        type: 'done', 
+        messageId: assistantMessage.id,
+        conversationId: conversation.id
+      })}\n\n`);
+      
+      res.end();
+
+    } catch (error) {
+      this.logger.error('Erreur lors du streaming du message:', error);
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        message: 'Erreur lors du traitement du message' 
+      })}\n\n`);
+      res.end();
+    }
+  }
+
   private async buildMessageHistory(conversationId: string): Promise<OpenAI.Chat.ChatCompletionMessageParam[]> {
     const messages = await this.messageRepository.find({
       where: { conversation: { id: conversationId } },
@@ -170,10 +268,59 @@ export class PublicChatAdhaService {
     }
   }
 
-  async createConversation(createConversationDto: CreateConversationDto, userId: string): Promise<ConversationResponseDto> {
+  /**
+   * Stream la réponse d'Adha via OpenAI avec SSE
+   */
+  private async streamAdhaResponse(
+    userMessage: string, 
+    messageHistory: OpenAI.Chat.ChatCompletionMessageParam[], 
+    res: Response,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    try {
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: this.systemContext,
+        },
+        ...messageHistory,
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ];
+
+      const stream = await this.openai.chat.completions.create({
+        model: this.configService.get<string>('OPENAI_MODEL', 'gpt-4'),
+        messages,
+        max_tokens: parseInt(this.configService.get<string>('OPENAI_MAX_TOKENS', '1000')),
+        temperature: 0.7,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.3,
+        stream: true, // Enable streaming
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          onChunk(content);
+          // Envoyer chaque token au client via SSE
+          res.write(`data: ${JSON.stringify({ type: 'token', content })}\n\n`);
+        }
+      }
+
+    } catch (error) {
+      this.logger.error('Erreur OpenAI streaming:', error);
+      const errorMessage = 'Je rencontre actuellement des difficultés techniques. Veuillez contacter un conseiller humain pour une assistance immédiate.';
+      onChunk(errorMessage);
+      res.write(`data: ${JSON.stringify({ type: 'token', content: errorMessage })}\n\n`);
+    }
+  }
+
+  async createConversation(createConversationDto: CreateConversationDto, userId: string | null): Promise<ConversationResponseDto> {
     try {
       const conversation = this.conversationRepository.create({
-        userId,
+        userId: userId || undefined,
         title: createConversationDto.title,
         status: ConversationStatus.ACTIVE,
         lastMessageAt: new Date(),
@@ -197,9 +344,13 @@ export class PublicChatAdhaService {
     }
   }
 
-  async getConversation(conversationId: string, userId: string): Promise<ConversationResponseDto> {
+  async getConversation(conversationId: string, userId: string | null): Promise<ConversationResponseDto> {
+    const whereClause = userId 
+      ? { id: conversationId, userId }
+      : { id: conversationId };
+    
     const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId, userId },
+      where: whereClause,
       relations: ['messages'],
     });
 

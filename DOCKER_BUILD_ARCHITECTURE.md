@@ -97,7 +97,37 @@ FROM node:20-alpine AS wanzo-production-base
 
 Chaque service suit cette structure optimisée:
 
-### Dockerfile Service Type
+### ⚠️ AVERTISSEMENT CRITIQUE
+
+**🚨 DANGER : Ne JAMAIS dévier de ce pattern standard !**
+
+Les modifications suivantes peuvent causer le **crash de Docker Desktop** et la **corruption de WSL** :
+
+#### ❌ Anti-Patterns INTERDITS
+
+```dockerfile
+# ❌ INTERDIT : Double installation des dépendances
+RUN yarn install --frozen-lockfile
+RUN yarn add package-name
+
+# ❌ INTERDIT : Copie massive de node_modules
+COPY --from=builder /app/node_modules ./node_modules
+
+# ❌ INTERDIT : Commandes lourdes de debug
+RUN find /app -name "package" -type d
+```
+
+**Pourquoi c'est dangereux :**
+- Consommation RAM : **8-10GB** (WSL2 limite : 50% RAM système)
+- Taille image : **+2.83GB** (saturation disque WSL)
+- Conflits de versions entre packages
+- **Résultat : Crash Docker + Corruption WSL**
+
+**📚 Cas réel documenté :** Le service customer-service a causé des crashs systématiques avant correction. Voir `DOCKER_BUILD_LESSONS_LEARNED.md` pour les détails.
+
+---
+
+### ✅ Dockerfile Service Type (PATTERN OBLIGATOIRE)
 ```dockerfile
 # ===========================================
 # STAGE 1: BUILD sur base optimisée

@@ -96,10 +96,22 @@ export class PricingDataSyncService {
         existingPlan.durationDays = configPlan.billingPeriod === 'monthly' ? 30 : 365;
         existingPlan.includedTokens = configPlan.tokenAllocation.monthlyTokens;
         existingPlan.features = {
-          ...configPlan.features,
+          // Propriétés booléennes requises par l'entité - transformées depuis les FeatureLimit
+          apiAccess: configPlan.features.api_access?.enabled || false,
+          advancedAnalytics: configPlan.features.predictive_analytics?.enabled || false,
+          customReporting: configPlan.features.financial_reports?.enabled || false,
+          prioritySupport: configPlan.features.priority_support?.enabled || false,
+          multiUserAccess: configPlan.features.multi_user_access?.enabled || false,
+          dataExport: true, // Par défaut activé
+          customIntegrations: configPlan.features.third_party_integrations?.enabled || false,
+          whiteLabeling: false, // Par défaut désactivé
+          dedicatedAccountManager: configPlan.features.dedicated_support?.enabled || false,
+          // Propriétés additionnelles pour compatibilité
           customerType: configPlan.customerType,
           tokenAllocation: configPlan.tokenAllocation,
-          tags: configPlan.tags
+          tags: configPlan.tags,
+          // Toutes les features originales pour référence
+          ...configPlan.features
         };
         existingPlan.isPopular = configPlan.isPopular;
         existingPlan.discounts = configPlan.annualDiscountPercentage > 0 ? [{

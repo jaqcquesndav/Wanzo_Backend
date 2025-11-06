@@ -9,8 +9,12 @@ import {
   UseGuards,
   Request,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  Res,
+  Sse
 } from '@nestjs/common';
+import { Response } from 'express';
+import { Observable } from 'rxjs';
 import { 
   ApiTags, 
   ApiOperation, 
@@ -56,42 +60,56 @@ export class PublicChatAdhaController {
   }
 
   /**
-   * Envoyer un message à Adha AI
+   * Envoyer un message à Adha AI avec streaming
+   * Endpoint public - fonctionne avec ou sans authentification
+   * Si authentifié: conversation liée au userId
+   * Si non authentifié: conversation anonyme identifiée par conversationId
    */
   @Post('chat/message')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
-    summary: 'Envoyer un message',
-    description: 'Envoie un message à l\'assistant Adha AI avec contexte et historique'
+    summary: 'Envoyer un message (Public - Streaming)',
+    description: 'Envoie un message à l\'assistant Adha AI avec réponse en streaming SSE. Accessible publiquement avec ou sans authentification.'
   })
   @ApiBody({ type: SendMessageDto })
   @ApiResponse({ 
     status: 200, 
-    description: 'Message envoyé et réponse générée avec succès',
-    type: MessageResponseDto
+    description: 'Stream SSE de la réponse d\'Adha',
+    content: {
+      'text/event-stream': {
+        schema: {
+          type: 'string',
+          example: 'data: {"type":"token","content":"Bonjour"}\n\ndata: {"type":"done","messageId":"123"}\n\n'
+        }
+      }
+    }
   })
-  @ApiResponse({ status: 401, description: 'Non authentifié' })
   @ApiResponse({ status: 404, description: 'Conversation non trouvée' })
   @ApiResponse({ status: 500, description: 'Erreur serveur' })
   async sendMessage(
     @Request() req: any,
-    @Body() sendMessageDto: SendMessageDto
-  ): Promise<MessageResponseDto> {
-    const userId = req.user.id;
-    return await this.chatService.sendMessage(sendMessageDto, userId);
+    @Body() sendMessageDto: SendMessageDto,
+    @Res() res: Response
+  ): Promise<void> {
+    // Utilisateur authentifié ou null pour les visiteurs anonymes
+    const userId = req.user?.id || null;
+
+    // Configure SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+    await this.chatService.sendMessageStream(sendMessageDto, userId, res);
   }
 
   /**
    * Récupérer l'historique d'une conversation
+   * Endpoint public - accessible par ID de conversation
    */
   @Get('chat/conversations/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ 
-    summary: 'Historique conversation',
-    description: 'Récupère l\'historique complet d\'une conversation spécifique'
+    summary: 'Historique conversation (Public)',
+    description: 'Récupère l\'historique complet d\'une conversation spécifique. Accessible publiquement avec l\'ID de conversation.'
   })
   @ApiParam({ 
     name: 'id', 
@@ -103,26 +121,24 @@ export class PublicChatAdhaController {
     description: 'Historique récupéré avec succès',
     type: ConversationResponseDto
   })
-  @ApiResponse({ status: 401, description: 'Non authentifié' })
   @ApiResponse({ status: 404, description: 'Conversation non trouvée' })
   async getConversationHistory(
     @Request() req: any,
     @Param('id') conversationId: string
   ): Promise<ConversationResponseDto> {
-    const userId = req.user.id;
+    const userId = req.user?.id || null;
     return await this.chatService.getConversation(conversationId, userId);
   }
 
   /**
    * Créer une nouvelle conversation
+   * Endpoint public - fonctionne avec ou sans authentification
    */
   @Post('chat/conversations')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
-    summary: 'Créer conversation',
-    description: 'Crée une nouvelle conversation de chat avec Adha AI'
+    summary: 'Créer conversation (Public)',
+    description: 'Crée une nouvelle conversation de chat avec Adha AI. Accessible publiquement - les conversations anonymes peuvent être récupérées via leur ID.'
   })
   @ApiBody({ type: CreateConversationDto })
   @ApiResponse({ 
@@ -130,12 +146,11 @@ export class PublicChatAdhaController {
     description: 'Conversation créée avec succès',
     type: ConversationResponseDto
   })
-  @ApiResponse({ status: 401, description: 'Non authentifié' })
   async createConversation(
     @Request() req: any,
     @Body() createConversationDto: CreateConversationDto
   ): Promise<ConversationResponseDto> {
-    const userId = req.user.id;
+    const userId = req.user?.id || null;
     return await this.chatService.createConversation(createConversationDto, userId);
   }
 

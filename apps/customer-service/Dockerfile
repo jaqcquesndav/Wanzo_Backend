@@ -34,13 +34,13 @@ COPY --chown=nodeuser:nodeuser apps/customer-service/package.json ./apps/custome
 COPY --from=builder --chown=nodeuser:nodeuser /app/apps/customer-service/dist ./apps/customer-service/dist
 
 # Configuration service
-ENV PORT=3001
+ENV PORT=3011
 
 # Health check optimisé
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD curl -f http://localhost:3011/health || exit 1
 
-EXPOSE 3001
+EXPOSE 3011
 
 # Démarrage optimisé
 WORKDIR /app/apps/customer-service
