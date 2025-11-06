@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody
 import { SmeService } from '../services/sme.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CreateCompanyDto, UpdateCompanyDto, CompanyResponseDto, ApiResponseDto, ApiErrorResponseDto, PaginationDto, LocationDto, AssociateDto } from '../dto/company.dto';
+import { CreateExtendedIdentificationDto, UpdateExtendedIdentificationDto, ExtendedCompanyResponseDto, ValidationResultDto, CompletionStatusDto } from '../dto/extended-company.dto';
 
 // Define the custom MulterFile interface
 interface MulterFile {
@@ -341,6 +342,202 @@ export class CompanyController {
       data: {
         message: 'Entreprise rejetée avec succès'
       }
+    };
+  }
+
+  // =====================================================
+  // NOUVEAUX ENDPOINTS POUR L'IDENTIFICATION ÉTENDUE
+  // =====================================================
+
+  @Post(':companyId/extended-identification')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Créer ou mettre à jour le formulaire d\'identification étendu d\'une entreprise' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Formulaire d\'identification étendu créé/mis à jour avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Données invalides',
+    type: ApiErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise non trouvée',
+    type: ApiErrorResponseDto
+  })
+  async createOrUpdateExtendedIdentification(
+    @Param('companyId') companyId: string,
+    @Body() extendedIdentificationDto: CreateExtendedIdentificationDto,
+    @Req() req: any
+  ): Promise<ApiResponseDto<ExtendedCompanyResponseDto>> {
+    // Vérifier si l'utilisateur a le droit de modifier cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    const extendedIdentification = await this.smeService.createOrUpdateExtendedIdentification(
+      companyId, 
+      extendedIdentificationDto
+    );
+    
+    return {
+      success: true,
+      data: extendedIdentification
+    };
+  }
+
+  @Get(':companyId/extended-identification')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer le formulaire d\'identification étendu d\'une entreprise' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Formulaire d\'identification étendu récupéré avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise ou formulaire non trouvé',
+    type: ApiErrorResponseDto
+  })
+  async getExtendedIdentification(
+    @Param('companyId') companyId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<ExtendedCompanyResponseDto>> {
+    // Vérifier si l'utilisateur a le droit d'accéder à cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    const extendedIdentification = await this.smeService.getExtendedIdentification(companyId);
+    
+    if (!extendedIdentification) {
+      throw new NotFoundException('Formulaire d\'identification étendu non trouvé pour cette entreprise');
+    }
+    
+    return {
+      success: true,
+      data: extendedIdentification
+    };
+  }
+
+  @Patch(':companyId/extended-identification')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Mettre à jour partiellement le formulaire d\'identification étendu' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Formulaire d\'identification étendu mis à jour avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Données invalides',
+    type: ApiErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise ou formulaire non trouvé',
+    type: ApiErrorResponseDto
+  })
+  async updateExtendedIdentification(
+    @Param('companyId') companyId: string,
+    @Body() updateDto: UpdateExtendedIdentificationDto,
+    @Req() req: any
+  ): Promise<ApiResponseDto<ExtendedCompanyResponseDto>> {
+    // Vérifier si l'utilisateur a le droit de modifier cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    const extendedIdentification = await this.smeService.updateExtendedIdentification(
+      companyId, 
+      updateDto
+    );
+    
+    return {
+      success: true,
+      data: extendedIdentification
+    };
+  }
+
+  @Delete(':companyId/extended-identification')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Supprimer le formulaire d\'identification étendu d\'une entreprise' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Formulaire d\'identification étendu supprimé avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise ou formulaire non trouvé',
+    type: ApiErrorResponseDto
+  })
+  async deleteExtendedIdentification(
+    @Param('companyId') companyId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    // Vérifier si l'utilisateur a le droit de modifier cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    await this.smeService.deleteExtendedIdentification(companyId);
+    
+    return {
+      success: true,
+      data: {
+        message: 'Formulaire d\'identification étendu supprimé avec succès'
+      }
+    };
+  }
+
+  @Get(':companyId/extended-identification/validation')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtenir le statut de validation du formulaire d\'identification étendu' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Statut de validation récupéré avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise ou formulaire non trouvé',
+    type: ApiErrorResponseDto
+  })
+  async getExtendedIdentificationValidation(
+    @Param('companyId') companyId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<ValidationResultDto>> {
+    // Vérifier si l'utilisateur a le droit d'accéder à cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    const validation = await this.smeService.validateExtendedIdentification(companyId);
+    
+    return {
+      success: true,
+      data: validation
+    };
+  }
+
+  @Get(':companyId/extended-identification/completion')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtenir le statut de completion du formulaire d\'identification étendu' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Statut de completion récupéré avec succès',
+    type: ApiResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Entreprise ou formulaire non trouvé',
+    type: ApiErrorResponseDto
+  })
+  async getExtendedIdentificationCompletion(
+    @Param('companyId') companyId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<CompletionStatusDto>> {
+    // Vérifier si l'utilisateur a le droit d'accéder à cette entreprise
+    await this.checkCompanyOwnership(companyId, req.user?.sub);
+    
+    const completion = await this.smeService.getExtendedIdentificationCompletion(companyId);
+    
+    return {
+      success: true,
+      data: completion
     };
   }
 }

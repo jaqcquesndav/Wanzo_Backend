@@ -1,53 +1,237 @@
-# Abonnements et Paiements
+# Abonnements Modernes - Version 2.0
 
-## Structure des données
+## 🎯 Vue d'Ensemble
 
-Basée sur la configuration centralisée (`src/config/subscription-pricing.config.ts`) :
+Le système d'abonnements a été complètement refondu pour une **approche moderne avec tokens intégrés**. 
 
-### Types de clients
+### ❌ SUPPRIMÉ : Achat de Tokens Indépendants
+- Plus d'endpoints `/tokens/purchase`
+- Plus de packages de tokens séparés
+- Plus de `TokenPurchasePackage`
 
+### ✅ NOUVEAU : Tokens Intégrés aux Plans
+- Allocation mensuelle de tokens par plan
+- Système de rollover intelligent
+- Gestion automatique des limites
+
+## 🏗️ Architecture des Données
+
+### Base URL
+```
+http://localhost:8000/land/api/v1/subscriptions
+```
+
+### Types de Clients
 ```typescript
 enum CustomerType {
-  SME = 'sme',
-  FINANCIAL_INSTITUTION = 'financial_institution'
+  SME = 'sme',                          // Petites et Moyennes Entreprises
+  FINANCIAL_INSTITUTION = 'financial'   // Institutions Financières
 }
 ```
 
-### Périodes de facturation
-
+### Périodes de Facturation
 ```typescript
 enum BillingPeriod {
   MONTHLY = 'monthly',
-  ANNUAL = 'annual'
+  ANNUAL = 'annual'     // Avec réductions automatiques
 }
 ```
 
-### Codes des fonctionnalités
-
+### Statuts d'Abonnement
 ```typescript
+enum SubscriptionStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  CANCELED = 'canceled',
+  EXPIRED = 'expired',
+  TRIAL = 'trial',
+  PAST_DUE = 'past_due'
+}
+```
+
+## 📋 Structure des Plans Modernes
+
+### Interface SubscriptionPlan
+```typescript
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  customerType: CustomerType;
+  
+  // Tarification
+  monthlyPriceUSD: number;
+  annualPriceUSD: number;        // Avec réduction automatique
+  currency: 'USD';
+  
+  // 🆕 Allocation de Tokens Intégrée
+  tokenAllocation: {
+    monthlyTokens: number;       // Tokens inclus par mois
+    rolloverLimit: number;       // Limite de report (tokens)
+    rolloverPeriods: number;     // Nombre de périodes de report
+  };
+  
+  // Fonctionnalités incluses
+  features: Record<FeatureCode, PlanFeature>;
+  
+  // Métadonnées
+  isVisible: boolean;
+  isPopular: boolean;
+  sortOrder: number;
+  tags: string[];
+}
+```
+
+### Fonctionnalités Granulaires
+```typescript
+interface PlanFeature {
+  enabled: boolean;
+  description?: string;
+  limit?: number;           // Limite numérique si applicable
+  metadata?: Record<string, any>;
+}
+
 enum FeatureCode {
-  // Gestion commerciale
+  // 🏢 Gestion d'Entreprise
   COMMERCIAL_MANAGEMENT = 'commercial_management',
   CUSTOMER_MANAGEMENT = 'customer_management',
   SALES_TRACKING = 'sales_tracking',
   INVENTORY_MANAGEMENT = 'inventory_management',
   
-  // Comptabilité
+  // 💰 Comptabilité et Finance
   ACCOUNTING_BASIC = 'accounting_basic',
   ACCOUNTING_ADVANCED = 'accounting_advanced',
   FINANCIAL_REPORTS = 'financial_reports',
   TAX_MANAGEMENT = 'tax_management',
+  BUDGET_MANAGEMENT = 'budget_management',
   
-  // IA et tokens
+  // 🤖 Intelligence Artificielle
   AI_CHAT_ASSISTANCE = 'ai_chat_assistance',
   DOCUMENT_ANALYSIS = 'document_analysis',
   PREDICTIVE_ANALYTICS = 'predictive_analytics',
+  RISK_ANALYSIS = 'risk_analysis',
   
-  // ... autres fonctionnalités
+  // 👥 Ressources Humaines
+  HR_MANAGEMENT = 'hr_management',
+  PAYROLL_MANAGEMENT = 'payroll_management',
+  EMPLOYEE_TRACKING = 'employee_tracking',
+  
+  // 🏦 Spécifique Institutions Financières
+  LOAN_MANAGEMENT = 'loan_management',
+  CREDIT_SCORING = 'credit_scoring',
+  PORTFOLIO_MANAGEMENT = 'portfolio_management',
+  REGULATORY_REPORTING = 'regulatory_reporting',
+  RISK_MANAGEMENT = 'risk_management',
+  
+  // 🔧 Fonctionnalités Système
+  MULTI_USER = 'multi_user',
+  DATA_EXPORT = 'data_export',
+  API_ACCESS = 'api_access',
+  CUSTOM_REPORTS = 'custom_reports',
+  PRIORITY_SUPPORT = 'priority_support'
 }
 ```
 
-### Plans d'abonnement
+## 📊 Plans Disponibles
+
+### Plans PME (Small and Medium Enterprises)
+
+#### 1. SME Freemium
+```typescript
+{
+  id: 'sme-freemium',
+  name: 'PME Freemium',
+  description: 'Plan gratuit pour découvrir la plateforme',
+  customerType: CustomerType.SME,
+  monthlyPriceUSD: 0,
+  annualPriceUSD: 0,
+  tokenAllocation: {
+    monthlyTokens: 100000,      // 100K tokens/mois
+    rolloverLimit: 50000,       // 50K tokens max de report
+    rolloverPeriods: 1          // 1 mois de report
+  },
+  features: {
+    [FeatureCode.COMMERCIAL_MANAGEMENT]: { enabled: true, limit: 10 },
+    [FeatureCode.ACCOUNTING_BASIC]: { enabled: true },
+    [FeatureCode.AI_CHAT_ASSISTANCE]: { enabled: true, limit: 50 },
+    [FeatureCode.MULTI_USER]: { enabled: false }
+  }
+}
+```
+
+#### 2. SME Standard  
+```typescript
+{
+  id: 'sme-standard',
+  name: 'PME Standard',
+  description: 'ERP complet avec accès aux financements',
+  customerType: CustomerType.SME,
+  monthlyPriceUSD: 20,
+  annualPriceUSD: 204,          // 15% de réduction
+  tokenAllocation: {
+    monthlyTokens: 2000000,     // 2M tokens/mois
+    rolloverLimit: 1000000,     // 1M tokens max de report
+    rolloverPeriods: 2          // 2 mois de report
+  },
+  features: {
+    [FeatureCode.COMMERCIAL_MANAGEMENT]: { enabled: true },
+    [FeatureCode.ACCOUNTING_ADVANCED]: { enabled: true },
+    [FeatureCode.AI_CHAT_ASSISTANCE]: { enabled: true },
+    [FeatureCode.DOCUMENT_ANALYSIS]: { enabled: true },
+    [FeatureCode.HR_MANAGEMENT]: { enabled: true },
+    [FeatureCode.MULTI_USER]: { enabled: true, limit: 5 }
+  }
+}
+```
+
+### Plans Institutions Financières
+
+#### 1. Financial Freemium
+```typescript
+{
+  id: 'financial-freemium',
+  name: 'Institution Freemium',
+  description: 'Découverte outils de base pour institutions',
+  customerType: CustomerType.FINANCIAL_INSTITUTION,
+  monthlyPriceUSD: 0,
+  annualPriceUSD: 0,
+  tokenAllocation: {
+    monthlyTokens: 500000,      // 500K tokens/mois
+    rolloverLimit: 250000,      // 250K tokens max de report
+    rolloverPeriods: 1          // 1 mois de report
+  },
+  features: {
+    [FeatureCode.LOAN_MANAGEMENT]: { enabled: true, limit: 10 },
+    [FeatureCode.CREDIT_SCORING]: { enabled: true, limit: 50 },
+    [FeatureCode.AI_CHAT_ASSISTANCE]: { enabled: true }
+  }
+}
+```
+
+#### 2. Financial Professional
+```typescript
+{
+  id: 'financial-professional',
+  name: 'Institution Professional',
+  description: 'Plateforme complète de gestion de portefeuille',
+  customerType: CustomerType.FINANCIAL_INSTITUTION,
+  monthlyPriceUSD: 100,
+  annualPriceUSD: 1020,        // 15% de réduction
+  tokenAllocation: {
+    monthlyTokens: 10000000,   // 10M tokens/mois
+    rolloverLimit: 5000000,    // 5M tokens max de report
+    rolloverPeriods: 3         // 3 mois de report
+  },
+  features: {
+    [FeatureCode.LOAN_MANAGEMENT]: { enabled: true },
+    [FeatureCode.PORTFOLIO_MANAGEMENT]: { enabled: true },
+    [FeatureCode.RISK_MANAGEMENT]: { enabled: true },
+    [FeatureCode.REGULATORY_REPORTING]: { enabled: true },
+    [FeatureCode.PREDICTIVE_ANALYTICS]: { enabled: true },
+    [FeatureCode.MULTI_USER]: { enabled: true, limit: 20 }
+  }
+}
+```
 
 ```typescript
 interface SubscriptionPlan {
@@ -93,107 +277,461 @@ interface TokenPurchasePackage {
 }
 ```
 
-### États des abonnements
-
-```typescript
-enum SubscriptionStatus {
-  ACTIVE = 'active',
-  PENDING = 'pending',
-  CANCELED = 'canceled',
-  EXPIRED = 'expired',
-  TRIAL = 'trial',
-  PAST_DUE = 'past_due'
 }
 ```
 
-## Endpoints API
+## 🔗 Endpoints API Modernes
 
-### Pricing
-
-#### Récupérer tous les plans d'abonnement
-
-```
-GET /pricing/plans
+### Authentification
+Tous les endpoints nécessitent un token Auth0 Bearer :
+```http
+Authorization: Bearer <access_token>
 ```
 
-**Paramètres de requête (optionnels)**:
-- `customerType` : 'sme' | 'financial_institution'
-- `billingPeriod` : 'monthly' | 'annual'
+### 1. Récupérer les Plans Disponibles
+```http
+GET /subscriptions/plans?customerType=sme&billingPeriod=monthly
+```
 
-**Implémentation** : `PricingController.getSubscriptionPlans()`
+**Paramètres de requête** :
+- `customerType` : `sme` | `financial` (optionnel)
+- `billingPeriod` : `monthly` | `annual` (optionnel)
+- `isVisible` : `true` | `false` (optionnel)
 
-#### Réponse
-
+**Réponse** :
 ```json
 {
-  "plans": [
+  "data": [
     {
       "id": "sme-freemium",
-      "name": "PME Freemium",
-      "description": "Accès gratuit avec limitations pour découvrir la plateforme",
+      "name": "PME Freemium", 
+      "description": "Plan gratuit pour découvrir la plateforme",
       "customerType": "sme",
-      "billingPeriod": "monthly",
       "monthlyPriceUSD": 0,
       "annualPriceUSD": 0,
-      "annualDiscountPercentage": 0,
       "tokenAllocation": {
         "monthlyTokens": 100000,
-        "tokenRollover": false,
-        "maxRolloverMonths": 0
+        "rolloverLimit": 50000,
+        "rolloverPeriods": 1
       },
       "features": {
         "commercial_management": {
           "enabled": true,
-          "limit": 50,
-          "description": "50 clients max"
+          "limit": 10,
+          "description": "Gestion de 10 clients maximum"
         },
-        // ... autres fonctionnalités
+        "accounting_basic": {
+          "enabled": true,
+          "description": "Comptabilité de base"
+        },
+        "ai_chat_assistance": {
+          "enabled": true,
+          "limit": 50,
+          "description": "50 interactions IA par mois"
+        }
       },
       "isPopular": false,
       "isVisible": true,
-      "sortOrder": 1,
-      "tags": ["gratuit", "débutant", "limitation"]
+      "tags": ["gratuit", "découverte"]
     },
     {
       "id": "sme-standard",
       "name": "PME Standard",
-      "description": "Plan complet pour PME avec accès aux demandes de financement",
-      "customerType": "sme",
-      "billingPeriod": "monthly",
+      "description": "ERP complet avec financements",
+      "customerType": "sme", 
       "monthlyPriceUSD": 20,
-      "annualPriceUSD": 200,
-      "annualDiscountPercentage": 16.67,
+      "annualPriceUSD": 204,          // 15% de réduction
+      "tokenAllocation": {
+        "monthlyTokens": 2000000,
+        "rolloverLimit": 1000000,
+        "rolloverPeriods": 2
+      },
+      "features": {
+        "commercial_management": { "enabled": true },
+        "accounting_advanced": { "enabled": true },
+        "ai_chat_assistance": { "enabled": true },
+        "document_analysis": { "enabled": true },
+        "hr_management": { "enabled": true },
+        "multi_user": { 
+          "enabled": true, 
+          "limit": 5,
+          "description": "Jusqu'à 5 utilisateurs"
+        }
+      },
       "isPopular": true,
-      // ... autres détails
+      "isVisible": true,
+      "tags": ["recommandé", "populaire"]
     }
-  ]
+  ],
+  "meta": {
+    "total": 2,
+    "customerTypes": ["sme", "financial"],
+    "billingPeriods": ["monthly", "annual"]
+  }
 }
 ```
 
-### Créer un abonnement
-
-```
+### 2. Créer un Abonnement
+```http
 POST /subscriptions
+Content-Type: application/json
 ```
 
-**Implémentation** : `SubscriptionApiService.createSubscription(data)`
-
-#### Corps de la requête
-
+**Corps de la requête** :
 ```json
 {
-  "planId": "plan-business",
+  "planId": "sme-standard",
+  "billingPeriod": "monthly",
   "paymentMethod": {
     "type": "mobile",
-    "mobileMoneyProvider": "M-Pesa",
-    "mobileMoneyNumber": "+243820123456"
+    "provider": "mpesa",
+    "phoneNumber": "+243820123456",
+    "pin": "1234"
   },
   "billingDetails": {
     "name": "Jean Mutombo",
-    "email": "jean@example.com",
+    "email": "jean@kiota-tech.com",
+    "companyName": "KIOTA TECH SARL",
     "address": {
-      "line1": "123 Ave Libération", 
+      "street": "Avenue Roi Baudouin 123",
       "city": "Kinshasa",
+      "province": "Kinshasa", 
+      "country": "RDC"
+    }
+  }
+}
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "sub_123456",
+    "planId": "sme-standard",
+    "status": "active",
+    "billingPeriod": "monthly",
+    "currentPeriodStart": "2025-11-05T10:00:00Z",
+    "currentPeriodEnd": "2025-12-05T10:00:00Z",
+    "tokenBalance": {
+      "monthlyAllocation": 2000000,
+      "usedTokens": 0,
+      "remainingTokens": 2000000,
+      "rolledOverTokens": 0
+    },
+    "nextBillingDate": "2025-12-05T10:00:00Z",
+    "totalAmount": 20.00,
+    "currency": "USD"
+  }
+}
+```
+
+### 3. Récupérer l'Abonnement Actuel
+```http
+GET /subscriptions/current
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "sub_123456",
+    "plan": {
+      "id": "sme-standard",
+      "name": "PME Standard",
+      "monthlyPriceUSD": 20,
+      "tokenAllocation": {
+        "monthlyTokens": 2000000,
+        "rolloverLimit": 1000000,
+        "rolloverPeriods": 2
+      },
+      "features": {
+        "commercial_management": { "enabled": true },
+        "accounting_advanced": { "enabled": true }
+      }
+    },
+    "status": "active",
+    "billingPeriod": "monthly",
+    "currentPeriodStart": "2025-11-05T10:00:00Z",
+    "currentPeriodEnd": "2025-12-05T10:00:00Z",
+    "tokenBalance": {
+      "totalTokens": 2500000,      // Inclut rollover
+      "monthlyAllocation": 2000000,
+      "usedTokens": 150000,
+      "remainingTokens": 2350000,
+      "rolledOverTokens": 500000,
+      "currentPeriod": "2025-11",
+      "rolloverHistory": [
+        {
+          "period": "2025-10",
+          "rolledAmount": 500000,
+          "date": "2025-11-01T00:00:00Z"
+        }
+      ]
+    },
+    "nextBillingDate": "2025-12-05T10:00:00Z",
+    "autoRenew": true
+  }
+}
+```
+
+### 4. Modifier un Abonnement
+```http
+PUT /subscriptions/{id}
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "planId": "sme-premium",        // Upgrade/downgrade
+  "billingPeriod": "annual",      // Changement période
+  "autoRenew": false              // Modifier renouvellement
+}
+```
+
+### 5. Annuler un Abonnement
+```http
+DELETE /subscriptions/{id}
+```
+
+**Paramètres de requête** :
+- `cancelAtPeriodEnd` : `true` | `false` (défaut: true)
+- `reason` : Raison de l'annulation (optionnel)
+
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "sub_123456",
+    "status": "canceled",
+    "canceledAt": "2025-11-05T10:00:00Z",
+    "serviceEndDate": "2025-12-05T10:00:00Z",
+    "refundAmount": 0,
+    "reason": "Plan no longer needed"
+  }
+}
+```
+
+## 🪙 Gestion des Tokens Intégrés
+
+### 1. Solde de Tokens Actuel
+```http
+GET /tokens/balance
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "customerId": "user_123",
+    "totalTokens": 2350000,
+    "monthlyAllocation": 2000000,
+    "usedTokens": 150000,
+    "remainingTokens": 2350000,
+    "rolledOverTokens": 500000,
+    "bonusTokens": 100000,
+    "currentPeriod": "2025-11",
+    "periodStartDate": "2025-11-01T00:00:00Z",
+    "periodEndDate": "2025-11-30T23:59:59Z",
+    "rolloverHistory": [
+      {
+        "period": "2025-10",
+        "rolledAmount": 500000,
+        "date": "2025-11-01T00:00:00Z",
+        "expiryDate": "2025-12-31T23:59:59Z"
+      }
+    ]
+  }
+}
+```
+
+### 2. Historique des Transactions de Tokens
+```http
+GET /tokens/transactions?page=1&limit=20&type=usage&feature=ai_chat_assistance
+```
+
+**Paramètres de requête** :
+- `page` : Page (défaut: 1)
+- `limit` : Limite par page (défaut: 20, max: 100)
+- `type` : Type de transaction (`usage`, `allocation`, `bonus`, `expiry`)
+- `feature` : Code de fonctionnalité spécifique
+- `startDate` : Date de début (ISO 8601)
+- `endDate` : Date de fin (ISO 8601)
+
+**Réponse** :
+```json
+{
+  "data": [
+    {
+      "id": "tx_789012",
+      "customerId": "user_123",
+      "transactionType": "usage",
+      "tokenAmount": -5000,
+      "balanceBefore": 2355000,
+      "balanceAfter": 2350000,
+      "featureCode": "ai_chat_assistance",
+      "description": "Conversation IA - Analyse financière",
+      "metadata": {
+        "sessionId": "chat_456",
+        "duration": 180,
+        "messageCount": 12
+      },
+      "createdAt": "2025-11-05T09:30:00Z"
+    },
+    {
+      "id": "tx_789011",
+      "customerId": "user_123", 
+      "transactionType": "allocation",
+      "tokenAmount": 2000000,
+      "balanceBefore": 500000,
+      "balanceAfter": 2500000,
+      "description": "Allocation mensuelle - Plan SME Standard",
+      "createdAt": "2025-11-01T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 156,
+      "pages": 8
+    },
+    "summary": {
+      "totalUsage": 1200000,
+      "totalAllocated": 4000000,
+      "periodStart": "2025-11-01T00:00:00Z",
+      "periodEnd": "2025-11-30T23:59:59Z"
+    }
+  }
+}
+```
+
+### 3. Enregistrer Utilisation de Tokens
+```http
+POST /tokens/usage
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "featureCode": "document_analysis",
+  "tokenAmount": 15000,
+  "description": "Analyse contrat de prêt",
+  "metadata": {
+    "documentType": "loan_contract",
+    "pages": 8,
+    "complexity": "high",
+    "processingTime": 45
+  }
+}
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "transactionId": "tx_789013",
+    "tokenAmount": 15000,
+    "newBalance": 2335000,
+    "featureCode": "document_analysis",
+    "success": true
+  }
+}
+```
+
+## 💳 Gestion des Paiements
+
+### 1. Historique des Paiements
+```http
+GET /payments?page=1&limit=10&status=completed
+```
+
+**Réponse** :
+```json
+{
+  "data": [
+    {
+      "id": "pay_345678",
+      "subscriptionId": "sub_123456",
+      "amount": 20.00,
+      "currency": "USD",
+      "status": "completed",
+      "paymentMethod": {
+        "type": "mobile",
+        "provider": "mpesa",
+        "lastFour": "3456"
+      },
+      "billingPeriod": "2025-11-05 to 2025-12-05",
+      "paidAt": "2025-11-05T10:05:00Z",
+      "receiptUrl": "https://api.wanzo.land/receipts/pay_345678"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 12,
+      "pages": 2
+    }
+  }
+}
+```
+
+### 2. Télécharger Reçu
+```http
+GET /payments/{paymentId}/receipt
+```
+
+**Réponse** : PDF du reçu ou redirection vers URL de téléchargement
+
+## 🔒 Sécurité et Permissions
+
+### Contrôle d'Accès par Fonctionnalité
+Chaque utilisation de fonctionnalité vérifie automatiquement :
+1. **Plan actif** : L'utilisateur a un abonnement valide
+2. **Fonctionnalité incluse** : La fonctionnalité est dans le plan
+3. **Limites respectées** : Les limites du plan ne sont pas dépassées
+4. **Solde de tokens** : Tokens suffisants pour l'opération
+
+### Middleware de Vérification
+```typescript
+@UseGuards(FeatureAccessGuard)
+@RequireFeature(FeatureCode.AI_CHAT_ASSISTANCE)
+async chatWithAI(@Body() data: ChatRequest) {
+  // La logique de vérification est automatique
+  // Les tokens sont déduits automatiquement
+}
+```
+
+## 📊 Métriques et Analytics
+
+### Utilisation des Tokens par Fonctionnalité
+```http
+GET /analytics/token-usage?period=month&groupBy=feature
+```
+
+### Statistiques d'Abonnement
+```http
+GET /analytics/subscription-stats?period=quarter
+```
+
+## ⚡ Logique Métier
+
+### Allocation Automatique de Tokens
+- **Début de période** : Allocation automatique selon le plan
+- **Rollover intelligent** : Report des tokens non utilisés selon les limites
+- **Expiration gérée** : Nettoyage automatique des tokens expirés
+
+### Gestion des Upgrades/Downgrades
+- **Upgrade immédiat** : Accès immédiat aux nouvelles fonctionnalités
+- **Downgrade en fin de période** : Maintien du service jusqu'à la fin
+- **Prorata automatique** : Calcul automatique des ajustements
+
+### Système de Facturation
+- **Facturation récurrente** : Automatique selon la période choisie
+- **Échecs de paiement** : Workflow de récupération automatique
+- **Notifications** : Alertes avant échéance et en cas de problème
       "postalCode": "12345",
       "country": "CD"
     }
@@ -710,112 +1248,6 @@ GET /land/api/v1/tokens/transactions?page=1&limit=10
 
 ### Paiements
 
-#### Récupérer l'historique des paiements
+---
 
-```
-GET /land/api/v1/payments?page=1&limit=10
-```
-
-##### Exemple de réponse
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "pay-123",
-      "date": "2023-10-15T14:30:00Z",
-      "amount": 99.99,
-      "currency": "USD",
-      "method": "Carte Visa ****4242",
-      "plan": "Business",
-      "status": "Payé",
-      "receiptUrl": "https://api.kiota.tech/land/api/v1/payments/pay-123/receipt"
-    },
-    {
-      "id": "pay-124",
-      "date": "2023-10-20T10:15:00Z",
-      "amount": 25.00,
-      "currency": "USD",
-      "method": "M-Pesa +243820******56",
-      "plan": "Achat de tokens",
-      "status": "Payé",
-      "receiptUrl": "https://api.kiota.tech/land/api/v1/payments/pay-124/receipt"
-    }
-  ],
-  "meta": {
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 2,
-      "pages": 1
-    }
-  }
-}
-```
-
-#### Télécharger un reçu de paiement
-
-```
-GET /land/api/v1/payments/{paymentId}/receipt
-```
-
-Retourne un fichier PDF contenant le reçu du paiement.
-
-#### Effectuer un paiement manuel (preuve de transfert)
-
-```
-POST /land/api/v1/payments/manual
-Content-Type: multipart/form-data
-```
-
-##### Corps de la requête
-
-```
-planId: plan-business
-amount: 99.99
-transactionId: TR123456
-proofScreenshot: [FILE]
-```
-
-##### Exemple de réponse
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "pay-125",
-    "status": "pending",
-    "message": "Votre preuve de paiement a été soumise avec succès et est en cours de vérification."
-  }
-}
-```
-
-## Logique métier
-
-### Plans et tarification
-
-Les plans d'abonnement sont définis avec différents niveaux d'accès et de fonctionnalités. Les prix peuvent être affichés en différentes devises (USD, CDF, EUR) mais sont stockés en USD.
-
-### Processus d'abonnement
-
-1. L'utilisateur choisit un plan d'abonnement
-2. Il fournit les informations de paiement (carte, mobile money, preuve de transfert)
-3. Le paiement est traité
-4. L'abonnement est activé
-5. Des rappels sont envoyés avant l'expiration de l'abonnement
-
-### Gestion des tokens
-
-Les tokens sont utilisés pour des fonctionnalités spécifiques comme l'analyse AI ou les rapports avancés. Les utilisateurs peuvent acheter des tokens supplémentaires ou en recevoir via des promotions.
-
-### Méthodes de paiement
-
-Le système supporte plusieurs méthodes de paiement :
-- Carte bancaire (via Stripe ou autre processeur)
-- Mobile money (M-Pesa, Orange Money, etc.)
-- Paiement manuel (transfert bancaire avec preuve)
-
-### Factures et reçus
-
-Des factures et reçus sont générés automatiquement pour chaque transaction et peuvent être téléchargés par l'utilisateur.
+*Documentation mise à jour le 5 novembre 2025 pour refléter l'architecture moderne avec système de tokens intégré aux plans d'abonnement et suppression de l'achat indépendant de tokens.*

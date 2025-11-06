@@ -5,20 +5,25 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 ## Configuration API
 
 ### Base URL
-- **Production**: `https://api.wanzo-land.com/land/api/v1`
+- **Production**: `https://api.wanzo-land.com/land/api/v1` *(à configurer via VITE_API_URL)*
 - **Développement**: `http://localhost:8000/land/api/v1`
+
+**Note**: L'URL est configurée via la variable d'environnement `VITE_API_URL`.
 
 ### Authentification Auth0 PKCE
 ```typescript
 {
-  domain: 'wanzo-land.us.auth0.com',
-  clientId: 'RXTxVgIKY8HjQ6MHs3c80a2kbIWgRPxg',
+  domain: process.env.VITE_AUTH0_DOMAIN,
+  clientId: process.env.VITE_AUTH0_CLIENT_ID,
+  audience: 'https://api.wanzo.com',
   redirectUri: `${window.location.origin}/auth/callback`,
   cacheLocation: 'localstorage',
   useRefreshTokens: true,
   useRefreshTokensFallback: true
 }
 ```
+
+**Note**: Les valeurs réelles sont configurées via les variables d'environnement pour la sécurité.
 
 ### Headers Standards
 ```typescript
@@ -90,10 +95,23 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | `GET` | `/tokens/balance` | Récupère le solde de tokens |
-| `POST` | `/tokens/purchase` | Achète des tokens |
 | `GET` | `/tokens/transactions` | Historique des transactions |
 
-### 6. Paiements (`/payments`) - subscriptionApi.ts
+**Note**: Les tokens sont maintenant intégrés aux plans d'abonnement. L'achat indépendant de tokens a été supprimé.
+
+### 6. Chat Adha (`/chat`) - chatApiService.ts
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `GET` | `/health` | Vérifie la connexion avec le backend IA |
+| `POST` | `/chat/message` | Envoie un message à l'IA avec historique |
+| `GET` | `/chat/conversations/{id}` | Récupère l'historique d'une conversation |
+| `POST` | `/chat/conversations` | Sauvegarde une conversation |
+| `DELETE` | `/chat/conversations/{id}` | Supprime une conversation |
+
+**Note**: Le service utilise `VITE_API_BASE_URL` (défaut: `https://api.wanzo.cd`) et inclut un mode dégradé avec réponses de fallback.
+
+### 7. Paiements (`/payments`) - subscriptionApi.ts
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
@@ -141,6 +159,7 @@ interface ApiError {
   - `companyApi.ts` - Gestion entreprises
   - `financialInstitutionApi.ts` - Gestion institutions financières
   - `subscriptionApi.ts` - Gestion abonnements, tokens et paiements
+  - `chatApiService.ts` - Chat IA Adha avec fallback mode
 
 ## Codes d'Erreur HTTP
 

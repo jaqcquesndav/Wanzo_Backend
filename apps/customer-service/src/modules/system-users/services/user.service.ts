@@ -744,4 +744,60 @@ export class UserService {
   async uploadProfilePhoto(userId: string, file: MulterFile): Promise<UserResponseDto> {
     return this.uploadProfilePicture(userId, file);
   }
+
+  /**
+   * Get companies associated with a user
+   */
+  async getUserCompanies(userId: string): Promise<any[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['customer']
+    });
+
+    if (!user || !user.customer) {
+      return [];
+    }
+
+    // Si l'utilisateur a un customer associé, récupérer les informations de l'entreprise
+    if (user.customer.type === CustomerType.SME) {
+      const sme = await this.connection.getRepository('Sme').findOne({
+        where: { customerId: user.customer.id },
+        relations: ['customer']
+      });
+
+      if (sme) {
+        return [{
+          id: user.customer.id,
+          name: sme.name,
+          type: user.customer.type,
+          status: user.customer.status,
+          industry: sme.industry,
+          size: sme.size,
+          createdAt: user.customer.createdAt,
+          updatedAt: user.customer.updatedAt
+        }];
+      }
+    }
+
+    // Pour les institutions financières, implémenter selon le besoin
+    if (user.customer.type === CustomerType.FINANCIAL) {
+      const institution = await this.connection.getRepository('Institution').findOne({
+        where: { customerId: user.customer.id },
+        relations: ['customer']
+      });
+
+      if (institution) {
+        return [{
+          id: user.customer.id,
+          name: institution.name,
+          type: user.customer.type,
+          status: user.customer.status,
+          createdAt: user.customer.createdAt,
+          updatedAt: user.customer.updatedAt
+        }];
+      }
+    }
+
+    return [];
+  }
 }

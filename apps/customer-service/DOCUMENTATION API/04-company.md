@@ -1,34 +1,402 @@
-# Gestion des Entreprises (PME)
+# Gestion des Entreprises (PME) - Version 2.0
 
-## Structure des données
+## Vue d'ensemble
 
-Basée sur l'interface `Company` du code source (`src/types/user.ts`) et le service `CompanyService` (`src/services/company.ts`) :
+Le module de gestion des entreprises a été complètement refondu pour supporter un **Formulaire d'Identification Entreprise Étendu** avec des données détaillées de patrimoine, performance et spécificités sectorielles.
 
-### Entreprise
+## Architecture Moderne
 
+### Base URL
+```
+http://localhost:8000/land/api/v1/companies
+```
+
+### Structure des Données Étendues
+
+#### Interface Company Principale
 ```typescript
 interface Company {
   id: string;
   name: string;
   logo?: string;
   description?: string;
-  legalForm?: string;
+  legalForm?: LegalFormOHADA;
   industry?: string;
   size?: string;
   website?: string;
   facebookPage?: string;
+
   // Identifiants légaux et fiscaux
   rccm?: string;
   taxId?: string;
   natId?: string;
-  // Adresse (format legacy)
-  address?: {
-    street?: string;
-    city?: string;
-    commune?: string;
-    province?: string;
-    country?: string;
+
+  // Adresse et localisation
+  address?: Address;
+  locations?: Location[];
+
+  // Informations de contact
+  contacts?: {
+    email?: string;
+    phone?: string;
+    altPhone?: string;
   };
+
+  // Propriétaire et associés
+  owner?: Owner;
+  associates?: Associate[];
+
+  // Activités commerciales
+  activities?: {
+    primary?: string;
+    secondary?: string[];
+  };
+
+  // Capital et finances
+  capital?: {
+    isApplicable?: boolean;
+    amount?: number;
+    currency?: 'USD' | 'CDF' | 'EUR';
+  };
+
+  // **NOUVEAU**: Formulaire d'identification étendu
+  extendedIdentification?: EnterpriseIdentificationForm;
+
+  // Métadonnées
+  createdAt?: Date;
+  updatedAt?: Date;
+  status?: 'active' | 'inactive' | 'pending' | 'suspended';
+}
+```
+
+### 🆕 Formulaire d'Identification Entreprise Étendu
+
+#### Structure Principale
+```typescript
+interface EnterpriseIdentificationForm {
+  generalInfo: GeneralInfo;
+  legalInfo: LegalInfo;
+  patrimonyAndMeans: PatrimonyAndMeans;
+  specificities: Specificities;
+  performance: Performance;
+}
+```
+
+#### 1. Informations Générales
+```typescript
+interface GeneralInfo {
+  companyName: string;
+  tradeName?: string;
+  legalForm: LegalFormOHADA;
+  companyType: CompanyType;
+  sector: TraditionalSector | StartupSector;
+  foundingDate?: Date;
+  
+  // Siège social
+  headquarters: {
+    address: string;
+    city: string;
+    commune?: string;
+    province: string;
+    country: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+
+  // Contact principal
+  mainContact: {
+    name: string;
+    position: string;
+    email: string;
+    phone: string;
+    alternativePhone?: string;
+  };
+
+  // Présence digitale
+  digitalPresence?: {
+    website?: string;
+    facebook?: string;
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+  };
+}
+```
+
+#### 2. Informations Légales et Fiscales
+```typescript
+interface LegalInfo {
+  // Identifiants officiels
+  rccm?: string;
+  taxNumber?: string;
+  nationalId?: string;
+  employerNumber?: string;
+  socialSecurityNumber?: string;
+  
+  // Licences et autorisations
+  businessLicense?: {
+    number: string;
+    issuedBy: string;
+    issuedDate: Date;
+    expiryDate?: Date;
+  };
+  
+  operatingLicenses?: Array<{
+    type: string;
+    number: string;
+    issuedBy: string;
+    issuedDate: Date;
+    expiryDate?: Date;
+  }>;
+
+  // Conformité réglementaire
+  taxCompliance: {
+    isUpToDate: boolean;
+    lastFilingDate?: Date;
+    nextFilingDue?: Date;
+  };
+
+  // Situation juridique
+  legalStatus: {
+    hasLegalIssues: boolean;
+    issues?: string[];
+    hasGovernmentContracts: boolean;
+    contractTypes?: string[];
+  };
+}
+```
+
+#### 3. Patrimoine et Moyens
+```typescript
+interface PatrimonyAndMeans {
+  // Capital et actionnariat
+  shareCapital: {
+    authorizedCapital: number;
+    paidUpCapital: number;
+    currency: 'USD' | 'CDF' | 'EUR';
+    
+    shareholders: Array<{
+      name: string;
+      type: 'individual' | 'corporate';
+      sharePercentage: number;
+      paidAmount: number;
+    }>;
+  };
+
+  // Actifs immobiliers
+  realEstate?: Array<{
+    type: 'office' | 'warehouse' | 'factory' | 'store' | 'land';
+    address: string;
+    surface: number; // m²
+    value: number;
+    currency: string;
+    isOwned: boolean;
+    monthlyRent?: number;
+  }>;
+
+  // Équipements et machines
+  equipment?: Array<{
+    category: string;
+    description: string;
+    quantity: number;
+    unitValue: number;
+    totalValue: number;
+    currency: string;
+    acquisitionDate: Date;
+    condition: 'new' | 'good' | 'fair' | 'poor';
+  }>;
+
+  // Véhicules
+  vehicles?: Array<{
+    type: 'car' | 'truck' | 'motorcycle' | 'other';
+    brand: string;
+    model: string;
+    year: number;
+    value: number;
+    currency: string;
+    isOwned: boolean;
+  }>;
+
+  // Ressources humaines
+  humanResources: {
+    totalEmployees: number;
+    permanentEmployees: number;
+    temporaryEmployees: number;
+    consultants: number;
+    
+    keyPersonnel: Array<{
+      name: string;
+      position: string;
+      experience: number; // années
+      education: string;
+      isShareholder: boolean;
+    }>;
+  };
+}
+```
+
+#### 4. Spécificités (Startup vs Traditionnelle)
+```typescript
+interface Specificities {
+  // Spécificités Startup
+  startup?: {
+    stage: 'idea' | 'prototype' | 'mvp' | 'early_revenue' | 'growth' | 'expansion';
+    fundraising: {
+      hasRaised: boolean;
+      totalRaised?: number;
+      currency?: string;
+      investors?: Array<{
+        name: string;
+        type: 'angel' | 'vc' | 'accelerator' | 'family_office' | 'other';
+        amount: number;
+        date: Date;
+      }>;
+    };
+    
+    innovation: {
+      intellectualProperty?: Array<{
+        type: 'patent' | 'trademark' | 'copyright' | 'trade_secret';
+        title: string;
+        registrationNumber?: string;
+        status: 'pending' | 'registered' | 'expired';
+      }>;
+      
+      technologyStack?: string[];
+      researchPartnership?: Array<{
+        institution: string;
+        type: 'university' | 'research_center' | 'corporate_lab';
+        projectTitle: string;
+      }>;
+    };
+  };
+
+  // Spécificités Entreprise Traditionnelle
+  traditional?: {
+    operatingHistory: {
+      yearsInBusiness: number;
+      majorMilestones: Array<{
+        year: number;
+        milestone: string;
+        impact: string;
+      }>;
+    };
+    
+    marketPosition: {
+      marketShare?: number;
+      competitorAnalysis?: string;
+      competitiveAdvantages: string[];
+    };
+    
+    supplierNetwork: Array<{
+      name: string;
+      relationship: 'exclusive' | 'preferred' | 'regular';
+      yearsOfRelationship: number;
+      isLocal: boolean;
+    }>;
+    
+    customerBase: {
+      totalCustomers: number;
+      repeatCustomerRate: number; // %
+      averageCustomerValue: number;
+      customerTypes: ('b2b' | 'b2c' | 'government')[];
+    };
+  };
+}
+```
+
+#### 5. Performance et Métriques
+```typescript
+interface Performance {
+  // Performance financière
+  financial: {
+    // Revenus
+    revenue: Array<{
+      year: number;
+      amount: number;
+      currency: string;
+      isProjected: boolean;
+    }>;
+    
+    // Profitabilité
+    profitability: Array<{
+      year: number;
+      grossProfit: number;
+      netProfit: number;
+      currency: string;
+      margins: {
+        gross: number; // %
+        net: number; // %
+      };
+    }>;
+    
+    // Flux de trésorerie
+    cashFlow: {
+      monthly: Array<{
+        month: string;
+        inflow: number;
+        outflow: number;
+        netFlow: number;
+      }>;
+    };
+    
+    // Besoins de financement
+    financingNeeds?: {
+      amount: number;
+      currency: string;
+      purpose: string[];
+      timeframe: string;
+      hasAppliedBefore: boolean;
+      previousApplications?: Array<{
+        institution: string;
+        amount: number;
+        result: 'approved' | 'rejected' | 'pending';
+        date: Date;
+      }>;
+    };
+  };
+
+  // Performance opérationnelle
+  operational: {
+    productivity: {
+      outputPerEmployee?: number;
+      revenuePerEmployee?: number;
+      utilizationRate?: number; // %
+    };
+    
+    quality: {
+      defectRate?: number;
+      customerSatisfaction?: number; // score 1-10
+      returnRate?: number; // %
+    };
+    
+    efficiency: {
+      orderFulfillmentTime?: number; // jours
+      inventoryTurnover?: number;
+      costPerUnit?: number;
+    };
+  };
+
+  // Performance marché
+  market: {
+    growth: {
+      customerGrowthRate: number; // % annuel
+      marketExpansion: string[];
+      newProductsLaunched: number;
+    };
+    
+    digital: {
+      onlinePresence: {
+        website: boolean;
+        ecommerce: boolean;
+        socialMedia: string[];
+      };
+      digitalSales?: number; // % du total
+    };
+  };
+}
+```
   // Emplacements avec coordonnées
   locations?: Array<{
     id: string;
@@ -579,35 +947,486 @@ GET /land/api/v1/companies?page=1&limit=10
     "pagination": {
       "page": 1,
       "limit": 10,
-      "total": 42,
-      "pages": 5
+    };
+  };
+}
+```
+
+## 🔗 Endpoints API
+
+### Base URL
+```
+http://localhost:8000/land/api/v1/companies
+```
+
+### Authentification
+Tous les endpoints nécessitent un token Auth0 Bearer dans le header :
+```http
+Authorization: Bearer <access_token>
+```
+
+### 1. Créer une Entreprise
+```http
+POST /companies
+Content-Type: application/json
+```
+
+**Exemple de requête** :
+```json
+{
+  "name": "KIOTA TECH SARL",
+  "description": "Startup technologique spécialisée dans les solutions FinTech",
+  "legalForm": "SARL",
+  "industry": "Technology",
+  "website": "https://kiota-tech.com",
+  "contacts": {
+    "email": "contact@kiota-tech.com",
+    "phone": "+243999123456"
+  },
+  "address": {
+    "street": "Avenue Roi Baudouin 123",
+    "city": "Kinshasa",
+    "commune": "Gombe",
+    "province": "Kinshasa",
+    "country": "RDC"
+  },
+  "extendedIdentification": {
+    "generalInfo": {
+      "companyName": "KIOTA TECH SARL",
+      "legalForm": "SARL",
+      "companyType": "startup",
+      "sector": "fintech",
+      "foundingDate": "2023-01-15",
+      "headquarters": {
+        "address": "Avenue Roi Baudouin 123",
+        "city": "Kinshasa",
+        "commune": "Gombe",
+        "province": "Kinshasa",
+        "country": "RDC"
+      },
+      "mainContact": {
+        "name": "Jacques Ndav",
+        "position": "CEO",
+        "email": "jacques@kiota-tech.com",
+        "phone": "+243999123456"
+      }
+    },
+    "specificities": {
+      "startup": {
+        "stage": "growth",
+        "fundraising": {
+          "hasRaised": true,
+          "totalRaised": 50000,
+          "currency": "USD"
+        }
+      }
     }
   }
 }
 ```
 
-## Logique métier
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "comp_123456",
+    "name": "KIOTA TECH SARL",
+    "status": "active",
+    "createdAt": "2025-11-05T10:00:00Z",
+    "extendedIdentification": {
+      "generalInfo": { /* ... */ },
+      "legalInfo": { /* ... */ },
+      "patrimonyAndMeans": { /* ... */ },
+      "specificities": { /* ... */ },
+      "performance": { /* ... */ }
+    }
+  },
+  "meta": {
+    "timestamp": "2025-11-05T10:00:00Z"
+  }
+}
+```
 
-### Création d'entreprise
+### 2. Récupérer une Entreprise
+```http
+GET /companies/{id}
+```
 
-Lorsqu'un utilisateur crée une entreprise :
-1. Un profil d'entreprise est créé
-2. L'utilisateur est automatiquement défini comme le dirigeant de l'entreprise
-3. Le champ `userType` de l'utilisateur est défini sur `sme`
-4. Le champ `companyId` de l'utilisateur est défini sur l'ID de l'entreprise
-5. Le champ `isCompanyOwner` de l'utilisateur est défini sur `true`
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "comp_123456",
+    "name": "KIOTA TECH SARL",
+    "logo": "https://res.cloudinary.com/wanzo/logo.jpg",
+    "description": "Startup technologique spécialisée dans les solutions FinTech",
+    "legalForm": "SARL",
+    "industry": "Technology",
+    "size": "startup",
+    "website": "https://kiota-tech.com",
+    "rccm": "CD/KIN/RCCM/23-B-123",
+    "taxId": "123456789",
+    "status": "active",
+    "extendedIdentification": {
+      "generalInfo": {
+        "companyName": "KIOTA TECH SARL",
+        "tradeName": "KIOTA",
+        "legalForm": "SARL",
+        "companyType": "startup",
+        "sector": "fintech",
+        "foundingDate": "2023-01-15T00:00:00Z",
+        "headquarters": {
+          "address": "Avenue Roi Baudouin 123",
+          "city": "Kinshasa",
+          "commune": "Gombe",
+          "province": "Kinshasa",
+          "country": "RDC",
+          "coordinates": {
+            "lat": -4.3317,
+            "lng": 15.3139
+          }
+        },
+        "mainContact": {
+          "name": "Jacques Ndav",
+          "position": "CEO",
+          "email": "jacques@kiota-tech.com",
+          "phone": "+243999123456"
+        },
+        "digitalPresence": {
+          "website": "https://kiota-tech.com",
+          "linkedin": "https://linkedin.com/company/kiota-tech"
+        }
+      },
+      "legalInfo": {
+        "rccm": "CD/KIN/RCCM/23-B-123",
+        "taxNumber": "123456789",
+        "nationalId": "NAT123456",
+        "taxCompliance": {
+          "isUpToDate": true,
+          "lastFilingDate": "2025-10-01T00:00:00Z",
+          "nextFilingDue": "2025-12-31T00:00:00Z"
+        },
+        "legalStatus": {
+          "hasLegalIssues": false,
+          "hasGovernmentContracts": false
+        }
+      },
+      "patrimonyAndMeans": {
+        "shareCapital": {
+          "authorizedCapital": 50000,
+          "paidUpCapital": 50000,
+          "currency": "USD",
+          "shareholders": [
+            {
+              "name": "Jacques Ndav",
+              "type": "individual",
+              "sharePercentage": 60,
+              "paidAmount": 30000
+            }
+          ]
+        },
+        "humanResources": {
+          "totalEmployees": 8,
+          "permanentEmployees": 6,
+          "temporaryEmployees": 2,
+          "consultants": 0,
+          "keyPersonnel": [
+            {
+              "name": "Jacques Ndav",
+              "position": "CEO",
+              "experience": 8,
+              "education": "Master en Informatique",
+              "isShareholder": true
+            }
+          ]
+        }
+      },
+      "specificities": {
+        "startup": {
+          "stage": "growth",
+          "fundraising": {
+            "hasRaised": true,
+            "totalRaised": 50000,
+            "currency": "USD",
+            "investors": [
+              {
+                "name": "Angel Investor ABC",
+                "type": "angel",
+                "amount": 30000,
+                "date": "2024-06-01T00:00:00Z"
+              }
+            ]
+          },
+          "innovation": {
+            "intellectualProperty": [
+              {
+                "type": "trademark",
+                "title": "KIOTA",
+                "registrationNumber": "TM2024-001",
+                "status": "registered"
+              }
+            ],
+            "technologyStack": ["React", "Node.js", "PostgreSQL", "AWS"]
+          }
+        }
+      },
+      "performance": {
+        "financial": {
+          "revenue": [
+            {
+              "year": 2024,
+              "amount": 120000,
+              "currency": "USD",
+              "isProjected": false
+            },
+            {
+              "year": 2025,
+              "amount": 200000,
+              "currency": "USD",
+              "isProjected": true
+            }
+          ],
+          "profitability": [
+            {
+              "year": 2024,
+              "grossProfit": 80000,
+              "netProfit": 25000,
+              "currency": "USD",
+              "margins": {
+                "gross": 66.7,
+                "net": 20.8
+              }
+            }
+          ],
+          "financingNeeds": {
+            "amount": 100000,
+            "currency": "USD",
+            "purpose": ["expansion", "technology"],
+            "timeframe": "12 months",
+            "hasAppliedBefore": false
+          }
+        },
+        "operational": {
+          "productivity": {
+            "revenuePerEmployee": 15000,
+            "utilizationRate": 85
+          },
+          "quality": {
+            "customerSatisfaction": 8.5
+          }
+        },
+        "market": {
+          "growth": {
+            "customerGrowthRate": 40,
+            "marketExpansion": ["RDC", "Congo", "Cameroun"],
+            "newProductsLaunched": 2
+          },
+          "digital": {
+            "onlinePresence": {
+              "website": true,
+              "ecommerce": true,
+              "socialMedia": ["linkedin", "facebook"]
+            },
+            "digitalSales": 80
+          }
+        }
+      }
+    },
+    "createdAt": "2023-01-15T00:00:00Z",
+    "updatedAt": "2025-11-05T10:00:00Z"
+  }
+}
+```
 
-### Mise à jour du profil
+### 3. Mettre à Jour une Entreprise
+```http
+PUT /companies/{id}
+Content-Type: application/json
+```
 
-La mise à jour du profil d'entreprise peut se faire par étapes, comme implémenté dans le formulaire `CompanyFormModal` :
-1. Informations générales
-2. Dirigeant et associés
-3. Coordonnées et activités
+**Exemple de mise à jour partielle** :
+```json
+{
+  "description": "Description mise à jour",
+  "extendedIdentification": {
+    "performance": {
+      "financial": {
+        "revenue": [
+          {
+            "year": 2025,
+            "amount": 250000,
+            "currency": "USD",
+            "isProjected": true
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
-### Upload de fichiers
+### 4. Lister les Entreprises
+```http
+GET /companies?page=1&limit=10&search=KIOTA&sector=fintech
+```
 
-Les fichiers (logo, CV) sont téléchargés sur Cloudinary. L'API retourne l'URL du fichier téléchargé, qui est ensuite stockée dans la base de données.
+**Paramètres de requête** :
+- `page` : Numéro de page (défaut: 1)
+- `limit` : Éléments par page (défaut: 10, max: 100)
+- `search` : Recherche par nom
+- `sector` : Filtrer par secteur
+- `companyType` : Filtrer par type (startup/traditional)
+- `status` : Filtrer par statut
+- `sort` : Tri (name:asc, createdAt:desc, etc.)
 
-### Validation des données
+**Réponse** :
+```json
+{
+  "data": [
+    {
+      "id": "comp_123456",
+      "name": "KIOTA TECH SARL",
+      "description": "Startup technologique...",
+      "industry": "Technology",
+      "sector": "fintech",
+      "companyType": "startup",
+      "status": "active",
+      "createdAt": "2023-01-15T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "pages": 1
+    }
+  }
+}
+```
 
-Toutes les données sont validées côté serveur selon les règles définies dans le schéma Zod.
+### 5. Supprimer une Entreprise
+```http
+DELETE /companies/{id}
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "comp_123456",
+    "deleted": true
+  },
+  "meta": {
+    "timestamp": "2025-11-05T10:00:00Z"
+  }
+}
+```
+
+## ⚙️ Logique Métier Moderne
+
+### Processus de Création Étendu
+
+1. **Création Basique** : Informations générales obligatoires
+2. **Identification Étendue** : Formulaire complet progressif
+3. **Validation en Temps Réel** : Vérification des données légales
+4. **Association Utilisateur** : Liaison automatique avec le créateur
+
+### Gestion des Formulaires Progressifs
+
+Le système supporte un remplissage progressif du formulaire d'identification :
+
+```typescript
+// Étapes du formulaire
+enum FormStep {
+  GENERAL_INFO = 'general',
+  LEGAL_INFO = 'legal', 
+  PATRIMONY = 'patrimony',
+  SPECIFICITIES = 'specificities',
+  PERFORMANCE = 'performance'
+}
+
+// État de complétude
+interface CompletionStatus {
+  generalInfo: boolean;
+  legalInfo: boolean;
+  patrimonyAndMeans: boolean;
+  specificities: boolean;
+  performance: boolean;
+  overallCompletion: number; // %
+}
+```
+
+### Validation et Conformité
+
+#### Validation des Données Légales
+- **RCCM** : Format CD/[PROVINCE]/RCCM/[ANNÉE]-[TYPE]-[NUMÉRO]
+- **Numéro Fiscal** : Validation selon standards RDC
+- **Capital Social** : Cohérence entre autorisé et libéré
+
+#### Compliance Automatique
+- Vérification dates d'expiration licences
+- Alertes conformité fiscale
+- Validation cohérence données financières
+
+### Upload et Gestion de Fichiers
+
+```typescript
+// Types de fichiers supportés
+interface FileUpload {
+  type: 'logo' | 'license' | 'certificate' | 'financial_statement';
+  url: string;
+  cloudinaryId: string;
+  uploadedAt: Date;
+  size: number;
+  mimeType: string;
+}
+```
+
+### Calculs Automatiques
+
+Le système calcule automatiquement :
+- **Ratios Financiers** : Marges, ROI, ROE
+- **Score de Complétude** : Pourcentage de remplissage
+- **Indicateurs de Performance** : KPI sectoriels
+- **Score de Risque** : Analyse de crédit basique
+
+### Intégrations Externes
+
+#### Services Tiers
+- **Géolocalisation** : Google Maps API pour coordonnées
+- **Vérification Légale** : API OHADA pour validation RCCM
+- **Données Sectorielles** : Sources externes pour benchmarking
+
+#### Notifications et Alertes
+- **Échéances Légales** : Rappels renouvellement licences
+- **Mise à Jour Données** : Suggestions de mise à jour périodique
+- **Opportunités** : Alertes financement/partenariats
+
+## 🔒 Sécurité et Permissions
+
+### Contrôle d'Accès
+- **Propriétaire** : Accès complet aux données
+- **Employés** : Accès lecture selon rôle
+- **Partenaires** : Accès limité données publiques
+- **Administrateurs** : Accès global avec audit trail
+
+### Protection des Données
+- **Données Sensibles** : Chiffrement finances et données personnelles
+- **Audit Trail** : Traçabilité modifications importantes
+- **Backup** : Sauvegarde automatique données critiques
+- **RGPD Compliance** : Respect protection données personnelles
+
+## 📊 Métriques et Analytics
+
+### Tableaux de Bord
+- **Complétude Profil** : Progression remplissage
+- **Performance** : KPI en temps réel
+- **Comparaison** : Benchmarking sectoriel
+- **Évolution** : Tendances historiques
+
+### Rapports Automatiques
+- **Rapport Financier** : Synthèse performance
+- **Due Diligence** : Dossier investisseur
+- **Compliance** : État conformité réglementaire
+- **Export** : PDF/Excel pour partenaires

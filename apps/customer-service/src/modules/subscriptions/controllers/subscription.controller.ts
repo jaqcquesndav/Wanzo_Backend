@@ -120,6 +120,22 @@ export class SubscriptionController {
     return this.subscriptionService.activate(id);
   }
 
+  @Put(':id/renew')
+  @ApiOperation({ summary: 'Renouveler un abonnement' })
+  @ApiResponse({ status: 200, description: 'Abonnement renouvelé avec succès' })
+  @ApiResponse({ status: 404, description: 'Abonnement non trouvé' })
+  async renew(
+    @Param('id') id: string,
+    @Body() renewalData?: { endDate?: string; autoRenew?: boolean }
+  ): Promise<Subscription> {
+    const processedData = renewalData ? {
+      endDate: renewalData.endDate ? new Date(renewalData.endDate) : undefined,
+      autoRenew: renewalData.autoRenew
+    } : undefined;
+    
+    return this.subscriptionService.renew(id, processedData);
+  }
+
   @Post('/cancel')
   @ApiOperation({ summary: 'Annuler l\'abonnement actuel de l\'utilisateur connecté' })
   @ApiResponse({ status: 200, description: 'Abonnement annulé avec succès' })

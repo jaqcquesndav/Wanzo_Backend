@@ -231,3 +231,201 @@ export class PaginationDto {
   total!: number;
   pages!: number;
 }
+
+// ===== IDENTITY DOCUMENT DTOs =====
+
+export class CreateIdentityDocumentDto {
+  documentType!: string;
+  documentNumber!: string;
+  issuingCountry?: string;
+  issuingAuthority?: string;
+  issueDate!: string;
+  expiryDate?: string;
+}
+
+export class UpdateIdentityDocumentDto {
+  documentNumber?: string;
+  issuingCountry?: string;
+  issuingAuthority?: string;
+  issueDate?: string;
+  expiryDate?: string;
+}
+
+export class IdentityDocumentResponseDto {
+  id!: string;
+  documentType!: string;
+  documentNumber!: string;
+  issuingCountry?: string;
+  issuingAuthority?: string;
+  issueDate!: string;
+  expiryDate?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  verificationStatus!: string;
+  verificationNotes?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  submittedForVerificationAt?: string;
+  metadata?: Record<string, any>;
+  createdAt!: string;
+  updatedAt!: string;
+  isExpired!: boolean;
+  daysUntilExpiry?: number;
+}
+
+export class VerifyDocumentDto {
+  notes?: string;
+}
+
+// ===== USER SETTINGS DTOs =====
+
+export class ModernUserSettingsDto {
+  notifications!: {
+    email: {
+      systemUpdates: boolean;
+      subscriptionAlerts: boolean;
+      tokenUsageAlerts: boolean;
+      securityAlerts: boolean;
+      marketingEmails: boolean;
+      weeklyReports: boolean;
+      monthlyReports: boolean;
+    };
+    sms: {
+      criticalAlerts: boolean;
+      subscriptionExpiry: boolean;
+      tokenDepletion: boolean;
+      loginAlerts: boolean;
+    };
+    inApp: {
+      systemNotifications: boolean;
+      featureAnnouncements: boolean;
+      usageReports: boolean;
+      taskReminders: boolean;
+    };
+  };
+  privacy!: {
+    profileVisibility: string;
+    dataProcessingConsent: boolean;
+    marketingConsent: boolean;
+    analyticsConsent: boolean;
+    thirdPartySharing: boolean;
+    dataRetentionPeriod: string;
+  };
+  display!: {
+    theme: string;
+    language: string;
+    timezone: string;
+    dateFormat: string;
+    numberFormat: string;
+    currency: string;
+  };
+  security!: {
+    twoFactorEnabled: boolean;
+    sessionTimeout: number;
+    passwordStrength: string;
+    loginNotifications: boolean;
+    deviceTracking: boolean;
+    ipWhitelist: string[];
+  };
+  lastUpdated!: string;
+}
+
+export class UpdateUserSettingsDto {
+  notifications?: {
+    email?: {
+      systemUpdates?: boolean;
+      subscriptionAlerts?: boolean;
+      tokenUsageAlerts?: boolean;
+      securityAlerts?: boolean;
+      marketingEmails?: boolean;
+      weeklyReports?: boolean;
+      monthlyReports?: boolean;
+    };
+    sms?: {
+      criticalAlerts?: boolean;
+      subscriptionExpiry?: boolean;
+      tokenDepletion?: boolean;
+      loginAlerts?: boolean;
+    };
+    inApp?: {
+      systemNotifications?: boolean;
+      featureAnnouncements?: boolean;
+      usageReports?: boolean;
+      taskReminders?: boolean;
+    };
+  };
+  privacy?: {
+    profileVisibility?: string;
+    dataProcessingConsent?: boolean;
+    marketingConsent?: boolean;
+    analyticsConsent?: boolean;
+    thirdPartySharing?: boolean;
+    dataRetentionPeriod?: string;
+  };
+  display?: {
+    theme?: string;
+    language?: string;
+    timezone?: string;
+    dateFormat?: string;
+    numberFormat?: string;
+    currency?: string;
+  };
+  security?: {
+    twoFactorEnabled?: boolean;
+    sessionTimeout?: number;
+    passwordStrength?: string;
+    loginNotifications?: boolean;
+    deviceTracking?: boolean;
+    ipWhitelist?: string[];
+  };
+}
+
+export class UserNotificationPreferencesDto {
+  email!: {
+    systemUpdates: boolean;
+    subscriptionAlerts: boolean;
+    tokenUsageAlerts: boolean;
+    securityAlerts: boolean;
+    marketingEmails: boolean;
+    weeklyReports: boolean;
+    monthlyReports: boolean;
+  };
+  sms!: {
+    criticalAlerts: boolean;
+    subscriptionExpiry: boolean;
+    tokenDepletion: boolean;
+    loginAlerts: boolean;
+  };
+  inApp!: {
+    systemNotifications: boolean;
+    featureAnnouncements: boolean;
+    usageReports: boolean;
+    taskReminders: boolean;
+  };
+}
+
+export class UpdateNotificationPreferencesDto {
+  email?: {
+    systemUpdates?: boolean;
+    subscriptionAlerts?: boolean;
+    tokenUsageAlerts?: boolean;
+    securityAlerts?: boolean;
+    marketingEmails?: boolean;
+    weeklyReports?: boolean;
+    monthlyReports?: boolean;
+  };
+  sms?: {
+    criticalAlerts?: boolean;
+    subscriptionExpiry?: boolean;
+    tokenDepletion?: boolean;
+    loginAlerts?: boolean;
+  };
+  inApp?: {
+    systemNotifications?: boolean;
+    featureAnnouncements?: boolean;
+    usageReports?: boolean;
+    taskReminders?: boolean;
+  };
+}

@@ -19,6 +19,7 @@ import { Sme } from './entities/sme.entity';
 import { CustomerDocument } from './entities/customer-document.entity';
 import { FinancialInstitutionSpecificData } from './entities/financial-institution-specific-data.entity';
 import { SmeSpecificData } from './entities/sme-specific-data.entity';
+import { EnterpriseIdentificationForm } from './entities/enterprise-identification-form.entity';
 import { User } from '../system-users/entities/user.entity';
 import { KafkaModule } from '../kafka/kafka.module';
 // Import the CloudinaryModule
@@ -33,6 +34,7 @@ import { CloudinaryModule } from '../cloudinary';
       CustomerDocument, 
       FinancialInstitutionSpecificData,
       SmeSpecificData,
+      EnterpriseIdentificationForm,
       User
     ]),
     forwardRef(() => KafkaModule),

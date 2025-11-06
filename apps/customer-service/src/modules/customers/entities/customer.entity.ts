@@ -4,6 +4,7 @@ import { CustomerActivity } from './customer-activity.entity';
 import { ValidationProcess } from './validation-process.entity';
 import { SmeSpecificData } from './sme-specific-data.entity';
 import { FinancialInstitutionSpecificData } from './financial-institution-specific-data.entity';
+import { EnterpriseIdentificationForm } from './enterprise-identification-form.entity';
 import { User } from '../../system-users/entities/user.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { TokenUsage } from '../../tokens/entities/token-usage.entity';
@@ -218,6 +219,10 @@ export class Customer {
   @OneToOne(() => FinancialInstitutionSpecificData, { cascade: true, nullable: true })
   @JoinColumn()
   financialData!: FinancialInstitutionSpecificData;
+
+  @OneToOne(() => EnterpriseIdentificationForm, { cascade: true, nullable: true })
+  @JoinColumn()
+  extendedIdentification?: EnterpriseIdentificationForm;
 
   @OneToMany(() => User, user => user.customer)
   users!: User[];

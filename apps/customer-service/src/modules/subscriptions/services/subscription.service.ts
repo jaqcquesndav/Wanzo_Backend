@@ -263,4 +263,44 @@ export class SubscriptionService {
 
     return updatedSubscription;
   }
+
+  /**
+   * Renouveler un abonnement
+   */
+  async renew(subscriptionId: string, renewalData?: { endDate?: Date; autoRenew?: boolean }): Promise<Subscription> {
+    const subscription = await this.findById(subscriptionId);
+    
+    if (!subscription) {
+      throw new Error('Subscription not found');
+    }
+
+    if (subscription.status !== SubscriptionStatus.ACTIVE && subscription.status !== SubscriptionStatus.EXPIRED) {
+      throw new Error('Only active or expired subscriptions can be renewed');
+    }
+
+    // Calculer la nouvelle date de fin (par défaut, ajouter 1 an)
+    const currentEndDate = subscription.endDate || new Date();
+    const newEndDate = renewalData?.endDate || new Date(currentEndDate.getTime() + (365 * 24 * 60 * 60 * 1000));
+
+    // Mettre à jour l'abonnement
+    const updatedSubscription = await this.update(subscriptionId, {
+      status: SubscriptionStatus.ACTIVE,
+      endDate: newEndDate,
+      autoRenew: renewalData?.autoRenew ?? subscription.autoRenew
+    });
+
+    // Publier un événement de renouvellement
+    await this.customerEventsProducer.emitSubscriptionEvent({
+      type: 'subscription.renewed',
+      subscriptionId: updatedSubscription.id,
+      customerId: updatedSubscription.customerId,
+      timestamp: new Date(),
+      metadata: {
+        oldEndDate: currentEndDate,
+        newEndDate: newEndDate
+      }
+    });
+
+    return updatedSubscription;
+  }
 }

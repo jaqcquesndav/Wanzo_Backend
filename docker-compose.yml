@@ -646,6 +646,10 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # ChatGPT API Configuration for Adha AI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4
+      - OPENAI_MAX_TOKENS=1000
     env_file:
       - ./apps/customer-service/.env
     volumes:
@@ -682,6 +686,10 @@ services:
       - AUTH0_AUDIENCE=https://api.wanzo.com
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # ChatGPT API Configuration for Adha AI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4
+      - OPENAI_MAX_TOKENS=1000
     volumes:
       - ./apps/customer-service/src:/app/apps/customer-service/src
       - ./packages/shared/src:/app/packages/shared/src

@@ -65,6 +65,45 @@ export class TokenController {
     return this.tokenService.getTokenTransactionsByAuth0Id(auth0Id, +page, +limit);
   }
 
+  // Alias pour la documentation v2.0
+  @Get('usage-history')
+  @ApiOperation({ summary: 'Récupérer l\'historique d\'utilisation des tokens' })
+  @ApiResponse({ status: 200, description: 'Historique d\'utilisation récupéré' })
+  async getCurrentUserUsageHistory(
+    @Req() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('serviceType') serviceType?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20
+  ) {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    return this.tokenService.getCurrentUserUsageHistory(
+      auth0Id, 
+      startDate, 
+      endDate, 
+      serviceType, 
+      +page, 
+      +limit
+    );
+  }
+
+  @Get('usage-summary')
+  @ApiOperation({ summary: 'Récupérer un résumé de l\'utilisation des tokens' })
+  @ApiResponse({ status: 200, description: 'Résumé de l\'utilisation récupéré' })
+  async getUsageSummary(@Req() req: any) {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    
+    return this.tokenService.getCurrentUserUsageSummary(auth0Id);
+  }
+
   @Post('usage')
   @ApiOperation({ summary: 'Enregistrer une utilisation de tokens' })
   @ApiResponse({ status: 201, description: 'Utilisation enregistrée avec succès' })

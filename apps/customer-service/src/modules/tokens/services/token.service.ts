@@ -305,4 +305,126 @@ export class TokenService {
       limit
     };
   }
+
+  /**
+   * Get current user usage history with filtering by service type and date range
+   */
+  async getCurrentUserUsageHistory(
+    auth0Id: string,
+    startDate?: string,
+    endDate?: string,
+    serviceType?: string,
+    page = 1,
+    limit = 20
+  ) {
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const whereConditions: any = { customerId: user.customerId };
+
+    // Ajouter filtre de date si fourni
+    if (startDate || endDate) {
+      whereConditions.timestamp = {};
+      if (startDate) {
+        whereConditions.timestamp.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereConditions.timestamp.lte = new Date(endDate);
+      }
+    }
+
+    // Ajouter filtre de type de service si fourni
+    if (serviceType) {
+      whereConditions.serviceType = serviceType;
+    }
+
+    const [usages, total] = await this.tokenUsageRepository.findAndCount({
+      where: whereConditions,
+      order: { timestamp: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      success: true,
+      data: {
+        items: usages.map(usage => ({
+          id: usage.id,
+          amount: usage.amount,
+          serviceType: usage.serviceType,
+          timestamp: usage.timestamp.toISOString(),
+          requestId: usage.requestId,
+          context: usage.context,
+          metadata: usage.metadata
+        })),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get current user usage summary
+   */
+  async getCurrentUserUsageSummary(auth0Id: string) {
+    const user = await this.userRepository.findOne({ where: { auth0Id } });
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    // Total des tokens utilisés
+    const totalUsageResult = await this.tokenUsageRepository
+      .createQueryBuilder('usage')
+      .select('SUM(usage.amount)', 'total')
+      .where('usage.customerId = :customerId', { customerId: user.customerId })
+      .getRawOne();
+
+    const totalUsed = totalUsageResult?.total || 0;
+
+    // Utilisation par service
+    const usageByService = await this.tokenUsageRepository
+      .createQueryBuilder('usage')
+      .select('usage.serviceType', 'serviceType')
+      .addSelect('SUM(usage.amount)', 'total')
+      .where('usage.customerId = :customerId', { customerId: user.customerId })
+      .groupBy('usage.serviceType')
+      .getRawMany();
+
+    // Utilisation des 30 derniers jours
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const last30DaysUsage = await this.tokenUsageRepository
+      .createQueryBuilder('usage')
+      .select('SUM(usage.amount)', 'total')
+      .where('usage.customerId = :customerId', { customerId: user.customerId })
+      .andWhere('usage.timestamp >= :thirtyDaysAgo', { thirtyDaysAgo })
+      .getRawOne();
+
+    // Solde actuel
+    const balance = await this.getTokenBalance(user.customerId);
+
+    return {
+      success: true,
+      data: {
+        currentBalance: balance,
+        totalUsed: Number(totalUsed),
+        last30DaysUsage: Number(last30DaysUsage?.total || 0),
+        usageByService: usageByService.map(item => ({
+          serviceType: item.serviceType,
+          total: Number(item.total)
+        })),
+        summary: {
+          period: '30 days',
+          generatedAt: new Date().toISOString()
+        }
+      }
+    };
+  }
 }

@@ -1,148 +1,277 @@
-# Documentation de l'API Customer Service - Wanzo
+# Documentation API Wanzo Land - Version 2.0
 
-Cette documentation détaille l'API du microservice Customer Service pour la gestion des clients (PME et institutions financières), des abonnements, des tokens et de la facturation.
+Cette documentation détaille l'API REST moderne de Wanzo Land, une plateforme complète de gestion d'entreprise, de finance et d'IA pour les PME et institutions financières en Afrique.
 
-## Architecture API actuelle
+## 🚀 Architecture Moderne (Novembre 2025)
 
-**Base URL** : `http://customer-service:3000/` (interne) ou via API Gateway  
-**Authentification** : JWT avec extraction du client (middleware `CustomerExtractorMiddleware`)  
-**Pattern** : NestJS avec TypeORM
+**Stack Technologique** :
+- **Frontend** : React 18 + TypeScript + Vite
+- **Authentication** : Auth0 (PKCE Flow)
+- **State Management** : React Context + Hooks personnalisés
+- **API Client** : Axios avec intercepteurs
+- **Styling** : Tailwind CSS
 
-## Mise à jour majeure - Août 2025
+**Base URL** : `http://localhost:8000/land/api/v1`  
+**Authentification** : Auth0 Bearer Token  
+**Pattern** : Services API modulaires avec hooks React
 
-La documentation a été mise à jour pour refléter la nouvelle architecture modulaire et le système centralisé de tarification:
+## 📋 Table des Matières
 
-- Structure des modules clarifiée (SystemUsers, Customers, Subscriptions)
-- Système centralisé de configuration des prix dans `subscription-pricing.config.ts`
-- Nouveau système de tokens avec contrôle d'accès par fonctionnalité via `@RequireFeature` et `FeatureAccessGuard`
-- Interfaces utilisateur recommandées pour la présentation des abonnements et tokens
+1. [**Configuration**](./01-configuration.md)
+   - Stack technique moderne
+   - Configuration Auth0 PKCE
+   - Structure modulaire frontend
+   - Variables d'environnement
 
-## Table des matières
-
-1. [Configuration de base](./01-configuration.md)
-   - URL de base et API Gateway
-   - Headers et authentification
-   - Format des réponses standardisé
-
-2. [Authentification](./02-authentification.md)
-   - Flux JWT avec extraction du client
-   - Gestion des permissions et rôles
-   - Sécurité et middleware
-
-3. [Utilisateurs Système](./03-utilisateurs.md)
-   - Structure User (employés et admins)
-   - Service UserService et types
-   - Endpoints de gestion des utilisateurs
-
-4. [Entreprises (PME)](./04-company.md)
-   - Structure Customer type SME
-   - Gestion des profils entreprise
-   - Données test KIOTA TECH
-
-5. [Institutions financières](./05-institutions-financieres.md)
-   - Structure Customer type FINANCIAL_INSTITUTION
-   - API spécifique aux institutions
-   - Fonctionnalités dédiées
-
-6. [Abonnements et plans](./06-abonnements.md)
-   - Structure des plans d'abonnement
-   - API de pricing et souscription
-   - Gestion des fonctionnalités par plan
-
-7. [Système de tokens](./07-tokens.md)
-   - Structure du système de tokens
-   - API de gestion des tokens
-   - Consommation automatique et tracking
-
-8. [Système de tarification](./08-pricing-system.md)
-   - Configuration centralisée des prix
-   - Services de synchronisation
-   - Contrôle d'accès aux fonctionnalités
-
-9. [Guide des interfaces UI](./09-ui-interfaces-guide.md)
-   - Présentation des plans d'abonnement
+2. [**Authentification**](./02-authentification.md)
+   - Auth0 PKCE Flow
    - Gestion des tokens
-   - Composants recommandés
+   - Sécurité renforcée
 
-10. [Erreurs et dépannage](./07-erreurs.md)
-    - Codes d'erreur standardisés
-    - Exceptions et gestion des erreurs
-    - Messages d'erreur standardisés
+3. [**Utilisateurs**](./03-utilisateurs.md)
+   - Gestion des profils utilisateurs
+   - API utilisateurs modernisée
+   - Types et interfaces
 
-## Résumé des endpoints implémentés
+4. [**Entreprises (PME)**](./04-company.md)
+   - Formulaire d'identification étendu
+   - Données patrimoine et performance
+   - Spécificités startup/traditionnelle
 
-### Utilisateurs Système
-- `GET /system-users/me` - Profil utilisateur système
-- `PATCH /system-users/me` - Mise à jour profil
-- `GET /system-users/{id}` - Récupérer utilisateur par ID
-- `POST /admin/system-users` - Créer utilisateur (admin)
+5. [**Institutions Financières**](./05-institutions-financieres.md)
+   - Module dédié aux institutions
+   - Outils de prospection PME
+   - Centrale de risque intégrée
 
-### Clients (PME et Institutions)
-- `GET /customers/{id}` - Récupérer client
-- `POST /customers` - Créer client 
-- `PATCH /customers/{id}` - Mettre à jour
-- `GET /customers/search` - Rechercher clients
+6. [**Abonnements Modernes**](./06-abonnements.md)
+   - Plans structurés SME/Financial
+   - **Tokens intégrés aux plans**
+   - Billing mensuel/annuel avec réductions
 
-### Pricing et Plans
-- `GET /pricing/plans` - Liste des plans d'abonnement
-- `GET /pricing/plans/:planId` - Détails d'un plan
-- `POST /pricing/calculate` - Calculer prix personnalisé
-- `GET /pricing/tokens/packages` - Packages de tokens
-- `GET /pricing/features` - Fonctionnalités disponibles
+7. [**Gestion d'Erreurs**](./07-erreurs.md)
+   - Codes d'erreur standardisés
+   - Gestion centralisée des erreurs
 
-### Abonnements
-- `GET /subscriptions/current` - Abonnement actuel
-- `POST /subscriptions` - Créer abonnement
-- `PATCH /subscriptions/{id}` - Modifier abonnement
-- `POST /subscriptions/cancel` - Annuler abonnement
+8. [**Système de Tarification**](./08-pricing-system.md)
+   - Configuration des plans modernes
+   - Allocation de tokens par plan
+   - Fonctionnalités granulaires
 
-### Tokens
-- `GET /tokens/balance/:customerId` - Solde de tokens
-- `POST /tokens/purchase` - Acheter tokens
-- `GET /tokens/history/:customerId` - Historique transactions
-- `POST /tokens/usage` - Enregistrer utilisation
+9. [**Chat Adha - Assistant IA**](./09-chat-adha.md)
+   - Documentation complète du chat IA
+   - API endpoints et structures de données
+   - Système de résilience et mode dégradé
 
-### Administration
-- `POST /admin/pricing/sync/plans` - Synchroniser plans
-- `POST /admin/pricing/sync/tokens` - Synchroniser packages
-- `POST /admin/pricing/sync/all` - Synchroniser toute la config
-- `GET /admin/pricing/status` - État de synchronisation
+10. [**Guide Interface Utilisateur**](./09-ui-interfaces-guide.md)
+    - Composants React modernes
+    - Hooks personnalisés
+    - Patterns d'interface
 
-## Caractéristiques techniques
+11. [**Endpoints Exacts**](./ENDPOINTS_EXACT.md)
+    - Référence complète des endpoints
+    - Examples de requêtes/réponses
 
-### Architecture modulaire
-- Structure en modules clairement définis
-- Responsabilités séparées (voir [MODULES_RESPONSIBILITIES.md](../MODULES_RESPONSIBILITIES.md))
-- Injection de dépendances NestJS
+## 🎯 Changements Majeurs v2.0
 
-### Configuration centralisée
-- Fichier `subscription-pricing.config.ts` pour tous les plans et prix
-- Service `PricingConfigService` pour accès à la configuration
-- Synchronisation avec la base de données via `PricingDataSyncService`
+### ⚡ Nouvelles Fonctionnalités
+- **🔐 Auth0 PKCE** : Authentification moderne et sécurisée
+- **🏢 Entreprises Étendues** : Formulaire d'identification complet
+- **🏦 Institutions Financières** : Module dédié avec outils spécialisés
+- **🤖 Chat IA Adha** : Assistant intelligent avec mode dégradé
+- **📱 Interface Modernisée** : UI/UX repensée avec Tailwind CSS
 
-### Système de contrôle d'accès
-- Décorateur `@RequireFeature()` pour protéger les endpoints
-- Guard `FeatureAccessGuard` pour vérifier l'accès
-- Middleware `CustomerExtractorMiddleware` pour identifier le client
-- Consommation automatique de tokens
+### 🔄 Architecture Modernisée
+- **React 18** : Hooks modernes et performances optimisées
+- **TypeScript Strict** : Type safety renforcée
+- **Vite Build** : Build system rapide et moderne
+- **Module API** : Services API modulaires et hooks dédiés
 
-### Types TypeScript
-- Types et interfaces complets 
-- Utilisation d'enums pour les valeurs constantes
-- TypeORM avec entités fortement typées
+### 💰 Système d'Abonnements Refondu
 
-## État de l'implémentation
+#### ❌ SUPPRIMÉ : Achat de Tokens Indépendants
+- Plus d'endpoints `/tokens/purchase`
+- Plus de packages de tokens séparés
+- Plus de `TokenPurchasePackage` interface
 
-✅ **Complet** : Système de pricing, Plans d'abonnement, Tokens, Feature Access
-✅ **Implémenté** : API publique, API admin, Contrôle d'accès
-✅ **Optimisé** : Structure des modules clarifiée (SystemUsers, Customer, etc.)
-✅ **Documenté** : Documentation API, Guide d'interfaces utilisateur
-🚧 **En cours** : Initialisation des données de prix dans la base
-- Champs JSON: camelCase
+#### ✅ NOUVEAU : Tokens Intégrés aux Plans
+```typescript
+interface SubscriptionPlan {
+  tokenAllocation: {
+    monthlyTokens: number;      // Tokens inclus par mois
+    rolloverLimit: number;      // Limite de report
+    rolloverPeriods: number;    // Périodes de report autorisées
+  };
+}
+```
 
-## Notes importantes
+### 📊 Types Modernisés
 
-- Toutes les requêtes doivent être effectuées avec le header d'authentification approprié
-- Les réponses JSON incluent toujours un champ `success` indiquant le statut de la requête
-- Les données sensibles sont toujours envoyées via HTTPS
-- La pagination est supportée sur les endpoints qui retournent des listes
+#### Nouveaux Types Principaux
+```typescript
+enum CustomerType {
+  SME = 'sme',                    // PME
+  FINANCIAL_INSTITUTION = 'financial'  // Institutions Financières
+}
+
+enum BillingPeriod {
+  MONTHLY = 'monthly',
+  ANNUAL = 'annual'
+}
+
+interface EnterpriseIdentificationForm {
+  generalInfo: GeneralInfo;
+  legalInfo: LegalInfo;
+  patrimonyAndMeans: PatrimonyAndMeans;
+  specificities: Specificities;
+  performance: Performance;
+}
+```
+
+## 🛠️ Endpoints API Modernes
+
+### 👤 Authentification & Utilisateurs
+```
+GET    /users/profile              # Profil utilisateur
+PUT    /users/profile              # Mise à jour profil
+POST   /users/associations         # Associations utilisateur
+```
+
+### 🏢 Entreprises (PME)
+```
+GET    /companies                  # Liste entreprises
+POST   /companies                  # Créer entreprise
+GET    /companies/{id}            # Détails entreprise
+PUT    /companies/{id}            # Mettre à jour
+DELETE /companies/{id}            # Supprimer
+```
+
+### 🏦 Institutions Financières
+```
+GET    /financial-institutions     # Liste institutions
+POST   /financial-institutions     # Créer institution
+GET    /financial-institutions/{id} # Détails institution
+PUT    /financial-institutions/{id} # Mettre à jour
+```
+
+### 💳 Abonnements Modernes
+```
+GET    /subscriptions/plans        # Plans disponibles
+POST   /subscriptions             # Créer abonnement
+GET    /subscriptions/current     # Abonnement actuel
+PUT    /subscriptions/{id}        # Modifier abonnement
+DELETE /subscriptions/{id}        # Annuler abonnement
+```
+
+### 🪙 Tokens (Gestion Intégrée)
+```
+GET    /tokens/balance            # Solde tokens actuel
+GET    /tokens/transactions       # Historique transactions
+POST   /tokens/usage             # Enregistrer utilisation
+```
+
+### 🤖 Chat Adha (Assistant IA)
+```
+GET    /health                   # Vérification connexion IA
+POST   /chat/message             # Envoi message avec contexte
+GET    /chat/conversations/{id}  # Historique conversation
+POST   /chat/conversations       # Sauvegarde conversation
+DELETE /chat/conversations/{id}  # Suppression conversation
+```
+
+## 🔧 Configuration Technique
+
+### Auth0 Configuration
+```typescript
+{
+  domain: 'dev-your-domain.us.auth0.com',
+  clientId: 'your-client-id',
+  authorizationParams: {
+    redirect_uri: window.location.origin,
+    scope: 'openid profile email'
+  },
+  useRefreshTokens: true,
+  cacheLocation: 'localstorage'
+}
+```
+
+### Services API Modulaires
+```typescript
+// Services principaux
+- api.ts                 # Configuration Axios
+- userApi.ts            # Service utilisateurs
+- companyApi.ts         # Service entreprises
+- financialInstitutionApi.ts # Service institutions
+- modernSubscription.ts  # Service abonnements moderne
+- chatApiService.ts     # Service chat IA Adha
+
+// Hooks personnalisés
+- useUserApi.ts         # Hook API utilisateurs
+- useCompanyApi.ts      # Hook API entreprises
+- useModernSubscription.ts # Hook abonnements moderne
+- useChat.ts            # Hook chat IA intégré
+```
+
+## 📁 Structure Projet Frontend
+
+```
+src/
+├── components/          # Composants React modulaires
+│   ├── auth/           # Authentification
+│   ├── company/        # Gestion entreprises
+│   ├── financial-institution/ # Institutions financières
+│   ├── abonnement/     # Gestion abonnements
+│   ├── chatbot/        # Chat IA Adha intégré
+│   └── ui/             # Composants UI réutilisables
+├── hooks/              # Hooks React personnalisés
+├── services/           # Services API
+├── types/              # Types TypeScript
+├── config/             # Configuration
+└── context/            # Contexts React
+```
+
+## 🚦 État d'Implémentation
+
+### ✅ Complètement Implémenté
+- **Auth0 PKCE Flow** : Authentification moderne
+- **Entreprises Étendues** : Formulaire complet d'identification
+- **Institutions Financières** : Module dédié
+- **Plans d'Abonnement** : Structure moderne avec tokens intégrés
+- **Chat IA Adha** : Assistant intelligent avec résilience
+- **Interface Utilisateur** : Composants React modernes
+- **API Services** : Services modulaires avec hooks
+
+### 🔄 En Cours d'Optimisation
+- **Performance** : Optimisations de cache et lazy loading
+- **Tests** : Tests unitaires et d'intégration
+- **Documentation** : Finalisation de la documentation technique
+
+### 📋 Roadmap
+- **Mobile App** : Application mobile native (Q1 2026)
+- **API GraphQL** : Migration vers GraphQL (Q2 2026)
+- **Advanced AI** : Fonctionnalités IA avancées
+- **Multi-tenant** : Support multi-tenant
+
+## 🔒 Sécurité
+
+### Authentification
+- **Auth0 PKCE** : Flow sécurisé sans secret client
+- **Token Rotation** : Rotation automatique des tokens
+- **Scopes Granulaires** : Permissions fines par fonctionnalité
+
+### API Security
+- **Rate Limiting** : 1000 req/h par utilisateur
+- **Input Validation** : Validation stricte côté client/serveur
+- **CORS** : Configuration stricte des origines autorisées
+
+## 📞 Support et Contact
+
+Pour toute question technique ou demande de support :
+- **Documentation** : Consultez cette documentation complète
+- **Issues** : Créez une issue sur le repository Git
+- **Contact** : Équipe technique Wanzo Land
+
+---
+
+**Version** : 2.0.0  
+**Dernière mise à jour** : Novembre 2025  
+**Compatibilité** : Breaking changes par rapport à v1.x - Consultez le [CHANGELOG](../CHANGELOG.md)

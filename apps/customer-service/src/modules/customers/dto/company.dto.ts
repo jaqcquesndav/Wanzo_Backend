@@ -1,6 +1,13 @@
 import { IsString, IsEmail, IsEnum, IsOptional, IsUUID, IsBoolean, IsArray, IsObject, IsUrl, IsNumber, ValidateNested, IsDate, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomerType, CustomerStatus, AccountType } from '../entities/customer.entity';
+import { 
+  CreateExtendedIdentificationDto, 
+  UpdateExtendedIdentificationDto,
+  ExtendedCompanyResponseDto,
+  ValidationResultDto,
+  CompletionStatusDto
+} from './extended-company.dto';
 
 export class AddressDto {
   @IsOptional()
@@ -244,6 +251,12 @@ export class CreateCompanyDto {
   @ValidateNested()
   @Type(() => OwnerDto)
   owner?: OwnerDto;
+
+  // Nouveau: Formulaire d'identification étendu pour les entreprises
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateExtendedIdentificationDto)
+  extendedIdentification?: CreateExtendedIdentificationDto;
 }
 
 export class UpdateCompanyDto {
@@ -292,6 +305,12 @@ export class UpdateCompanyDto {
   @ValidateNested()
   @Type(() => AffiliationsDto)
   affiliations?: AffiliationsDto;
+
+  // Nouveau: Mise à jour du formulaire d'identification étendu
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateExtendedIdentificationDto)
+  extendedIdentification?: UpdateExtendedIdentificationDto;
 }
 
 export class CompanyResponseDto {
@@ -316,6 +335,10 @@ export class CompanyResponseDto {
   capital?: CapitalDto;
   financials?: FinancialsDto;
   affiliations?: AffiliationsDto;
+  
+  // Nouveau: Exposition du formulaire d'identification étendu
+  extendedIdentification?: ExtendedCompanyResponseDto;
+  
   subscription?: {
     plan?: {
       name?: string;

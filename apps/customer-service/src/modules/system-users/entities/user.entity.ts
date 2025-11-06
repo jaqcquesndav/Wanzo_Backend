@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
+import { UserSettings } from './user-settings.entity';
+import { IdentityDocument } from './identity-document.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -183,6 +185,9 @@ export class User {
   language?: string;
 
   @Column({ nullable: true })
+  timezone?: string;
+
+  @Column({ nullable: true })
   plan?: string;
   
   @Column({ default: 0 })
@@ -215,6 +220,13 @@ export class User {
 
   @Column({ nullable: true })
   auth0Id?: string;
+
+  // Relations avec les nouvelles entités
+  @OneToOne(() => UserSettings, settings => settings.user, { cascade: true, nullable: true })
+  userSettings?: UserSettings;
+
+  @OneToMany(() => IdentityDocument, document => document.user, { cascade: true })
+  identityDocuments?: IdentityDocument[];
 
   @Column({ select: false, nullable: true })
   password?: string;

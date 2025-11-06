@@ -4,11 +4,40 @@
 
 Pour l'environnement de développement, toutes les requêtes API doivent être adressées à l'API Gateway sur le port 8000 avec le préfixe `land` :
 
+**Développement :**
 ```
-http://localhost:8000/land/api/v1
+const API_BASE_URL = 'http://localhost:8000/land/api/v1';
+```
+
+**Production :**
+```
+https://api.wanzo-land.com/land/api/v1
 ```
 
 *Configuration automatique dans le code source via `VITE_API_URL`*
+
+## Authentification Auth0 PKCE
+
+L'application utilise Auth0 avec le flow PKCE (Proof Key for Code Exchange) pour une sécurité renforcée :
+
+```typescript
+{
+  domain: 'wanzo-land.us.auth0.com',
+  clientId: 'RXTxVgIKY8HjQ6MHs3c80a2kbIWgRPxg',
+  redirectUri: `${window.location.origin}/auth/callback`,
+  cacheLocation: 'localstorage',
+  useRefreshTokens: true,
+  useRefreshTokensFallback: true
+}
+```
+
+### Gestion automatique des tokens
+
+Le service `ApiService` gère automatiquement :
+- Obtention du token depuis le stockage local
+- Rafraîchissement automatique des tokens expirés
+- Gestion des erreurs d'authentification
+- Événements d'erreur d'authentification
 
 ## Headers obligatoires
 

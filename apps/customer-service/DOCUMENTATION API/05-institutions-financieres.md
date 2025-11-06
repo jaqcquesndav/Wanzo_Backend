@@ -1,48 +1,401 @@
-# Gestion des Institutions Financières
+# Gestion des Institutions Financières 🏦
 
-## Structure des données
+## 🎯 Vue d'Ensemble
 
-Basée sur les interfaces du code source (`src/types/financialInstitution.ts` et `src/types/api.ts`) et le service `financialInstitution.ts` :
+Le module des institutions financières permet la gestion complète des banques, coopératives et microfinances partenaires de la plateforme Wanzo Land. Il offre des fonctionnalités pour créer, modifier, consulter et gérer les profils institutionnels avec leurs agences et équipes dirigeantes.
 
-### Institution Financière
+### Base URL
+```
+http://localhost:8000/land/api/v1
+```
+
+## 🏗️ Structure des Données Modernisée
+
+### Institution Financière Principale
 
 ```typescript
-interface FinancialInstitutionResponse {
+interface FinancialInstitution {
   id: string;
   name: string;
-  type: 'bank' | 'microfinance' | 'cooperative';
-  category: 'commercial' | 'development' | 'investment';
+  type: FinancialInstitutionType;
+  category: FinancialInstitutionCategory;
+  
+  // Informations réglementaires
   approvalNumber?: string;
+  regulatoryStatus: 'active' | 'suspended' | 'pending';
+  licenseExpiryDate?: string;
+  
+  // Identité visuelle
   logo?: string;
-  address: {
-    street: string;
-    city: string;
-    province: string;
-    country: string;
+  brandColors?: {
+    primary: string;
+    secondary: string;
   };
-  contacts: {
-    email: string;
-    phone: string;
-    website?: string;
-  };
+  
+  // Localisation
+  address: InstitutionAddress;
+  contacts: InstitutionContacts;
+  
+  // Organisation
   ceoPhoto?: string;
-  branches?: Array<{
-    id: string;
-    name: string;
-    address: string;
-    phone: string;
-    manager?: string;
-  }>;
-  managementTeam?: Array<{
-    id: string;
-    name: string;
-    position: string;
-    photo?: string;
-    bio?: string;
-  }>;
+  establishedYear?: number;
+  branches: InstitutionBranch[];
+  managementTeam: ManagementExecutive[];
+  
+  // Métadonnées
+  isActive: boolean;
+  isVisible: boolean;
   createdAt: string;
   updatedAt: string;
 }
+```
+
+### Types d'Institutions
+
+```typescript
+enum FinancialInstitutionType {
+  BANK = 'bank',                    // Banque commerciale
+  MICROFINANCE = 'microfinance',    // Institution de microfinance
+  COOPERATIVE = 'cooperative',      // Coopérative d'épargne et crédit
+  CREDIT_UNION = 'credit_union',    // Union de crédit
+  DEVELOPMENT_BANK = 'development_bank' // Banque de développement
+}
+
+enum FinancialInstitutionCategory {
+  COMMERCIAL = 'commercial',        // Banque commerciale classique
+  DEVELOPMENT = 'development',      // Banque de développement
+  INVESTMENT = 'investment',        // Banque d'investissement
+  SPECIALIZED = 'specialized',      // Institution spécialisée
+  COMMUNITY = 'community'           // Institution communautaire
+}
+```
+
+### Adresse et Contacts
+
+```typescript
+interface InstitutionAddress {
+  street: string;
+  city: string;
+  province: string;
+  country: string;
+  postalCode?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface InstitutionContacts {
+  email: string;
+  phone: string;
+  website?: string;
+  socialMedia?: {
+    facebook?: string;
+    twitter?: string;
+    linkedin?: string;
+  };
+  emergencyContact?: string;
+}
+```
+
+### Agence Bancaire
+
+```typescript
+interface InstitutionBranch {
+  id: string;
+  institutionId: string;
+  name: string;
+  code: string;                     // Code unique de l'agence
+  type: 'main' | 'branch' | 'atm' | 'agent';
+  
+  // Localisation
+  address: string;
+  city: string;
+  province: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  
+  // Contacts
+  phone?: string;
+  email?: string;
+  
+  // Personnel
+  manager?: string;
+  managerContact?: string;
+  staffCount?: number;
+  
+  // Services
+  services: BranchService[];
+  operatingHours: OperatingHours;
+  
+  // État
+  isActive: boolean;
+  openingDate?: string;
+  closingDate?: string;
+  
+  // Métadonnées
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BranchService {
+  code: string;
+  name: string;
+  description?: string;
+  isAvailable: boolean;
+}
+
+interface OperatingHours {
+  monday: TimeSlot[];
+  tuesday: TimeSlot[];
+  wednesday: TimeSlot[];
+  thursday: TimeSlot[];
+  friday: TimeSlot[];
+  saturday: TimeSlot[];
+  sunday: TimeSlot[];
+}
+
+interface TimeSlot {
+  open: string;    // Format: "HH:mm"
+  close: string;   // Format: "HH:mm"
+}
+```
+
+### Équipe Dirigeante
+
+```typescript
+interface ManagementExecutive {
+  id: string;
+  institutionId: string;
+  
+  // Informations personnelles
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  photo?: string;
+  
+  // Poste et responsabilités
+  position: string;
+  department: string;
+  level: 'executive' | 'senior' | 'manager';
+  reportingTo?: string;         // ID du supérieur hiérarchique
+  
+  // Informations professionnelles
+  bio?: string;
+  education?: string[];
+  experience?: ExecutiveExperience[];
+  specializations?: string[];
+  
+  // Contacts
+  email?: string;
+  phone?: string;
+  
+  // Métadonnées
+  joinDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ExecutiveExperience {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  description?: string;
+}
+```
+
+## 🔗 Endpoints API Modernisés
+
+### Authentification
+Tous les endpoints nécessitent un token Auth0 Bearer :
+```http
+Authorization: Bearer <access_token>
+```
+
+### 1. Consulter une Institution Financière
+
+```http
+GET /financial-institutions/{institutionId}
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "id": "fin_bcc_001",
+    "name": "Banque Congolaise du Commerce",
+    "type": "bank",
+    "category": "commercial",
+    "approvalNumber": "BCC/2015/123",
+    "regulatoryStatus": "active",
+    "licenseExpiryDate": "2030-12-31",
+    "logo": "https://cdn.wanzo.land/institutions/logos/bcc.png",
+    "brandColors": {
+      "primary": "#1E40AF",
+      "secondary": "#3B82F6"
+    },
+    "address": {
+      "street": "789, Boulevard du 30 Juin",
+      "city": "Kinshasa",
+      "province": "Kinshasa",
+      "country": "République Démocratique du Congo",
+      "postalCode": "7852",
+      "coordinates": {
+        "latitude": -4.3276,
+        "longitude": 15.3136
+      }
+    },
+    "contacts": {
+      "email": "info@bcc-bank.cd",
+      "phone": "+243 850 123 456",
+      "website": "https://www.bcc-bank.cd",
+      "socialMedia": {
+        "facebook": "https://facebook.com/bcc-bank",
+        "linkedin": "https://linkedin.com/company/bcc-bank"
+      },
+      "emergencyContact": "+243 850 999 888"
+    },
+    "ceoPhoto": "https://cdn.wanzo.land/institutions/executives/ceo_bcc.jpg",
+    "establishedYear": 2015,
+    "branches": [
+      {
+        "id": "branch_bcc_gombe",
+        "institutionId": "fin_bcc_001",
+        "name": "Agence Gombe",
+        "code": "BCC-GB-001",
+        "type": "main",
+        "address": "789, Boulevard du 30 Juin, Gombe",
+        "city": "Kinshasa",
+        "province": "Kinshasa",
+        "coordinates": {
+          "latitude": -4.3276,
+          "longitude": 15.3136
+        },
+        "phone": "+243 854 321 987",
+        "email": "gombe@bcc-bank.cd",
+        "manager": "Alice Nzinga",
+        "managerContact": "+243 854 321 988",
+        "staffCount": 25,
+        "services": [
+          {
+            "code": "retail_banking",
+            "name": "Banque de détail",
+            "description": "Comptes courants et d'épargne",
+            "isAvailable": true
+          },
+          {
+            "code": "corporate_banking",
+            "name": "Banque d'entreprise",
+            "description": "Services aux entreprises",
+            "isAvailable": true
+          },
+          {
+            "code": "loans",
+            "name": "Crédit et financement",
+            "description": "Prêts personnels et professionnels",
+            "isAvailable": true
+          }
+        ],
+        "operatingHours": {
+          "monday": [{"open": "08:00", "close": "16:00"}],
+          "tuesday": [{"open": "08:00", "close": "16:00"}],
+          "wednesday": [{"open": "08:00", "close": "16:00"}],
+          "thursday": [{"open": "08:00", "close": "16:00"}],
+          "friday": [{"open": "08:00", "close": "16:00"}],
+          "saturday": [{"open": "08:00", "close": "12:00"}],
+          "sunday": []
+        },
+        "isActive": true,
+        "openingDate": "2015-03-12",
+        "createdAt": "2015-03-12T00:00:00Z",
+        "updatedAt": "2025-11-05T10:30:00Z"
+      }
+    ],
+    "managementTeam": [
+      {
+        "id": "exec_marie_kabongo",
+        "institutionId": "fin_bcc_001",
+        "firstName": "Marie",
+        "lastName": "Kabongo",
+        "fullName": "Marie Kabongo",
+        "position": "Directrice Générale Adjointe",
+        "department": "Direction Générale",
+        "level": "executive",
+        "photo": "https://cdn.wanzo.land/institutions/executives/marie_kabongo.jpg",
+        "bio": "Plus de 15 ans d'expérience dans le secteur financier congolais",
+        "education": [
+          "MBA Finance - Université de Kinshasa",
+          "Master en Économie - UNIKIN"
+        ],
+        "experience": [
+          {
+            "company": "Rawbank",
+            "position": "Directrice Régionale",
+            "startDate": "2018-01-15",
+            "endDate": "2022-12-31",
+            "description": "Supervision de 8 agences dans la région de Kinshasa"
+          }
+        ],
+        "specializations": [
+          "Banque commerciale",
+          "Gestion des risques",
+          "Développement régional"
+        ],
+        "email": "marie.kabongo@bcc-bank.cd",
+        "phone": "+243 854 321 999",
+        "joinDate": "2023-01-01",
+        "isActive": true,
+        "createdAt": "2023-01-01T00:00:00Z",
+        "updatedAt": "2025-11-05T10:30:00Z"
+      }
+    ],
+    "isActive": true,
+    "isVisible": true,
+    "createdAt": "2015-03-12T00:00:00Z",
+    "updatedAt": "2025-11-05T10:30:00Z"
+  }
+}
+```
+
+### 2. Créer une Institution Financière
+
+```http
+POST /financial-institutions
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "name": "Banque de Développement du Kasaï",
+  "type": "development_bank",
+  "category": "development",
+  "approvalNumber": "BDK/2025/001",
+  "regulatoryStatus": "active",
+  "licenseExpiryDate": "2035-12-31",
+  "address": {
+    "street": "Avenue Mobutu 456",
+    "city": "Kananga", 
+    "province": "Kasaï-Central",
+    "country": "République Démocratique du Congo",
+    "postalCode": "1234"
+  },
+  "contacts": {
+    "email": "info@bdk-kasai.cd",
+    "phone": "+243 851 234 567",
+    "website": "https://www.bdk-kasai.cd"
+  },
+  "establishedYear": 2025,
+  "brandColors": {
+    "primary": "#059669",
+    "secondary": "#10B981"
+  }
+}
+```
 ```
 
 ## Endpoints API
@@ -655,28 +1008,6 @@ GET /land/api/v1/financial-institutions?page=1&limit=10
 }
 ```
 
-## Logique métier
+---
 
-### Création d'institution financière
-
-Lorsqu'un utilisateur crée une institution financière :
-1. Un profil d'institution financière est créé
-2. L'utilisateur est automatiquement défini comme le CEO ou administrateur de l'institution
-3. Le champ `userType` de l'utilisateur est défini sur `financial_institution`
-4. Le champ `financialInstitutionId` de l'utilisateur est défini sur l'ID de l'institution
-
-### Mise à jour du profil
-
-La mise à jour du profil d'institution financière peut se faire par étapes, comme implémenté dans le formulaire `FinancialInstitutionFormModal` :
-1. Informations générales
-2. Leadership
-3. Services et informations financières
-4. Présence numérique et agences
-
-### Upload de fichiers
-
-Les fichiers (logo, photos) sont téléchargés sur Cloudinary. L'API retourne l'URL du fichier téléchargé, qui est ensuite stockée dans la base de données.
-
-### Validation des données
-
-Toutes les données sont validées côté serveur selon les règles définies dans le schéma Zod.
+*Documentation mise à jour le 5 novembre 2025 pour refléter l'architecture moderne avec gestion complète des institutions financières, structures de données étendues et endpoints API conformes à la base URL standardisée.*

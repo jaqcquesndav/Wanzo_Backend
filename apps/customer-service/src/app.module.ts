@@ -9,6 +9,7 @@ import { SystemUsersModule } from './modules/system-users/system-users.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { TokensModule } from './modules/tokens/tokens.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { PublicChatAdhaModule } from './modules/public-chat-adha/public-chat-adha.module';
 import { KafkaModule } from './modules/kafka/kafka.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { HealthModule } from './modules/health/health.module';
@@ -61,6 +62,7 @@ import { EventsModule } from './modules/events/events.module';
     SubscriptionsModule,
     TokensModule,
     BillingModule,
+    PublicChatAdhaModule,
     KafkaModule,
     MonitoringModule,
     HealthModule,

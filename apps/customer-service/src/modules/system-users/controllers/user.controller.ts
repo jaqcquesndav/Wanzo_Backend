@@ -6,7 +6,7 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto, ApiResponseDto, ApiError
 import { SyncUserDto } from '../dto/sync-user.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { MulterFile } from '../../cloudinary/cloudinary.service';
-import { UserType } from '../entities/user.entity';
+import { UserType, User } from '../entities/user.entity';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -436,6 +436,91 @@ export class UserController {
     return {
       success: true,
       data: user
+    };
+  }
+
+  // =====================================================
+  // NOUVEAUX ENDPOINTS MANQUANTS SELON DOCUMENTATION v2.0
+  // =====================================================
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer un utilisateur par son ID' })
+  @ApiResponse({ status: 200, description: 'Utilisateur récupéré avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé', type: ApiErrorResponseDto })
+  @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
+  async getUserById(@Param('id') id: string, @Req() req: any): Promise<ApiResponseDto<UserResponseDto>> {
+    const user = await this.userService.findById(id);
+    
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    
+    return {
+      success: true,
+      data: this.mapUserToDto(user)
+    };
+  }
+
+  @Get('me/companies')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer les entreprises de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Entreprises récupérées avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 401, description: 'Non autorisé', type: ApiErrorResponseDto })
+  async getUserCompanies(@Req() req: any): Promise<ApiResponseDto<any[]>> {
+    const auth0Id = req.user?.sub;
+    if (!auth0Id) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+
+    const user = await this.userService.findByAuth0Id(auth0Id);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const companies = await this.userService.getUserCompanies(user.id);
+    
+    return {
+      success: true,
+      data: companies
+    };
+  }
+
+  /**
+   * Mapper un User vers UserResponseDto
+   */
+  private mapUserToDto(user: User): UserResponseDto {
+    return {
+      id: user.id,
+      name: user.name,
+      givenName: user.givenName,
+      familyName: user.familyName,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      picture: user.picture,
+      phone: user.phone,
+      phoneVerified: user.phoneVerified,
+      address: user.address,
+      idNumber: user.idNumber,
+      idType: user.idType,
+      idStatus: user.idStatus,
+      role: user.role,
+      birthdate: user.birthdate ? user.birthdate.toISOString().split('T')[0] : undefined,
+      bio: user.bio,
+      userType: user.userType,
+      companyId: user.companyId,
+      financialInstitutionId: user.financialInstitutionId,
+      isCompanyOwner: user.isCompanyOwner,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      settings: user.settings,
+      language: user.language,
+      permissions: Array.isArray(user.permissions) && user.permissions.every(p => typeof p === 'string') 
+        ? user.permissions as string[] 
+        : undefined,
+      plan: user.plan,
+      tokenBalance: user.tokenBalance,
+      tokenTotal: user.tokenTotal
     };
   }
 }
