@@ -3,6 +3,9 @@ import { ClientKafka } from '@nestjs/microservices';
 import { User, UserRole, UserType } from '../../system-users/entities/user.entity';
 import { Customer, CustomerType } from '../../customers/entities/customer.entity';
 import { TokenPurchase } from '../../tokens/entities/token-purchase.entity';
+import { StandardKafkaTopics } from '@wanzobe/shared/events/standard-kafka-topics';
+import { MessageVersionManager } from '@wanzobe/shared/events/message-versioning';
+import { kafkaMonitoring } from '@wanzobe/shared/monitoring';
 
 /**
  * Service responsable de la publication des événements clients vers Kafka
@@ -16,69 +19,133 @@ export class CustomerEventsProducer {
   ) {}
 
   /**
-   * Publie un événement user.created
+   * Méthode utilitaire pour publier des événements avec monitoring et versioning
    */
-  async emitUserCreated(user: User): Promise<void> {
+  private async publishEvent<T>(topic: string, eventData: T, eventDescription: string): Promise<void> {
+    const startTime = Date.now();
+
     try {
-      const eventData = {
-        userId: user.id,
-        customerId: user.customerId,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt.toISOString(),
-      };
+      // Vérifier si le topic fait partie des topics standardisés
+      const standardTopic = StandardKafkaTopics.isValidTopic(topic) ? topic : this.getStandardTopic(topic);
       
-      await this.kafkaClient.emit('user.created', eventData);
-      this.logger.log(`Event user.created published for user ${user.id}`);
+      // Créer un message standardisé avec versioning
+      const standardMessage = MessageVersionManager.createStandardMessage(
+        standardTopic,
+        eventData,
+        'customer-service'
+      );
+
+      await this.kafkaClient.emit(standardTopic, standardMessage);
+      
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(standardTopic, processingTime, true);
+      
+      this.logger.log(`${eventDescription} in ${processingTime}ms`);
     } catch (error: unknown) {
+      const processingTime = Date.now() - startTime;
       const err = error as Error;
-      this.logger.error(`Failed to publish user.created event: ${err.message}`, err.stack);
+      
+      kafkaMonitoring.recordMessageSent(topic, processingTime, false);
+      
+      this.logger.error(`Failed to publish ${eventDescription}: ${err.message} (failed after ${processingTime}ms)`, err.stack);
       throw error;
     }
   }
 
   /**
+   * Mappe les anciens topics vers les nouveaux topics standardisés
+   */
+  private getStandardTopic(oldTopic: string): string {
+    const topicMapping: Record<string, string> = {
+      'user.created': StandardKafkaTopics.USER_CREATED,
+      'user.updated': StandardKafkaTopics.USER_UPDATED,
+      'user.status.changed': StandardKafkaTopics.USER_STATUS_CHANGED,
+      'user.login': StandardKafkaTopics.USER_LOGIN,
+      'user.logout': StandardKafkaTopics.USER_LOGOUT,
+      'user.document.uploaded': StandardKafkaTopics.USER_DOCUMENT_UPLOADED,
+      'customer.created': StandardKafkaTopics.CUSTOMER_CREATED,
+      'customer.updated': StandardKafkaTopics.CUSTOMER_UPDATED,
+      'customer.deleted': StandardKafkaTopics.CUSTOMER_DELETED,
+      'customer.status.changed': StandardKafkaTopics.CUSTOMER_STATUS_CHANGED,
+      'customer.validated': StandardKafkaTopics.CUSTOMER_VALIDATED,
+      'customer.suspended': StandardKafkaTopics.CUSTOMER_SUSPENDED,
+      'customer.reactivated': StandardKafkaTopics.CUSTOMER_REACTIVATED,
+      'customer.institution.created': StandardKafkaTopics.CUSTOMER_INSTITUTION_CREATED,
+      'customer.institution.updated': StandardKafkaTopics.CUSTOMER_INSTITUTION_UPDATED,
+      'customer.institution.deleted': StandardKafkaTopics.CUSTOMER_INSTITUTION_DELETED,
+      'customer.institution.validated': StandardKafkaTopics.CUSTOMER_INSTITUTION_VALIDATED,
+      'customer.institution.suspended': StandardKafkaTopics.CUSTOMER_INSTITUTION_SUSPENDED,
+      'customer.sme.created': StandardKafkaTopics.CUSTOMER_SME_CREATED,
+      'customer.sme.updated': StandardKafkaTopics.CUSTOMER_SME_UPDATED,
+      'customer.sme.deleted': StandardKafkaTopics.CUSTOMER_SME_DELETED,
+      'customer.sme.validated': StandardKafkaTopics.CUSTOMER_SME_VALIDATED,
+      'customer.sme.suspended': StandardKafkaTopics.CUSTOMER_SME_SUSPENDED,
+      'customer.admin.action': StandardKafkaTopics.CUSTOMER_ADMIN_ACTION,
+      'customer.update.request': StandardKafkaTopics.CUSTOMER_UPDATE_REQUEST,
+      'token.purchased': StandardKafkaTopics.TOKEN_PURCHASE,
+      'subscription.created': StandardKafkaTopics.SUBSCRIPTION_CREATED,
+      'subscription.event': StandardKafkaTopics.SUBSCRIPTION_EVENT,
+    };
+
+    return topicMapping[oldTopic] || oldTopic;
+  }
+
+  /**
+   * Publie un événement user.created
+   */
+  async emitUserCreated(user: User): Promise<void> {
+    const eventData = {
+      userId: user.id,
+      customerId: user.customerId,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt.toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.USER_CREATED,
+      eventData,
+      `Event user.created published for user ${user.id}`
+    );
+  }
+
+  /**
    * Publie un événement user.updated
    */
-  async emitUserUpdated(user: User): Promise<void> {
-    try {
-      const eventData = {
-        userId: user.id,
-        customerId: user.customerId,
-        email: user.email,
-        role: user.role,
-        updatedAt: user.updatedAt.toISOString(),
-      };
-      
-      await this.kafkaClient.emit('user.updated', eventData);
-      this.logger.log(`Event user.updated published for user ${user.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish user.updated event: ${err.message}`, err.stack);
-      throw error;
-    }
+  async emitUserUpdated(user: User, changes?: Partial<User>): Promise<void> {
+    const eventData = {
+      userId: user.id,
+      customerId: user.customerId,
+      email: user.email,
+      role: user.role,
+      changes,
+      updatedAt: user.updatedAt.toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.USER_UPDATED,
+      eventData,
+      `Event user.updated published for user ${user.id}`
+    );
   }
 
   /**
    * Publie un événement user.status.changed
    */
   async emitUserStatusChanged(user: User): Promise<void> {
-    try {
-      const eventData = {
-        userId: user.id,
-        customerId: user.customerId,
-        email: user.email,
-        status: user.status,
-        updatedAt: user.updatedAt.toISOString(),
-      };
-      
-      await this.kafkaClient.emit('user.status.changed', eventData);
-      this.logger.log(`Event user.status.changed published for user ${user.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish user.status.changed event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      userId: user.id,
+      customerId: user.customerId,
+      email: user.email,
+      status: user.status,
+      updatedAt: user.updatedAt.toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.USER_STATUS_CHANGED,
+      eventData,
+      `Event user.status.changed published for user ${user.id}`
+    );
   }
 
   /**
@@ -91,31 +158,28 @@ export class CustomerEventsProducer {
     isFirstLogin?: boolean;
     accessibleApps?: string[];
   }): Promise<void> {
-    try {
-      const eventData = {
-        userId: user.id,
-        auth0Id: user.auth0Id,
-        customerId: user.customerId,
-        companyId: user.companyId,
-        financialInstitutionId: user.financialInstitutionId,
-        email: user.email,
-        role: user.role,
-        userType: user.userType,
-        loginTime: new Date().toISOString(),
-        isFirstLogin: metadata?.isFirstLogin || false,
-        ipAddress: metadata?.ipAddress,
-        userAgent: metadata?.userAgent,
-        deviceInfo: metadata?.deviceInfo,
-        accessibleApps: metadata?.accessibleApps || this.getAccessibleApps(user),
-      };
-      
-      await this.kafkaClient.emit('user.login', eventData);
-      this.logger.log(`Event user.login published for user ${user.id} with accessible apps: ${eventData.accessibleApps?.join(', ')}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish user.login event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      userId: user.id,
+      auth0Id: user.auth0Id,
+      customerId: user.customerId,
+      companyId: user.companyId,
+      financialInstitutionId: user.financialInstitutionId,
+      email: user.email,
+      role: user.role,
+      userType: user.userType,
+      loginTime: new Date().toISOString(),
+      isFirstLogin: metadata?.isFirstLogin || false,
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
+      deviceInfo: metadata?.deviceInfo,
+      accessibleApps: metadata?.accessibleApps || this.getAccessibleApps(user),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.USER_CREATED, // Map to existing topic or create USER_LOGIN
+      eventData,
+      `Event user.login published for user ${user.id} with accessible apps: ${eventData.accessibleApps?.join(', ')}`
+    );
   }
 
   /**
@@ -125,24 +189,21 @@ export class CustomerEventsProducer {
     ipAddress?: string; 
     sessionDuration?: number; 
   }): Promise<void> {
-    try {
-      const eventData = {
-        userId: user.id,
-        auth0Id: user.auth0Id,
-        customerId: user.customerId,
-        email: user.email,
-        logoutTime: new Date().toISOString(),
-        sessionDuration: metadata?.sessionDuration,
-        ipAddress: metadata?.ipAddress,
-      };
-      
-      await this.kafkaClient.emit('user.logout', eventData);
-      this.logger.log(`Event user.logout published for user ${user.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish user.logout event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      userId: user.id,
+      auth0Id: user.auth0Id,
+      customerId: user.customerId,
+      email: user.email,
+      logoutTime: new Date().toISOString(),
+      sessionDuration: metadata?.sessionDuration,
+      ipAddress: metadata?.ipAddress,
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.USER_UPDATED, // Map to existing topic or create USER_LOGOUT
+      eventData,
+      `Event user.logout published for user ${user.id}`
+    );
   }
 
   /**
@@ -198,14 +259,11 @@ export class CustomerEventsProducer {
     createdBy: string;
     createdAt: string;
   }): Promise<void> {
-    try {
-      await this.kafkaClient.emit('customer.created', data);
-      this.logger.log(`Event customer.created published for customer ${data.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.created event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_CREATED,
+      data,
+      `Event customer.created published for customer ${data.customerId}`
+    );
   }
 
   /**
@@ -220,14 +278,11 @@ export class CustomerEventsProducer {
     updatedAt: string;
     changedFields: string[];
   }): Promise<void> {
-    try {
-      await this.kafkaClient.emit('customer.updated', data);
-      this.logger.log(`Event customer.updated published for customer ${data.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.updated event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_UPDATED,
+      data,
+      `Event customer.updated published for customer ${data.customerId}`
+    );
   }
 
   /**
@@ -241,14 +296,11 @@ export class CustomerEventsProducer {
     changedAt: string;
     reason?: string;
   }): Promise<void> {
-    try {
-      await this.kafkaClient.emit('customer.status.changed', data);
-      this.logger.log(`Event customer.status.changed published for customer ${data.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.status.changed event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_STATUS_CHANGED,
+      data,
+      `Event customer.status.changed published for customer ${data.customerId}`
+    );
   }
 
   /**
@@ -301,20 +353,17 @@ export class CustomerEventsProducer {
    * Publie un événement customer.deleted (utilisé par le service client)
    */
   async customerDeleted(customerId: string): Promise<void> {
-    try {
-      const eventData = {
-        customerId: customerId,
-        deletedBy: 'system', 
-        deletedAt: new Date().toISOString(),
-      };
-      
-      await this.kafkaClient.emit('customer.deleted', eventData);
-      this.logger.log(`Event customer.deleted published for customer ${customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.deleted event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: customerId,
+      deletedBy: 'system', 
+      deletedAt: new Date().toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_DELETED,
+      eventData,
+      `Event customer.deleted published for customer ${customerId}`
+    );
   }
 
   /**
@@ -391,24 +440,21 @@ export class CustomerEventsProducer {
     customer: Customer;
     institution: any;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customer.id,
-        institutionId: data.institution.customerId,
-        type: CustomerType.FINANCIAL,
-        name: data.customer.name,
-        email: data.customer.email,
-        institutionType: data.institution.institutionType,
-        createdAt: data.customer.createdAt.toISOString(),
-      };
-      
-      await this.kafkaClient.emit('customer.institution.created', eventData);
-      this.logger.log(`Event customer.institution.created published for customer ${data.customer.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.institution.created event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customer.id,
+      institutionId: data.institution.customerId,
+      type: CustomerType.FINANCIAL,
+      name: data.customer.name,
+      email: data.customer.email,
+      institutionType: data.institution.institutionType,
+      createdAt: data.customer.createdAt.toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_INSTITUTION_CREATED,
+      eventData,
+      `Event customer.institution.created published for customer ${data.customer.id}`
+    );
   }
 
   /**
@@ -418,22 +464,19 @@ export class CustomerEventsProducer {
     institution: any;
     customer?: Customer;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.institution.customerId,
-        institutionId: data.institution.customerId,
-        institutionType: data.institution.institutionType,
-        updatedAt: data.institution.updatedAt.toISOString(),
-        changedFields: ['institutionType', 'licenseNumber', 'regulatoryAuthority'], // ideally calculate actual fields
-      };
-      
-      await this.kafkaClient.emit('customer.institution.updated', eventData);
-      this.logger.log(`Event customer.institution.updated published for institution ${data.institution.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.institution.updated event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.institution.customerId,
+      institutionId: data.institution.customerId,
+      institutionType: data.institution.institutionType,
+      updatedAt: data.institution.updatedAt.toISOString(),
+      changedFields: ['institutionType', 'licenseNumber', 'regulatoryAuthority'], // ideally calculate actual fields
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_INSTITUTION_UPDATED,
+      eventData,
+      `Event customer.institution.updated published for institution ${data.institution.customerId}`
+    );
   }
 
   /**
@@ -443,20 +486,17 @@ export class CustomerEventsProducer {
     id: string;
     customerId: string;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customerId,
-        institutionId: data.id,
-        deletedAt: new Date().toISOString(),
-      };
-      
-      await this.kafkaClient.emit('customer.institution.deleted', eventData);
-      this.logger.log(`Event customer.institution.deleted published for institution ${data.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.institution.deleted event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customerId,
+      institutionId: data.id,
+      deletedAt: new Date().toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_INSTITUTION_DELETED,
+      eventData,
+      `Event customer.institution.deleted published for institution ${data.id}`
+    );
   }
 
   /**
@@ -466,23 +506,20 @@ export class CustomerEventsProducer {
     institution: any;
     customer: Customer;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customer.id,
-        institutionId: data.institution.customerId,
-        previousStatus: 'pending',
-        newStatus: data.customer.status,
-        validatedAt: data.customer.validatedAt?.toISOString() || new Date().toISOString(),
-        validatedBy: data.customer.validatedBy || 'system',
-      };
-      
-      await this.kafkaClient.emit('customer.institution.validated', eventData);
-      this.logger.log(`Event customer.institution.validated published for institution ${data.institution.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.institution.validated event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customer.id,
+      institutionId: data.institution.customerId,
+      previousStatus: 'pending',
+      newStatus: data.customer.status,
+      validatedAt: data.customer.validatedAt?.toISOString() || new Date().toISOString(),
+      validatedBy: data.customer.validatedBy || 'system',
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_INSTITUTION_VALIDATED,
+      eventData,
+      `Event customer.institution.validated published for institution ${data.institution.customerId}`
+    );
   }
 
   /**
@@ -493,24 +530,21 @@ export class CustomerEventsProducer {
     customer: Customer;
     reason: string;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customer.id,
-        institutionId: data.institution.customerId,
-        previousStatus: 'active',
-        newStatus: data.customer.status,
-        suspendedAt: data.customer.suspendedAt?.toISOString() || new Date().toISOString(),
-        suspendedBy: data.customer.suspendedBy || 'system',
-        reason: data.reason,
-      };
-      
-      await this.kafkaClient.emit('customer.institution.suspended', eventData);
-      this.logger.log(`Event customer.institution.suspended published for institution ${data.institution.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.institution.suspended event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customer.id,
+      institutionId: data.institution.customerId,
+      previousStatus: 'active',
+      newStatus: data.customer.status,
+      suspendedAt: data.customer.suspendedAt?.toISOString() || new Date().toISOString(),
+      suspendedBy: data.customer.suspendedBy || 'system',
+      reason: data.reason,
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_INSTITUTION_SUSPENDED,
+      eventData,
+      `Event customer.institution.suspended published for institution ${data.institution.customerId}`
+    );
   }
 
   /**
@@ -520,28 +554,25 @@ export class CustomerEventsProducer {
     customer: Customer;
     sme: any;
   }): Promise<void> {
-    try {
-      const createdAt = data.customer.createdAt ? 
-        data.customer.createdAt.toISOString() : 
-        new Date().toISOString();
-        
-      const eventData = {
-        customerId: data.customer.id,
-        smeId: data.sme.customerId,
-        type: CustomerType.SME,
-        name: data.customer.name,
-        email: data.customer.email,
-        registrationNumber: data.sme.registrationNumber,
-        createdAt: createdAt,
-      };
+    const createdAt = data.customer.createdAt ? 
+      data.customer.createdAt.toISOString() : 
+      new Date().toISOString();
       
-      await this.kafkaClient.emit('customer.sme.created', eventData);
-      this.logger.log(`Event customer.sme.created published for customer ${data.customer.id}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.sme.created event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customer.id,
+      smeId: data.sme.customerId,
+      type: CustomerType.SME,
+      name: data.customer.name,
+      email: data.customer.email,
+      registrationNumber: data.sme.registrationNumber,
+      createdAt: createdAt,
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_SME_CREATED,
+      eventData,
+      `Event customer.sme.created published for customer ${data.customer.id}`
+    );
   }
 
   /**
@@ -653,39 +684,33 @@ export class CustomerEventsProducer {
    * Publie un événement subscription.created
    */
   async emitSubscriptionCreated(subscription: any): Promise<void> {
-    try {
-      await this.kafkaClient.emit('subscription.created', subscription);
-      this.logger.log(`Event subscription.created published for customer ${subscription.customerId}`);
-    } catch (error: unknown) {
-        const err = error as Error;
-        this.logger.error(`Failed to publish subscription.created event: ${err.message}`, err.stack);
-        throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.SUBSCRIPTION_CREATED,
+      subscription,
+      `Event subscription.created published for customer ${subscription.customerId}`
+    );
   }
 
   /**
    * Publie un événement token.purchased
    */
   async emitTokenPurchased(purchase: TokenPurchase): Promise<void> {
-    try {
-      const eventData = {
-        purchaseId: purchase.id,
-        customerId: purchase.customerId,
-        amount: purchase.amount,
-        purchaseDate: purchase.purchaseDate.toISOString(),
-        transactionId: purchase.transactionId,
-        price: purchase.price,
-        currency: purchase.currency,
-        metadata: purchase.metadata,
-      };
+    const eventData = {
+      purchaseId: purchase.id,
+      customerId: purchase.customerId,
+      amount: purchase.amount,
+      purchaseDate: purchase.purchaseDate.toISOString(),
+      transactionId: purchase.transactionId,
+      price: purchase.price,
+      currency: purchase.currency,
+      metadata: purchase.metadata,
+    };
 
-      await this.kafkaClient.emit('token.purchased', eventData);
-      this.logger.log(`Event token.purchased published for customer ${purchase.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish token.purchased event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.TOKEN_PURCHASE,
+      eventData,
+      `Event token.purchased published for customer ${purchase.customerId}`
+    );
   }
 
   /**
@@ -701,19 +726,16 @@ export class CustomerEventsProducer {
     timestamp: Date;
     metadata?: Record<string, any>;
   }): Promise<void> {
-    try {
-      const eventData = {
-        ...event,
-        timestamp: event.timestamp.toISOString(),
-      };
+    const eventData = {
+      ...event,
+      timestamp: event.timestamp.toISOString(),
+    };
 
-      await this.kafkaClient.emit('subscription.event', eventData);
-      this.logger.log(`Event subscription.event (${event.type}) published for customer ${event.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish subscription.event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.SUBSCRIPTION_EVENT,
+      eventData,
+      `Event subscription.event (${event.type}) published for customer ${event.customerId}`
+    );
   }
 
   /**
@@ -734,23 +756,20 @@ export class CustomerEventsProducer {
     reason?: string;
     details?: Record<string, any>;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customerId,
-        action: data.action,
-        adminId: data.adminId,
-        reason: data.reason || '',
-        details: data.details || {},
-        timestamp: new Date().toISOString(),
-      };
-      
-      await this.kafkaClient.emit('customer.admin.action', eventData);
-      this.logger.log(`Event customer.admin.action (${data.action}) published for customer ${data.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.admin.action event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customerId,
+      action: data.action,
+      adminId: data.adminId,
+      reason: data.reason || '',
+      details: data.details || {},
+      timestamp: new Date().toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_ADMIN_ACTION,
+      eventData,
+      `Event customer.admin.action (${data.action}) published for customer ${data.customerId}`
+    );
   }
 
   /**
@@ -763,22 +782,19 @@ export class CustomerEventsProducer {
     updateFields: Record<string, any>;
     requestId: string;
   }): Promise<void> {
-    try {
-      const eventData = {
-        customerId: data.customerId,
-        requestingService: data.requestingService,
-        updateFields: data.updateFields,
-        requestId: data.requestId,
-        timestamp: new Date().toISOString(),
-      };
-      
-      await this.kafkaClient.emit('customer.update.request', eventData);
-      this.logger.log(`Event customer.update.request published from ${data.requestingService} for customer ${data.customerId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish customer.update.request event: ${err.message}`, err.stack);
-      throw error;
-    }
+    const eventData = {
+      customerId: data.customerId,
+      requestingService: data.requestingService,
+      updateFields: data.updateFields,
+      requestId: data.requestId,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await this.publishEvent(
+      StandardKafkaTopics.CUSTOMER_UPDATE_REQUEST,
+      eventData,
+      `Event customer.update.request published from ${data.requestingService} for customer ${data.customerId}`
+    );
   }
 
   /**
@@ -956,13 +972,10 @@ export class CustomerEventsProducer {
     status: string;
     timestamp: string;
   }): Promise<void> {
-    try {
-      await this.kafkaClient.emit('user.document.uploaded', data);
-      this.logger.log(`Event user.document.uploaded published for user ${data.userId}`);
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`Failed to publish user.document.uploaded event: ${err.message}`, err.stack);
-      throw error;
-    }
+    await this.publishEvent(
+      StandardKafkaTopics.USER_DOCUMENT_UPLOADED,
+      data,
+      `Event user.document.uploaded published for user ${data.userId}`
+    );
   }
 }

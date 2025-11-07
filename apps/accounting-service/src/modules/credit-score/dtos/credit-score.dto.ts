@@ -180,9 +180,29 @@ export class CalculateCreditScoreDto {
   };
 }
 
+// DEPRECATED: Utiliser StandardCreditScore et DetailedCreditScore de packages/shared
+// Cette classe est conservée pour compatibilité mais sera supprimée dans une version future
 export class CreditScoreResponseDto {
-  @ApiProperty({ description: 'Overall credit score (0-100)' })
+  @ApiProperty({ 
+    description: 'Overall credit score (1-100) - STANDARDISÉ Wanzo',
+    minimum: 1,
+    maximum: 100
+  })
   score!: number;
+
+  @ApiProperty({ 
+    description: 'Niveau de risque standardisé',
+    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    example: 'MEDIUM'
+  })
+  riskLevel!: 'LOW' | 'MEDIUM' | 'HIGH';
+
+  @ApiProperty({ 
+    description: 'Classification détaillée du score',
+    enum: ['EXCELLENT', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR', 'VERY_POOR'],
+    example: 'GOOD'
+  })
+  scoreClass!: 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'FAIR' | 'POOR' | 'VERY_POOR';
 
   @ApiProperty({ description: 'Score components' })
   components!: {
@@ -193,7 +213,7 @@ export class CreditScoreResponseDto {
     growthTrend: number;
   };
 
-  @ApiProperty({ description: 'Risk assessment' })
+  @ApiProperty({ description: 'Risk assessment - DEPRECATED: Utiliser riskLevel' })
   riskAssessment!: {
     level: 'low' | 'medium' | 'high';
     factors: string[];
@@ -207,5 +227,102 @@ export class CreditScoreResponseDto {
     validUntil: Date;
     confidenceScore: number;
     dataQualityScore: number;
+    dataSource: string;
+  };
+}
+
+// DTO STANDARDISÉ - Utiliser pour les nouvelles implémentations
+export class StandardizedCreditScoreResponseDto {
+  @ApiProperty({ 
+    description: 'Score crédit principal (1-100)',
+    example: 75,
+    minimum: 1,
+    maximum: 100
+  })
+  score!: number;
+
+  @ApiProperty({ 
+    description: 'Niveau de risque déterminé par le score',
+    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    example: 'MEDIUM'
+  })
+  riskLevel!: 'LOW' | 'MEDIUM' | 'HIGH';
+
+  @ApiProperty({ 
+    description: 'Classification détaillée du score',
+    enum: ['EXCELLENT', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR', 'VERY_POOR'],
+    example: 'GOOD'
+  })
+  scoreClass!: 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'FAIR' | 'POOR' | 'VERY_POOR';
+
+  @ApiProperty({ 
+    description: 'Date de calcul du score',
+    example: '2023-08-01T12:30:00.000Z'
+  })
+  calculatedAt!: Date;
+
+  @ApiProperty({ 
+    description: 'Date d\'expiration du score (30 jours par défaut)',
+    example: '2023-08-31T12:30:00.000Z'
+  })
+  validUntil!: Date;
+
+  @ApiProperty({ 
+    description: 'Version du modèle utilisé pour le calcul',
+    example: 'v1.2.3'
+  })
+  modelVersion!: string;
+
+  @ApiProperty({ 
+    description: 'Source des données utilisées pour le calcul',
+    example: 'accounting_transactions_6m'
+  })
+  dataSource!: string;
+
+  @ApiProperty({ 
+    description: 'Score de confiance du modèle (0-1)',
+    example: 0.85,
+    minimum: 0,
+    maximum: 1
+  })
+  confidenceScore!: number;
+
+  @ApiProperty({ description: 'Composants détaillés du score' })
+  components!: {
+    cashFlowQuality: number;
+    businessStability: number;
+    financialHealth: number;
+    paymentBehavior: number;
+    growthTrend: number;
+  };
+
+  @ApiProperty({ 
+    description: 'Facteurs explicatifs du score',
+    example: [
+      'Flux de trésorerie réguliers détectés',
+      'Croissance constante du chiffre d\'affaires',
+      'Ratio d\'endettement acceptable'
+    ]
+  })
+  explanation!: string[];
+
+  @ApiProperty({ 
+    description: 'Recommandations basées sur l\'analyse',
+    example: [
+      'Maintenir la régularité des flux',
+      'Diversifier les sources de revenus',
+      'Optimiser la gestion de trésorerie'
+    ]
+  })
+  recommendations!: string[];
+
+  @ApiPropertyOptional({ 
+    description: 'Données contextuelles additionnelles'
+  })
+  context?: {
+    companyId: string;
+    companyName?: string;
+    sector?: string;
+    analysisType: string;
   };
 }

@@ -129,6 +129,28 @@ export class RiskProfile {
   @Column('uuid', { nullable: true })
   institutionId?: string;
 
+  // ============= CHAMP SCORE CRÉDIT STANDARDISÉ =============
+  
+  @ApiProperty({ 
+    description: 'Score crédit standardisé (1-100) - Nouveau standard Wanzo',
+    example: 75,
+    minimum: 1,
+    maximum: 100,
+    required: false
+  })
+  @Column({ name: 'credit_score', type: 'int', nullable: true })
+  creditScore?: number;
+
+  @ApiProperty({ 
+    description: 'Date de calcul du score crédit standardisé',
+    example: '2023-08-01T12:30:00.000Z',
+    required: false
+  })
+  @Column({ name: 'credit_score_calculated_at', nullable: true })
+  creditScoreCalculatedAt?: Date;
+
+  // ============= FIN CHAMP SCORE CRÉDIT =============
+
   @CreateDateColumn()
   createdAt!: Date;
 
@@ -144,6 +166,37 @@ export class RiskProfile {
     if (score < 6) return RiskLevel.MEDIUM;
     if (score < 8) return RiskLevel.HIGH;
     return RiskLevel.VERY_HIGH;
+  }
+
+  /**
+   * Convertit le score de risque (0-10) vers le score crédit standardisé (1-100)
+   * Cette méthode assure la compatibilité avec le nouveau standard Wanzo
+   */
+  static convertRiskScoreToCreditScore(riskScore: number): number {
+    // Validation de l'entrée
+    if (riskScore < 0 || riskScore > 10) {
+      throw new Error('Risk score must be between 0 and 10');
+    }
+    
+    // Inversion de l'échelle (risque élevé = crédit faible)
+    const invertedScore = 10 - riskScore;
+    
+    // Conversion vers échelle 1-100
+    const creditScore = Math.round((invertedScore / 10) * 99) + 1;
+    
+    // Assurer que le score reste dans les limites
+    return Math.max(1, Math.min(100, creditScore));
+  }
+
+  /**
+   * Met à jour automatiquement le score crédit basé sur le riskScore
+   * À appeler après chaque mise à jour du riskScore
+   */
+  updateCreditScore(): void {
+    if (this.riskScore !== undefined && this.riskScore !== null) {
+      this.creditScore = RiskProfile.convertRiskScoreToCreditScore(this.riskScore);
+      this.creditScoreCalculatedAt = new Date();
+    }
   }
 
   /**

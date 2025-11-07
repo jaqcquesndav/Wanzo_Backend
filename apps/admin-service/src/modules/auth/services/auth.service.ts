@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../entities/user.entity';
 import { 
   ValidateTokenResponseDto, 
   UpdateProfileDto, 
@@ -9,6 +14,15 @@ import {
 
 @Injectable()
 export class AuthService {  
+  private readonly logger = new Logger(AuthService.name);
+
+  constructor(
+    private configService: ConfigService,
+    private jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
   async validateUser(email: string, password: string): Promise<any> {
     // TODO: Implement proper user validation with Auth0 or database
     // This is a placeholder implementation for development
@@ -24,99 +38,102 @@ export class AuthService {
     return null;
   }
 
+  async getUserByAuth0Id(auth0Id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { auth0Id }
+    });
+  }
+
   async validateToken(token: string): Promise<ValidateTokenResponseDto> {
-    // TODO: Implement proper JWT verification using Auth0 JWKS
-    
     try {
-      // This is a placeholder implementation
-      // In a real implementation, you would decode and verify the JWT token
-      // and then fetch the user profile from your database or Auth0
+      // Note: Pas de blacklist pour les admins Wanzo
+      // La révocation des tokens admin se fait au niveau Auth0 directement
       
-      // For now, return a mock response with a valid user
+      // Vérifier la validité du token avec Auth0
+      const jwksUri = `${this.configService.get('AUTH0_DOMAIN')}/.well-known/jwks.json`;
+      const audience = this.configService.get('AUTH0_AUDIENCE');
+      const issuer = `${this.configService.get('AUTH0_DOMAIN')}/`;
+      
+      const payload = this.jwtService.verify(token, {
+        secret: jwksUri,
+        audience,
+        issuer
+      });
+
+      const auth0Id = payload.sub;
+      let user = await this.getUserByAuth0Id(auth0Id);
+      
+      if (!user) {
+        this.logger.warn(`L'utilisateur avec Auth0 ID ${auth0Id} n'a pas été trouvé`);
+        return { 
+          isValid: false, 
+          error: 'Utilisateur non trouvé' 
+        };
+      }
+
       return {
         isValid: true,
         user: {
-          id: 'mock-user-id',
-          name: 'Test User',
-          email: 'testuser@example.com',
-          role: UserRole.COMPANY_USER,
-          userType: UserType.EXTERNAL,
-          createdAt: new Date().toISOString(),
-          customerAccountId: null,
-          picture: 'https://example.com/avatar.jpg',
-          phoneNumber: '+243123456789'
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          userType: user.userType,
+          picture: user.picture,
+          phoneNumber: user.phoneNumber,
+          createdAt: user.createdAt.toISOString(),
+          customerAccountId: user.customerAccountId || null,
         }
       };
     } catch (error) {
-      return {
-        isValid: false,
-        error: 'Invalid token'
+      this.logger.error('Erreur lors de la validation du token', error);
+      return { 
+        isValid: false, 
+        error: 'Token invalide' 
       };
     }
   }
 
   async getUserProfile(userId: string): Promise<UserProfileDto> {
-    // TODO: Implement logic
-    console.log(userId);
-    return new UserProfileDto();
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+    
+    const profile = new UserProfileDto();
+    profile.id = user.id;
+    profile.name = user.name;
+    profile.email = user.email;
+    profile.role = user.role;
+    profile.userType = user.userType;
+    profile.picture = user.picture;
+    profile.phoneNumber = user.phoneNumber;
+    profile.customerAccountId = user.customerAccountId;
+    profile.organizationId = user.organizationId;
+    profile.createdAt = user.createdAt.toISOString();
+    
+    return profile;
   }
 
   async updateUserProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserProfileDto> {
-    // TODO: Implement logic
-    console.log(userId, updateProfileDto);
-    return new UserProfileDto();
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new NotFoundException(`Utilisateur avec ID ${userId} non trouvé`);
+    }
+    
+    // Mettre à jour uniquement les champs autorisés
+    if (updateProfileDto.name) user.name = updateProfileDto.name;
+    if (updateProfileDto.phoneNumber) user.phoneNumber = updateProfileDto.phoneNumber;
+    if (updateProfileDto.language) user.language = updateProfileDto.language;
+    if (updateProfileDto.timezone) user.timezone = updateProfileDto.timezone;
+    
+    await this.userRepository.save(user);
+    
+    return this.getUserProfile(userId);
   }
 
-  async invalidateSession(userId: string): Promise<{ message: string }> {
-    // TODO: Implement logic
-    console.log(userId);
-    return { message: 'Session invalidée avec succès' };
-  }
-
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
-    // TODO: Implement token refresh logic with Auth0
-    console.log(refreshToken);
-    return {
-      accessToken: 'new-access-token',
-      refreshToken: 'new-refresh-token',
-      expiresIn: 3600
-    };
-  }
-
-  async logout(userId: string): Promise<{ message: string }> {
-    // TODO: Implement logout logic - invalidate tokens, clear sessions
-    console.log(userId);
-    return { message: 'Déconnexion réussie' };
-  }
-
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    // TODO: Implement password change logic
-    console.log(userId, currentPassword, newPassword);
-    return { message: 'Mot de passe modifié avec succès' };
-  }
-
-  async enable2FA(userId: string): Promise<{ qrCode: string; secret: string; message: string }> {
-    // TODO: Implement 2FA enablement logic
-    console.log(userId);
-    return {
-      qrCode: 'data:image/png;base64,mock-qr-code',
-      secret: 'mock-2fa-secret',
-      message: '2FA activé avec succès'
-    };
-  }
-
-  async disable2FA(userId: string): Promise<{ message: string }> {
-    // TODO: Implement 2FA disabling logic
-    console.log(userId);
-    return { message: '2FA désactivé avec succès' };
-  }
-
-  async verify2FA(userId: string, code: string): Promise<{ valid: boolean; message: string }> {
-    // TODO: Implement 2FA verification logic
-    console.log(userId, code);
-    return {
-      valid: true,
-      message: 'Code 2FA vérifié avec succès'
-    };
-  }
+  // Note: Pas de méthodes invalidateSession() ou invalidateToken() pour les admins
+  // Les admins Wanzo sont révoqués au niveau Auth0 directement, pas via blacklist locale
 }

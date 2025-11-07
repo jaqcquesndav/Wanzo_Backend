@@ -162,7 +162,7 @@ export class FinancialInstitutionController {
     tokensCost: number;
   }> {
     return {
-      creditScore: 720,
+      creditScore: 72, // CORRIGÉ: 720 → 72 (échelle 1-100 standardisée)
       scoreClass: 'Good',
       probability: 0.85,
       explanation: [

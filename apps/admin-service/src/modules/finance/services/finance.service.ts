@@ -135,10 +135,29 @@ export class FinanceService {
         ...dto,
         status: SubscriptionStatus.ACTIVE,
         startDate: new Date(),
+        tokensIncluded: plan.includedTokens || 0,
+        tokensUsed: 0,
+        tokensRemaining: plan.includedTokens || 0,
+        tokensRolledOver: 0,
         // Calculate end date based on billing cycle
     });
     
     const savedSubscription = await this.subscriptionRepository.save(newSubscription);
+    
+    // ✅ Émettre événement Kafka vers Customer Service
+    await this.eventsService.publishSubscriptionCreated({
+      subscriptionId: savedSubscription.id,
+      userId: customerId,
+      entityId: customerId,
+      entityType: 'customer' as any,
+      newPlan: plan.name as any,
+      newStatus: 'active' as any,
+      startDate: savedSubscription.startDate.toISOString(),
+      endDate: savedSubscription.endDate?.toISOString() || '',
+      changedBy: 'admin-service',
+      timestamp: new Date().toISOString(),
+    });
+    
     return this.getSubscriptionById(savedSubscription.id);
   }
 
@@ -151,10 +170,36 @@ export class FinanceService {
     if (dto.planId) {
         const plan = await this.subscriptionPlanRepository.findOne({ where: { id: dto.planId }});
         if (!plan) throw new NotFoundException(`Plan with ID ${dto.planId} not found`);
+        
+        // Si le plan change, ajuster les tokens
+        if (plan.id !== subscription.planId) {
+          subscription.tokensIncluded = plan.includedTokens || 0;
+          subscription.tokensRemaining = plan.includedTokens || 0;
+        }
     }
 
+    const previousStatus = subscription.status;
+    const previousPlan = subscription.planId;
+    
     Object.assign(subscription, dto);
     const updatedSubscription = await this.subscriptionRepository.save(subscription);
+    
+    // ✅ Émettre événement Kafka
+    await this.eventsService.publishSubscriptionUpdated({
+      subscriptionId: updatedSubscription.id,
+      userId: updatedSubscription.customerId,
+      entityId: updatedSubscription.customerId,
+      entityType: 'customer' as any,
+      previousPlan: previousPlan as any,
+      newPlan: updatedSubscription.planId as any,
+      previousStatus: previousStatus as any,
+      newStatus: updatedSubscription.status as any,
+      startDate: updatedSubscription.startDate.toISOString(),
+      endDate: updatedSubscription.endDate?.toISOString() || '',
+      changedBy: 'admin-service',
+      timestamp: new Date().toISOString(),
+    });
+    
     return this.getSubscriptionById(updatedSubscription.id);
   }
 
@@ -173,6 +218,22 @@ export class FinanceService {
     subscription.canceledAt = new Date();
     
     const updatedSubscription = await this.subscriptionRepository.save(subscription);
+    
+    // ✅ Émettre événement Kafka
+    await this.eventsService.publishSubscriptionCancelled({
+      subscriptionId: updatedSubscription.id,
+      userId: updatedSubscription.customerId,
+      entityId: updatedSubscription.customerId,
+      entityType: 'customer' as any,
+      newPlan: updatedSubscription.planId as any,
+      previousStatus: 'active' as any,
+      newStatus: 'canceled' as any,
+      startDate: updatedSubscription.startDate.toISOString(),
+      endDate: updatedSubscription.endDate?.toISOString() || '',
+      changedBy: 'admin-service',
+      timestamp: new Date().toISOString(),
+    });
+    
     return this.mapToSubscriptionDto(updatedSubscription);
   }
 
@@ -473,9 +534,16 @@ export class FinanceService {
   private mapToSubscriptionPlanDto(plan: SubscriptionPlan): SubscriptionPlanDto {
     // Conversion du metadata en type SubscriptionPlanMetadataDto pour garantir la conformité
     const metadata: SubscriptionPlanMetadataDto = {
-      maxUsers: plan.metadata?.maxUsers || 0,
-      storageLimit: plan.metadata?.storageLimit || '0GB'
+      maxUsers: plan.limits?.maxUsers || plan.metadata?.maxUsers || 0,
+      storageLimit: plan.limits?.maxDataStorageGB ? `${plan.limits.maxDataStorageGB}GB` : plan.metadata?.storageLimit || '0GB'
     };
+    
+    // Convertir les features object en array de strings pour le DTO
+    const featuresArray: string[] = plan.features 
+      ? Object.entries(plan.features)
+          .filter(([_, value]) => value === true)
+          .map(([key, _]) => key)
+      : [];
     
     return {
       id: plan.id,
@@ -484,7 +552,7 @@ export class FinanceService {
       price: plan.price,
       currency: plan.currency,
       billingCycle: plan.billingCycle,
-      features: plan.features || [],
+      features: featuresArray,
       isActive: plan.isActive,
       trialPeriodDays: plan.trialPeriodDays || 0,
       metadata: metadata,

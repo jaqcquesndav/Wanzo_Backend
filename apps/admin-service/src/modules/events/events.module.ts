@@ -4,17 +4,22 @@ import { ADMIN_KAFKA_PRODUCER_SERVICE, KafkaProducerModule } from './kafka-produ
 import { EventsService } from './events.service';
 import { MockEventsService } from './mock-events-service';
 import { UserEventsConsumer } from './consumers/user-events.consumer';
+import { AdminEventsController } from './admin-events.controller';
 import { UsersModule } from '../users/users.module';
 import { CompanyModule } from '../company/company.module';
+import { CustomersModule } from '../customers/customers.module';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
   imports: [
     ConfigModule,
     KafkaProducerModule,
     forwardRef(() => UsersModule),
+    forwardRef(() => CustomersModule),
+    forwardRef(() => FinanceModule),
     CompanyModule,
   ],
-  controllers: [UserEventsConsumer],
+  controllers: [UserEventsConsumer, AdminEventsController],
   providers: [
     {
       provide: EventsService,

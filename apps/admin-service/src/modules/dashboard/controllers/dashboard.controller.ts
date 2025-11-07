@@ -17,9 +17,9 @@ import {
   WidgetResponseDto,
   DashboardCompleteDataDto,
   DashboardConfigurationDto,
-  UpdateDashboardConfigurationDto
+  UpdateDashboardConfigurationDto,
+  DashboardQueryParamsDto
 } from '../dtos';
-import { DashboardQueryParamsDto } from '../dto/dashboard-query-params.dto';
 import { Request as ExpressRequest } from 'express';
 import { APIResponse } from '../../../common/interfaces';
 

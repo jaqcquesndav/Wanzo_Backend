@@ -135,6 +135,14 @@ export class UserProfileDto {
   phoneNumber?: string;
 
   @ApiProperty({
+    description: 'ID de l\'organisation',
+    example: 'org-123456',
+  })
+  @IsString()
+  @IsOptional()
+  organizationId?: string;
+
+  @ApiProperty({
     description: 'ID Agent',
     example: 'IKH12345',
   })

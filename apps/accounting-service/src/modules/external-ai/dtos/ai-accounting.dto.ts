@@ -51,9 +51,9 @@ export interface AccountingAIRequestDto {
 
 export interface AISuggestedJournalLineDto {
   accountCode: string; // AI suggests account code, system resolves to accountId
-  description: string;
-  debit?: number;
-  credit?: number;
+  description: string; // Standardisé sur 'description'
+  debit: number;       // Obligatoire, 0 si pas de débit
+  credit: number;      // Obligatoire, 0 si pas de crédit
 }
 
 export interface SingleAISuggestion {

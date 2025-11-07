@@ -1,26 +1,30 @@
 """
 Calculateur Comptable pour Adha AI Service
-Gère tous les calculs comptables conformes aux normes RDC (OHADA)
+Version simplifiée - utilise directement la base de connaissances SYSCOHADA
 """
 
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Any, Optional, Union
-from datetime import datetime, timedelta
-import pandas as pd
+from datetime import datetime
 import logging
 
 from ..knowledge_bases.accounting_rdc import AccountingKnowledgeRDC
-from .. import FinancialEngineCore
 
 logger = logging.getLogger(__name__)
 
+def calculate_precision(value: Union[Decimal, float], precision: int = 2) -> Decimal:
+    """Calcule la précision pour les montants comptables"""
+    if isinstance(value, float):
+        value = Decimal(str(value))
+    return value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
 class AccountingCalculator:
     """
-    Calculateur spécialisé pour la comptabilité selon OHADA/RDC
+    Calculateur spécialisé pour la comptabilité selon SYSCOHADA/RDC
+    Utilise la base de connaissances pour tous les calculs
     """
     
     def __init__(self):
-        self.engine = FinancialEngineCore()
         self.knowledge = AccountingKnowledgeRDC()
         
     def calculate_depreciation(self, asset_value: Union[float, Decimal], 
@@ -61,9 +65,9 @@ class AccountingCalculator:
                 
                 result['schedule'].append({
                     'year': year,
-                    'annual_depreciation': self.engine.calculate_precision(annual_depreciation),
-                    'accumulated_depreciation': self.engine.calculate_precision(accumulated_depreciation),
-                    'book_value': self.engine.calculate_precision(book_value)
+                    'annual_depreciation': calculate_precision(annual_depreciation),
+                    'accumulated_depreciation': calculate_precision(accumulated_depreciation),
+                    'book_value': calculate_precision(book_value)
                 })
                 
         elif method == 'declining_balance':
@@ -83,9 +87,9 @@ class AccountingCalculator:
                 
                 result['schedule'].append({
                     'year': year,
-                    'annual_depreciation': self.engine.calculate_precision(annual_depreciation),
-                    'accumulated_depreciation': self.engine.calculate_precision(accumulated_depreciation),
-                    'book_value': self.engine.calculate_precision(book_value)
+                    'annual_depreciation': calculate_precision(annual_depreciation),
+                    'accumulated_depreciation': calculate_precision(accumulated_depreciation),
+                    'book_value': calculate_precision(book_value)
                 })
                 
                 if book_value <= salvage_value:
@@ -114,8 +118,8 @@ class AccountingCalculator:
             'provision_type': provision_type,
             'base_amount': base_amount,
             'risk_percentage': risk_percentage,
-            'provision_amount': self.engine.calculate_precision(provision_amount),
-            'remaining_value': self.engine.calculate_precision(base_amount - provision_amount)
+            'provision_amount': calculate_precision(provision_amount),
+            'remaining_value': calculate_precision(base_amount - provision_amount)
         }
     
     def calculate_working_capital(self, current_assets: Union[float, Decimal],
@@ -130,8 +134,8 @@ class AccountingCalculator:
         return {
             'current_assets': current_assets,
             'current_liabilities': current_liabilities,
-            'working_capital': self.engine.calculate_precision(working_capital),
-            'working_capital_ratio': self.engine.calculate_precision(
+            'working_capital': calculate_precision(working_capital),
+            'working_capital_ratio': calculate_precision(
                 current_assets / current_liabilities if current_liabilities != 0 else Decimal('0')
             )
         }
@@ -155,8 +159,8 @@ class AccountingCalculator:
         return {
             'cost_of_goods_sold': cogs,
             'average_inventory': avg_inventory,
-            'inventory_turnover_ratio': self.engine.calculate_precision(turnover_ratio),
-            'days_in_inventory': self.engine.calculate_precision(days_in_inventory)
+            'inventory_turnover_ratio': calculate_precision(turnover_ratio),
+            'days_in_inventory': calculate_precision(days_in_inventory)
         }
     
     def calculate_accounts_receivable_turnover(self, net_credit_sales: Union[float, Decimal],
@@ -178,8 +182,8 @@ class AccountingCalculator:
         return {
             'net_credit_sales': sales,
             'average_accounts_receivable': avg_ar,
-            'receivables_turnover_ratio': self.engine.calculate_precision(turnover_ratio),
-            'average_collection_period': self.engine.calculate_precision(collection_period)
+            'receivables_turnover_ratio': calculate_precision(turnover_ratio),
+            'average_collection_period': calculate_precision(collection_period)
         }
     
     def calculate_break_even_analysis(self, fixed_costs: Union[float, Decimal],
@@ -206,12 +210,12 @@ class AccountingCalculator:
             'fixed_costs': fixed_costs,
             'variable_cost_per_unit': variable_cost,
             'selling_price_per_unit': selling_price,
-            'contribution_margin': self.engine.calculate_precision(contribution_margin),
-            'contribution_margin_ratio': self.engine.calculate_precision(
+            'contribution_margin': calculate_precision(contribution_margin),
+            'contribution_margin_ratio': calculate_precision(
                 contribution_margin / selling_price * 100
             ),
-            'break_even_units': self.engine.calculate_precision(break_even_units),
-            'break_even_revenue': self.engine.calculate_precision(break_even_revenue)
+            'break_even_units': calculate_precision(break_even_units),
+            'break_even_revenue': calculate_precision(break_even_revenue)
         }
     
     def generate_journal_entry(self, transaction_type: str, amount: Union[float, Decimal],

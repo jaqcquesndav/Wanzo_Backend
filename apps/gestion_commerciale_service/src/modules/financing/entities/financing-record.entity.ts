@@ -157,6 +157,115 @@ export class FinancingRecord {
   @Column({ nullable: true })
   notes: string;
 
+  // ============= CHAMPS SCORE CRÉDIT XGBOOST =============
+  
+  @ApiProperty({ 
+    description: 'Score crédit calculé par XGBoost (1-100)', 
+    example: 75,
+    minimum: 1,
+    maximum: 100,
+    nullable: true 
+  })
+  @Column({ name: 'credit_score', type: 'int', nullable: true })
+  creditScore: number;
+
+  @ApiProperty({ 
+    description: 'Date de calcul du score crédit', 
+    example: '2023-08-01T12:30:00.000Z',
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_calculated_at', nullable: true })
+  creditScoreCalculatedAt: Date;
+
+  @ApiProperty({ 
+    description: 'Date d\'expiration du score crédit (validité 30 jours)', 
+    example: '2023-08-31T12:30:00.000Z',
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_valid_until', nullable: true })
+  creditScoreValidUntil: Date;
+
+  @ApiProperty({ 
+    description: 'Version du modèle XGBoost utilisé', 
+    example: 'v1.2.3',
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_model_version', nullable: true })
+  creditScoreModelVersion: string;
+
+  @ApiProperty({ 
+    description: 'Niveau de risque basé sur le score crédit', 
+    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    example: 'MEDIUM',
+    nullable: true 
+  })
+  @Column({ name: 'risk_level', nullable: true })
+  riskLevel: string;
+
+  @ApiProperty({ 
+    description: 'Score de confiance du modèle (0-1)', 
+    example: 0.85,
+    minimum: 0,
+    maximum: 1,
+    nullable: true 
+  })
+  @Column({ name: 'confidence_score', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  confidenceScore: number;
+
+  @ApiProperty({ 
+    description: 'Source des données utilisées pour le calcul', 
+    example: 'accounting_transactions_6m',
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_data_source', nullable: true })
+  creditScoreDataSource: string;
+
+  @ApiProperty({ 
+    description: 'Composants détaillés du score crédit XGBoost', 
+    example: {
+      cashFlowQuality: 78,
+      businessStability: 82,
+      financialHealth: 65,
+      paymentBehavior: 90,
+      growthTrend: 70
+    },
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_components', type: 'jsonb', nullable: true })
+  creditScoreComponents: {
+    cashFlowQuality: number;
+    businessStability: number;
+    financialHealth: number;
+    paymentBehavior: number;
+    growthTrend: number;
+  };
+
+  @ApiProperty({ 
+    description: 'Facteurs explicatifs du score', 
+    example: [
+      'Flux de trésorerie réguliers détectés',
+      'Croissance constante du chiffre d\'affaires',
+      'Ratio d\'endettement acceptable'
+    ],
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_explanation', type: 'jsonb', nullable: true })
+  creditScoreExplanation: string[];
+
+  @ApiProperty({ 
+    description: 'Recommandations basées sur l\'analyse', 
+    example: [
+      'Maintenir la régularité des flux',
+      'Diversifier les sources de revenus',
+      'Optimiser la gestion de trésorerie'
+    ],
+    nullable: true 
+  })
+  @Column({ name: 'credit_score_recommendations', type: 'jsonb', nullable: true })
+  creditScoreRecommendations: string[];
+
+  // ============= FIN CHAMPS SCORE CRÉDIT =============
+
   @ApiProperty({ description: 'Date when the record was created', example: '2025-06-01T10:00:00.000Z' })
   @CreateDateColumn()
   createdAt: Date;

@@ -3,6 +3,15 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiProperty({
+    description: 'Nom complet de l\'utilisateur',
+    example: 'Jacques Ndavaro',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({
     description: 'Numéro de téléphone',
     example: '+243987654321',
     required: false,

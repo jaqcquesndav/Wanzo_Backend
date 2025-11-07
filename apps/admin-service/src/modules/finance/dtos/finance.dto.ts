@@ -2,7 +2,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsArray, IsBoolean, IsISO8601, IsUUID, Min, ValidateNested, IsNotEmpty, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
-import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus, TokenType, TokenTransactionType } from '../entities/finance.entity';
+import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus } from '../entities/finance.entity';
+import { TokenType, TokenTransactionType } from '../../../shared/enums';
 import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // Note: Removed custom PaginationDto in favor of standardized PaginatedResponse interface

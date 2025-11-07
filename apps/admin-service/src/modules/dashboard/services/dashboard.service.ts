@@ -12,9 +12,9 @@ import {
   DashboardCompleteDataDto,
   DashboardConfigurationDto,
   UpdateDashboardConfigurationDto,
-  WidgetResponseDto
+  WidgetResponseDto,
+  DashboardQueryParamsDto
 } from '../dtos';
-import { DashboardQueryParamsDto } from '../dto/dashboard-query-params.dto';
 
 @Injectable()
 export class DashboardService {
@@ -93,6 +93,7 @@ export class DashboardService {
           consumptionByService: tokenStatistics.byService,
           consumptionTrend: tokenStatistics.consumptionTrend,
         },
+        adhaMetrics: metrics.adhaMetrics || undefined,
         recentActivities: recentActivities,
       };
     } catch (error) {

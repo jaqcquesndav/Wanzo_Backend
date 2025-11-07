@@ -57,6 +57,105 @@ export class FinancingRequestResponseDto {
   @ApiProperty({ description: 'Notes supplémentaires' })
   notes: string;
 
+  // ============= CHAMPS SCORE CRÉDIT XGBOOST =============
+  
+  @ApiProperty({ 
+    description: 'Score crédit calculé par XGBoost (1-100)', 
+    example: 75,
+    minimum: 1,
+    maximum: 100,
+    required: false
+  })
+  creditScore?: number;
+
+  @ApiProperty({ 
+    description: 'Date de calcul du score crédit', 
+    example: '2023-08-01T12:30:00.000Z',
+    required: false
+  })
+  creditScoreCalculatedAt?: Date;
+
+  @ApiProperty({ 
+    description: 'Date d\'expiration du score crédit (validité 30 jours)', 
+    example: '2023-08-31T12:30:00.000Z',
+    required: false
+  })
+  creditScoreValidUntil?: Date;
+
+  @ApiProperty({ 
+    description: 'Version du modèle XGBoost utilisé', 
+    example: 'v1.2.3',
+    required: false
+  })
+  creditScoreModelVersion?: string;
+
+  @ApiProperty({ 
+    description: 'Niveau de risque basé sur le score crédit', 
+    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    example: 'MEDIUM',
+    required: false
+  })
+  riskLevel?: string;
+
+  @ApiProperty({ 
+    description: 'Score de confiance du modèle (0-1)', 
+    example: 0.85,
+    minimum: 0,
+    maximum: 1,
+    required: false
+  })
+  confidenceScore?: number;
+
+  @ApiProperty({ 
+    description: 'Source des données utilisées pour le calcul', 
+    example: 'accounting_transactions_6m',
+    required: false
+  })
+  creditScoreDataSource?: string;
+
+  @ApiProperty({ 
+    description: 'Composants détaillés du score crédit XGBoost', 
+    example: {
+      cashFlowQuality: 78,
+      businessStability: 82,
+      financialHealth: 65,
+      paymentBehavior: 90,
+      growthTrend: 70
+    },
+    required: false
+  })
+  creditScoreComponents?: {
+    cashFlowQuality: number;
+    businessStability: number;
+    financialHealth: number;
+    paymentBehavior: number;
+    growthTrend: number;
+  };
+
+  @ApiProperty({ 
+    description: 'Facteurs explicatifs du score', 
+    example: [
+      'Flux de trésorerie réguliers détectés',
+      'Croissance constante du chiffre d\'affaires',
+      'Ratio d\'endettement acceptable'
+    ],
+    required: false
+  })
+  creditScoreExplanation?: string[];
+
+  @ApiProperty({ 
+    description: 'Recommandations basées sur l\'analyse', 
+    example: [
+      'Maintenir la régularité des flux',
+      'Diversifier les sources de revenus',
+      'Optimiser la gestion de trésorerie'
+    ],
+    required: false
+  })
+  creditScoreRecommendations?: string[];
+
+  // ============= FIN CHAMPS SCORE CRÉDIT =============
+
   @ApiProperty({ description: 'Date de création' })
   createdAt: Date;
 
@@ -85,6 +184,19 @@ export class FinancingRequestResponseDto {
     dto.financialInformation = record.financialInformation;
     dto.documents = record.documents;
     dto.notes = record.notes;
+    
+    // Mapping des champs score crédit
+    dto.creditScore = record.creditScore;
+    dto.creditScoreCalculatedAt = record.creditScoreCalculatedAt;
+    dto.creditScoreValidUntil = record.creditScoreValidUntil;
+    dto.creditScoreModelVersion = record.creditScoreModelVersion;
+    dto.riskLevel = record.riskLevel;
+    dto.confidenceScore = record.confidenceScore;
+    dto.creditScoreDataSource = record.creditScoreDataSource;
+    dto.creditScoreComponents = record.creditScoreComponents;
+    dto.creditScoreExplanation = record.creditScoreExplanation;
+    dto.creditScoreRecommendations = record.creditScoreRecommendations;
+    
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
     

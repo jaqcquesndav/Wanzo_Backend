@@ -144,4 +144,187 @@ export class AdminCustomerService {
       throw error;
     }
   }
+
+  /**
+   * Met à jour un abonnement d'un client dans Customer Service
+   */
+  async updateCustomerSubscription(customerId: string, subscriptionId: string, updates: {
+    status?: string;
+    tokensIncluded?: number;
+    tokensRemaining?: number;
+    endDate?: string;
+  }) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.put(
+          `${this.customerServiceUrl}/customers/${customerId}/subscriptions/${subscriptionId}`,
+          updates,
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Updated subscription ${subscriptionId} for customer ${customerId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to update subscription: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Annule un abonnement dans Customer Service
+   */
+  async cancelCustomerSubscription(customerId: string, subscriptionId: string, reason: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.customerServiceUrl}/customers/${customerId}/subscriptions/${subscriptionId}/cancel`,
+          { reason, canceledBy: 'admin-service' },
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Cancelled subscription ${subscriptionId} for customer ${customerId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to cancel subscription: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Alloue des tokens à un client dans Customer Service
+   */
+  async allocateTokensToCustomer(customerId: string, data: {
+    amount: number;
+    reason: string;
+    expiryDate?: string;
+    metadata?: Record<string, any>;
+  }) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.customerServiceUrl}/customers/${customerId}/tokens/allocate`,
+          {
+            ...data,
+            allocatedBy: 'admin-service',
+          },
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Allocated ${data.amount} tokens to customer ${customerId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to allocate tokens: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Suspend un utilisateur d'un client
+   */
+  async suspendCustomerUser(customerId: string, userId: string, reason: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.customerServiceUrl}/customers/${customerId}/users/${userId}/suspend`,
+          { reason, suspendedBy: 'admin-service' },
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Suspended user ${userId} of customer ${customerId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to suspend user: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Réactive un utilisateur d'un client
+   */
+  async reactivateCustomerUser(customerId: string, userId: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.customerServiceUrl}/customers/${customerId}/users/${userId}/reactivate`,
+          { reactivatedBy: 'admin-service' },
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Reactivated user ${userId} of customer ${customerId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to reactivate user: ${err.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Crée un nouvel abonnement pour un client dans Customer Service
+   */
+  async createCustomerSubscription(customerId: string, data: {
+    planId: string;
+    startDate: string;
+    billingCycle: string;
+    autoRenew?: boolean;
+  }) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.customerServiceUrl}/customers/${customerId}/subscriptions`,
+          {
+            ...data,
+            createdBy: 'admin-service',
+          },
+          {
+            headers: {
+              'X-Service-ID': 'admin-service',
+              'X-Service-Secret': this.configService.get<string>('SERVICE_SECRET', ''),
+            },
+          }
+        ),
+      );
+      
+      this.logger.log(`Created subscription for customer ${customerId} with plan ${data.planId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to create subscription: ${err.message}`);
+      throw error;
+    }
+  }
 }

@@ -17,7 +17,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { Role } from '../../auth/enums/role.enum';
 import { Request } from 'express';
-import { TokenType } from '../entities/finance.entity';
+import { TokenType } from '../../../shared/enums';
 
 @ApiTags('Finance & Subscriptions')
 @ApiBearerAuth()
@@ -226,7 +226,7 @@ export class FinanceController {
   ): Promise<TokenBalanceDto | TokenBalanceDto[]> {    // Implémenter cette méthode dans le service
     return { 
       customerId, 
-      tokenType: query.tokenType || TokenType.GENERIC, 
+      tokenType: query.tokenType || TokenType.PURCHASED, 
       balance: 0,
       lastUpdatedAt: new Date().toISOString()
     };

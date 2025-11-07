@@ -555,7 +555,136 @@ interface APIResponse<T> {
     *   `403 Forbidden`: If the user does not have permission.
     *   `500 Internal Server Error`: Unexpected server error.
 
-## 5. Type Definitions
+---
+
+## 5. Advanced Customer Management (Admin Service Extensions)
+
+Le service admin offre des fonctionnalités avancées de gestion des clients via communication HTTP avec le Customer Service.
+
+### 5.1. Update Customer Subscription
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/admin/customers/{customerId}/subscriptions/{subscriptionId}`
+*   **Description:** Met à jour l'abonnement d'un client (admin uniquement)
+*   **Request Body:**
+    ```json
+    {
+      "planId": "plan_premium",
+      "autoRenew": true,
+      "metadata": {
+        "notes": "Upgraded by admin"
+      }
+    }
+    ```
+*   **Response:**
+    *   `200 OK`: Returns updated subscription details
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+### 5.2. Cancel Customer Subscription
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/admin/customers/{customerId}/subscriptions/{subscriptionId}/cancel`
+*   **Description:** Annule l'abonnement d'un client
+*   **Request Body:**
+    ```json
+    {
+      "reason": "Customer request / Payment issues / Service violation"
+    }
+    ```
+*   **Response:**
+    *   `200 OK`: Returns canceled subscription details
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+### 5.3. Allocate Tokens to Customer
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/admin/customers/{customerId}/tokens/allocate`
+*   **Description:** Alloue des tokens à un client (bonus, compensation, etc.)
+*   **Request Body:**
+    ```json
+    {
+      "amount": 5000,
+      "reason": "Service compensation / Promotional bonus / Trial extension"
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "customerId": "cust_123",
+          "tokensAllocated": 5000,
+          "newBalance": 15000,
+          "reason": "Service compensation",
+          "allocatedAt": "2024-01-15T10:30:00Z",
+          "allocatedBy": "admin_user_789"
+        }
+        ```
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+### 5.4. Suspend Customer User
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/admin/customers/{customerId}/users/{userId}/suspend`
+*   **Description:** Suspend un utilisateur d'un client
+*   **Request Body:**
+    ```json
+    {
+      "reason": "Policy violation / Security concerns / Account compromise"
+    }
+    ```
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "userId": "user_456",
+          "customerId": "cust_123",
+          "status": "suspended",
+          "suspendedAt": "2024-01-15T11:00:00Z",
+          "suspendedBy": "admin_user_789",
+          "reason": "Policy violation"
+        }
+        ```
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+### 5.5. Reactivate Customer User
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/admin/customers/{customerId}/users/{userId}/reactivate`
+*   **Description:** Réactive un utilisateur suspendu
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "userId": "user_456",
+          "customerId": "cust_123",
+          "status": "active",
+          "reactivatedAt": "2024-01-16T09:00:00Z",
+          "reactivatedBy": "admin_user_789"
+        }
+        ```
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+### 5.6. Create Customer Subscription
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/admin/customers/{customerId}/subscriptions`
+*   **Description:** Crée un nouvel abonnement pour un client (admin uniquement)
+*   **Request Body:**
+    ```json
+    {
+      "planId": "plan_premium",
+      "startDate": "2024-01-01T00:00:00Z",
+      "autoRenew": true,
+      "trialPeriodDays": 30,
+      "metadata": {
+        "createdBy": "admin",
+        "notes": "Special arrangement"
+      }
+    }
+    ```
+*   **Response:**
+    *   `201 Created`: Returns new subscription details
+*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
+
+**Note technique** : Toutes ces opérations communiquent avec le Customer Service via HTTP et propagent les changements via Kafka pour assurer la cohérence des données dans le système.
+
+---
+
+## 6. Type Definitions
 
 ### 5.1. Customer
 ```typescript

@@ -29,6 +29,9 @@ export class User {
   @Column({ nullable: true })
   picture: string;
 
+  @Column({ nullable: true })
+  organizationId: string;
+
   @Column({ nullable: true, name: 'customer_account_id' })
   customerAccountId: string;
 

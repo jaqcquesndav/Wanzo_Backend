@@ -4,6 +4,7 @@ import { SubscriptionEventTopics } from './subscription-events';
 import type { SubscriptionChangedEvent } from './subscription-events';
 import { BusinessOperationEventTopics } from './commerce-operations';
 import type { BusinessOperationCreatedEvent, BusinessOperationUpdatedEvent, BusinessOperationDeletedEvent } from './commerce-operations';
+import { StandardKafkaTopics } from './standard-kafka-topics';
 
 // #region Core Enums and Interfaces
 

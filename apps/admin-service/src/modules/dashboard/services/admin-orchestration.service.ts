@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AdminCalculatorService } from '../calculators/admin-calculator.service';
 import { User } from '../../users/entities/user.entity';
 import { Customer, CustomerType, CustomerStatus } from '../../customers/entities/customer.entity';
-import { DashboardQueryParamsDto } from '../dto/dashboard-query-params.dto';
+import { DashboardQueryParamsDto } from '../dtos';
 
 export interface AdminMetrics {
   // Métriques utilisateurs
@@ -37,6 +37,19 @@ export interface AdminMetrics {
   averageMonthlyConsumption: number;
   consumptionByService: Record<string, number>;
   tokenUtilizationRate: number;
+  
+  // Métriques ADHA (Credit AI Service)
+  adhaMetrics?: {
+    totalCreditApplications: number;
+    pendingApplications: number;
+    approvedApplications: number;
+    rejectedApplications: number;
+    approvalRate: number;
+    averageProcessingTime: number; // en minutes
+    averageCreditScore: number;
+    applicationsByRiskLevel: Record<string, number>; // low, medium, high
+    monthlyApplicationTrend: Array<{ month: string; count: number }>;
+  };
   
   // Métriques système
   cpuUsage: number;
@@ -117,6 +130,7 @@ export class AdminOrchestrationService {
       customerMetrics,
       revenueMetrics,
       tokenMetrics,
+      adhaMetrics,
       systemMetrics,
       apiMetrics,
       performanceMetrics,
@@ -125,6 +139,7 @@ export class AdminOrchestrationService {
       this.calculatorService.calculateCustomerMetrics(dateRange, companyId),
       this.calculatorService.calculateRevenueMetrics(dateRange, companyId),
       this.calculatorService.calculateTokenMetrics(dateRange, companyId),
+      this.calculatorService.calculateAdhaMetrics(dateRange, companyId),
       this.calculatorService.calculateSystemMetrics(dateRange),
       this.calculatorService.calculateAPIMetrics(dateRange, companyId),
       this.calculatorService.calculatePerformanceMetrics(dateRange, companyId),
@@ -160,6 +175,9 @@ export class AdminOrchestrationService {
       averageMonthlyConsumption: tokenMetrics.averageMonthlyConsumption,
       consumptionByService: tokenMetrics.consumptionByService,
       tokenUtilizationRate: tokenMetrics.tokenUtilizationRate,
+      
+      // Métriques ADHA
+      adhaMetrics: adhaMetrics || undefined,
       
       // Métriques système
       cpuUsage: systemMetrics.cpuUsage,
@@ -252,11 +270,30 @@ export class AdminOrchestrationService {
   }
 
   private getDateRange(queryParams?: DashboardQueryParamsDto): { startDate: Date; endDate: Date } {
-    if (queryParams?.startDate && queryParams?.endDate) {
-      return { 
-        startDate: new Date(queryParams.startDate), 
-        endDate: new Date(queryParams.endDate) 
-      };
+    // Vérifier si period est défini
+    if (queryParams?.period) {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (queryParams.period) {
+        case 'daily':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'weekly':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'monthly':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarterly':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'yearly':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      
+      return { startDate, endDate: now };
     }
 
     // Par défaut, utiliser le mois courant

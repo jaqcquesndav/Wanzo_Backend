@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AccountService } from '../../accounts/services/account.service';
 import { JournalService } from '../../journals/services/journal.service';
 import { AccountingOrchestrationService } from './accounting-orchestration.service';
+import { CreditScoringService } from '../../credit-score/services/credit-scoring.service';
 // import { TaxService } from '../../taxes/services/tax.service';
 // import { TreasuryService } from '../../treasury/services/treasury.service';
 import { DashboardFilterDto, PeriodType, ComparisonType } from '../dtos/dashboard.dto';
@@ -15,6 +16,7 @@ export class DashboardService {
     private accountService: AccountService,
     private journalService: JournalService,
     private orchestrationService: AccountingOrchestrationService,
+    private creditScoringService: CreditScoringService,
     // private taxService: TaxService,
     // private treasuryService: TreasuryService,
   ) {}
@@ -371,9 +373,32 @@ export class DashboardService {
       filters
     );
 
-    // Calculer un score de crédit basé sur les métriques financières
-    const creditScore = this.calculateCreditScore(metrics);
-    const financialRating = this.calculateFinancialRating(creditScore);
+    // Utiliser le service de cote crédit consolidé au lieu du calcul local
+    let creditScore = 0;
+    let financialRating = 'N/A';
+    
+    if (filters.companyId) {
+      try {
+        const creditResult = await this.creditScoringService.calculateCreditScore({
+          companyId: filters.companyId,
+          startDate: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000), // 6 mois
+          endDate: new Date(),
+          method: 'hybrid' // Utilise la méthode hybride pour le meilleur résultat
+        });
+        
+        creditScore = creditResult.score.score;
+        financialRating = this.mapScoreToRating(creditScore);
+      } catch (error) {
+        this.logger.warn(`Could not get credit score for company ${filters.companyId}, falling back to calculated score`);
+        // Fallback vers l'ancien calcul si le service consolidé échoue
+        creditScore = this.calculateCreditScore(metrics);
+        financialRating = this.calculateFinancialRating(creditScore);
+      }
+    } else {
+      // Fallback vers l'ancien calcul si pas de companyId
+      creditScore = this.calculateCreditScore(metrics);
+      financialRating = this.calculateFinancialRating(creditScore);
+    }
 
     return {
       creditScore,
@@ -561,5 +586,22 @@ export class DashboardService {
     if (creditScore >= 450) return "BBB";
     if (creditScore >= 400) return "BB";
     return "B";
+  }
+
+  /**
+   * Convertit un score 1-100 en rating financier (compatible avec le service consolidé)
+   */
+  private mapScoreToRating(score: number): string {
+    if (score >= 90) return "AAA";
+    if (score >= 80) return "AA+";
+    if (score >= 75) return "AA"; 
+    if (score >= 70) return "AA-";
+    if (score >= 65) return "A+";
+    if (score >= 60) return "A";
+    if (score >= 55) return "A-";
+    if (score >= 50) return "BBB";
+    if (score >= 40) return "BB";
+    if (score >= 30) return "B";
+    return "C";
   }
 }

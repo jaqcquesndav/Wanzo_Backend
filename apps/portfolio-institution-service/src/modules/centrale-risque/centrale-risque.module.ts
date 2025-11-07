@@ -23,6 +23,7 @@ import {
   CentraleRisqueStorageService,
   CentraleRisqueService 
 } from './services';
+import { PortfolioCreditScoreEventConsumerService } from './services/credit-consumer.service';
 
 // Controllers
 import { 
@@ -50,7 +51,8 @@ import {
     RiskApiService,
     CentraleRisqueApiService,
     CentraleRisqueStorageService,
-    CentraleRisqueService
+    CentraleRisqueService,
+    PortfolioCreditScoreEventConsumerService
   ],
   controllers: [
     RiskController,

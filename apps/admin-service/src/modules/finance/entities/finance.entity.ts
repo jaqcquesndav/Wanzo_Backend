@@ -63,23 +63,6 @@ export enum TransactionStatus {
   REJECTED = 'rejected',
 }
 
-export enum TokenType {
-  WANZO_CREDIT = 'wanzo_credit',
-  API_CALL = 'api_call',
-  STORAGE_GB = 'storage_gb',
-  PROCESSING_UNIT = 'processing_unit',
-  GENERIC = 'generic',
-}
-
-export enum TokenTransactionType {
-  PURCHASE = 'purchase',
-  USAGE = 'usage',
-  REFUND = 'refund',
-  ADJUSTMENT = 'adjustment',
-  EXPIRY = 'expiry',
-  BONUS = 'bonus',
-}
-
 // Entities based on documentation
 
 @Entity('subscription_plans')
@@ -102,8 +85,54 @@ export class SubscriptionPlan {
   @Column({ type: 'enum', enum: BillingCycle })
   billingCycle: BillingCycle;
 
-  @Column('simple-array')
-  features: string[];
+  // ===== TOKENS INCLUS DANS LE PLAN =====
+  @Column('bigint', { default: 0 })
+  includedTokens: number;
+
+  // Configuration moderne des tokens (compatible avec Customer Service)
+  @Column('jsonb', { nullable: true })
+  tokenConfig: {
+    monthlyTokens: number;
+    rolloverAllowed: boolean;
+    maxRolloverMonths: number;
+    rolloverLimit?: number;
+    tokenRates: {
+      creditAnalysis: number;
+      riskAssessment: number;
+      financialReporting: number;
+      complianceCheck: number;
+      marketAnalysis: number;
+      predictiveModeling: number;
+      [key: string]: number;
+    };
+  };
+
+  // Features du plan (compatible avec Customer Service)
+  @Column('jsonb', { nullable: true })
+  features: {
+    apiAccess: boolean;
+    advancedAnalytics: boolean;
+    customReporting: boolean;
+    prioritySupport: boolean;
+    multiUserAccess: boolean;
+    dataExport: boolean;
+    customIntegrations: boolean;
+    whiteLabeling: boolean;
+    dedicatedAccountManager: boolean;
+    [key: string]: any;
+  };
+
+  // Limites du plan
+  @Column('jsonb', { nullable: true })
+  limits: {
+    maxUsers: number;
+    maxAPICallsPerDay: number;
+    maxDataStorageGB: number;
+    maxReportsPerMonth: number;
+    maxCustomFields: number;
+    maxIntegrations: number;
+    [key: string]: any;
+  };
 
   @Column({ default: true })
   isActive: boolean;
@@ -177,6 +206,19 @@ export class Subscription {
 
   @Column('text', { nullable: true })
   cancellationReason: string;
+
+  // ===== GESTION DES TOKENS (compatible avec Customer Service) =====
+  @Column({ name: 'tokens_included', type: 'bigint', default: 0 })
+  tokensIncluded: number;
+
+  @Column({ name: 'tokens_used', type: 'bigint', default: 0 })
+  tokensUsed: number;
+
+  @Column({ name: 'tokens_remaining', type: 'bigint', default: 0 })
+  tokensRemaining: number;
+
+  @Column({ name: 'tokens_rolled_over', type: 'bigint', default: 0, nullable: true })
+  tokensRolledOver: number;
 
   @Column('jsonb', { nullable: true })
   metadata: Record<string, any>;
@@ -374,85 +416,4 @@ export class Transaction {
 
   @UpdateDateColumn()
   updatedAt: Date;
-}
-
-@Entity('token_packages')
-export class TokenPackage {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  name: string;
-
-  @Column('text')
-  description: string;
-
-  @Column('decimal', { precision: 10, scale: 2 })
-  price: number;
-
-  @Column()
-  currency: string;
-
-  @Column('int')
-  tokensIncluded: number;
-
-  @Column({ type: 'enum', enum: TokenType })
-  tokenType: TokenType;
-
-  @Column({ default: true })
-  isActive: boolean;
-}
-
-@Entity('token_transactions')
-export class TokenTransaction {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  customerId: string;
-
-  @Column()
-  customerName: string;
-
-  @Column({ type: 'enum', enum: TokenTransactionType })
-  type: TokenTransactionType;
-
-  @Column({ type: 'enum', enum: TokenType })
-  tokenType: TokenType;
-
-  @Column('int')
-  amount: number;
-
-  @Column('int')
-  balanceAfterTransaction: number;
-
-  @Column({ type: 'timestamp' })
-  transactionDate: Date;
-
-  @Column('text')
-  description: string;
-
-  @Column({ nullable: true })
-  relatedPurchaseId: string;
-
-  @Column({ nullable: true })
-  relatedInvoiceId: string;
-}
-
-@Entity('token_balances')
-export class TokenBalance {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  customerId: string;
-
-  @Column({ type: 'enum', enum: TokenType })
-  tokenType: TokenType;
-
-  @Column('int')
-  balance: number;
-
-  @UpdateDateColumn()
-  lastUpdatedAt: Date;
 }

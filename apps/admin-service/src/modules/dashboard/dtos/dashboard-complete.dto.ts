@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
+import { AdhaMetricsDto } from './adha-metrics.dto';
 
 /**
  * User Statistics as per documentation
@@ -191,6 +192,9 @@ export class DashboardCompleteDataDto {
 
   @ApiProperty({ description: 'Token statistics' })
   tokenStatistics: TokenStatisticsDto;
+
+  @ApiPropertyOptional({ description: 'ADHA Credit AI metrics' })
+  adhaMetrics?: AdhaMetricsDto;
 
   @ApiProperty({ description: 'Recent activities' })
   recentActivities: RecentActivitiesDto[];

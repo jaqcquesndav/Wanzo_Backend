@@ -20,7 +20,7 @@ export class RouteResolverService {
       {
         service: 'admin',
         baseUrl: this.configService.get('ADMIN_SERVICE_URL', 'http://localhost:3001'),
-        prefix: 'admin',
+        prefix: 'admin/api/v1',
         healthCheck: '/health',
         scopes: ['admin:full', 'users:manage', 'settings:manage'],
         roles: ['admin', 'superadmin'],
@@ -99,17 +99,7 @@ export class RouteResolverService {
       }
     }
 
-    // 2. Cas spécial pour admin : gérer à la fois /admin/ et /admin/api/
-    if (normalizedPath.startsWith('admin/')) {
-      const adminRoute = this.routes.find(r => r.service === 'admin');
-      if (adminRoute) {
-        // Gérer le cas où le chemin commence par admin/api
-        this.logger.debug(`Resolved path ${path} to service admin (special case)`);
-        return adminRoute;
-      }
-    }
-
-    // 3. Cas classique : préfixe direct
+    // 2. Cas classique : préfixe direct
     const route = this.routes.find(r => normalizedPath.startsWith(r.prefix));
     if (route) {
       this.logger.debug(`Resolved path ${path} to service ${route.service}`);
@@ -146,16 +136,6 @@ export class RouteResolverService {
   }
 
   stripPrefix(path: string, prefix: string): string {
-    // Pour le service admin, traiter de manière spéciale
-    if (prefix === 'admin' && path.startsWith('/admin/')) {
-      // Si le chemin commence par /admin/api/, supprimer admin/api
-      if (path.startsWith('/admin/api/')) {
-        return path.substring('/admin/api'.length);
-      }
-      // Sinon, supprimer simplement admin
-      return path.substring('/admin'.length);
-    }
-
     // Comportement normal - s'assurer que le préfixe commence par /
     const normalizedPrefix = prefix.startsWith('/') ? prefix : `/${prefix}`;
     if (path.startsWith(normalizedPrefix)) {

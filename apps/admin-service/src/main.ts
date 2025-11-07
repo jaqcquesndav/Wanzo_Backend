@@ -82,8 +82,8 @@ async function bootstrap() {
     defaultVersion: '1',
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api');
+  // REMOVED: Global prefix to match accounting service pattern
+  // app.setGlobalPrefix('api');
 
   // Security middleware
   app.use(helmet());

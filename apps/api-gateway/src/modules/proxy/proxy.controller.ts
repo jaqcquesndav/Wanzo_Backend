@@ -409,10 +409,10 @@ export class ProxyController {
     }
   }
 
-  @All('admin/*')
+  @All('admin/api/v1/*')
   @ApiOperation({ 
     summary: 'Proxy to Admin Service',
-    description: 'Routes all requests starting with admin/ to the admin service'
+    description: 'Routes all requests starting with admin/api/v1 to the admin service'
   })
   @ApiResponse({ status: 200, description: 'Request successfully proxied' })
   @ApiResponse({ status: 404, description: 'Service not found' })
@@ -434,22 +434,27 @@ export class ProxyController {
     }
     
     try {
-      // Extract path after 'admin'
-      const targetPath = path.startsWith('/admin/api/') 
-        ? path.substring('/admin/api'.length) 
-        : path.substring('/admin'.length);
+      // Extract path after 'admin/api/v1' (same pattern as accounting service)
+      const targetPath = path.replace('/admin/api/v1', '');
       
       const adminServiceUrl = this.configService.get('ADMIN_SERVICE_URL', 'http://kiota-admin-service-dev:3001');
-      const targetUrl = `${adminServiceUrl}/api${targetPath}`;
+      const targetUrl = `${adminServiceUrl}${targetPath}`;
       
-      this.logger.log(`🎯 Target URL: ${targetUrl}`);
+      this.logger.log(`📡 Forwarding to: ${targetUrl}`);
       
-      // Prepare headers for forwarding
-      const forwardHeaders = { ...headers };
-      delete forwardHeaders.host;
+      // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = adminServiceUrl.replace('http://', '').replace('https://', '');
+      const forwardHeaders = {
+        ...headers,
+        host: serviceHost
+      };
       delete forwardHeaders['content-length'];
       
-      this.logger.log(`📤 Forwarding ${method} request to admin service...`);
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`� Authorization header set in forward headers`);
+      }
       
       const response = await axios({
         method: method.toLowerCase() as any,
@@ -496,7 +501,7 @@ export class ProxyController {
       timestamp: new Date().toISOString(),
       availableRoutes: [
         'GET /health - API Gateway health check',
-        'ANY /admin/* - Admin service routes',
+        'ANY /admin/api/v1/* - Admin service routes',
         'ANY /land/api/v1/* - Customer service routes',
         'ANY /portfolio/api/v1/* - Portfolio Institution service routes',
         'ANY /adha/api/v1/* - Adha AI service routes',

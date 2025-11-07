@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { CreditScoreService } from './services/credit-score.service';
-import { CreditScoreMLService } from './services/credit-score-ml.service';
+import { CreditScoringService } from './services/credit-scoring.service';
+import { CreditEventsService } from './services/credit-events.service';
+import { RealTimeCreditMonitoringService } from './services/credit-monitoring.service';
 import { CreditScoreController } from './controllers/credit-score.controller';
 import { JournalsModule } from '../journals/journals.module';
 
@@ -13,8 +15,8 @@ import { JournalsModule } from '../journals/journals.module';
       maxRedirects: 5,
     }),
   ],
-  providers: [CreditScoreService, CreditScoreMLService],
+  providers: [CreditScoringService, CreditEventsService, RealTimeCreditMonitoringService],
   controllers: [CreditScoreController],
-  exports: [CreditScoreService, CreditScoreMLService],
+  exports: [CreditScoringService, CreditEventsService, RealTimeCreditMonitoringService],
 })
 export class CreditScoreModule {}

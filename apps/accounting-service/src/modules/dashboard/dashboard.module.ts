@@ -7,6 +7,7 @@ import { AccountingCalculatorService } from './calculators/accounting-calculator
 import { DashboardController } from './controllers/dashboard.controller';
 import { AccountsModule } from '../accounts/accounts.module';
 import { JournalsModule } from '../journals/journals.module';
+import { CreditScoreModule } from '../credit-score/credit-score.module';
 import { Account } from '../accounts/entities/account.entity';
 import { Journal } from '../journals/entities/journal.entity';
 import { JournalLine } from '../journals/entities/journal-line.entity';
@@ -23,6 +24,7 @@ import { FiscalYear } from '../fiscal-years/entities/fiscal-year.entity';
     ScheduleModule.forRoot(),
     AccountsModule,
     JournalsModule,
+    CreditScoreModule,
   ],
   providers: [
     DashboardService,

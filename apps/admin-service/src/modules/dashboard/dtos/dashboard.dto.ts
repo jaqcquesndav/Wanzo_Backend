@@ -1,20 +1,6 @@
 import { IsString, IsOptional, IsDateString, IsEnum, IsUUID, IsObject, IsBoolean, IsNumber, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class DashboardQueryParamsDto {
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dateRange?: string;
-
-  @IsOptional()
-  @IsString()
-  timeZone?: string;
-}
-
 export class WidgetQueryParamsDto {
   @IsOptional()
   @IsUUID()

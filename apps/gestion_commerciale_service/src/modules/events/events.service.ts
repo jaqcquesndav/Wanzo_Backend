@@ -11,6 +11,9 @@ import {
   TokenTransactionEvent,
   BusinessOperationEventTopics
 } from '@wanzobe/shared/events/kafka-config';
+import { StandardKafkaTopics } from '@wanzobe/shared/events/standard-kafka-topics';
+import { MessageVersionManager } from '@wanzobe/shared/events/message-versioning';
+import { kafkaMonitoring } from '@wanzobe/shared/monitoring/kafka-monitoring.service';
 import { 
   BusinessOperationCreatedEvent, 
   BusinessOperationUpdatedEvent, 
@@ -90,6 +93,8 @@ export class EventsService {
    * @param event Données de l'opération créée
    */
   async publishBusinessOperationCreated(event: BusinessOperationCreatedEvent): Promise<void> {
+    const startTime = Date.now();
+    
     this.logger.log(`Publishing business operation created event: ${JSON.stringify({
       id: event.id,
       type: event.type,
@@ -99,23 +104,27 @@ export class EventsService {
     })}`);
     
     try {
-      // Create standardized message with proper metadata
-      const standardMessage = {
-        eventType: 'commerce.operation.created',
-        data: event,
-        metadata: {
-          source: 'gestion_commerciale',
-          correlationId: this.generateCorrelationId(),
-          timestamp: new Date().toISOString(),
-          version: '1.0.0'
-        }
-      };
+      // Create standardized message with versioning
+      const standardMessage = MessageVersionManager.createStandardMessage(
+        StandardKafkaTopics.COMMERCE_OPERATION_CREATED,
+        event,
+        'gestion_commerciale',
+        this.generateCorrelationId()
+      );
 
-      this.eventsClient.emit(BusinessOperationEventTopics.OPERATION_CREATED, standardMessage);
-      this.logger.log(`Successfully published ${BusinessOperationEventTopics.OPERATION_CREATED} event`);
+      this.eventsClient.emit(StandardKafkaTopics.COMMERCE_OPERATION_CREATED, standardMessage);
+      
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.COMMERCE_OPERATION_CREATED, processingTime, true);
+      
+      this.logger.log(`Successfully published ${StandardKafkaTopics.COMMERCE_OPERATION_CREATED} event in ${processingTime}ms`);
     } catch (error) {
+      const processingTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error publishing ${BusinessOperationEventTopics.OPERATION_CREATED}: ${errorMessage}`, 
+      
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.COMMERCE_OPERATION_CREATED, processingTime, false);
+      
+      this.logger.error(`Error publishing ${StandardKafkaTopics.COMMERCE_OPERATION_CREATED}: ${errorMessage} (failed after ${processingTime}ms)`, 
         error instanceof Error ? error.stack : undefined);
       throw error;
     }
@@ -174,7 +183,14 @@ export class EventsService {
     this.logger.log(`Publishing organization sync request: ${JSON.stringify(event)}`);
     
     try {
-      this.eventsClient.emit('organization.sync.request', event);
+      // Créer message standardisé
+      const standardMessage = MessageVersionManager.createStandardMessage(
+        StandardKafkaTopics.ORGANIZATION_SYNC_REQUEST,
+        event,
+        'gestion_commerciale_service'
+      );
+      
+      this.eventsClient.emit(StandardKafkaTopics.ORGANIZATION_SYNC_REQUEST, standardMessage);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error publishing organization sync request: ${errorMessage}`,

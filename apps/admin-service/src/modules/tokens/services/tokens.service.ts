@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TokenPackage, TokenBalance, TokenTransaction, TokenUsage, CustomerType, TokenTransactionType, AppType } from '../entities/token.entity';
+import { TokenPackage, TokenBalance, TokenTransaction, TokenUsage } from '../entities/token.entity';
+import { CustomerType, TokenTransactionType, AppType } from '../../../shared/enums';
 import { 
     TokenBalanceDto, 
     TokenPackagesResponseDto, 

@@ -1,6 +1,9 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { StandardKafkaTopics } from '@wanzobe/shared/events/standard-kafka-topics';
+import { MessageVersionManager } from '@wanzobe/shared/events/message-versioning';
+import { kafkaMonitoring } from '@wanzobe/shared/monitoring/kafka-monitoring.service';
 
 @Injectable()
 export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
@@ -61,7 +64,9 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
     success: boolean,
     message?: string,
   ): Promise<void> {
-    const statusMessage = {
+    const startTime = Date.now();
+    
+    const statusData = {
       journalEntryId,
       sourceId,
       success,
@@ -69,8 +74,31 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
       timestamp: new Date().toISOString(),
       processedBy: 'accounting-service',
     };
+
+    // Créer un message standardisé avec versioning
+    const standardMessage = MessageVersionManager.createStandardMessage(
+      StandardKafkaTopics.ACCOUNTING_JOURNAL_STATUS,
+      statusData,
+      'accounting-service'
+    );
+
+    this.logger.log(`Sending journal entry processing status: ${JSON.stringify(statusData)}`);
     
-    await this.sendMessage('accounting.journal.status', statusMessage);
+    try {
+      await this.sendMessage(StandardKafkaTopics.ACCOUNTING_JOURNAL_STATUS, standardMessage);
+      
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.ACCOUNTING_JOURNAL_STATUS, processingTime, true);
+      
+      this.logger.log(`Successfully sent status message in ${processingTime}ms`);
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.ACCOUNTING_JOURNAL_STATUS, processingTime, false);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to send status message after ${processingTime}ms: ${errorMessage}`);
+      throw error;
+    }
   }
 
   // Example of sending a message and waiting for a response (Request-Reply pattern)

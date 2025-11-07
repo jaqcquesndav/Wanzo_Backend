@@ -17,6 +17,7 @@ from .robust_kafka_client import (
     kafka_config,
     MessageStandardizer
 )
+import time
 from api.services.task_router import task_router
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,9 @@ class UnifiedConsumer:
         Traite les messages en continu et les route vers le service approprié.
         Avec gestion d'erreurs robuste et retry automatique.
         """
+        start_time = time.time()
+        topic = message.get('metadata', {}).get('kafka_topic', 'unknown')
+        
         try:
             # Extraire les métadonnées
             metadata = message.get('metadata', {})
@@ -77,7 +81,7 @@ class UnifiedConsumer:
             message_id = message.get('id', 'unknown')
             correlation_id = metadata.get('correlation_id', 'unknown')
             
-            logger.info(f"Processing message {message_id} (correlation: {correlation_id})")
+            logger.info(f"Processing message {message_id} (correlation: {correlation_id}) from topic {topic}")
             
             # Enrichir le message avec des métadonnées de traitement
             if 'processing_metadata' not in data:
@@ -92,16 +96,35 @@ class UnifiedConsumer:
             # Router le message vers le service approprié
             response = task_router.route_task(data)
             
+            processing_time = (time.time() - start_time) * 1000  # Convertir en ms
+            
             if response and 'error' in response:
-                logger.error(f"Error processing message {message_id}: {response.get('error')}")
+                logger.error(f"Error processing message {message_id}: {response.get('error')} (processed in {processing_time:.2f}ms)")
                 self._handle_processing_error(message, response.get('error'))
+                # Note: Le monitoring d'erreur sera fait dans _handle_processing_error
             else:
-                logger.info(f"Successfully processed message {message_id} of type: {response.get('type', 'unknown')}")
+                logger.info(f"Successfully processed message {message_id} of type: {response.get('type', 'unknown')} in {processing_time:.2f}ms")
                 self.error_count = max(0, self.error_count - 1)  # Réduire le compteur d'erreurs
                 
+                # Enregistrer les métriques de succès
+                try:
+                    # Import dynamique pour éviter les dépendances circulaires
+                    import logging
+                    # Pour l'instant, on log les métriques. Plus tard on pourra intégrer un système de monitoring Python
+                    logger.debug(f"METRICS: message_received_success topic={topic} processing_time={processing_time:.2f}ms")
+                except Exception as metrics_error:
+                    logger.warning(f"Failed to record success metrics: {str(metrics_error)}")
+                
         except Exception as e:
-            logger.exception(f"Critical error processing message: {str(e)}")
+            processing_time = (time.time() - start_time) * 1000
+            logger.exception(f"Critical error processing message: {str(e)} (failed after {processing_time:.2f}ms)")
             self._handle_processing_error(message, str(e))
+            
+            # Enregistrer les métriques d'erreur
+            try:
+                logger.debug(f"METRICS: message_received_error topic={topic} processing_time={processing_time:.2f}ms error={str(e)}")
+            except Exception as metrics_error:
+                logger.warning(f"Failed to record error metrics: {str(metrics_error)}")
     
     def _handle_processing_error(self, message: Dict[str, Any], error: str):
         """

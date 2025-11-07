@@ -61,6 +61,18 @@ export interface PerformanceMetrics {
   platformStabilityScore: number;
 }
 
+export interface AdhaMetrics {
+  totalCreditApplications: number;
+  pendingApplications: number;
+  approvedApplications: number;
+  rejectedApplications: number;
+  approvalRate: number;
+  averageProcessingTime: number; // en minutes
+  averageCreditScore: number;
+  applicationsByRiskLevel: Record<string, number>; // low, medium, high
+  monthlyApplicationTrend: Array<{ month: string; count: number }>;
+}
+
 @Injectable()
 export class AdminCalculatorService {
   private readonly logger = new Logger(AdminCalculatorService.name);
@@ -306,6 +318,47 @@ export class AdminCalculatorService {
   }
 
   /**
+   * Calculer les métriques ADHA (Credit AI Service)
+   */
+  async calculateAdhaMetrics(
+    dateRange: { startDate: Date; endDate: Date },
+    companyId?: string
+  ): Promise<AdhaMetrics | null> {
+    try {
+      // TODO: Implémenter l'appel HTTP vers le service ADHA
+      // Pour l'instant, retourner des données simulées
+      
+      this.logger.debug('Calculating ADHA metrics (simulated data)');
+      
+      // Simuler des métriques ADHA réalistes
+      const totalApplications = Math.floor(Math.random() * 500) + 300;
+      const approved = Math.floor(totalApplications * 0.65);
+      const rejected = Math.floor(totalApplications * 0.25);
+      const pending = totalApplications - approved - rejected;
+      
+      return {
+        totalCreditApplications: totalApplications,
+        pendingApplications: pending,
+        approvedApplications: approved,
+        rejectedApplications: rejected,
+        approvalRate: parseFloat(((approved / totalApplications) * 100).toFixed(2)),
+        averageProcessingTime: this.generateRealisticMetric(45, 15), // minutes
+        averageCreditScore: this.generateRealisticMetric(680, 50),
+        applicationsByRiskLevel: {
+          low: Math.floor(totalApplications * 0.35),
+          medium: Math.floor(totalApplications * 0.45),
+          high: Math.floor(totalApplications * 0.20),
+        },
+        monthlyApplicationTrend: this.generateMonthlyTrend(6, 50, 150),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error calculating ADHA metrics: ${errorMessage}`);
+      return null;
+    }
+  }
+
+  /**
    * Calculer les métriques API
    */
   async calculateAPIMetrics(
@@ -535,6 +588,20 @@ export class AdminCalculatorService {
   private generateRealisticMetric(base: number, variance: number): number {
     const variation = (Math.random() - 0.5) * variance * 2;
     return Math.max(0, Math.round((base + variation) * 100) / 100);
+  }
+
+  private generateMonthlyTrend(months: number, baseValue: number, variance: number): Array<{ month: string; count: number }> {
+    const trend: Array<{ month: string; count: number }> = [];
+    const now = new Date();
+    
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = date.toISOString().substring(0, 7); // Format: YYYY-MM
+      const count = Math.floor(baseValue + (Math.random() - 0.5) * variance);
+      trend.push({ month: monthStr, count: Math.max(0, count) });
+    }
+    
+    return trend;
   }
 
   private calculateSystemHealthScore(systemMetrics: SystemMetrics): number {

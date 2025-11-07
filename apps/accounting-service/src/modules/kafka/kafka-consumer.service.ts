@@ -38,23 +38,23 @@ export interface AccountingJournalEntryDto {
   sourceType: string;
   clientId: string;
   companyId: string;
-  date: string;
+  date: string;                        // Format ISO 8601
   description: string;
   amount: number;
-  currency: string;
-  createdAt: string;
+  currency: string;                    // CDF, USD, EUR
+  createdAt: string;                   // Format ISO 8601
   createdBy: string;
-  status: string;
-  journalType: string;
-  lines: AccountingJournalLineDto[];
+  status: string;                      // pending, validated, posted, cancelled, error
+  journalType: string;                 // sales, purchases, financial, inventory, etc.
+  lines: AccountingJournalLineDto[];   // Minimum 2 lignes
   metadata?: Record<string, any>;
 }
 
 export interface AccountingJournalLineDto {
-  accountCode: string;
-  label: string;
-  debit: number;
-  credit: number;
+  accountCode: string;                 // Code compte SYSCOHADA
+  description: string;                 // Standardisé sur 'description' au lieu de 'label'
+  debit: number;                       // Montant débit (obligatoire, 0 si pas de débit)
+  credit: number;                      // Montant crédit (obligatoire, 0 si pas de crédit)
 }
 
 
@@ -71,6 +71,82 @@ export class KafkaConsumerService {
     private readonly configService: ConfigService,
     private readonly kafkaProducerService: KafkaProducerService,
   ) {}
+
+  /**
+   * Valide une écriture comptable avec validation stricte
+   */
+  private validateJournalEntry(data: AccountingJournalEntryDto): {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    isBalanced: boolean;
+    totalDebit: number;
+    totalCredit: number;
+    difference: number;
+  } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Validation des champs obligatoires
+    if (!data.id) errors.push('ID is required');
+    if (!data.sourceId) errors.push('Source ID is required');
+    if (!data.clientId) errors.push('Client ID is required');
+    if (!data.companyId) errors.push('Company ID is required');
+    if (!data.date) errors.push('Date is required');
+    if (!data.description) errors.push('Description is required');
+    if (!data.lines || data.lines.length < 2) {
+      errors.push('At least 2 journal lines are required');
+    }
+
+    // Validation des lignes et calcul des totaux
+    const totalDebit = data.lines?.reduce((sum, line) => sum + (line.debit || 0), 0) || 0;
+    const totalCredit = data.lines?.reduce((sum, line) => sum + (line.credit || 0), 0) || 0;
+    const difference = Math.abs(totalDebit - totalCredit);
+    const isBalanced = difference < 0.01; // Tolérance de 1 centime
+
+    if (!isBalanced) {
+      errors.push(`Journal entry is not balanced. Difference: ${difference.toFixed(2)}`);
+    }
+
+    // Validation des lignes individuelles
+    data.lines?.forEach((line, index) => {
+      if (!line.accountCode) {
+        errors.push(`Line ${index + 1}: Account code is required`);
+      }
+      if (!line.description) {
+        errors.push(`Line ${index + 1}: Description is required`);
+      }
+      if (line.debit < 0 || line.credit < 0) {
+        errors.push(`Line ${index + 1}: Debit and credit must be positive`);
+      }
+      if (line.debit > 0 && line.credit > 0) {
+        warnings.push(`Line ${index + 1}: Both debit and credit are positive`);
+      }
+      if (line.debit === 0 && line.credit === 0) {
+        errors.push(`Line ${index + 1}: Either debit or credit must be positive`);
+      }
+    });
+
+    // Validation de la devise
+    if (!data.currency || !['CDF', 'USD', 'EUR'].includes(data.currency)) {
+      warnings.push(`Unsupported or missing currency: ${data.currency}`);
+    }
+
+    // Validation du montant total
+    if (data.amount && Math.abs(data.amount - Math.max(totalDebit, totalCredit)) > 0.01) {
+      warnings.push(`Amount mismatch: stated ${data.amount} vs calculated ${Math.max(totalDebit, totalCredit)}`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      isBalanced,
+      totalDebit,
+      totalCredit,
+      difference,
+    };
+  }
 
   @EventPattern('mobile.transaction.created') // Listen to this Kafka topic
   async handleMobileTransactionCreated(@Payload() data: MobileTransactionPayloadDto) {
@@ -146,6 +222,10 @@ export class KafkaConsumerService {
   // Gestionnaire pour les écritures comptables générées par ADHA AI
   @EventPattern('accounting.journal.entry')
   async handleAccountingJournalEntry(@Payload() data: AccountingJournalEntryDto) {
+    const startTime = Date.now();
+    const processingTimeout = 30000; // 30 secondes
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     this.logger.log(`Received accounting journal entry: ${JSON.stringify({
       id: data.id,
       sourceId: data.sourceId,
@@ -156,21 +236,48 @@ export class KafkaConsumerService {
       journalType: data.journalType,
     })}`);
 
-    // Valider les données reçues
-    const missingFields: string[] = [];
-    if (!data.id) missingFields.push('id');
-    if (!data.sourceId) missingFields.push('sourceId');
-    if (!data.clientId) missingFields.push('clientId');
-    if (!data.companyId) missingFields.push('companyId');
-    if (!data.date) missingFields.push('date');
-    if (!data.description) missingFields.push('description');
-    if (!data.lines || data.lines.length < 2) missingFields.push('lines');
-    
-    if (missingFields.length > 0) {
+    // Configurer le timeout de traitement
+    timeoutId = setTimeout(() => {
+      this.logger.warn(`Processing timeout (${processingTimeout}ms) exceeded for journal entry ${data.id}`);
+      // Envoyer une notification d'échec pour timeout
+      this.kafkaProducerService.sendJournalEntryProcessingStatus(
+        data.id,
+        data.sourceId,
+        false,
+        `Processing timeout exceeded (${processingTimeout}ms)`
+      ).catch(err => {
+        this.logger.error(`Failed to send timeout notification for ${data.id}: ${err.message}`);
+      });
+    }, processingTimeout);
+
+    // Validation stricte des données reçues
+    const validationResult = this.validateJournalEntry(data);
+    if (!validationResult.isValid) {
       this.logger.warn(
-        `Rejected accounting journal entry: missing or invalid fields: ${missingFields.join(', ')}.`
+        `Rejected accounting journal entry ${data.id}: ${validationResult.errors.join(', ')}`
       );
+      
+      // Envoyer notification d'échec de validation
+      try {
+        await this.kafkaProducerService.sendJournalEntryProcessingStatus(
+          data.id,
+          data.sourceId,
+          false,
+          `Validation failed: ${validationResult.errors.join(', ')}`
+        );
+      } catch (notifyError: any) {
+        this.logger.error(`Failed to send validation error notification for ${data.id}: ${notifyError.message}`);
+      }
+      
+      if (timeoutId) clearTimeout(timeoutId);
       return;
+    }
+    
+    // Log des avertissements de validation
+    if (validationResult.warnings.length > 0) {
+      this.logger.warn(
+        `Journal entry ${data.id} validation warnings: ${validationResult.warnings.join(', ')}`
+      );
     }
 
     try {
@@ -227,7 +334,7 @@ export class KafkaConsumerService {
         currency: data.currency,
         lines: data.lines.map(line => ({
           accountCode: line.accountCode,
-          description: line.label || '',
+          description: line.description || '',  // Corrigé: utilise 'description' au lieu de 'label'
           debit: line.debit,
           credit: line.credit
         }))
@@ -237,13 +344,19 @@ export class KafkaConsumerService {
         `Successfully created journal entry from external source: ${journalEntry.id} for company ${data.companyId}`
       );
       
+      // Calculer le temps de traitement
+      const processingTime = Date.now() - startTime;
+      this.logger.log(
+        `Successfully created journal entry from external source: ${journalEntry.id} for company ${data.companyId} in ${processingTime}ms`
+      );
+      
       // Envoyer une confirmation de succès
       try {
         await this.kafkaProducerService.sendJournalEntryProcessingStatus(
           data.id,
           data.sourceId,
           true,
-          `Successfully created journal entry: ${journalEntry.id}`
+          `Successfully created journal entry: ${journalEntry.id} (processed in ${processingTime}ms)`
         );
       } catch (confirmError: any) {
         this.logger.warn(
@@ -251,9 +364,10 @@ export class KafkaConsumerService {
         );
       }
     } catch (error: any) {
+      const processingTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `Failed to process accounting journal entry ${data.id}: ${errorMessage}`,
+        `Failed to process accounting journal entry ${data.id}: ${errorMessage} (failed after ${processingTime}ms)`,
         error.stack,
       );
       
@@ -263,12 +377,17 @@ export class KafkaConsumerService {
           data.id,
           data.sourceId,
           false,
-          `Failed to process: ${errorMessage}`
+          `Failed to process: ${errorMessage} (failed after ${processingTime}ms)`
         );
       } catch (confirmError: any) {
         this.logger.warn(
           `Failed to send error notification for journal entry ${data.id}: ${confirmError.message || 'Unknown error'}`
         );
+      }
+    } finally {
+      // Nettoyer le timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
     }
   }

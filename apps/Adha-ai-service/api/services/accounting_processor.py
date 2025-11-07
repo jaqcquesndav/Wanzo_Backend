@@ -1,18 +1,77 @@
 """
 Module pour transformer les opérations commerciales en écritures comptables et
 gérer les retours de statut des écritures traitées par le service comptable.
+Version standardisée avec base de connaissances SYSCOHADA.
 """
 
 import logging
 from datetime import datetime
 import uuid
+import os
+import sys
 from typing import Dict, Any, Optional
+
+# Ajout du chemin pour la base de connaissances
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+
+from financial_engine.knowledge_bases.accounting_rdc import AccountingKnowledgeRDC
 
 logger = logging.getLogger(__name__)
 
+# Initialisation de la base de connaissances SYSCOHADA
+knowledge_base = AccountingKnowledgeRDC()
+
+def validate_operation(operation: Dict[str, Any]) -> bool:
+    """
+    Valide une opération commerciale avant traitement
+    """
+    required_fields = ['id', 'type', 'date', 'description', 'amountCdf', 'clientId', 'companyId']
+    missing_fields = [field for field in required_fields if field not in operation or not operation[field]]
+    
+    if missing_fields:
+        logger.error(f"Missing required fields in operation: {', '.join(missing_fields)}")
+        return False
+    
+    # Validation du type d'opération avec la base de connaissances
+    operation_type = operation.get('type', '').upper()
+    mapping = knowledge_base.get_account_mapping_for_operation(operation_type)
+    if not mapping:
+        logger.error(f"Unsupported operation type: {operation_type}")
+        return False
+    
+    # Validation du montant
+    try:
+        amount = float(operation.get('amountCdf', 0))
+        if amount <= 0:
+            logger.error(f"Invalid amount: {amount}")
+            return False
+    except (ValueError, TypeError):
+        logger.error(f"Invalid amount format: {operation.get('amountCdf')}")
+        return False
+    
+    return True
+
+
+def validate_journal_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Valide une écriture comptable avec la base de connaissances SYSCOHADA
+    """
+    return knowledge_base.validate_journal_entry(entry)
+    
+    return {
+        'is_valid': len(errors) == 0,
+        'is_balanced': is_balanced,
+        'errors': errors,
+        'warnings': warnings,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
+        'difference': difference
+    }
+
+
 def process_business_operation(operation):
     """
-    Traite une opération commerciale et la convertit en écriture comptable
+    Traite une opération commerciale et la convertit en écriture comptable standardisée
     
     Args:
         operation (dict): Les données de l'opération commerciale
@@ -21,136 +80,74 @@ def process_business_operation(operation):
         dict: L'écriture comptable générée ou None en cas d'erreur
     """
     try:
-        operation_type = operation.get('type')
-        client_id = operation.get('clientId')
-        company_id = operation.get('companyId')
-        
-        # Vérification des données obligatoires
-        required_fields = ['id', 'type', 'date', 'description', 'amountCdf', 'clientId', 'companyId']
-        missing_fields = [field for field in required_fields if field not in operation or not operation[field]]
-        
-        if missing_fields:
-            logger.error(f"Missing required fields in operation: {', '.join(missing_fields)}")
+        # Validation préalable
+        if not validate_operation(operation):
             return None
             
-        # Conversion des types d'opérations en écritures comptables
+        operation_type = operation.get('type', '').upper()
+        client_id = operation.get('clientId')
+        company_id = operation.get('companyId')
+        amount = float(operation.get('amountCdf'))
+        
+        # Obtenir le mapping pour ce type d'opération depuis la base de connaissances
+        mapping = knowledge_base.get_account_mapping_for_operation(operation_type)
+        if not mapping:
+            logger.error(f"No account mapping found for operation type: {operation_type}")
+            return None
+        
+        # Créer l'écriture comptable standardisée
         journal_entry = {
             'id': str(uuid.uuid4()),
             'sourceId': operation.get('id'),
             'sourceType': 'commerce_operation',
             'clientId': client_id,
             'companyId': company_id,
-            'date': operation.get('date'),
+            'date': operation.get('date') if isinstance(operation.get('date'), str) else operation.get('date').isoformat(),
             'description': operation.get('description'),
-            'amount': float(operation.get('amountCdf')),
+            'amount': amount,
             'currency': 'CDF',
             'createdAt': datetime.now().isoformat(),
             'createdBy': 'adha-ai-service',
             'status': 'pending',
-            'lines': []
+            'journalType': mapping['journal_type'],
+            'lines': [
+                {
+                    'accountCode': mapping['debit_account'],
+                    'description': f"{operation.get('description')} - Débit",  # Standardisé sur 'description'
+                    'debit': amount,
+                    'credit': 0
+                },
+                {
+                    'accountCode': mapping['credit_account'],
+                    'description': f"{operation.get('description')} - Crédit",  # Standardisé sur 'description'
+                    'debit': 0,
+                    'credit': amount
+                }
+            ]
         }
         
-        # Créer les lignes d'écriture selon le type d'opération
-        if operation_type == 'SALE' or operation_type == 'sale':
-            # Vente: Débit Clients, Crédit Ventes
-            journal_entry['lines'] = [
-                {
-                    'accountCode': '411000', # Clients
-                    'label': f"Client - {operation.get('description')}",
-                    'debit': float(operation.get('amountCdf')),
-                    'credit': 0
-                },
-                {
-                    'accountCode': '707000', # Ventes de marchandises
-                    'label': f"Vente - {operation.get('description')}",
-                    'debit': 0,
-                    'credit': float(operation.get('amountCdf'))
-                }
-            ]
-            journal_entry['journalType'] = 'SALES'
-            
-        elif operation_type == 'EXPENSE' or operation_type == 'expense':
-            # Dépense: Débit Achats, Crédit Fournisseurs
-            journal_entry['lines'] = [
-                {
-                    'accountCode': '607000', # Achats de marchandises
-                    'label': f"Achat - {operation.get('description')}",
-                    'debit': float(operation.get('amountCdf')),
-                    'credit': 0
-                },
-                {
-                    'accountCode': '401000', # Fournisseurs
-                    'label': f"Fournisseur - {operation.get('description')}",
-                    'debit': 0,
-                    'credit': float(operation.get('amountCdf'))
-                }
-            ]
-            journal_entry['journalType'] = 'PURCHASES'
-            
-        elif operation_type == 'FINANCING' or operation_type == 'financing':
-            # Financement: Débit Banque, Crédit Emprunts
-            journal_entry['lines'] = [
-                {
-                    'accountCode': '512000', # Banque
-                    'label': f"Financement - {operation.get('description')}",
-                    'debit': float(operation.get('amountCdf')),
-                    'credit': 0
-                },
-                {
-                    'accountCode': '164000', # Emprunts
-                    'label': f"Emprunt - {operation.get('description')}",
-                    'debit': 0,
-                    'credit': float(operation.get('amountCdf'))
-                }
-            ]
-            journal_entry['journalType'] = 'FINANCIAL'
-            
-        elif operation_type == 'INVENTORY' or operation_type == 'inventory':
-            # Inventaire: Débit Stocks, Crédit Variation des stocks
-            journal_entry['lines'] = [
-                {
-                    'accountCode': '310000', # Stocks
-                    'label': f"Inventaire - {operation.get('description')}",
-                    'debit': float(operation.get('amountCdf')),
-                    'credit': 0
-                },
-                {
-                    'accountCode': '603000', # Variation des stocks
-                    'label': f"Ajustement stock - {operation.get('description')}",
-                    'debit': 0,
-                    'credit': float(operation.get('amountCdf'))
-                }
-            ]
-            journal_entry['journalType'] = 'INVENTORY'
-            
-        else:
-            # Transaction générique
-            journal_entry['lines'] = [
-                {
-                    'accountCode': '471000', # Compte d'attente
-                    'label': f"À classifier - {operation.get('description')}",
-                    'debit': float(operation.get('amountCdf')),
-                    'credit': 0
-                },
-                {
-                    'accountCode': '471100', # Compte d'attente contrepartie
-                    'label': f"Contrepartie à classifier - {operation.get('description')}",
-                    'debit': 0,
-                    'credit': float(operation.get('amountCdf'))
-                }
-            ]
-            journal_entry['journalType'] = 'MISCELLANEOUS'
-        
-        # Ajouter des métadonnées supplémentaires
+        # Ajouter des métadonnées standardisées
         journal_entry['metadata'] = {
             'sourceSystem': 'commerce_operations',
             'originalType': operation_type,
             'generatedBy': 'adha-ai-automatic-processing',
             'relatedPartyId': operation.get('relatedPartyId'),
             'relatedPartyName': operation.get('relatedPartyName', ''),
-            'needsReview': True,  # Indiquer que l'entrée doit être revue
+            'needsReview': True,
+            'generatedAt': datetime.now().isoformat(),
+            'operationMetadata': operation.get('metadata', {}),
         }
         
+        # Validation finale de l'écriture générée
+        validation_result = validate_journal_entry(journal_entry)
+        if not validation_result['is_valid']:
+            logger.error(f"Generated journal entry is invalid: {validation_result['errors']}")
+            return None
+        
+        if validation_result['warnings']:
+            logger.warning(f"Journal entry warnings: {validation_result['warnings']}")
+        
+        logger.info(f"Successfully generated balanced journal entry for operation {operation.get('id')}")
         return journal_entry
         
     except Exception as e:

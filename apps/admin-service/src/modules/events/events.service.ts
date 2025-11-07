@@ -17,6 +17,8 @@ import {
   CustomerValidatedEvent,
   CustomerSuspendedEvent,
   CustomerReactivatedEvent,
+  SubscriptionEventTopics,
+  SubscriptionChangedEvent,
   FinanceEventTopics,
   InvoiceCreatedEvent,
   InvoiceStatusChangedEvent,
@@ -35,6 +37,9 @@ import {
   InstitutionProfileUpdatedEvent,
   InstitutionStatusChangedEvent,
 } from '@wanzobe/shared';
+import { StandardKafkaTopics } from '@wanzobe/shared/events/standard-kafka-topics';
+import { MessageVersionManager } from '@wanzobe/shared/events/message-versioning';
+import { kafkaMonitoring } from '@wanzobe/shared/monitoring';
 
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {
@@ -90,8 +95,64 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     
-    this.logger.log(`Publishing to topic ${topic}: ${JSON.stringify(event)}`);
-    this.eventsClient.emit(topic, event);
+    const startTime = Date.now();
+
+    try {
+      // Vérifier si le topic fait partie des topics standardisés
+      const standardTopic = StandardKafkaTopics.isValidTopic(topic) ? topic : this.getStandardTopic(topic);
+      
+      // Créer un message standardisé avec versioning
+      const standardMessage = MessageVersionManager.createStandardMessage(
+        standardTopic,
+        event,
+        'admin-service'
+      );
+
+      this.logger.log(`Publishing to topic ${standardTopic}: ${JSON.stringify(event)}`);
+      this.eventsClient.emit(standardTopic, standardMessage);
+      
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(standardTopic, processingTime, true);
+      
+      this.logger.debug(`Successfully published to ${standardTopic} in ${processingTime}ms`);
+    } catch (error: unknown) {
+      const processingTime = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      kafkaMonitoring.recordMessageSent(topic, processingTime, false);
+      
+      this.logger.error(`Error publishing to ${topic}: ${errorMessage} (failed after ${processingTime}ms)`, 
+        error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Mappe les anciens topics vers les nouveaux topics standardisés
+   */
+  private getStandardTopic(oldTopic: string): string {
+    const topicMapping: Record<string, string> = {
+      'user.created': StandardKafkaTopics.USER_CREATED,
+      'user.updated': StandardKafkaTopics.USER_UPDATED,
+      'user.status.changed': StandardKafkaTopics.USER_STATUS_CHANGED,
+      'user.role.changed': StandardKafkaTopics.USER_ROLE_CHANGED,
+      'user.sync.request': StandardKafkaTopics.USER_SYNC_REQUEST,
+      'user.login.notification': StandardKafkaTopics.USER_LOGIN_NOTIFICATION,
+      'customer.created': StandardKafkaTopics.CUSTOMER_CREATED,
+      'customer.updated': StandardKafkaTopics.CUSTOMER_UPDATED,
+      'customer.deleted': StandardKafkaTopics.CUSTOMER_DELETED,
+      'customer.sync.request': StandardKafkaTopics.CUSTOMER_SYNC_REQUEST,
+      'customer.sync.response': StandardKafkaTopics.CUSTOMER_SYNC_RESPONSE,
+      'token.purchase': StandardKafkaTopics.TOKEN_PURCHASE,
+      'token.usage': StandardKafkaTopics.TOKEN_USAGE,
+      'token.allocated': StandardKafkaTopics.TOKEN_ALLOCATED,
+      'token.alert': StandardKafkaTopics.TOKEN_ALERT,
+      'subscription.created': StandardKafkaTopics.SUBSCRIPTION_CREATED,
+      'subscription.expired': StandardKafkaTopics.SUBSCRIPTION_EXPIRED,
+      'organization.sync.request': StandardKafkaTopics.ORGANIZATION_SYNC_REQUEST,
+    };
+
+    return topicMapping[oldTopic] || oldTopic;
   }
 
   // #region User Events
@@ -161,6 +222,36 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
 
   async publishPaymentReceived(event: PaymentReceivedEvent): Promise<void> {
     await this.emit(FinanceEventTopics.PAYMENT_RECEIVED, event);
+  }
+  // #endregion
+
+  // #region Subscription Events
+  async publishSubscriptionCreated(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_CREATED, event);
+  }
+
+  async publishSubscriptionUpdated(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_UPDATED, event);
+  }
+
+  async publishSubscriptionCancelled(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_CANCELLED, event);
+  }
+
+  async publishSubscriptionExpired(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_EXPIRED, event);
+  }
+
+  async publishSubscriptionRenewed(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_RENEWED, event);
+  }
+
+  async publishSubscriptionPlanChanged(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_PLAN_CHANGED, event);
+  }
+
+  async publishSubscriptionStatusChanged(event: SubscriptionChangedEvent): Promise<void> {
+    await this.emit(SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED, event);
   }
   // #endregion
 

@@ -9,6 +9,7 @@ import { ProspectionController } from './controllers/prospection.controller';
 import { SMEIntegrationController } from './controllers/sme-integration.controller';
 import { CompanyService } from './services/company.service';
 import { ProspectionService } from './services/prospection.service';
+import { ProspectionCreditScoreConsumerService } from './services/credit-score-consumer.service';
 import { AccountingIntegrationModule } from '../integration/accounting-integration.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { AccountingIntegrationModule } from '../integration/accounting-integrati
   providers: [
     CompanyService,
     ProspectionService,
+    ProspectionCreditScoreConsumerService,
   ],
   controllers: [
     CompaniesController,
