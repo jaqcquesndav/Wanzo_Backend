@@ -292,6 +292,9 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # ML Service Configuration for XGBoost Credit Scoring
+      - ML_SERVICE_URL=http://xgboost-service:5000
+      - ML_SERVICE_API_KEY=${ML_SERVICE_API_KEY}
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -323,6 +326,9 @@ services:
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=accounting_service
       - KAFKA_BROKERS=kafka:29092
+      # ML Service Configuration for XGBoost Credit Scoring
+      - ML_SERVICE_URL=http://xgboost-service:5000
+      - ML_SERVICE_API_KEY=${ML_SERVICE_API_KEY}
     volumes:
       - ./apps/accounting-service/src:/app/apps/accounting-service/src
       - ./packages/shared/src:/app/packages/shared/src
