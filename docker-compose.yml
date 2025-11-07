@@ -1,4 +1,20 @@
+version: '3.8'
 services:
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: kiota-ipfs
+    ports:
+      - "4001:4001"
+      - "5001:5001"
+      - "8080:8080"
+    volumes:
+      - ipfs_data:/data/ipfs
+      - ipfs_staging:/export
+    environment:
+      - IPFS_PROFILE=server
+    networks:
+      - kiota-network
+    restart: unless-stopped
   # Kafka and Zookeeper services
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -8,6 +24,57 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Hyperledger Explorer DB (PostgreSQL)
+  explorer-db:
+    profiles: ["dev"]
+    image: hyperledger/explorer-db:latest
+    container_name: kiota-explorer-db
+    environment:
+      - POSTGRES_USER=hppoc
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=fabricexplorer
+    volumes:
+      - explorer_db_data:/var/lib/postgresql/data
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Hyperledger Explorer Web UI
+  explorer:
+    profiles: ["dev"]
+    image: hyperledger/explorer:latest
+    container_name: kiota-explorer
+    environment:
+      DATABASE_HOST: explorer-db
+      DATABASE_PORT: "5432"
+      DATABASE_DATABASE: fabricexplorer
+      DATABASE_USERNAME: hppoc
+      DATABASE_PASSWD: password
+      LOG_LEVEL_APP: debug
+      LOG_LEVEL_DB: debug
+      LOG_LEVEL_CONSOLE: debug
+      DISCOVERY_AS_LOCALHOST: "true"
+    ports:
+      - "8081:8080"
+    volumes:
+      # Explorer config and connection profiles
+      - ./monitoring/explorer/config.json:/opt/explorer/app/platform/fabric/config.json:ro
+      - ./monitoring/explorer/connection/kiota-ccp.json:/opt/explorer/app/platform/fabric/connection/kiota-ccp.json:ro
+      - ./monitoring/explorer/connection/bank-ccp.json:/opt/explorer/app/platform/fabric/connection/bank-ccp.json:ro
+      # Admin credentials (provide cert.pem/key.pem under these folders)
+      - ./fabric/org-kiota/creds/admin:/opt/explorer/crypto/kiota/admin:ro
+      - ./fabric/org-bank/creds/admin:/opt/explorer/crypto/bank/admin:ro
+      # TLS certs for peers and orderer
+      - ./fabric/org-kiota/tls/peer:/opt/explorer/crypto/kiota/tls/peer:ro
+      - ./fabric/org-kiota/tls/orderer:/opt/explorer/crypto/kiota/tls/orderer:ro
+      - ./fabric/org-bank/tls/peer:/opt/explorer/crypto/bank/tls/peer:ro
+      - ./fabric/org-bank/tls/orderer:/opt/explorer/crypto/bank/tls/orderer:ro
+    depends_on:
+      - explorer-db
     networks:
       - kiota-network
     restart: unless-stopped
@@ -41,7 +108,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
-      POSTGRES_MULTIPLE_DATABASES: admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha-ai-service
+      POSTGRES_MULTIPLE_DATABASES: "admin-service,accounting-service,analytics-service,portfolio-institution-service,gestion_commerciale_service,customer-service,adha-ai-service,payment-service"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -59,6 +126,11 @@ services:
     build:
       context: .
       dockerfile: ./apps/api-gateway/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY-https://registry.npmjs.org}
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
     container_name: kiota-api-gateway
     ports:
       - "8000:8000"
@@ -68,6 +140,7 @@ services:
       - ADMIN_SERVICE_URL=http://admin-service:3001
       - ANALYTICS_SERVICE_URL=http://analytics-service:3002
       - ACCOUNTING_SERVICE_URL=http://accounting-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3007
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://portfolio-institution-service:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://gestion-commerciale-service:3006
       - CUSTOMER_SERVICE_URL=http://customer-service:3011
@@ -83,6 +156,7 @@ services:
       - portfolio-institution-service
       - gestion-commerciale-service
       - customer-service
+      - payment-service
     networks:
       - kiota-network
     restart: unless-stopped
@@ -98,8 +172,7 @@ services:
       - "9464:9464" # Port Prometheus
     environment:
       - NODE_ENV=production
-      - PORT=3001
-      - DB_HOST=postgres
+      - PORT=3015
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
@@ -332,6 +405,174 @@ services:
     restart: unless-stopped
     env_file:
       - ./apps/customer-service/.env
+  # Blockchain Service
+  blockchain-service:
+    build:
+      context: ./apps/blockchain-service
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY-https://registry.npmjs.org}
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
+    container_name: kiota-blockchain-service
+    depends_on:
+      - ipfs
+    ports:
+      - "3015:3015"
+    environment:
+      - NODE_ENV=production
+      - PORT=3015
+      - AUTH0_ENABLED=true
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - IPFS_API_URL=http://ipfs:5001/api/v0
+      - IPFS_PIN=true
+      - FABRIC_GATEWAY_URL=http://fabric-gateway:4000
+      - FABRIC_CONNECTION_PROFILE=
+      - FABRIC_CHANNEL=mychannel
+      - FABRIC_CHAINCODE=anchoring
+      - FABRIC_MSPID=Org1MSP
+      - FABRIC_IDENTITY_LABEL=pme1
+      - FABRIC_WALLET_DIR=/app/wallet
+    env_file:
+      - ./apps/blockchain-service/.env
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  fabric-gateway:
+    build:
+      context: ./apps/fabric-gateway
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY-https://registry.npmjs.org}
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
+    container_name: kiota-fabric-gateway
+    env_file:
+      - ./apps/fabric-gateway/.env
+    environment:
+      - PORT=4000
+      - USE_HOST_DOCKER_INTERNAL=true
+    volumes:
+      - ./fabric/org-kiota/ccp:/app/orgs/kiota/ccp
+      - ./fabric/org-kiota/wallet:/app/orgs/kiota/wallet
+      - ./fabric/org-kiota/creds:/app/orgs/kiota/creds:ro
+      - ./fabric/org-bank/ccp:/app/orgs/bank/ccp
+      - ./fabric/org-bank/wallet:/app/orgs/bank/wallet
+      - ./fabric/org-bank/creds:/app/orgs/bank/creds:ro
+    ports:
+      - "4010:4000"
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Hyperledger Fabric CA servers (for local enrollment, no TLS for simplicity)
+  ca-org1:
+    image: hyperledger/fabric-ca:1.5.15
+    container_name: kiota-ca-org1
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org1
+      - FABRIC_CA_SERVER_LISTEN_ADDRESS=0.0.0.0
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_DEBUG=true
+      - FABRIC_CA_SERVER_TLS_ENABLED=false
+    command: sh -c "fabric-ca-server start -b admin:adminpw -d"
+    ports:
+      - "7054:7054"
+    volumes:
+      - ca_org1_data:/etc/hyperledger/fabric-ca-server
+    networks:
+      - kiota-network
+    restart: unless-stopped
+  ca-org2:
+    image: hyperledger/fabric-ca:1.5.15
+    container_name: kiota-ca-org2
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org2
+      - FABRIC_CA_SERVER_LISTEN_ADDRESS=0.0.0.0
+      - FABRIC_CA_SERVER_PORT=8054
+      - FABRIC_CA_SERVER_DEBUG=true
+      - FABRIC_CA_SERVER_TLS_ENABLED=false
+    command: sh -c "fabric-ca-server start -b admin:adminpw -d"
+    ports:
+      - "8054:8054"
+    volumes:
+      - ca_org2_data:/etc/hyperledger/fabric-ca-server
+    networks:
+      - kiota-network
+  # restart already set above
+
+  # Minimal test frontend (Vite)
+  test-frontend:
+    build:
+      context: ./apps/test-frontend
+      dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY-https://registry.npmjs.org}
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
+        VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN}
+        VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID}
+        VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE-https://api.wanzo.com}
+    container_name: kiota-test-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=production
+      - VITE_AUTH0_DOMAIN=${VITE_AUTH0_DOMAIN}
+      - VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
+      - VITE_AUTH0_AUDIENCE=${VITE_AUTH0_AUDIENCE-https://api.wanzo.com}
+    depends_on:
+      - customer-service
+      - blockchain-service
+      - fabric-gateway
+    networks:
+      - kiota-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./apps/payment-service/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY-https://registry.npmjs.org}
+        HTTP_PROXY: ${HTTP_PROXY}
+        HTTPS_PROXY: ${HTTPS_PROXY}
+        NO_PROXY: ${NO_PROXY}
+    container_name: kiota-payment-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      # Database
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=payment-service
+      # Kafka
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=payment-service
+      - KAFKA_GROUP_ID=payment-service-group
+      # SerdiPay config (set actual values via .env or compose overrides)
+      - SERDIPAY_BASE_URL=https://serdipay.com/api/public-api/v1
+      - SERDIPAY_EMAIL=${SERDIPAY_EMAIL}
+      - SERDIPAY_PASSWORD=${SERDIPAY_PASSWORD}
+      - SERDIPAY_API_ID=${SERDIPAY_API_ID}
+      - SERDIPAY_API_PASSWORD=${SERDIPAY_API_PASSWORD}
+      - SERDIPAY_MERCHANT_CODE=${SERDIPAY_MERCHANT_CODE}
+      - SERDIPAY_MERCHANT_PIN=${SERDIPAY_MERCHANT_PIN}
+    networks:
+      - kiota-network
+    restart: unless-stopped
 
   # Prometheus for metrics
   prometheus:
@@ -383,6 +624,11 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  ipfs_data:
+  ipfs_staging:
+  ca_org1_data:
+  ca_org2_data:
+  explorer_db_data:
 
 networks:
   kiota-network:

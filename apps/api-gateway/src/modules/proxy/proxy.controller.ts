@@ -4,11 +4,11 @@ import { ProxyService } from './proxy.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AxiosError, AxiosResponse } from 'axios';
 import { AnalyticsRouteGuard } from './guards/analytics-route.guard';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GatewayAuthGuard } from './guards/gateway-auth.guard';
 
 @ApiTags('proxy')
 @Controller()
-@UseGuards(JwtAuthGuard, AnalyticsRouteGuard)
+@UseGuards(GatewayAuthGuard, AnalyticsRouteGuard)
 @ApiBearerAuth()
 export class ProxyController {
   constructor(private readonly proxyService: ProxyService) {}

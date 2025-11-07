@@ -78,17 +78,24 @@ npm run dev --filter=portfolio-institution-service
 
 ## API Documentation
 Each service exposes its own Swagger documentation at `/api`:
-- Admin Service: http://localhost:3001/api
-- Analytics Service: http://localhost:3002/api
-- Accounting Service: http://localhost:3003/api
-- Portfolio SME Service: http://localhost:3004/api
-- Portfolio Institution Service: http://localhost:3005/api
 
 ## Testing
-```bash
-npm test
-```
 
+### Hyperledger Fabric
+
+- A production-oriented fabric-gateway fronts your Fabric network.
+- Gateway URL: host http://localhost:4010 (container http://fabric-gateway:4000)
+- Setup steps:
+	1. Place your connection profiles and wallets:
+	   - Org1 CCP at `./fabric/org-kiota/ccp/connection.json`, wallet at `./fabric/org-kiota/wallet/`.
+	   - Org2 CCP at `./fabric/org-bank/ccp/connection.json`, wallet at `./fabric/org-bank/wallet/` (if multi‑org).
+	2. Ensure the wallet has an application identity label (e.g. `pme1`).
+	3. Start/refresh services: `docker compose up -d --build fabric-gateway blockchain-service`.
+	4. Verify config: `GET http://localhost:4010/status` should return `configured: true`.
+
+Notes:
+- The blockchain-service now calls the real Fabric via the gateway only (no mock mode).
+- The gateway invokes chaincode with exact parameter counts (Anchor(refId, sha256), AnchorCID(refId, cid), Verify(refId)).
 ## Contributing
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)

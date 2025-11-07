@@ -1,0 +1,67 @@
+{
+  "info": {
+    "name": "Blockchain Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Anchoring and verification API (IPFS + Fabric)"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Swagger",
+      "request": { "method": "GET", "url": "{{baseUrl}}/docs" }
+    },
+    {
+      "name": "IPFS - Upload (preferred)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{token}}"}
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"dataBase64\": \"{{sampleBase64}}\",\n  \"filename\": \"doc.pdf\",\n  \"mime\": \"application/pdf\"\n}" },
+        "url": "{{baseUrl}}/ipfs/files"
+      }
+    },
+    {
+      "name": "IPFS - Get by CID (preferred)",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": "{{baseUrl}}/ipfs/files/:cid"
+      }
+    },
+    {
+      "name": "Blockchain - Anchor (inline)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{token}}"}
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"refId\": \"{{refId}}\",\n  \"type\": \"DOCUMENT\",\n  \"dataBase64\": \"{{sampleBase64}}\"\n}" },
+        "url": "{{baseUrl}}/blockchain/anchor"
+      }
+    },
+    {
+      "name": "Blockchain - Verify (preferred)",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": "{{baseUrl}}/blockchain/verify/{{refId}}"
+      }
+    },
+    {
+      "name": "Users - CA Status",
+      "request": { "method": "GET", "url": "{{baseUrl}}/users/ca/status" }
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:3015"},
+    {"key": "token", "value": ""},
+    {"key": "refId", "value": "doc-abc12345"},
+    {"key": "sampleBase64", "value": "SGVsbG8gV29ybGQ="}
+  ]
+}

@@ -13,7 +13,9 @@
     "test": "turbo run test",
     "clean": "turbo run clean",
     "start:gateway": "cd apps/api-gateway && npm run start",
-    "dev:gateway": "cd apps/api-gateway && npm run dev"
+  "dev:gateway": "cd apps/api-gateway && npm run dev",
+    "token": "node scripts/get-token.js",
+    "fabric:import-testnet": "node scripts/fabric-import-testnet-identities.js"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

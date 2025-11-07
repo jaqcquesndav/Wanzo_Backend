@@ -1,0 +1,26 @@
+{
+  "network-configs": {
+    "kiota-network": {
+      "name": "Kiota Network",
+      "profile": "/opt/explorer/app/platform/fabric/connection/kiota-ccp.json"
+    }
+  },
+  "license": "Apache-2.0",
+  "version": "1.1.0",
+  "config": {
+    "enableAuthentication": false,
+    "logLevel": "debug",
+    "timeout": 300,
+    "channel": "mychannel",
+    "channels": ["mychannel"],
+    "orgs": [
+      {
+        "network-name": "kiota-network",
+        "orgName": "Org1",
+        "mspid": "Org1MSP",
+  "adminPrivateKey": { "path": "/opt/explorer/crypto/kiota/wallets/org1-explorer/key.pem" },
+  "signedCert": { "path": "/opt/explorer/crypto/kiota/wallets/org1-explorer/cert.pem" }
+      }
+    ]
+  }
+}

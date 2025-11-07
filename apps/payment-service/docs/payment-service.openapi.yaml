@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Wanzo Payment Service API
+  version: 1.0.0
+  description: API unifiée des paiements (SerdiPay; extensible Stripe/PayPal/cartes)
+servers:
+  - url: http://localhost:8000/payments
+    description: API Gateway (local) – routes sécurisées/proxy
+  - url: http://localhost:3007
+    description: Service Paiements direct (NestJS)
+paths:
+  /serdipay/mobile:
+    post:
+      summary: Initier un paiement SerdiPay (Mobile Money)
+      tags: [SerdiPay]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateSerdiPayRequest'
+      responses:
+        '200':
+          description: Succès immédiat (rare)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentInitiationResponse'
+        '202':
+          description: Transaction en cours (callback ultérieur)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentInitiationResponse'
+        '4XX':
+          description: Erreur côté client
+        '5XX':
+          description: Erreur serveur ou upstream
+  /serdipay/callback:
+    post:
+      summary: Callback SerdiPay (webhook)
+      tags: [SerdiPay]
+      description: Endpoint public (pas de JWT). Utilisé par SerdiPay pour notifier l'issue.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SerdiPayCallbackPayload'
+      responses:
+        '200':
+          description: Accusé de réception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    InitiateSerdiPayRequest:
+      type: object
+      required: [clientPhone, amount, currency, telecom]
+      properties:
+        clientPhone:
+          type: string
+          example: '243994972450'
+        amount:
+          type: number
+          format: double
+          minimum: 0.1
+          example: 400
+        currency:
+          type: string
+          example: CDF
+        telecom:
+          type: string
+          enum: [AM, OM, MP, AF]
+          example: AM
+        channel:
+          type: string
+          enum: [merchant, client]
+          default: merchant
+        clientReference:
+          type: string
+          description: Référence idempotente/traçage
+    PaymentInitiationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, success, failed]
+        httpStatus:
+          type: integer
+          example: 202
+        message:
+          type: string
+        transactionId:
+          type: string
+          nullable: true
+        sessionId:
+          type: string
+          nullable: true
+        provider:
+          type: string
+          example: SerdiPay
+    SerdiPayCallbackPayload:
+      type: object
+      required: [status, payment]
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+        payment:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              example: success
+            sessionId:
+              type: string
+            sessionStatus:
+              type: integer
+              example: 102
+            transactionId:
+              type: string
+            amount:
+              type: number
+              format: double
+            currency:
+              type: string

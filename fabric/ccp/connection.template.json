@@ -1,0 +1,37 @@
+{
+  "name": "example-network",
+  "version": "1.0.0",
+  "client": { "organization": "Org1" },
+  "organizations": {
+    "Org1": {
+      "mspid": "Org1MSP",
+      "peers": ["peer0.org1.example.com"],
+      "certificateAuthorities": ["ca.org1.example.com"]
+    }
+  },
+  "peers": {
+    "peer0.org1.example.com": {
+      "url": "grpcs://peer0.org1.example.com:7051",
+      "tlsCACerts": { "pem": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n" }
+    }
+  },
+  "orderers": {
+    "orderer.example.com": {
+      "url": "grpcs://orderer.example.com:7050",
+      "tlsCACerts": { "pem": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n" }
+    }
+  },
+  "certificateAuthorities": {
+    "ca.org1.example.com": {
+      "url": "https://ca.org1.example.com:7054",
+      "caName": "ca-org1",
+      "tlsCACerts": { "pem": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n" }
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "orderers": ["orderer.example.com"],
+      "peers": { "peer0.org1.example.com": {} }
+    }
+  }
+}

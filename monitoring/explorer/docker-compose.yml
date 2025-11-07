@@ -1,0 +1,53 @@
+services:
+  explorer-db:
+    image: hyperledger/explorer-db:latest
+    container_name: kiota-explorer-db
+    environment:
+      POSTGRES_USER: hppoc
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: fabricexplorer
+    volumes:
+      - explorer_db_data:/var/lib/postgresql/data
+    networks:
+      - explorer-net
+
+  explorer:
+    image: hyperledger/explorer:latest
+    container_name: kiota-explorer
+    extra_hosts:
+      - "peer0.org1.example.com:host-gateway"
+      - "peer0.org2.example.com:host-gateway"
+      - "orderer.example.com:host-gateway"
+    environment:
+      DATABASE_HOST: explorer-db
+      DATABASE_PORT: 5432
+      DATABASE_DATABASE: fabricexplorer
+      DATABASE_USERNAME: hppoc
+      DATABASE_PASSWD: password
+      LOG_LEVEL_APP: debug
+      LOG_LEVEL_DB: debug
+      LOG_LEVEL_CONSOLE: debug
+      DISCOVERY_AS_LOCALHOST: "false"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config.json:/opt/explorer/app/platform/fabric/config.json:ro
+      - ./connection/kiota-ccp.json:/opt/explorer/app/platform/fabric/connection/kiota-ccp.json:ro
+      - ../../fabric/org-kiota/creds/admin:/opt/explorer/crypto/kiota/admin:ro
+      - ./wallets/org1-explorer:/opt/explorer/crypto/kiota/wallets/org1-explorer:ro
+      - ../../fabric/org-kiota/tls/peer:/opt/explorer/crypto/kiota/tls/peer:ro
+      - ../../fabric/org-kiota/tls/orderer:/opt/explorer/crypto/kiota/tls/orderer:ro
+      - ../../fabric/org-bank/creds/admin:/opt/explorer/crypto/bank/admin:ro
+      - ../../fabric/org-bank/tls/peer:/opt/explorer/crypto/bank/tls/peer:ro
+      - ../../fabric/org-bank/tls/orderer:/opt/explorer/crypto/bank/tls/orderer:ro
+    depends_on:
+      - explorer-db
+    networks:
+      - explorer-net
+
+networks:
+  explorer-net:
+    driver: bridge
+
+volumes:
+  explorer_db_data:

@@ -13,7 +13,8 @@ const services = {
   accounting: process.env.ACCOUNTING_SERVICE_URL || 'http://localhost:3003',
   portfolio: process.env.PORTFOLIO_INSTITUTION_SERVICE_URL || 'http://localhost:3005',
   gestionCommerciale: process.env.GESTION_COMMERCIALE_SERVICE_URL || 'http://localhost:3006',
-  customer: process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3011'
+  customer: process.env.CUSTOMER_SERVICE_URL || 'http://localhost:3011',
+  payment: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007'
 };
 
 console.log('Starting API Gateway...');
@@ -50,6 +51,112 @@ app.get('/health', (req, res) => {
 // Metrics endpoint
 app.get('/metrics', (req, res) => {
   res.status(200).send(`# HELP api_gateway_status API Gateway status\n# TYPE api_gateway_status gauge\napi_gateway_status{service="${serviceName}"} 1`);
+});
+
+// API Documentation endpoint (Swagger)
+app.get('/api', (req, res) => {
+  res.json({
+    openapi: "3.0.0",
+    info: {
+      title: "Wanzo API Gateway",
+      version: "1.0.0",
+      description: "API Gateway pour tous les microservices Wanzo"
+    },
+    servers: [
+      {
+        url: "http://localhost:8000",
+        description: "API Gateway"
+      }
+    ],
+    paths: {
+      "/health": {
+        get: {
+          summary: "Health check",
+          responses: {
+            "200": {
+              description: "Service healthy"
+            }
+          }
+        }
+      },
+      "/api/admin/*": {
+        get: {
+          summary: "Admin Service endpoints",
+          description: "Proxied to Admin Service (port 3001)"
+        }
+      },
+      "/api/accounting/*": {
+        get: {
+          summary: "Accounting Service endpoints", 
+          description: "Proxied to Accounting Service (port 3003)"
+        }
+      },
+      "/api/portfolio/*": {
+        get: {
+          summary: "Portfolio Institution Service endpoints",
+          description: "Proxied to Portfolio Service (port 3005)"
+        }
+      },
+      "/api/commercial/*": {
+        get: {
+          summary: "Gestion Commerciale Service endpoints",
+          description: "Proxied to Commercial Service (port 3006)"
+        }
+      },
+      "/api/customers/*": {
+        get: {
+          summary: "Customer Service endpoints",
+          description: "Proxied to Customer Service (port 3011)"
+        }
+      }
+    }
+  });
+});
+
+// Swagger UI redirect
+app.get('/api-docs', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wanzo API Gateway - Swagger UI</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.19.1/swagger-ui.css" />
+  <style>
+    html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { margin:0; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  
+  <script src="https://unpkg.com/swagger-ui-dist@4.19.1/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@4.19.1/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      // Configuration Swagger UI
+      const ui = SwaggerUIBundle({
+        url: '/api',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        tryItOutEnabled: true,
+        supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch']
+      });
+    };
+  </script>
+</body>
+</html>
+  `);
 });
 
 // Simple proxy function without using path-to-regexp
@@ -116,6 +223,58 @@ function simpleProxy(targetBaseUrl) {
   };
 }
 
+// Proxy helper that strips a fixed prefix from the incoming request path
+function simpleProxyStripPrefix(prefix, targetBaseUrl) {
+  return (req, res) => {
+    try {
+      const originalPath = req.url;
+      const stripped = originalPath.startsWith(prefix)
+        ? originalPath.slice(prefix.length)
+        : originalPath;
+      const path = stripped || '/';
+      const fullUrl = `${targetBaseUrl}${path}`;
+
+      console.log(`Proxying (strip '${prefix}') to: ${fullUrl}`);
+
+      const targetUrl = new URL(fullUrl);
+      const options = {
+        hostname: targetUrl.hostname,
+        port: targetUrl.port || (targetUrl.protocol === 'https:' ? 443 : 80),
+        path: targetUrl.pathname + targetUrl.search,
+        method: req.method,
+        headers: {
+          ...req.headers,
+          host: targetUrl.host,
+          'content-type': req.headers['content-type'] || 'application/json'
+        }
+      };
+
+      const proxyReq = http.request(options, (proxyRes) => {
+        res.statusCode = proxyRes.statusCode;
+        Object.keys(proxyRes.headers).forEach((key) => {
+          res.setHeader(key, proxyRes.headers[key]);
+        });
+        proxyRes.pipe(res);
+      });
+
+      proxyReq.on('error', (error) => {
+        console.error(`Proxy error: ${error.message}`);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Bad Gateway', message: 'Service Unavailable', service: targetBaseUrl });
+        }
+      });
+
+      if (req.body && Object.keys(req.body).length > 0) {
+        proxyReq.write(JSON.stringify(req.body));
+      }
+      proxyReq.end();
+    } catch (error) {
+      console.error(`Proxy error for ${targetBaseUrl}: ${error.message}`);
+      res.status(500).json({ error: 'Internal Server Error', message: 'Failed to proxy request', details: error.message });
+    }
+  };
+}
+
 // Admin Service routes
 app.use('/api/admin', simpleProxy(services.admin));
 
@@ -131,6 +290,9 @@ app.use('/api/commercial', simpleProxy(services.gestionCommerciale));
 // Customer Service routes
 app.use('/api/customers', simpleProxy(services.customer));
 app.use('/api/subscriptions', simpleProxy(services.customer));
+
+// Payment Service routes
+app.use('/payments', simpleProxyStripPrefix('/payments', services.payment));
 
 // 404 handler
 app.use((req, res) => {
@@ -161,6 +323,7 @@ app.listen(port, () => {
   console.log('  - /api/commercial/* -> Gestion Commerciale Service');
   console.log('  - /api/customers/* -> Customer Service');
   console.log('  - /api/subscriptions/* -> Customer Service');
+  console.log('  - /payments/* -> Payment Service');
   console.log('Health check available at: /health');
   console.log('Metrics available at: /metrics');
 });

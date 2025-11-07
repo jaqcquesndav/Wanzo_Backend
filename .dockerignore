@@ -14,6 +14,7 @@ yarn.lock
 .pnpm-store
 **/.pnpm-store
 
+
 # Python specific
 **/__pycache__
 **/*.py[cod]
@@ -106,6 +107,12 @@ yarn.lock
 # Always include example env files
 !**/.env.example
 
+# Re-include vendored node_modules and dist for selected apps (must be AFTER global excludes)
+!apps/payment-service/node_modules
+!apps/api-gateway/node_modules
+!apps/payment-service/dist
+!apps/api-gateway/dist
+
 # OS specific files
 **/.DS_Store
 **/Thumbs.db
@@ -116,11 +123,20 @@ yarn.lock
 **/*.md
 !**/README.md
 **/docs
+!apps/blockchain-service/docs/setup.md
 **/DOCUMENTATION
 **/LICENSE
 **/.gitignore
 **/.dockerignore
 **/docker-compose*.yml
+!docker-compose.yml
+
+# Exclude local Fabric artifacts and stray folders from build context
+.fabric/
+backup_before_cleanup_*/
+CUsersknkjo/
+fabric/**/wallet/**
+fabric/**/creds/**/key.pem
 **/.travis.yml
 **/circle.yml
 **/.gitlab-ci.yml

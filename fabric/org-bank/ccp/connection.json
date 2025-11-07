@@ -1,0 +1,59 @@
+{
+  "name": "test-network-org2",
+  "version": "1.0.0",
+  "client": {
+    "organization": "Org2MSP"
+  },
+  "organizations": {
+    "Org2MSP": {
+      "mspid": "Org2MSP",
+      "peers": [
+        "peer0.org2.example.com"
+      ],
+      "certificateAuthorities": [
+        "ca-org2"
+      ]
+    }
+  },
+  "peers": {
+    "peer0.org2.example.com": {
+      "url": "grpcs://host.docker.internal:9051",
+      "tlsCACerts": {
+  "pem": "-----BEGIN CERTIFICATE-----\nMIICHjCCAcWgAwIBAgIUDtHweH0Hc4arZNfQpYIeiiFVVYEwCgYIKoZIzj0EAwIw\nbDELMAkGA1UEBhMCVUsxEjAQBgNVBAgTCUhhbXBzaGlyZTEQMA4GA1UEBxMHSHVy\nc2xleTEZMBcGA1UEChMQb3JnMi5leGFtcGxlLmNvbTEcMBoGA1UEAxMTY2Eub3Jn\nMi5leGFtcGxlLmNvbTAeFw0yNTA5MDUxNTI2MDBaFw00MDA5MDExNTI2MDBaMGwx\nCzAJBgNVBAYTAlVLMRIwEAYDVQQIEwlIYW1wc2hpcmUxEDAOBgNVBAcTB0h1cnNs\nZXkxGTAXBgNVBAoTEG9yZzIuZXhhbXBsZS5jb20xHDAaBgNVBAMTE2NhLm9yZzIu\nZXhhbXBsZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATqovhzqjKXeJ7p\nTzRcf5SPhGPJHGlNs8msJxS/ml7sZBb2VZvxY2qERwGTt3ccZafzUtpL3TJWxIOJ\nDGUikZIfo0UwQzAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBATAd\nBgNVHQ4EFgQUEEXgPc1aYa7co8mb5NiW7vlZun0wCgYIKoZIzj0EAwIDRwAwRAIg\nWBTIMvXpC3zhskXRbQc8foPKuqD2FzcI8cqW1FXJPgECIB8/hnNInada2/LxVJhm\n0+URBJQkqTYX6jhXhMAHpqNa\n-----END CERTIFICATE-----\n"
+      },
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.org2.example.com",
+        "hostnameOverride": "peer0.org2.example.com"
+      }
+    }
+  },
+  "orderers": {
+    "orderer.example.com": {
+      "url": "grpcs://host.docker.internal:7050",
+      "tlsCACerts": {
+        "pem": "-----BEGIN CERTIFICATE-----\nMIICCjCCAbGgAwIBAgIULRLc7irBWO9efe+De+UofNKb7+IwCgYIKoZIzj0EAwIw\nYjELMAkGA1UEBhMCVVMxETAPBgNVBAgTCE5ldyBZb3JrMREwDwYDVQQHEwhOZXcg\nWW9yazEUMBIGA1UEChMLZXhhbXBsZS5jb20xFzAVBgNVBAMTDmNhLmV4YW1wbGUu\nY29tMB4XDTI1MDkwNTE1MDYwMFoXDTQwMDkwMTE1MDYwMFowYjELMAkGA1UEBhMC\nVVMxETAPBgNVBAgTCE5ldyBZb3JrMREwDwYDVQQHEwhOZXcgWW9yazEUMBIGA1UE\nChMLZXhhbXBsZS5jb20xFzAVBgNVBAMTDmNhLmV4YW1wbGUuY29tMFkwEwYHKoZI\nzj0CAQYIKoZIzj0DAQcDQgAECBi37wKI6ZC5oqoUMErr7b7TMwQHBISBj1HWFamD\niY4UrR/XVApH1m9G+f6PgifEM4Mq6D6yNqcTWdTnExPSgKNFMEMwDgYDVR0PAQH/\nBAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFNFT0hBOMkdKZCDL\n/B2iRPjW4vi/MAoGCCqGSM49BAMCA0cAMEQCIEb3aDnS2w0vGWu1MQRL6QzIbhYh\njudLLoJ7tmRGt8paAiBmp+UOip2yAFbNjWqh1Xt0uXl+MjFlgV1Hpl14XQ1vIw==\n-----END CERTIFICATE-----\n"
+      },
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer.example.com",
+        "hostnameOverride": "orderer.example.com"
+      }
+    }
+  },
+  "certificateAuthorities": {
+    "ca-org2": {
+      "url": "http://host.docker.internal:8054",
+      "caName": "ca-org2",
+      "httpOptions": { "verify": false }
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "orderers": [
+        "orderer.example.com"
+      ],
+      "peers": {
+        "peer0.org2.example.com": {}
+      }
+    }
+  }
+}

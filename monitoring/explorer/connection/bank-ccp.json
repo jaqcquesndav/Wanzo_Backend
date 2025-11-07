@@ -1,0 +1,40 @@
+{
+  "name": "bank-network",
+  "version": "1.0.0",
+  "client": {
+    "organization": "Org2",
+  "tlsEnable": true,
+  "adminCredential": { "id": "exploreradmin", "password": "exploreradminpw" },
+  "enableAuthentication": true,
+  "connection": { "timeout": { "peer": { "endorser": "300" }, "orderer": "300" } }
+  },
+  "channels": {
+    "mychannel": {
+      "peers": { "peer0.org2.example.com": {} },
+      "orderers": ["orderer.example.com"],
+      "connection": { "timeout": { "peer": { "endorser": "6000", "eventHub": "6000", "eventReg": "6000" } } }
+    }
+  },
+  "organizations": {
+    "Org2": {
+      "mspid": "Org2MSP",
+      "adminPrivateKey": { "path": "/opt/explorer/crypto/bank/admin/key.pem" },
+      "signedCert": { "path": "/opt/explorer/crypto/bank/admin/cert.pem" },
+      "peers": [ "peer0.org2.example.com" ]
+    }
+  },
+  "peers": {
+    "peer0.org2.example.com": {
+  "url": "grpcs://peer0.org2.example.com:9051",
+      "tlsCACerts": { "path": "/opt/explorer/crypto/bank/tls/peer/ca.crt" },
+      "grpcOptions": { "ssl-target-name-override": "peer0.org2.example.com" }
+    }
+  },
+  "orderers": {
+    "orderer.example.com": {
+  "url": "grpcs://orderer.example.com:7050",
+      "tlsCACerts": { "path": "/opt/explorer/crypto/bank/tls/orderer/ca.crt" },
+      "grpcOptions": { "ssl-target-name-override": "orderer.example.com" }
+    }
+  }
+}

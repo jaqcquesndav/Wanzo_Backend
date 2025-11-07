@@ -17,10 +17,16 @@ export class RouteResolverService {
   }
   private readonly logger = new Logger(RouteResolverService.name);
   private readonly routes: ServiceRoute[];  constructor(private configService: ConfigService) {
+    const envGet = (key: string, defaultValue: string) => {
+      const cfg: any = this.configService as any;
+      if (cfg && typeof cfg.get === 'function') return cfg.get(key, defaultValue);
+      return (process.env as any)[key] ?? defaultValue;
+    };
+
     this.routes = [
       {
         service: 'admin',
-        baseUrl: this.configService.get('ADMIN_SERVICE_URL', 'http://localhost:3001'),
+        baseUrl: envGet('ADMIN_SERVICE_URL', 'http://localhost:3001'),
         prefix: 'admin',
         healthCheck: '/health',
         scopes: ['admin:full', 'users:manage', 'settings:manage'],
@@ -28,7 +34,7 @@ export class RouteResolverService {
       },
       {
         service: 'app_mobile',
-        baseUrl: this.configService.get('APP_MOBILE_SERVICE_URL', 'http://localhost:3006'),
+        baseUrl: envGet('APP_MOBILE_SERVICE_URL', 'http://localhost:3006'),
         prefix: 'mobile',
         healthCheck: '/health',
         scopes: ['mobile:read', 'mobile:write'],
@@ -36,7 +42,7 @@ export class RouteResolverService {
       },
       {
         service: 'analytics',
-        baseUrl: this.configService.get('ANALYTICS_SERVICE_URL', 'http://localhost:3002'),
+        baseUrl: envGet('ANALYTICS_SERVICE_URL', 'http://localhost:3002'),
         prefix: 'analytics',
         healthCheck: '/health',
         scopes: ['analytics:read', 'analytics:write'],
@@ -44,7 +50,7 @@ export class RouteResolverService {
       },
       {
         service: 'accounting',
-        baseUrl: this.configService.get('ACCOUNTING_SERVICE_URL', 'http://localhost:3003'),
+        baseUrl: envGet('ACCOUNTING_SERVICE_URL', 'http://localhost:3003'),
         prefix: 'accounting',
         healthCheck: '/health',
         scopes: ['accounting:read', 'accounting:write'],
@@ -52,7 +58,7 @@ export class RouteResolverService {
       },
       {
         service: 'portfolio-institution',
-        baseUrl: this.configService.get('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://localhost:3005'),
+        baseUrl: envGet('PORTFOLIO_INSTITUTION_SERVICE_URL', 'http://localhost:3005'),
         prefix: 'portfolio/institution',
         healthCheck: '/health',
         scopes: ['portfolio:read', 'portfolio:write', 'institution:manage'],
@@ -60,7 +66,7 @@ export class RouteResolverService {
       },
       {
         service: 'customer',
-        baseUrl: this.configService.get('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
+        baseUrl: envGet('CUSTOMER_SERVICE_URL', 'http://localhost:3011'),
         prefix: 'customers',
         healthCheck: '/health',
         scopes: ['customers:read', 'customers:write', 'users:read', 'users:write', 'subscriptions:read', 'subscriptions:write'],
@@ -68,7 +74,7 @@ export class RouteResolverService {
       },
       {
         service: 'adha-ai',
-        baseUrl: this.configService.get('ADHA_AI_SERVICE_URL', 'http://localhost:3010'),
+        baseUrl: envGet('ADHA_AI_SERVICE_URL', 'http://localhost:3010'),
         prefix: 'adha-ai',
         healthCheck: '/health',
         scopes: ['ai:use', 'ai:read', 'ai:write'],
@@ -76,12 +82,20 @@ export class RouteResolverService {
       },
       {
         service: 'gestion_commerciale',
-        baseUrl: this.configService.get('GESTION_COMMERCIALE_SERVICE_URL', 'http://localhost:3006'),
+        baseUrl: envGet('GESTION_COMMERCIALE_SERVICE_URL', 'http://localhost:3006'),
         prefix: 'commerce',
         healthCheck: '/health',
         scopes: ['commerce:read', 'commerce:write', 'operations:manage', 'inventory:manage'],
         roles: ['admin', 'user', 'manager', 'accountant'],
       },
+        {
+          service: 'payment',
+          baseUrl: envGet('PAYMENT_SERVICE_URL', 'http://localhost:3007'),
+          prefix: 'payments',
+          healthCheck: '/health',
+          scopes: ['payments:read', 'payments:write'],
+          roles: ['admin', 'service', 'accountant'],
+        },
     ];
   }
 

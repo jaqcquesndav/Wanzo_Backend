@@ -1,0 +1,29 @@
+### Blockchain Service (Mock) — REST Client
+
+@host = http://localhost:3015
+@refId = doc-{{$randomInt 1000 9999}}
+
+### Health
+GET {{host}}/health
+
+### Docs
+GET {{host}}/docs
+
+### OpenAPI
+GET {{host}}/openapi.json
+
+### Anchor (GET helper)
+GET {{host}}/blockchain/anchor-get?refId={{refId}}&type=CONTRACT&data=hello
+
+### Verify
+GET {{host}}/blockchain/verify?refId={{refId}}
+
+### Anchor (POST JSON)
+POST {{host}}/blockchain/anchor
+Content-Type: application/json
+
+{
+  "refId": "{{refId}}",
+  "type": "CONTRACT",
+  "dataBase64": "aGVsbG8gd29ybGQ="
+}

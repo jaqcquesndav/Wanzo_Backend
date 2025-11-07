@@ -9,6 +9,7 @@ import { RouteResolverService } from './services/route-resolver.service';
 import { MonitoringModule } from '../../monitoring/monitoring.module';
 import { ConfigModule } from '@nestjs/config';
 import { AnalyticsRouteGuard } from './guards/analytics-route.guard';
+import { GatewayAuthGuard } from './guards/gateway-auth.guard';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { AnalyticsRouteGuard } from './guards/analytics-route.guard';
     LoadBalancerService,
     RequestTrackerService,
     RouteResolverService,
-    AnalyticsRouteGuard,
+  AnalyticsRouteGuard,
+  GatewayAuthGuard,
   ],
   exports: [ProxyService],
 })

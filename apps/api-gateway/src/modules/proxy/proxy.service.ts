@@ -37,8 +37,9 @@ export class ProxyService {
     }
     
     // 2. Construire l'URL cible
-    const targetPath = routeResolverService.stripPrefix(path, route.prefix);
-    const targetUrl = `${route.baseUrl}${targetPath}`;
+  const targetPath = routeResolverService.stripPrefix(path, route.prefix);
+  const normalizedTargetPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
+  const targetUrl = `${route.baseUrl}${normalizedTargetPath}`;
     
     // 3. Préparer les en-têtes
     const forwardHeaders = { ...headers };

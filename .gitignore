@@ -25,6 +25,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Generated Fabric artifacts / fetched blocks
+tmp/blocks
+
+# Local/test Fabric network artifacts (do not version)
+.fabric/
+backup_before_cleanup_*/
+
+# Accidental Windows path folder (created by bad copy/mount)
+CUsersknkjo/
+
+# Sensitive blockchain material — keep out of repo
+fabric/**/wallet/**
+fabric/**/creds/**/key.pem
+**/*_sk
+**/*.key
+
 # IDE
 .idea
 .vscode

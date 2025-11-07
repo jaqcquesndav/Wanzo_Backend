@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2021",
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"strict": true,
+		"outDir": "./dist",
+		"rootDir": "./",
+		"declaration": false,
+		"baseUrl": "./"
+	},
+	"include": [
+		"src/**/*.ts"
+	]
+}

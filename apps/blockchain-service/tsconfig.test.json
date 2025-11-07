@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "rootDir": ".",
+    "outDir": "./dist-test",
+    "paths": {
+      "@nestjs/passport": ["test/__mocks__/@nestjs/passport.ts"],
+      "passport-jwt": ["test/__mocks__/passport-jwt.ts"],
+      "jwks-rsa": ["test/__mocks__/jwks-rsa.ts"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*", "test/types/**/*.d.ts"]
+}
