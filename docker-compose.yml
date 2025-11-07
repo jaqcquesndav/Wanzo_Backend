@@ -709,6 +709,73 @@ services:
     profiles:
       - dev
 
+  # Payment Service (Production)
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./apps/payment-service/Dockerfile
+    container_name: wanzo-payment-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=payment_service
+      # SerdiPay Configuration
+      - SERDIPAY_API_URL=${SERDIPAY_API_URL:-https://api.serdipay.com}
+      - SERDIPAY_MERCHANT_ID=${SERDIPAY_MERCHANT_ID}
+      - SERDIPAY_SECRET_KEY=${SERDIPAY_SECRET_KEY}
+      - SERDIPAY_CALLBACK_URL=${SERDIPAY_CALLBACK_URL}
+    env_file:
+      - ./apps/payment-service/.env
+    volumes:
+      - payment-service-logs:/app/apps/payment-service/logs
+    depends_on:
+      - postgres
+    networks:
+      - wanzo
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  # Payment Service (Development)
+  payment-service-dev:
+    build:
+      context: .
+      dockerfile: ./apps/payment-service/Dockerfile
+      target: builder
+    container_name: wanzo-payment-service-dev
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DB_DATABASE=payment_service
+      # SerdiPay Configuration
+      - SERDIPAY_API_URL=${SERDIPAY_API_URL:-https://api.serdipay.com}
+      - SERDIPAY_MERCHANT_ID=${SERDIPAY_MERCHANT_ID}
+      - SERDIPAY_SECRET_KEY=${SERDIPAY_SECRET_KEY}
+      - SERDIPAY_CALLBACK_URL=${SERDIPAY_CALLBACK_URL}
+    volumes:
+      - ./apps/payment-service/src:/app/apps/payment-service/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - /app/apps/payment-service/node_modules
+    command: yarn workspace @wanzo/payment-service dev
+    depends_on:
+      - postgres
+    networks:
+      - wanzo
+    profiles:
+      - dev
+
   # Monitoring services
   prometheus:
     image: prom/prometheus:v2.45.0
@@ -758,6 +825,7 @@ volumes:
   gestion-commerciale-service-logs:
   adha-ai-service-data:
   customer-service-logs:
+  payment-service-logs:
   postgres_data:
   prometheus_data:
   grafana_data:
