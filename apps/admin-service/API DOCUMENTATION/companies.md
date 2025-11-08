@@ -2,26 +2,34 @@
 
 ## Vue d'ensemble
 
-Le module de gestion des entreprises SME/PME permet à l'équipe admin de Wanzo de gérer complètement les entreprises qui utilisent le **Gestion Commerciale Service** (port 3005). Les entreprises ont accès à des fonctionnalités de gestion commerciale complètes :
+Le module de gestion des entreprises SME/PME permet à l'équipe admin de Wanzo de gérer complètement les entreprises qui utilisent le **Gestion Commerciale Service** (port 3005). 
+
+### ⚠️ Architecture Réelle
+
+```
+Admin Service (3001)
+    ↓ AdminCompanyController
+    ↓ AdminCompanyService
+    ↓ HTTP Calls vers:
+        • Customer Service (3002) - Gestion des clients PME
+        • Gestion Commerciale Service (3005) - Données business
+        • Database locale - Cache et métadonnées
+```
+
+**Type de client** : `CustomerType.PME` dans Customer Service  
+**Contrôleur** : `AdminCompanyController` (`/admin/companies`)  
+**Rôles principaux** : `SUPER_ADMIN`, `CTO`, `CUSTOMER_MANAGER`, `FINANCIAL_ADMIN`
+
+### Fonctionnalités disponibles
 
 - **Sales Management** : Gestion des ventes et chiffre d'affaires
-- **Expense Tracking** : Suivi des dépenses et comptabilité
+- **Expense Tracking** : Suivi des dépenses et comptabilité  
 - **Inventory Management** : Gestion des stocks et produits
 - **Business Customers** : Gestion des clients d'affaires
 - **Suppliers** : Gestion des fournisseurs
 - **Financial Statistics** : Statistiques financières (revenue, expenses, profit)
-
-## Architecture
-
-```
-Admin Service (3001)
-    ↓ HTTP
-Gestion Commerciale Service (3005)
-    ↓ Database
-PostgreSQL (Company, Sales, Expenses, Inventory, etc.)
-```
-
-**Type de client** : `CustomerType.SME` dans Customer Service
+- **User Management** : Gestion des utilisateurs d'entreprise
+- **Subscription Management** : Gestion des abonnements et tokens
 
 ## Configuration
 
@@ -982,7 +990,160 @@ Annule l'abonnement d'une entreprise.
 
 - `SUPER_ADMIN`
 - `CTO`
+
+#### Corps de la requête
+
+```json
+{
+  "reason": "Client request"
+}
+```
+
+---
+
+### 19. Créer un abonnement
+
+**POST** `/admin/companies/:id/subscriptions`
+
+Crée un nouvel abonnement pour une entreprise.
+
+#### Paramètres
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ID de l'entreprise |
+
+#### Rôles requis
+
+- `SUPER_ADMIN`
+- `CTO`
+
+#### Corps de la requête
+
+```json
+{
+  "planId": "plan_sme_pro",
+  "startDate": "2024-04-01T00:00:00Z",
+  "billingCycle": "monthly",
+  "autoRenew": true
+}
+```
+
+#### Réponse succès (201)
+
+```json
+{
+  "message": "Subscription created successfully",
+  "subscriptionId": "sub_new_123",
+  "status": "active",
+  "startDate": "2024-04-01T00:00:00Z",
+  "planName": "SME Professional"
+}
+```
+
+---
+
+### 20. Allouer des tokens
+
+**POST** `/admin/companies/:id/allocate-tokens`
+
+Alloue des tokens à une entreprise pour l'utilisation de l'IA Adha.
+
+#### Paramètres
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ID de l'entreprise |
+
+#### Rôles requis
+
+- `SUPER_ADMIN`
+- `CTO` 
 - `CUSTOMER_MANAGER`
+- `FINANCIAL_ADMIN`
+
+#### Corps de la requête
+
+```json
+{
+  "amount": 1000,
+  "reason": "Monthly allocation",
+  "expiryDate": "2024-05-01T00:00:00Z"
+}
+```
+
+#### Réponse succès (200)
+
+```json
+{
+  "message": "Tokens allocated successfully",
+  "companyId": "company_123",
+  "tokensAllocated": 1000,
+  "totalTokens": 2500,
+  "expiryDate": "2024-05-01T00:00:00Z"
+}
+```
+
+---
+
+### 21. Obtenir l'utilisation des tokens
+
+**GET** `/admin/companies/:id/token-usage`
+
+Récupère l'historique d'utilisation des tokens d'une entreprise.
+
+#### Paramètres
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ID de l'entreprise |
+
+#### Paramètres de requête optionnels
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `startDate` | string | Date de début (ISO 8601) |
+| `endDate` | string | Date de fin (ISO 8601) |
+| `limit` | number | Nombre d'entrées à retourner (défaut: 50) |
+| `offset` | number | Décalage pour la pagination (défaut: 0) |
+
+#### Rôles requis
+
+- `SUPER_ADMIN`
+- `CTO`
+- `CUSTOMER_MANAGER`
+- `FINANCIAL_ADMIN`
+
+#### Réponse succès (200)
+
+```json
+{
+  "companyId": "company_123",
+  "totalTokens": 2500,
+  "usedTokens": 1200,
+  "remainingTokens": 1300,
+  "usage": [
+    {
+      "date": "2024-04-15T10:30:00Z",
+      "tokensUsed": 50,
+      "operation": "credit_score_analysis",
+      "userId": "user_456"
+    },
+    {
+      "date": "2024-04-15T09:15:00Z", 
+      "tokensUsed": 25,
+      "operation": "risk_assessment",
+      "userId": "user_789"
+    }
+  ],
+  "pagination": {
+    "total": 150,
+    "limit": 50,
+    "offset": 0,
+    "hasMore": true
+  }
+}
+```
 
 #### Corps de la requête
 

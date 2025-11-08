@@ -1,6 +1,17 @@
 # API Documentation: Finance & Subscriptions
 
-This document outlines the API endpoints, request/response structures, and functionalities related to finance, billing, and subscription management. This includes handling financial transactions, managing subscription plans, customer subscriptions, payment processing, invoicing, and revenue reporting.
+This document outlines the API endpoints, request/response structures, and functionalities related to finance, billing, and subscription management. This includes **dynamic subscription plan management**, financial transactions, customer subscriptions, payment processing, invoicing, and revenue reporting.
+
+## 🆕 New Features (v2.0)
+
+- **Dynamic Plan Creation & Management**: Create, update, deploy, and archive subscription plans via API
+- **Plan Versioning**: Automatic versioning when modifying deployed plans
+- **Advanced Analytics**: Real-time plan performance metrics and customer insights
+- **Granular Feature Control**: 24 predefined features with custom limits and configuration
+- **Token Management**: Sophisticated token allocation, rollover, and rate configuration
+- **Multi-Customer Types**: Support for SME and Financial Institution plans
+- **Plan Lifecycle Management**: DRAFT → DEPLOYED → ARCHIVED → DELETED workflow
+- **A/B Testing Support**: Plan duplication and comparison capabilities
 
 ## Standard Response Types
 
@@ -24,52 +35,400 @@ interface APIResponse<T> {
 }
 ```
 
-## 1. Subscription Plan Endpoints
+## 1. Dynamic Subscription Plan Management
 
-### 1.1. List Subscription Plans
+### 1.1. List Dynamic Plans (NEW)
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/plans`
+*   **Description:** Retrieves a paginated list of subscription plans with advanced filtering and sorting capabilities.
+*   **Query Parameters:**
+    *   `search` (optional, string): Search by plan name, description, or tags.
+    *   `status` (optional, string): Filter by plan status (`DRAFT`, `DEPLOYED`, `ARCHIVED`, `DELETED`).
+    *   `customerType` (optional, string): Filter by customer type (`SME`, `FINANCIAL_INSTITUTION`).
+    *   `isActive` (optional, boolean): Filter by active status.
+    *   `isVisible` (optional, boolean): Filter by visibility status.
+    *   `page` (optional, integer): Page number for pagination (default: 1).
+    *   `limit` (optional, integer): Items per page (default: 10).
+    *   `sortBy` (optional, string): Sort field (default: 'createdAt').
+    *   `sortDirection` (optional, string): Sort direction (`ASC`, `DESC`, default: 'DESC').
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "items": [
+            {
+              "id": "plan_123e4567-e89b-12d3-a456-426614174000",
+              "name": "PME Professional",
+              "description": "Plan professionnel complet pour PME avec analyse de crédit avancée.",
+              "customerType": "SME",
+              "price": 99.99,
+              "annualPrice": 999.99,
+              "annualDiscount": 16.67,
+              "currency": "USD",
+              "billingCycle": "monthly",
+              "status": "DEPLOYED",
+              "version": 2,
+              "tokenConfig": {
+                "monthlyTokens": 5000,
+                "rolloverAllowed": true,
+                "maxRolloverMonths": 3,
+                "tokenRates": {
+                  "CREDIT_ANALYSIS": 2.0,
+                  "RISK_ASSESSMENT": 1.5,
+                  "FINANCIAL_REPORTS": 1.0,
+                  "PORTFOLIO_ANALYSIS": 3.0
+                },
+                "discountTiers": [
+                  {
+                    "minTokens": 10000,
+                    "discountPercentage": 10
+                  },
+                  {
+                    "minTokens": 50000,
+                    "discountPercentage": 20
+                  }
+                ]
+              },
+              "features": {
+                "BASIC_REPORTS": {
+                  "enabled": true,
+                  "limit": 100,
+                  "description": "Rapports financiers de base"
+                },
+                "CREDIT_ANALYSIS": {
+                  "enabled": true,
+                  "description": "Analyse de crédit complète"
+                },
+                "RISK_ASSESSMENT": {
+                  "enabled": true,
+                  "limit": 50,
+                  "description": "Évaluation des risques"
+                },
+                "API_ACCESS": {
+                  "enabled": true,
+                  "description": "Accès API complet"
+                },
+                "PRIORITY_SUPPORT": {
+                  "enabled": true,
+                  "description": "Support prioritaire 24/7"
+                }
+              },
+              "limits": {
+                "maxUsers": 25,
+                "maxAPICallsPerDay": 10000,
+                "maxDataStorageGB": 100,
+                "maxReportsPerMonth": 500,
+                "maxConcurrentSessions": 10,
+                "maxDashboards": 20,
+                "maxCustomFields": 50
+              },
+              "isActive": true,
+              "isVisible": true,
+              "sortOrder": 1,
+              "trialPeriodDays": 30,
+              "tags": ["pme", "professionnel", "populaire"],
+              "analytics": {
+                "totalSubscriptions": 245,
+                "activeSubscriptions": 198,
+                "churnRate": 5.2,
+                "averageLifetimeValue": 2400.00,
+                "monthlyRecurringRevenue": 19800.00,
+                "conversionRate": 85.5,
+                "popularFeatures": [
+                  {
+                    "feature": "CREDIT_ANALYSIS",
+                    "usagePercentage": 95.2
+                  },
+                  {
+                    "feature": "FINANCIAL_REPORTS",
+                    "usagePercentage": 87.3
+                  }
+                ],
+                "customerSatisfactionScore": 4.7,
+                "supportTicketsPerMonth": 12
+              },
+              "createdAt": "2024-01-15T10:30:00Z",
+              "updatedAt": "2024-03-20T14:15:00Z",
+              "deployedAt": "2024-01-20T09:00:00Z",
+              "createdBy": "admin_user_123",
+              "updatedBy": "admin_user_456",
+              "deployedBy": "admin_user_123",
+              "metadata": {
+                "targetMarket": "PME France",
+                "salesNotes": "Plan le plus populaire pour les PME",
+                "featureHighlights": ["Analyse de crédit", "Support 24/7", "API complète"],
+                "comparisonNotes": "20% plus de features que le plan Standard"
+              }
+            }
+          ],
+          "totalCount": 12,
+          "page": 1,
+          "totalPages": 2
+        }
+        ```
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid query parameters.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.2. Get Plan Details (NEW)
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/plans/{planId}`
+*   **Description:** Retrieves detailed information for a specific subscription plan.
+*   **Response:**
+    *   `200 OK`: Same structure as plan object in list response above.
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.3. Create Plan (NEW)
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/plans`
+*   **Description:** Creates a new subscription plan in DRAFT status.
+*   **Request Body:**
+    ```json
+    {
+      "name": "PME Enterprise",
+      "description": "Plan entreprise avec fonctionnalités avancées pour grandes PME.",
+      "customerType": "SME",
+      "price": 199.99,
+      "annualPrice": 1999.99,
+      "annualDiscount": 16.67,
+      "currency": "USD",
+      "billingCycle": "monthly",
+      "tokenConfig": {
+        "monthlyTokens": 10000,
+        "rolloverAllowed": true,
+        "maxRolloverMonths": 6,
+        "tokenRates": {
+          "CREDIT_ANALYSIS": 1.8,
+          "RISK_ASSESSMENT": 1.2,
+          "FINANCIAL_REPORTS": 0.8,
+          "PORTFOLIO_ANALYSIS": 2.5,
+          "AI_INSIGHTS": 5.0
+        },
+        "discountTiers": [
+          {
+            "minTokens": 20000,
+            "discountPercentage": 15
+          },
+          {
+            "minTokens": 100000,
+            "discountPercentage": 30
+          }
+        ]
+      },
+      "features": {
+        "BASIC_REPORTS": {
+          "enabled": true,
+          "limit": 500,
+          "description": "Rapports illimités"
+        },
+        "CREDIT_ANALYSIS": {
+          "enabled": true,
+          "description": "Analyse de crédit avancée avec IA"
+        },
+        "RISK_ASSESSMENT": {
+          "enabled": true,
+          "description": "Évaluation des risques en temps réel"
+        },
+        "AI_INSIGHTS": {
+          "enabled": true,
+          "description": "Insights IA et prédictions"
+        },
+        "DEDICATED_ACCOUNT_MANAGER": {
+          "enabled": true,
+          "description": "Account manager dédié"
+        },
+        "WHITE_LABEL": {
+          "enabled": true,
+          "description": "Solution white-label personnalisable"
+        }
+      },
+      "limits": {
+        "maxUsers": 100,
+        "maxAPICallsPerDay": 50000,
+        "maxDataStorageGB": 500,
+        "maxReportsPerMonth": 2000,
+        "maxConcurrentSessions": 50,
+        "maxDashboards": 100,
+        "maxCustomFields": 200
+      },
+      "trialPeriodDays": 45,
+      "tags": ["pme", "enterprise", "ia", "white-label"],
+      "sortOrder": 0,
+      "metadata": {
+        "targetMarket": "Grandes PME internationales",
+        "salesNotes": "Plan premium avec IA et white-label",
+        "featureHighlights": ["IA avancée", "White-label", "Account manager"],
+        "comparisonNotes": "3x plus de ressources que le plan Professional"
+      }
+    }
+    ```
+*   **Response:**
+    *   `201 Created`: Returns the created plan with status `DRAFT` and version `1`.
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body or validation errors.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `409 Conflict`: A plan with the same name already exists for this customer type.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.4. Update Plan (NEW)
+*   **HTTP Method:** `PUT`
+*   **URL:** `/api/finance/plans/{planId}`
+*   **Description:** Updates an existing plan. If the plan is DEPLOYED, creates a new version in DRAFT status.
+*   **Request Body:** Same structure as create, but all fields are optional.
+*   **Response:**
+    *   `200 OK`: Returns the updated plan or new version if plan was deployed.
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `409 Conflict`: Cannot update a deleted plan.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.5. Deploy Plan (NEW)
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/plans/{planId}/deploy`
+*   **Description:** Deploys a DRAFT plan to production, making it available to customers.
+*   **Request Body:**
+    ```json
+    {
+      "deploymentNotes": "Plan prêt pour production après validation équipe produit",
+      "notifyCustomers": false
+    }
+    ```
+*   **Response:**
+    *   `200 OK`: Returns the plan with status `DEPLOYED` and `deployedAt` timestamp.
+*   **Error Responses:**
+    *   `400 Bad Request`: Plan cannot be deployed (not in DRAFT status or inactive).
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.6. Archive Plan (NEW)
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/plans/{planId}/archive`
+*   **Description:** Archives a DEPLOYED plan, making it unavailable for new subscriptions.
+*   **Request Body:**
+    ```json
+    {
+      "reason": "Plan remplacé par la nouvelle version Enterprise v2",
+      "replacementPlanId": "plan_789e4567-e89b-12d3-a456-426614174000"
+    }
+    ```
+*   **Response:**
+    *   `200 OK`: Returns the plan with status `ARCHIVED` and `archivedAt` timestamp.
+*   **Error Responses:**
+    *   `400 Bad Request`: Plan cannot be archived or has active subscriptions without replacement.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.7. Delete Plan (NEW)
+*   **HTTP Method:** `DELETE`
+*   **URL:** `/api/finance/plans/{planId}`
+*   **Description:** Soft-deletes a plan (only DRAFT or ARCHIVED plans with no subscriptions).
+*   **Response:**
+    *   `204 No Content`: Plan successfully deleted.
+*   **Error Responses:**
+    *   `400 Bad Request`: Plan cannot be deleted (has subscriptions or wrong status).
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.8. Duplicate Plan (NEW)
+*   **HTTP Method:** `POST`
+*   **URL:** `/api/finance/plans/{planId}/duplicate`
+*   **Description:** Creates a copy of an existing plan with a new name for A/B testing.
+*   **Request Body:**
+    ```json
+    {
+      "name": "PME Professional v2 (Test)"
+    }
+    ```
+*   **Response:**
+    *   `201 Created`: Returns the duplicated plan in DRAFT status with version 1.
+*   **Error Responses:**
+    *   `400 Bad Request`: Invalid request body.
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Source plan not found.
+    *   `409 Conflict`: Plan name already exists.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.9. Get Plan Analytics (NEW)
+*   **HTTP Method:** `GET`
+*   **URL:** `/api/finance/plans/{planId}/analytics`
+*   **Description:** Retrieves detailed analytics and performance metrics for a specific plan.
+*   **Response:**
+    *   `200 OK`:
+        ```json
+        {
+          "totalSubscriptions": 245,
+          "activeSubscriptions": 198,
+          "churnRate": 5.2,
+          "averageLifetimeValue": 2400.00,
+          "monthlyRecurringRevenue": 19800.00,
+          "conversionRate": 85.5,
+          "popularFeatures": [
+            {
+              "feature": "CREDIT_ANALYSIS",
+              "usagePercentage": 95.2
+            },
+            {
+              "feature": "FINANCIAL_REPORTS",
+              "usagePercentage": 87.3
+            },
+            {
+              "feature": "RISK_ASSESSMENT",
+              "usagePercentage": 76.8
+            }
+          ],
+          "customerSatisfactionScore": 4.7,
+          "supportTicketsPerMonth": 12
+        }
+        ```
+*   **Error Responses:**
+    *   `401 Unauthorized`: Authentication token is missing or invalid.
+    *   `403 Forbidden`: Authenticated user does not have permission.
+    *   `404 Not Found`: Plan not found.
+    *   `500 Internal Server Error`: Unexpected server error.
+
+### 1.10. List Legacy Plans (DEPRECATED)
 *   **HTTP Method:** `GET`
 *   **URL:** `/api/finance/subscriptions/plans`
-*   **Description:** Retrieves a list of all available subscription plans.
+*   **Description:** ⚠️ **DEPRECATED** - Use `/api/finance/plans` instead. Retrieves a simplified list of active plans for backward compatibility.
 *   **Response:**
     *   `200 OK`:
         ```json
         [
           {
-            "id": "plan_pro_monthly",
-            "name": "Professional Plan - Monthly",
-            "description": "Full-featured plan for professionals, billed monthly.",
-            "price": 49.99,
+            "id": "plan_123e4567-e89b-12d3-a456-426614174000",
+            "name": "PME Professional",
+            "description": "Plan professionnel complet pour PME.",
+            "price": 99.99,
             "currency": "USD",
             "billingCycle": "monthly",
-            "features": ["Feature A", "Feature B", "1000 API Calls"],
+            "features": ["CREDIT_ANALYSIS", "RISK_ASSESSMENT", "FINANCIAL_REPORTS"],
             "isActive": true,
-            "trialPeriodDays": 14,
+            "trialPeriodDays": 30,
             "metadata": {
-              "maxUsers": 5,
-              "storageLimit": "50GB"
-            }
-          },
-          {
-            "id": "plan_pro_annually",
-            "name": "Professional Plan - Annual",
-            "description": "Full-featured plan for professionals, billed annually.",
-            "price": 499.99,
-            "currency": "USD",
-            "billingCycle": "annually",
-            "features": ["Feature A", "Feature B", "1000 API Calls"],
-            "isActive": true,
-            "trialPeriodDays": 14,
-            "metadata": {
-              "maxUsers": 5,
-              "storageLimit": "50GB"
+              "maxUsers": 25,
+              "storageLimit": "100GB"
             }
           }
         ]
         ```
-*   **Error Responses:**
-    *   `401 Unauthorized`: Authentication token is missing or invalid.
-    *   `403 Forbidden`: Authenticated user does not have permission to list subscription plans.
-    *   `500 Internal Server Error`: Unexpected server error.
+*   **Error Responses:** Same as new endpoint.
 
 ## 1.2. Standardized Finance Service Endpoints
 
@@ -1106,19 +1465,143 @@ interface Payment {
 }
 ```
 
-### 8.4. Subscription
+### 8.4. Subscription Plans (Updated Models)
+
 ```typescript
+// Enums
+enum PlanStatus {
+  DRAFT = 'DRAFT',
+  DEPLOYED = 'DEPLOYED',
+  ARCHIVED = 'ARCHIVED',
+  DELETED = 'DELETED'
+}
+
+enum CustomerType {
+  SME = 'SME',
+  FINANCIAL_INSTITUTION = 'FINANCIAL_INSTITUTION'
+}
+
+enum FeatureCode {
+  // Features de base
+  BASIC_REPORTS = 'BASIC_REPORTS',
+  CUSTOMER_MANAGEMENT = 'CUSTOMER_MANAGEMENT',
+  TRANSACTION_HISTORY = 'TRANSACTION_HISTORY',
+  
+  // Features avancées
+  FINANCIAL_REPORTS = 'FINANCIAL_REPORTS',
+  CREDIT_ANALYSIS = 'CREDIT_ANALYSIS',
+  RISK_ASSESSMENT = 'RISK_ASSESSMENT',
+  PORTFOLIO_ANALYSIS = 'PORTFOLIO_ANALYSIS',
+  
+  // Features premium
+  AI_INSIGHTS = 'AI_INSIGHTS',
+  PREDICTIVE_ANALYTICS = 'PREDICTIVE_ANALYTICS',
+  CUSTOM_DASHBOARDS = 'CUSTOM_DASHBOARDS',
+  WHITE_LABEL = 'WHITE_LABEL',
+  
+  // API et intégrations
+  API_ACCESS = 'API_ACCESS',
+  WEBHOOK_SUPPORT = 'WEBHOOK_SUPPORT',
+  THIRD_PARTY_INTEGRATIONS = 'THIRD_PARTY_INTEGRATIONS',
+  
+  // Support et formation
+  PRIORITY_SUPPORT = 'PRIORITY_SUPPORT',
+  DEDICATED_ACCOUNT_MANAGER = 'DEDICATED_ACCOUNT_MANAGER',
+  TRAINING_SESSIONS = 'TRAINING_SESSIONS',
+  
+  // Features techniques
+  DATA_EXPORT = 'DATA_EXPORT',
+  BULK_OPERATIONS = 'BULK_OPERATIONS',
+  ADVANCED_FILTERS = 'ADVANCED_FILTERS',
+  MULTI_CURRENCY = 'MULTI_CURRENCY',
+  AUDIT_LOGS = 'AUDIT_LOGS',
+  
+  // Fonctionnalités mobiles
+  MOBILE_APP_ACCESS = 'MOBILE_APP_ACCESS',
+  OFFLINE_MODE = 'OFFLINE_MODE'
+}
+
+// Interfaces principales
+interface FeatureConfig {
+  enabled: boolean;
+  limit?: number;
+  description?: string;
+  customConfig?: Record<string, any>;
+}
+
+interface TokenConfig {
+  monthlyTokens: number;
+  rolloverAllowed: boolean;
+  maxRolloverMonths: number;
+  tokenRates: Record<FeatureCode, number>;
+  discountTiers: Array<{
+    minTokens: number;
+    discountPercentage: number;
+  }>;
+}
+
+interface PlanLimits {
+  maxUsers: number;
+  maxAPICallsPerDay: number;
+  maxDataStorageGB: number;
+  maxReportsPerMonth: number;
+  maxConcurrentSessions: number;
+  maxDashboards: number;
+  maxCustomFields: number;
+}
+
+interface PlanAnalytics {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  churnRate: number;
+  averageLifetimeValue: number;
+  monthlyRecurringRevenue: number;
+  conversionRate: number;
+  popularFeatures: Array<{
+    feature: FeatureCode;
+    usagePercentage: number;
+  }>;
+  customerSatisfactionScore: number;
+  supportTicketsPerMonth: number;
+}
+
 interface SubscriptionPlan {
   id: string;
   name: string;
-  description?: string;
+  description: string;
+  customerType: CustomerType;
   price: number;
+  annualPrice?: number;
+  annualDiscount: number;
   currency: string;
   billingCycle: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
-  features: string[];
+  status: PlanStatus;
+  version: number;
+  tokenConfig: TokenConfig;
+  features: Record<FeatureCode, FeatureConfig>;
+  limits: PlanLimits;
   isActive: boolean;
+  isVisible: boolean;
+  sortOrder: number;
   trialPeriodDays?: number;
-  metadata?: Record<string, unknown>;
+  tags: string[];
+  analytics?: PlanAnalytics;
+  createdAt: string;
+  updatedAt: string;
+  deployedAt?: string;
+  archivedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  deployedBy?: string;
+  archivedBy?: string;
+  metadata: {
+    targetMarket?: string;
+    salesNotes?: string;
+    migrationInstructions?: string;
+    featureHighlights?: string[];
+    comparisonNotes?: string;
+    [key: string]: any;
+  };
 }
 
 interface Subscription {
@@ -1143,8 +1626,73 @@ interface Subscription {
   trialEndsAt?: string;
   canceledAt?: string;
   cancellationReason?: string;
+  // Nouveaux champs pour les tokens (compatibles avec Customer Service)
+  tokensIncluded: number;
+  tokensUsed: number;
+  tokensRemaining: number;
+  tokensRolledOver?: number;
   metadata?: Record<string, unknown>;
 }
+
+// DTOs de requête et réponse
+interface CreatePlanDto {
+  name: string;
+  description: string;
+  customerType: CustomerType;
+  price: number;
+  annualPrice?: number;
+  annualDiscount?: number;
+  currency: string;
+  billingCycle: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
+  tokenConfig: TokenConfig;
+  features: Record<FeatureCode, FeatureConfig>;
+  limits: PlanLimits;
+  trialPeriodDays?: number;
+  tags?: string[];
+  sortOrder?: number;
+  metadata?: Record<string, any>;
+}
+
+interface UpdatePlanDto {
+  name?: string;
+  description?: string;
+  price?: number;
+  annualPrice?: number;
+  annualDiscount?: number;
+  currency?: string;
+  billingCycle?: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
+  tokenConfig?: TokenConfig;
+  features?: Record<FeatureCode, FeatureConfig>;
+  limits?: PlanLimits;
+  trialPeriodDays?: number;
+  tags?: string[];
+  sortOrder?: number;
+  isActive?: boolean;
+  isVisible?: boolean;
+  metadata?: Record<string, any>;
+}
+
+interface DeployPlanDto {
+  deploymentNotes?: string;
+  notifyCustomers?: boolean;
+}
+
+interface ArchivePlanDto {
+  reason: string;
+  replacementPlanId?: string;
+}
+
+interface ListPlansQueryDto extends PaginationQuery {
+  search?: string;
+  status?: PlanStatus;
+  customerType?: CustomerType;
+  isActive?: boolean;
+  isVisible?: boolean;
+  sortBy?: string;
+  sortDirection?: 'ASC' | 'DESC';
+}
+
+interface PaginatedPlansResponse extends PaginatedResponse<SubscriptionPlan> {}
 ```
 
 ### 8.5. Token

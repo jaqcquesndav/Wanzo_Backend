@@ -2,7 +2,7 @@
 
 ## 🎯 Vue d'Ensemble
 
-Le système d'abonnements a été complètement refondu pour une **approche moderne avec tokens intégrés**. 
+Le système d'abonnements a été complètement refondu pour une **approche moderne avec tokens intégrés** et **gestion dynamique des plans depuis l'Admin Service**. 
 
 ### ❌ SUPPRIMÉ : Achat de Tokens Indépendants
 - Plus d'endpoints `/tokens/purchase`
@@ -13,6 +13,13 @@ Le système d'abonnements a été complètement refondu pour une **approche mode
 - Allocation mensuelle de tokens par plan
 - Système de rollover intelligent
 - Gestion automatique des limites
+
+### 🆕 DÉCEMBRE 2025 : Intégration Admin Service
+- **Plans Dynamiques** : Plans créés et gérés depuis l'Admin Service
+- **Synchronisation Kafka** : Mise à jour automatique via événements
+- **Versioning** : Suivi des versions de plans
+- **États des Plans** : DRAFT → DEPLOYED → ARCHIVED
+- **24 FeatureCode** : Fonctionnalités granulaires configurables
 
 ## 🏗️ Architecture des Données
 
@@ -55,30 +62,55 @@ enum SubscriptionStatus {
 ```typescript
 interface SubscriptionPlan {
   id: string;
+  configId: string;              // ID depuis l'Admin Service
   name: string;
   description: string;
   customerType: CustomerType;
+  planType: PlanTier;            // basic | standard | premium | enterprise | custom
   
   // Tarification
   monthlyPriceUSD: number;
   annualPriceUSD: number;        // Avec réduction automatique
   currency: 'USD';
   
-  // 🆕 Allocation de Tokens Intégrée
+  // 🆕 Configuration Avancée des Tokens
   tokenAllocation: {
     monthlyTokens: number;       // Tokens inclus par mois
     rolloverLimit: number;       // Limite de report (tokens)
     rolloverPeriods: number;     // Nombre de périodes de report
+    tokenRates?: {               // Coût par type d'opération
+      creditAnalysis: number;
+      riskAssessment: number;
+      financialReporting: number;
+      complianceCheck: number;
+      marketAnalysis: number;
+      predictiveModeling: number;
+    };
   };
   
-  // Fonctionnalités incluses
+  // Fonctionnalités granulaires (24 FeatureCode disponibles)
   features: Record<FeatureCode, PlanFeature>;
   
-  // Métadonnées
+  // Limites par plan
+  limits: {
+    maxUsers: number;            // -1 = illimité
+    maxAPICallsPerDay: number;
+    maxDataStorageGB: number;
+    maxReportsPerMonth: number;
+    maxCustomFields: number;
+    maxIntegrations: number;
+  };
+  
+  // Métadonnées étendues
   isVisible: boolean;
   isPopular: boolean;
   sortOrder: number;
   tags: string[];
+  metadata: {
+    fromAdminService: boolean;   // Plan créé par l'Admin Service
+    version: number;             // Version du plan
+    adminServicePlanId?: string; // ID original Admin Service
+  };
 }
 ```
 
@@ -91,44 +123,46 @@ interface PlanFeature {
   metadata?: Record<string, any>;
 }
 
+// 24 FeatureCode disponibles - Gérés dynamiquement depuis l'Admin Service
 enum FeatureCode {
-  // 🏢 Gestion d'Entreprise
-  COMMERCIAL_MANAGEMENT = 'commercial_management',
-  CUSTOMER_MANAGEMENT = 'customer_management',
-  SALES_TRACKING = 'sales_tracking',
-  INVENTORY_MANAGEMENT = 'inventory_management',
+  // � Support Client
+  BASIC_SUPPORT = 'BASIC_SUPPORT',                    // Support standard
+  PRIORITY_SUPPORT = 'PRIORITY_SUPPORT',              // Support prioritaire
+  DEDICATED_MANAGER = 'DEDICATED_MANAGER',            // Gestionnaire dédié
   
-  // 💰 Comptabilité et Finance
-  ACCOUNTING_BASIC = 'accounting_basic',
-  ACCOUNTING_ADVANCED = 'accounting_advanced',
-  FINANCIAL_REPORTS = 'financial_reports',
-  TAX_MANAGEMENT = 'tax_management',
-  BUDGET_MANAGEMENT = 'budget_management',
+  // 🔌 Accès et Intégrations
+  API_ACCESS = 'API_ACCESS',                          // Accès API programmatique
+  WEBHOOK_INTEGRATION = 'WEBHOOK_INTEGRATION',        // Notifications webhook
+  THIRD_PARTY_INTEGRATIONS = 'THIRD_PARTY_INTEGRATIONS', // Intégrations tierces
+  CUSTOM_INTEGRATIONS = 'CUSTOM_INTEGRATIONS',        // Intégrations sur mesure
+  
+  // � Analytics et Reporting
+  BASIC_ANALYTICS = 'BASIC_ANALYTICS',                // Analytics de base
+  ADVANCED_ANALYTICS = 'ADVANCED_ANALYTICS',          // Analytics avancées
+  CUSTOM_REPORTS = 'CUSTOM_REPORTS',                  // Rapports personnalisés
+  REAL_TIME_DASHBOARD = 'REAL_TIME_DASHBOARD',        // Tableau de bord temps réel
+  DATA_EXPORT = 'DATA_EXPORT',                        // Export de données
   
   // 🤖 Intelligence Artificielle
-  AI_CHAT_ASSISTANCE = 'ai_chat_assistance',
-  DOCUMENT_ANALYSIS = 'document_analysis',
-  PREDICTIVE_ANALYTICS = 'predictive_analytics',
-  RISK_ANALYSIS = 'risk_analysis',
+  AI_INSIGHTS = 'AI_INSIGHTS',                        // Recommandations IA
+  PREDICTIVE_ANALYTICS = 'PREDICTIVE_ANALYTICS',      // Analyses prédictives
+  RISK_ASSESSMENT = 'RISK_ASSESSMENT',                // Évaluation des risques
+  FRAUD_DETECTION = 'FRAUD_DETECTION',                // Détection de fraude
   
-  // 👥 Ressources Humaines
-  HR_MANAGEMENT = 'hr_management',
-  PAYROLL_MANAGEMENT = 'payroll_management',
-  EMPLOYEE_TRACKING = 'employee_tracking',
+  // 🏢 Fonctionnalités Entreprise
+  WHITE_LABEL = 'WHITE_LABEL',                        // Personnalisation marque
+  MULTI_TENANT = 'MULTI_TENANT',                      // Gestion multi-organisation
+  UNLIMITED_USERS = 'UNLIMITED_USERS',                // Utilisateurs illimités
   
-  // 🏦 Spécifique Institutions Financières
-  LOAN_MANAGEMENT = 'loan_management',
-  CREDIT_SCORING = 'credit_scoring',
-  PORTFOLIO_MANAGEMENT = 'portfolio_management',
-  REGULATORY_REPORTING = 'regulatory_reporting',
-  RISK_MANAGEMENT = 'risk_management',
+  // 🔐 Sécurité et Conformité
+  ADVANCED_SECURITY = 'ADVANCED_SECURITY',            // Sécurité renforcée
+  SLA_GUARANTEE = 'SLA_GUARANTEE',                    // Garantie SLA
+  COMPLIANCE_TOOLS = 'COMPLIANCE_TOOLS',              // Outils conformité
+  AUDIT_TRAIL = 'AUDIT_TRAIL',                        // Piste d'audit
   
-  // 🔧 Fonctionnalités Système
-  MULTI_USER = 'multi_user',
-  DATA_EXPORT = 'data_export',
-  API_ACCESS = 'api_access',
-  CUSTOM_REPORTS = 'custom_reports',
-  PRIORITY_SUPPORT = 'priority_support'
+  // ⚡ Automatisation
+  AUTOMATED_WORKFLOWS = 'AUTOMATED_WORKFLOWS',        // Workflows automatisés
+  BULK_OPERATIONS = 'BULK_OPERATIONS'                 // Opérations en masse
 }
 ```
 
@@ -287,6 +321,146 @@ Tous les endpoints nécessitent un token Auth0 Bearer :
 ```http
 Authorization: Bearer <access_token>
 ```
+
+## 🛠️ Endpoints Administration (ADMIN/SUPER_ADMIN uniquement)
+
+### Base URL Admin
+```
+http://localhost:8000/land/api/v1/subscriptions/admin
+```
+
+### 1. Récupérer Tous les Plans (Admin)
+```http
+GET /subscriptions/admin/plans/all?includeInactive=true&customerType=pme
+```
+
+**Paramètres de requête** :
+- `includeInactive` : Inclure les plans inactifs (`true`/`false`)
+- `customerType` : Filtrer par type (`pme`/`financial`)
+
+**Réponse** :
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "plan_123",
+      "configId": "premium_pme_v2",
+      "name": "PME Premium v2",
+      "customerType": "sme",
+      "planType": "PREMIUM",
+      "isActive": true,
+      "isVisible": true,
+      "metadata": {
+        "fromAdminService": true,
+        "version": 2,
+        "adminServicePlanId": "premium_pme_v2"
+      }
+    }
+  ],
+  "message": "Retrieved 15 subscription plans"
+}
+```
+
+### 2. Synchroniser les Plans
+```http
+POST /subscriptions/admin/plans/sync
+```
+
+**Réponse** :
+```json
+{
+  "success": true,
+  "data": {
+    "totalPlans": 15,
+    "syncedAt": "2025-11-08T10:30:00Z"
+  },
+  "message": "Subscription plans synchronized successfully"
+}
+```
+
+### 3. Valider la Cohérence des Plans
+```http
+GET /subscriptions/admin/plans/validate
+```
+
+**Réponse** :
+```json
+{
+  "success": true,
+  "data": {
+    "isValid": true,
+    "missingPlans": [],
+    "missingPackages": [],
+    "inconsistencies": []
+  },
+  "message": "Pricing data is valid"
+}
+```
+
+### 4. Statistiques des Plans
+```http
+GET /subscriptions/admin/plans/stats
+```
+
+**Réponse** :
+```json
+{
+  "success": true,
+  "data": {
+    "total": 15,
+    "byCustomerType": {
+      "sme": 8,
+      "financial": 7
+    },
+    "byTier": {
+      "basic": 4,
+      "standard": 4,
+      "premium": 4,
+      "enterprise": 2,
+      "custom": 1
+    },
+    "popular": 3,
+    "fromAdminService": 12,
+    "priceRange": {
+      "min": 0,
+      "max": 299.99,
+      "average": 85.50
+    }
+  },
+  "message": "Plan statistics retrieved successfully"
+}
+```
+
+### 5. Actualiser un Plan Spécifique
+```http
+POST /subscriptions/admin/plans/premium_pme_v2/refresh
+```
+
+## 📡 Événements Kafka Consommés
+
+Le Customer Service écoute les événements de l'Admin Service pour maintenir la synchronisation des plans :
+
+### 1. subscription.plan.created
+- **Action** : Crée un nouveau plan dans la base locale
+- **Statut** : Respecte le statut (draft/deployed/archived)
+
+### 2. subscription.plan.updated
+- **Action** : Met à jour les métadonnées de version
+- **Tracking** : Enregistre l'historique des modifications
+
+### 3. subscription.plan.deployed
+- **Action** : Active le plan (`isActive: true, isVisible: true`)
+- **Impact** : Plan devient disponible pour les clients
+
+### 4. subscription.plan.archived
+- **Action** : Désactive le plan (`isActive: false, isVisible: false`)
+- **Préservation** : Maintient les abonnements existants
+- **Migration** : Prépare la migration vers un nouveau plan si spécifié
+
+### 5. subscription.plan.restored
+- **Action** : Réactive un plan archivé selon son nouveau statut
+- **Flexibilité** : Peut restaurer en mode draft ou deployed
 
 ### 1. Récupérer les Plans Disponibles
 ```http

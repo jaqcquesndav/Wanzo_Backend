@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm';
 
 // 8. Data Models from finance.md
 
@@ -11,6 +11,59 @@ export enum SubscriptionStatus {
   PAUSED = 'paused',
   TRIAL = 'trial',
   PAYMENT_FAILED = 'payment_failed',
+}
+
+// Nouveaux enums pour la gestion des plans
+export enum PlanStatus {
+  DRAFT = 'DRAFT',
+  DEPLOYED = 'DEPLOYED',
+  ARCHIVED = 'ARCHIVED',
+  DELETED = 'DELETED',
+}
+
+export enum CustomerType {
+  SME = 'SME',
+  FINANCIAL_INSTITUTION = 'FINANCIAL_INSTITUTION',
+}
+
+export enum FeatureCode {
+  // Features de base
+  BASIC_REPORTS = 'BASIC_REPORTS',
+  CUSTOMER_MANAGEMENT = 'CUSTOMER_MANAGEMENT',
+  TRANSACTION_HISTORY = 'TRANSACTION_HISTORY',
+  
+  // Features avancées
+  FINANCIAL_REPORTS = 'FINANCIAL_REPORTS',
+  CREDIT_ANALYSIS = 'CREDIT_ANALYSIS',
+  RISK_ASSESSMENT = 'RISK_ASSESSMENT',
+  PORTFOLIO_ANALYSIS = 'PORTFOLIO_ANALYSIS',
+  
+  // Features premium
+  AI_INSIGHTS = 'AI_INSIGHTS',
+  PREDICTIVE_ANALYTICS = 'PREDICTIVE_ANALYTICS',
+  CUSTOM_DASHBOARDS = 'CUSTOM_DASHBOARDS',
+  WHITE_LABEL = 'WHITE_LABEL',
+  
+  // API et intégrations
+  API_ACCESS = 'API_ACCESS',
+  WEBHOOK_SUPPORT = 'WEBHOOK_SUPPORT',
+  THIRD_PARTY_INTEGRATIONS = 'THIRD_PARTY_INTEGRATIONS',
+  
+  // Support et formation
+  PRIORITY_SUPPORT = 'PRIORITY_SUPPORT',
+  DEDICATED_ACCOUNT_MANAGER = 'DEDICATED_ACCOUNT_MANAGER',
+  TRAINING_SESSIONS = 'TRAINING_SESSIONS',
+  
+  // Features techniques
+  DATA_EXPORT = 'DATA_EXPORT',
+  BULK_OPERATIONS = 'BULK_OPERATIONS',
+  ADVANCED_FILTERS = 'ADVANCED_FILTERS',
+  MULTI_CURRENCY = 'MULTI_CURRENCY',
+  AUDIT_LOGS = 'AUDIT_LOGS',
+  
+  // Fonctionnalités mobiles
+  MOBILE_APP_ACCESS = 'MOBILE_APP_ACCESS',
+  OFFLINE_MODE = 'OFFLINE_MODE',
 }
 
 export enum InvoiceStatus {
@@ -66,11 +119,13 @@ export enum TransactionStatus {
 // Entities based on documentation
 
 @Entity('subscription_plans')
+@Index(['customerType', 'status'])
+@Index(['status', 'isActive'])
 export class SubscriptionPlan {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ length: 100 })
   name: string;
 
   @Column('text')
@@ -85,6 +140,17 @@ export class SubscriptionPlan {
   @Column({ type: 'enum', enum: BillingCycle })
   billingCycle: BillingCycle;
 
+  // Nouveau champ pour le type de customer
+  @Column({ type: 'enum', enum: CustomerType, default: CustomerType.SME })
+  customerType: CustomerType;
+
+  // Prix annuel et réduction
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  annualPrice: number;
+
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  annualDiscount: number; // Pourcentage de réduction annuelle
+
   // ===== TOKENS INCLUS DANS LE PLAN =====
   @Column('bigint', { default: 0 })
   includedTokens: number;
@@ -96,33 +162,23 @@ export class SubscriptionPlan {
     rolloverAllowed: boolean;
     maxRolloverMonths: number;
     rolloverLimit?: number;
-    tokenRates: {
-      creditAnalysis: number;
-      riskAssessment: number;
-      financialReporting: number;
-      complianceCheck: number;
-      marketAnalysis: number;
-      predictiveModeling: number;
-      [key: string]: number;
-    };
+    tokenRates: Record<FeatureCode, number>;
+    discountTiers: Array<{
+      minTokens: number;
+      discountPercentage: number;
+    }>;
   };
 
-  // Features du plan (compatible avec Customer Service)
+  // Features du plan avec système granulaire (compatible avec Customer Service)
   @Column('jsonb', { nullable: true })
-  features: {
-    apiAccess: boolean;
-    advancedAnalytics: boolean;
-    customReporting: boolean;
-    prioritySupport: boolean;
-    multiUserAccess: boolean;
-    dataExport: boolean;
-    customIntegrations: boolean;
-    whiteLabeling: boolean;
-    dedicatedAccountManager: boolean;
-    [key: string]: any;
-  };
+  features: Record<FeatureCode, {
+    enabled: boolean;
+    limit?: number;
+    description?: string;
+    customConfig?: Record<string, any>;
+  }>;
 
-  // Limites du plan
+  // Limites du plan étendues
   @Column('jsonb', { nullable: true })
   limits: {
     maxUsers: number;
@@ -131,20 +187,136 @@ export class SubscriptionPlan {
     maxReportsPerMonth: number;
     maxCustomFields: number;
     maxIntegrations: number;
+    maxConcurrentSessions: number;
+    maxDashboards: number;
     [key: string]: any;
   };
 
+  // Statut et visibilité
+  @Column({ type: 'enum', enum: PlanStatus, default: PlanStatus.DRAFT })
+  status: PlanStatus;
+
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ default: true })
+  isVisible: boolean;
+
+  @Column({ default: 0 })
+  sortOrder: number;
+
+  // Métadonnées étendues
+  @Column('simple-array', { nullable: true })
+  tags: string[];
 
   @Column({ nullable: true })
   trialPeriodDays: number;
 
   @Column('jsonb', { nullable: true })
-  metadata: Record<string, any>;
+  metadata: {
+    targetMarket?: string;
+    salesNotes?: string;
+    migrationInstructions?: string;
+    featureHighlights?: string[];
+    comparisonNotes?: string;
+    [key: string]: any;
+  };
+
+  // Versioning et audit
+  @Column({ default: 1 })
+  version: number;
+
+  @Column({ nullable: true })
+  previousVersionId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deployedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  archivedAt: Date;
+
+  // Analytics et performance
+  @Column('jsonb', { nullable: true })
+  analytics: {
+    totalSubscriptions: number;
+    activeSubscriptions: number;
+    churnRate: number;
+    averageLifetimeValue: number;
+    monthlyRecurringRevenue: number;
+    conversionRate: number;
+    popularFeatures: Array<{
+      feature: FeatureCode;
+      usagePercentage: number;
+    }>;
+    customerSatisfactionScore: number;
+    supportTicketsPerMonth: number;
+  };
+
+  // Audit fields étendus
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  createdBy: string;
+
+  @Column({ nullable: true })
+  updatedBy: string;
+
+  @Column({ nullable: true })
+  deployedBy: string;
+
+  @Column({ nullable: true })
+  archivedBy: string;
+
+  // Relations
+  @ManyToOne(() => SubscriptionPlan, { nullable: true })
+  @JoinColumn({ name: 'previousVersionId' })
+  previousVersion: SubscriptionPlan;
+
+  @OneToMany(() => SubscriptionPlan, plan => plan.previousVersion)
+  nextVersions: SubscriptionPlan[];
 
   @OneToMany(() => Subscription, subscription => subscription.plan)
   subscriptions: Subscription[];
+
+  // Méthodes utilitaires
+  canBeDeployed(): boolean {
+    return this.status === PlanStatus.DRAFT && this.isActive;
+  }
+
+  canBeArchived(): boolean {
+    return this.status === PlanStatus.DEPLOYED;
+  }
+
+  canBeDeleted(): boolean {
+    return this.status === PlanStatus.DRAFT || this.status === PlanStatus.ARCHIVED;
+  }
+
+  isDeployed(): boolean {
+    return this.status === PlanStatus.DEPLOYED;
+  }
+
+  getEffectiveAnnualPrice(): number {
+    const baseAnnual = this.annualPrice || (this.price * 12);
+    return baseAnnual * (1 - this.annualDiscount / 100);
+  }
+
+  getFeatureList(): FeatureCode[] {
+    return Object.keys(this.features || {})
+      .filter(feature => this.features[feature as FeatureCode]?.enabled)
+      .map(feature => feature as FeatureCode);
+  }
+
+  hasFeature(feature: FeatureCode): boolean {
+    return this.features?.[feature]?.enabled === true;
+  }
+
+  getFeatureLimit(feature: FeatureCode): number | undefined {
+    return this.features?.[feature]?.limit;
+  }
 }
 
 @Entity('subscriptions')

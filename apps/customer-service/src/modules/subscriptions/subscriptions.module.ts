@@ -16,6 +16,7 @@ import { PaymentEventListenerService } from './services/payment-event-listener.s
 import { SubscriptionController } from './controllers/subscription.controller';
 import { PricingController } from './controllers/pricing.controller';
 import { AdminPricingController } from './controllers/admin-pricing.controller';
+import { AdminSubscriptionController } from './controllers/admin-subscription.controller';
 import { CommercialController } from './controllers/commercial.controller';
 import { FinancialInstitutionController } from './controllers/financial-institution.controller';
 import { SubscriptionPaymentController } from './controllers/subscription-payment.controller';
@@ -57,6 +58,7 @@ import {
     SubscriptionController,
     PricingController,
     AdminPricingController,
+    AdminSubscriptionController,
     CommercialController,
     FinancialInstitutionController,
     SubscriptionPaymentController,

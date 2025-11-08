@@ -1,10 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SubscriptionPlan } from '../subscriptions/entities/subscription.entity';
 import { CustomerEventsProducer } from './producers/customer-events.producer';
 import { TokenUsageConsumer } from './consumers/token-usage.consumer';
 import { UserActivityConsumer } from './consumers/user-activity.consumer';
 import { ExternalRequestsConsumer } from './consumers/external-requests.consumer';
+import { AdminPlanEventsConsumer } from './consumers/admin-plan-events.consumer';
 import { TokensModule } from '../tokens/tokens.module';
 import { SystemUsersModule } from '../system-users/system-users.module';
 import { CustomersModule } from '../customers/customers.module';
@@ -12,6 +15,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([SubscriptionPlan]),
     forwardRef(() => TokensModule),
     forwardRef(() => SystemUsersModule),
     forwardRef(() => CustomersModule),
@@ -40,13 +44,15 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     CustomerEventsProducer,
     TokenUsageConsumer,
     UserActivityConsumer,
-    ExternalRequestsConsumer
+    ExternalRequestsConsumer,
+    AdminPlanEventsConsumer
   ],
   exports: [
     CustomerEventsProducer,
     TokenUsageConsumer,
     UserActivityConsumer,
-    ExternalRequestsConsumer
+    ExternalRequestsConsumer,
+    AdminPlanEventsConsumer
   ],
 })
 export class KafkaModule {}

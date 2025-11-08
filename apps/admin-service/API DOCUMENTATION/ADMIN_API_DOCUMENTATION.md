@@ -50,16 +50,117 @@ GET  http://localhost:8000/admin/api/v1/auth/me
 PUT  http://localhost:8000/admin/api/v1/auth/me
 ```
 
+**Structure UserProfileDto enrichie** :
+
+```json
+{
+  "id": "google-oauth2|113531686121267070489",
+  "name": "Jacques Ndavaro",
+  "email": "jacquesndav@gmail.com",
+  "role": "super_admin",
+  "userType": "internal",
+  "picture": "https://lh3.googleusercontent.com/...",
+  "customerAccountId": null,
+  "phoneNumber": "+243123456789",
+  "organizationId": "org-123456",
+  "idAgent": "IKH12345",
+  "validityEnd": "2026-06-17T00:00:00.000Z",
+  "createdAt": "2024-01-10T10:00:00Z",
+  "updatedAt": "2025-06-15T14:30:00Z",
+  "lastLogin": "2025-06-17T14:29:09.437Z",
+  "permissions": ["users:read", "users:write", "settings:read"],
+  "kyc": {
+    "status": "verified",
+    "verifiedAt": "2025-01-15T10:30:00Z",
+    "documents": [
+      {
+        "type": "id_card",
+        "verified": true,
+        "uploadedAt": "2025-01-10T14:20:00Z"
+      }
+    ]
+  },
+  "language": "fr",
+  "timezone": "Africa/Kinshasa"
+}
+```
+
+**Nouvelles propriétés ajoutées** :
+- `organizationId` : ID de l'organisation Auth0
+- `idAgent` : Identifiant unique de l'agent
+- `validityEnd` : Date d'expiration du compte
+- `language` : Langue préférée
+- `timezone` : Fuseau horaire
+- `kyc` : Informations de vérification KYC complètes
+
 **Note importante sur l'authentification** :
 - Le service Admin implémente une vérification Auth0 complète avec JWKS
 - **Pas de blacklist locale** : Ce service est destiné aux admins Wanzo (équipe interne)
 - La révocation des tokens admin se fait directement au niveau Auth0, pas via blacklist
 - Nouveau utilisateur = synchronisation automatique avec Customer Service via Kafka
 - Format de réponse uniforme : `{ success: true, data: {...} }`
+- Support complet KYC avec documents et statuts de vérification
 
 ---
 
 ### 2. Utilisateurs (Users)
+
+#### Structure de données utilisateur mise à jour
+
+**UserDto (Structure complète)** :
+
+```json
+{
+  "id": "user-id-string",
+  "name": "User Name",
+  "email": "user@example.com",
+  "role": "company_user",
+  "userType": "internal",
+  "customerAccountId": "pme-123",
+  "customerName": "Customer Company Name",
+  "customerType": "pme",
+  "status": "active",
+  "avatar": "url_to_avatar_image.png",
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-18T11:00:00Z",
+  "lastLogin": "2025-01-20T14:45:00Z",
+  "permissions": [
+    {
+      "applicationId": "default",
+      "permissions": ["view_own_profile", "edit_own_profile"]
+    }
+  ],
+  "departement": "Sales",
+  "phoneNumber": "+243123456789",
+  "position": "Senior Manager",
+  "idAgent": "IKH12345",
+  "validityEnd": "2026-06-17T00:00:00.000Z",
+  "language": "fr",
+  "timezone": "Africa/Kinshasa",
+  "kyc": {
+    "status": "verified",
+    "verifiedAt": "2025-01-15T10:30:00Z",
+    "documents": [
+      {
+        "type": "id_card",
+        "verified": true,
+        "uploadedAt": "2025-01-10T14:20:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Nouvelles propriétés ajoutées** :
+- `idAgent` : Identifiant agent unique (ex: "IKH12345")
+- `validityEnd` : Date de fin de validité du compte
+- `language` : Langue préférée de l'utilisateur
+- `timezone` : Fuseau horaire de l'utilisateur
+- `kyc` : Informations complètes de vérification KYC
+
+**Structure des permissions mise à jour** :
+- **ANCIEN** : `permissions: string[]`
+- **NOUVEAU** : `permissions: [{ applicationId: string, permissions: string[] }]`
 
 #### 2.1 Profil utilisateur
 
@@ -122,12 +223,36 @@ DELETE http://localhost:8000/admin/api/v1/admin/users/123
 | GET | `/company/locations/:id` | Récupérer une localisation | SUPER_ADMIN, CTO, COMPANY_ADMIN |
 | PUT | `/company/locations/:id` | Mettre à jour une localisation | SUPER_ADMIN, CTO |
 | DELETE | `/company/locations/:id` | Supprimer une localisation | SUPER_ADMIN, CTO |
+| GET | `/company/stats` | Récupérer les statistiques de l'entreprise | SUPER_ADMIN, CTO, GROWTH_FINANCE |
+
+**Structure des localisations mise à jour** :
+
+```json
+{
+  "id": "location-id",
+  "address": "123 Main Street, City",
+  "coordinates": {
+    "lat": -4.3833,
+    "lng": 15.2833
+  },
+  "type": "headquarters",
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-18T11:00:00Z"
+}
+```
+
+**Types de localisation** :
+- `headquarters` : Siège social
+- `branch` : Succursale
+- `warehouse` : Entrepôt
+- `office` : Bureau
 
 **Exemple via API Gateway** :
 ```
 GET  http://localhost:8000/admin/api/v1/company/profile
 PUT  http://localhost:8000/admin/api/v1/company/profile
 POST http://localhost:8000/admin/api/v1/company/logo
+GET  http://localhost:8000/admin/api/v1/company/stats
 ```
 
 ---
@@ -169,6 +294,59 @@ POST http://localhost:8000/admin/api/v1/company/logo
 | POST | `/customers/:customerId/documents/:documentId/validate` | Valider un document |
 | POST | `/customers/:customerId/documents/:documentId/reject` | Rejeter un document |
 
+**Structure CustomerDetailsResponseDto** :
+
+```json
+{
+  "customer": {
+    "id": "customer-uuid",
+    "name": "Customer Company",
+    "email": "contact@customer.com",
+    "status": "active",
+    "type": "pme",
+    "createdAt": "2025-01-15T10:30:00Z"
+  },
+  "documents": [
+    {
+      "id": "doc-uuid",
+      "type": "rccm",
+      "fileName": "rccm-document.pdf",
+      "status": "approved",
+      "uploadedAt": "2025-01-16T09:00:00Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "activity-uuid",
+      "action": "document_uploaded",
+      "timestamp": "2025-01-16T09:00:00Z",
+      "details": "RCCM document uploaded"
+    }
+  ],
+  "statistics": {
+    "totalDocuments": 5,
+    "approvedDocuments": 3,
+    "pendingDocuments": 2
+  }
+}
+```
+
+**Upload de documents avec multipart** :
+
+```bash
+# Exemple de upload de document
+curl -X POST \
+  http://localhost:8000/admin/api/v1/customers/customer-id/documents \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@document.pdf" \
+  -F "type=rccm"
+```
+
+**Formats de fichiers supportés** :
+- PDF, JPG, JPEG, PNG, DOC, DOCX
+- Taille maximale : 5MB
+- Stockage : `./uploads/customer-documents/`
+
 **Exemple via API Gateway** :
 ```
 GET    http://localhost:8000/admin/api/v1/customers
@@ -176,6 +354,7 @@ POST   http://localhost:8000/admin/api/v1/customers
 GET    http://localhost:8000/admin/api/v1/customers/123
 PUT    http://localhost:8000/admin/api/v1/customers/123/validate
 GET    http://localhost:8000/admin/api/v1/customers/statistics
+POST   http://localhost:8000/admin/api/v1/customers/123/documents
 ```
 
 ---
@@ -279,19 +458,44 @@ GET  http://localhost:8000/admin/api/v1/tokens/usage/stats
 
 **Préfixe** : `/settings`
 
-#### 7.1 Paramètres généraux
+#### 7.1 Paramètres système
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/settings` | Récupérer tous les paramètres |
-| GET | `/settings/general` | Récupérer les paramètres généraux |
-| GET | `/settings/security` | Récupérer les paramètres de sécurité |
-| GET | `/settings/notifications` | Récupérer les paramètres de notifications |
-| GET | `/settings/billing` | Récupérer les paramètres de facturation |
-| GET | `/settings/appearance` | Récupérer les paramètres d'apparence |
-| PUT | `/settings/:section` | Mettre à jour une section de paramètres |
-| GET | `/settings/app` | Récupérer les paramètres d'application |
-| PUT | `/settings/app/:id` | Mettre à jour un paramètre d'application |
+| Méthode | URL | Description | Permissions requises |
+|---------|-----|-------------|---------------------|
+| GET | `/settings` | Récupérer tous les paramètres | admin:settings:read |
+| GET | `/settings/general` | Récupérer les paramètres généraux | admin:settings:read |
+| GET | `/settings/security` | Récupérer les paramètres de sécurité | admin:settings:read |
+| GET | `/settings/notifications` | Récupérer les paramètres de notifications | admin:settings:read |
+| GET | `/settings/billing` | Récupérer les paramètres de facturation | admin:settings:read |
+| GET | `/settings/appearance` | Récupérer les paramètres d'apparence | admin:settings:read |
+| PUT | `/settings/:section` | Mettre à jour une section de paramètres | admin:settings:write |
+
+#### 7.2 Paramètres d'application
+
+| Méthode | URL | Description | Permissions requises |
+|---------|-----|-------------|---------------------|
+| GET | `/settings/app` | Récupérer les paramètres d'application | admin:settings:read |
+| PUT | `/settings/app/:id` | Mettre à jour un paramètre d'application | admin:settings:write |
+
+**Note importante** : Le module Settings utilise un système de permissions granulaire basé sur des chaînes :
+- `admin:settings:read` : Lecture des paramètres
+- `admin:settings:write` : Écriture des paramètres
+
+**Structure des paramètres d'application** :
+
+```json
+{
+  "data": [
+    {
+      "id": "app-setting-id",
+      "name": "maintenance_mode",
+      "value": "false",
+      "description": "Enable/disable maintenance mode",
+      "category": "system"
+    }
+  ]
+}
+```
 
 #### 7.2 Paramètres admin personnels
 
@@ -501,17 +705,57 @@ POST http://localhost:8000/admin/api/v1/admin/companies/comp_123/tokens/allocate
 
 **Préfixe** : `/dashboard`
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/dashboard` | Récupérer les données complètes du tableau de bord |
-| GET | `/dashboard/widgets/:widgetId` | Récupérer les données d'un widget spécifique |
-| GET | `/dashboard/configuration` | Récupérer la configuration du tableau de bord |
+#### 13.1 Endpoints principaux
+
+| Méthode | URL | Description | Rôles requis |
+|---------|-----|-------------|--------------|
+| GET | `/dashboard` | Récupérer les données complètes du tableau de bord | Admin |
+| GET | `/dashboard/widgets/:widgetId` | Récupérer les données d'un widget spécifique | Admin, User |
+| GET | `/dashboard/configuration` | Récupérer la configuration du tableau de bord | Admin, User |
+| PUT | `/dashboard/configuration` | Mettre à jour la configuration du tableau de bord | Admin, User |
+
+#### 13.2 Statistiques avancées
+
+| Méthode | URL | Description | Rôles requis |
+|---------|-----|-------------|--------------|
+| GET | `/dashboard/statistics/sales` | Récupérer les statistiques de ventes | Admin |
+| GET | `/dashboard/statistics/user-engagement` | Récupérer les statistiques d'engagement utilisateur | Admin |
+
+#### 13.3 Endpoints legacy (rétrocompatibilité)
+
+| Méthode | URL | Description | Rôles requis |
+|---------|-----|-------------|--------------|
+| GET | `/dashboard/kpis` | Récupérer les KPIs | Admin |
+| GET | `/dashboard/financial-summary` | Récupérer le résumé financier | Admin |
+| GET | `/dashboard/recent-activities` | Récupérer les activités récentes | Admin, User |
+| GET | `/dashboard/user-statistics` | Récupérer les statistiques utilisateur | Admin |
+| GET | `/dashboard/system-health` | Récupérer l'état de santé du système | Admin |
+| GET | `/dashboard/notifications` | Récupérer les notifications | Admin, User |
+
+**Paramètres de requête** :
+
+Pour `/dashboard` :
+- `userId` (string, optionnel) : ID utilisateur spécifique
+- `dateRange` (string, optionnel) : Plage de dates
+- `timeZone` (string, optionnel) : Fuseau horaire
+
+Pour `/dashboard/statistics/sales` :
+- `period` (string, optionnel) : Période (daily, weekly, monthly)
+- `startDate` (string, optionnel) : Date de début
+- `endDate` (string, optionnel) : Date de fin
+
+Pour `/dashboard/statistics/user-engagement` :
+- `metricType` (string, optionnel) : Type de métrique
+- `dateRange` (string, optionnel) : Plage de dates
 
 **Exemple via API Gateway** :
 ```
-GET http://localhost:8000/admin/api/v1/dashboard
+GET http://localhost:8000/admin/api/v1/dashboard?dateRange=last30days
 GET http://localhost:8000/admin/api/v1/dashboard/widgets/revenue-chart
 GET http://localhost:8000/admin/api/v1/dashboard/configuration
+PUT http://localhost:8000/admin/api/v1/dashboard/configuration
+GET http://localhost:8000/admin/api/v1/dashboard/statistics/sales?period=monthly
+GET http://localhost:8000/admin/api/v1/dashboard/statistics/user-engagement?metricType=logins
 ```
 
 ---
@@ -790,22 +1034,69 @@ Le système utilise plusieurs rôles avec différents niveaux d'accès :
 
 - **SUPER_ADMIN** : Accès complet à toutes les fonctionnalités
 - **CTO** : Accès technique et configuration système
-- **CUSTOMER_MANAGER** : Gestion des clients (SME et Institutions)
-- **FINANCIAL_ADMIN** : Administration financière et comptable
+- **CUSTOMER_MANAGER** : Gestion des clients (SME et Institutions) - **NOUVEAU RÔLE**
+- **FINANCIAL_ADMIN** : Administration financière et comptable - **NOUVEAU RÔLE**
 - **COMPANY_ADMIN** : Gestion de l'entreprise et des utilisateurs
 - **GROWTH_FINANCE** : Finance et croissance
 - **CUSTOMER_SUPPORT** : Support client
 - **CONTENT_MANAGER** : Gestion du contenu
 - **COMPANY_USER** : Utilisateur d'entreprise de base
 
+**Note importante** : Les rôles CUSTOMER_MANAGER et FINANCIAL_ADMIN ont été récemment ajoutés pour une gestion plus granulaire des permissions.
+
 ### Sécurité
+
+#### Guards de sécurité utilisés
+
+Le service utilise différents guards selon les modules :
+
+1. **JwtAuthGuard** + **RolesGuard** (Modules : Users, Company, Settings)
+   ```typescript
+   @UseGuards(JwtAuthGuard, RolesGuard)
+   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
+   ```
+
+2. **JwtBlacklistGuard** (Module : Customers)
+   ```typescript
+   @UseGuards(JwtBlacklistGuard)
+   ```
+
+3. **AuthGuard('jwt')** + **RolesGuard** (Module : Dashboard)
+   ```typescript
+   @UseGuards(AuthGuard('jwt'), RolesGuard)
+   @Roles(Role.Admin)
+   ```
+
+#### Systèmes de permissions
+
+**Permissions par rôles (Users, Company)** :
+```typescript
+UserRole.SUPER_ADMIN
+UserRole.CTO
+UserRole.CUSTOMER_MANAGER
+UserRole.FINANCIAL_ADMIN
+```
+
+**Permissions par chaînes (Settings)** :
+```typescript
+'admin:settings:read'
+'admin:settings:write'
+```
+
+**Permissions par énums (Dashboard)** :
+```typescript
+Role.Admin
+Role.User
+```
+
+#### Vérification des tokens
 
 - Tous les endpoints nécessitent une authentification via token JWT Auth0
 - Le service Admin vérifie les tokens avec Auth0 JWKS (vérification RS256)
 - **Pas de blacklist locale** : Ce service est destiné aux admins Wanzo (équipe interne de la plateforme)
 - La révocation des accès admin se fait directement au niveau Auth0, pas via une blacklist locale
 - Synchronisation automatique avec Customer Service via Kafka pour nouveaux utilisateurs
-- Les rôles sont vérifiés via des guards NestJS
+- Les rôles sont vérifiés via des guards NestJS spécialisés par module
 
 ### Synchronisation avec Customer Service
 
@@ -829,8 +1120,117 @@ Les endpoints de liste peuvent accepter des paramètres de filtrage spécifiques
 
 ---
 
+## Changements majeurs et impact frontend
+
+### Structures de données modifiées
+
+#### 1. Permissions utilisateur
+**AVANT** :
+```json
+{
+  "permissions": ["view_users", "edit_users"]
+}
+```
+
+**MAINTENANT** :
+```json
+{
+  "permissions": [
+    {
+      "applicationId": "default",
+      "permissions": ["view_users", "edit_users"]
+    }
+  ]
+}
+```
+
+#### 2. Nouveaux champs utilisateur
+Les frontends doivent maintenant gérer :
+- `idAgent` : ID unique de l'agent
+- `validityEnd` : Date d'expiration
+- `language` : Langue préférée
+- `timezone` : Fuseau horaire
+- `kyc` : Informations KYC complètes
+
+#### 3. Nouveaux rôles
+- `CUSTOMER_MANAGER` : Gestion des clients
+- `FINANCIAL_ADMIN` : Administration financière
+
+### Nouveaux endpoints disponibles
+
+#### Dashboard enrichi
+- `/dashboard/widgets/:widgetId` : Données de widgets spécifiques
+- `/dashboard/configuration` : Configuration personnalisable
+- `/dashboard/statistics/sales` : Statistiques de ventes
+- `/dashboard/statistics/user-engagement` : Engagement utilisateur
+
+#### Company
+- `/company/stats` : Statistiques d'entreprise
+
+#### Settings avancés
+- `/settings/app` : Paramètres d'application
+- `/settings/app/:id` : Mise à jour de paramètres spécifiques
+
+### Compatibilité et migration
+
+#### Pour les équipes frontend
+1. **Mettre à jour les interfaces TypeScript** avec les nouveaux champs
+2. **Adapter la gestion des permissions** au nouveau format objet
+3. **Intégrer les nouveaux endpoints Dashboard** pour de meilleures fonctionnalités
+4. **Gérer les nouveaux rôles** dans les interfaces d'administration
+
+#### Exemples de migration
+
+**Interface utilisateur (TypeScript)** :
+```typescript
+// AVANT
+interface User {
+  permissions: string[];
+}
+
+// MAINTENANT
+interface User {
+  permissions: {
+    applicationId: string;
+    permissions: string[];
+  }[];
+  idAgent?: string;
+  validityEnd?: string;
+  language?: string;
+  timezone?: string;
+  kyc?: {
+    status: 'pending' | 'verified' | 'rejected';
+    verifiedAt?: string;
+    documents?: KycDocument[];
+  };
+}
+```
+
+**Gestion des permissions** :
+```typescript
+// AVANT
+const hasPermission = (user: User, permission: string) => 
+  user.permissions.includes(permission);
+
+// MAINTENANT
+const hasPermission = (user: User, permission: string, appId = 'default') => 
+  user.permissions
+    ?.find(p => p.applicationId === appId)
+    ?.permissions.includes(permission) || false;
+```
+
+---
+
 ## Support et documentation
 
 - **Swagger UI** : `http://localhost:3001/api-docs` (accès direct au service)
 - **Code source** : `apps/admin-service/src/`
 - **Tests** : `apps/admin-service/test/`
+- **Rapport d'analyse des écarts** : `API DOCUMENTATION/DATA_STRUCTURE_GAPS_ANALYSIS.md`
+
+---
+
+**Documentation mise à jour le** : 8 novembre 2025  
+**Version** : 1.2.0 - Structures de données actualisées  
+**Modules analysés** : Auth, Users, Company, Customers, Dashboard, Settings  
+**Statut** : ✅ Synchronisé avec le code source

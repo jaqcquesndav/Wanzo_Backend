@@ -1,12 +1,518 @@
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, IsArray, IsBoolean, IsISO8601, IsUUID, Min, ValidateNested, IsNotEmpty, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsArray, IsBoolean, IsISO8601, IsUUID, Min, ValidateNested, IsNotEmpty, IsObject, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus } from '../entities/finance.entity';
+import { BillingCycle, SubscriptionStatus, InvoiceStatus, PaymentMethod, PaymentStatus, TransactionType, TransactionStatus as ApiTransactionStatus, PlanStatus, CustomerType, FeatureCode } from '../entities/finance.entity';
 import { TokenType, TokenTransactionType } from '../../../shared/enums';
 import { PaginatedResponse, APIResponse } from '../../../common/interfaces';
 
 // Note: Removed custom PaginationDto in favor of standardized PaginatedResponse interface
+
+// === NOUVEAUX DTOs POUR LA GESTION DYNAMIQUE DES PLANS ===
+
+// 1. Configuration des features et limites
+export class FeatureConfigDto {
+  @ApiProperty()
+  @IsBoolean()
+  enabled: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  customConfig?: Record<string, any>;
+}
+
+export class TokenConfigDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  monthlyTokens: number;
+
+  @ApiProperty()
+  @IsBoolean()
+  rolloverAllowed: boolean;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(1)
+  @Max(12)
+  maxRolloverMonths: number;
+
+  @ApiProperty({ type: 'object' })
+  @IsObject()
+  tokenRates: Record<FeatureCode, number>;
+
+  @ApiPropertyOptional({ type: 'array' })
+  @IsOptional()
+  @IsArray()
+  discountTiers?: Array<{
+    minTokens: number;
+    discountPercentage: number;
+  }>;
+}
+
+export class PlanLimitsDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(1)
+  maxUsers: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  maxAPICallsPerDay: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  maxDataStorageGB: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  maxReportsPerMonth: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(1)
+  maxConcurrentSessions: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  maxDashboards: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  maxCustomFields: number;
+}
+
+// 2. DTOs pour création et mise à jour des plans
+export class CreatePlanDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @ApiProperty({ enum: CustomerType })
+  @IsEnum(CustomerType)
+  customerType: CustomerType;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  annualPrice?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  annualDiscount?: number;
+
+  @ApiProperty()
+  @IsString()
+  currency: string;
+
+  @ApiProperty({ enum: BillingCycle })
+  @IsEnum(BillingCycle)
+  billingCycle: BillingCycle;
+
+  @ApiProperty({ type: TokenConfigDto })
+  @ValidateNested()
+  @Type(() => TokenConfigDto)
+  tokenConfig: TokenConfigDto;
+
+  @ApiProperty({ type: 'object' })
+  @IsObject()
+  features: Record<FeatureCode, FeatureConfigDto>;
+
+  @ApiProperty({ type: PlanLimitsDto })
+  @ValidateNested()
+  @Type(() => PlanLimitsDto)
+  limits: PlanLimitsDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  trialPeriodDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  tags?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  metadata?: {
+    targetMarket?: string;
+    salesNotes?: string;
+    featureHighlights?: string[];
+    comparisonNotes?: string;
+  };
+}
+
+export class UpdatePlanDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  annualPrice?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  annualDiscount?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({ enum: BillingCycle })
+  @IsOptional()
+  @IsEnum(BillingCycle)
+  billingCycle?: BillingCycle;
+
+  @ApiPropertyOptional({ type: TokenConfigDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TokenConfigDto)
+  tokenConfig?: TokenConfigDto;
+
+  @ApiPropertyOptional({ type: 'object' })
+  @IsOptional()
+  @IsObject()
+  features?: Record<FeatureCode, FeatureConfigDto>;
+
+  @ApiPropertyOptional({ type: PlanLimitsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlanLimitsDto)
+  limits?: PlanLimitsDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  trialPeriodDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  tags?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  metadata?: {
+    targetMarket?: string;
+    salesNotes?: string;
+    featureHighlights?: string[];
+    comparisonNotes?: string;
+  };
+}
+
+export class DeployPlanDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  deploymentNotes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notifyCustomers?: boolean = false;
+}
+
+export class ArchivePlanDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  replacementPlanId?: string;
+}
+
+// 3. DTOs de réponse pour les plans
+export class PlanAnalyticsDto {
+  @ApiProperty()
+  totalSubscriptions: number;
+
+  @ApiProperty()
+  activeSubscriptions: number;
+
+  @ApiProperty()
+  churnRate: number;
+
+  @ApiProperty()
+  averageLifetimeValue: number;
+
+  @ApiProperty()
+  monthlyRecurringRevenue: number;
+
+  @ApiProperty()
+  conversionRate: number;
+
+  @ApiProperty({ type: 'array' })
+  popularFeatures: Array<{
+    feature: FeatureCode;
+    usagePercentage: number;
+  }>;
+
+  @ApiProperty()
+  customerSatisfactionScore: number;
+
+  @ApiProperty()
+  supportTicketsPerMonth: number;
+}
+
+export class DetailedPlanDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty({ enum: CustomerType })
+  customerType: CustomerType;
+
+  @ApiProperty()
+  price: number;
+
+  @ApiProperty()
+  annualPrice: number;
+
+  @ApiProperty()
+  annualDiscount: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ enum: BillingCycle })
+  billingCycle: BillingCycle;
+
+  @ApiProperty({ enum: PlanStatus })
+  status: PlanStatus;
+
+  @ApiProperty()
+  version: number;
+
+  @ApiProperty({ type: TokenConfigDto })
+  tokenConfig: TokenConfigDto;
+
+  @ApiProperty({ type: 'object' })
+  features: Record<FeatureCode, FeatureConfigDto>;
+
+  @ApiProperty({ type: PlanLimitsDto })
+  limits: PlanLimitsDto;
+
+  @ApiProperty()
+  isActive: boolean;
+
+  @ApiProperty()
+  isVisible: boolean;
+
+  @ApiProperty()
+  sortOrder: number;
+
+  @ApiProperty()
+  trialPeriodDays: number;
+
+  @ApiProperty()
+  tags: string[];
+
+  @ApiPropertyOptional({ type: PlanAnalyticsDto })
+  analytics?: PlanAnalyticsDto;
+
+  @ApiProperty()
+  createdAt: string;
+
+  @ApiProperty()
+  updatedAt: string;
+
+  @ApiPropertyOptional()
+  deployedAt?: string;
+
+  @ApiPropertyOptional()
+  archivedAt?: string;
+
+  @ApiProperty()
+  createdBy: string;
+
+  @ApiPropertyOptional()
+  updatedBy?: string;
+
+  @ApiPropertyOptional()
+  deployedBy?: string;
+
+  @ApiPropertyOptional()
+  archivedBy?: string;
+
+  @ApiProperty()
+  metadata: Record<string, any>;
+}
+
+export class ListPlansQueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ enum: PlanStatus })
+  @IsOptional()
+  @IsEnum(PlanStatus)
+  status?: PlanStatus;
+
+  @ApiPropertyOptional({ enum: CustomerType })
+  @IsOptional()
+  @IsEnum(CustomerType)
+  customerType?: CustomerType;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  page?: number = 1;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  limit?: number = 10;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  sortBy?: string = 'createdAt';
+
+  @ApiPropertyOptional({ enum: ['ASC', 'DESC'] })
+  @IsOptional()
+  @IsEnum(['ASC', 'DESC'])
+  sortDirection?: 'ASC' | 'DESC' = 'DESC';
+}
+
+export class PaginatedPlansDto implements PaginatedResponse<DetailedPlanDto> {
+  @ApiProperty({ type: [DetailedPlanDto] })
+  @ValidateNested({ each: true })
+  @Type(() => DetailedPlanDto)
+  items: DetailedPlanDto[];
+
+  @ApiProperty()
+  @IsNumber()
+  totalCount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  page: number;
+
+  @ApiProperty()
+  @IsNumber()
+  totalPages: number;
+}
+
+// 4. DTOs pour les événements Kafka
+export class PlanEventDto {
+  @ApiProperty()
+  planId: string;
+
+  @ApiProperty()
+  eventType: 'CREATED' | 'UPDATED' | 'DEPLOYED' | 'ARCHIVED' | 'DELETED';
+
+  @ApiProperty()
+  planData: DetailedPlanDto;
+
+  @ApiProperty()
+  timestamp: string;
+
+  @ApiProperty()
+  triggeredBy: string;
+
+  @ApiPropertyOptional()
+  reason?: string;
+}
+
+// === DTOs EXISTANTS POUR LA COMPATIBILITÉ ===
 
 // 1. Subscription Plan
 export class SubscriptionPlanMetadataDto {

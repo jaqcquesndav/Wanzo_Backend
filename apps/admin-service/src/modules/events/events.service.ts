@@ -300,4 +300,44 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
     await this.emit(InstitutionEventTopics.INSTITUTION_STATUS_CHANGED, event);
   }
   // #endregion
+
+  // === NOUVEAUX ÉVÉNEMENTS POUR LES PLANS ===
+  
+  // #region Plan Events
+  async emitPlanEvent(event: any): Promise<void> {
+    const topic = this.getPlanEventTopic(event.eventType);
+    await this.emit(topic, event);
+  }
+
+  async publishPlanCreated(event: any): Promise<void> {
+    await this.emit('plan.created', event);
+  }
+
+  async publishPlanUpdated(event: any): Promise<void> {
+    await this.emit('plan.updated', event);
+  }
+
+  async publishPlanDeployed(event: any): Promise<void> {
+    await this.emit('plan.deployed', event);
+  }
+
+  async publishPlanArchived(event: any): Promise<void> {
+    await this.emit('plan.archived', event);
+  }
+
+  async publishPlanDeleted(event: any): Promise<void> {
+    await this.emit('plan.deleted', event);
+  }
+
+  private getPlanEventTopic(eventType: string): string {
+    const topicMap: Record<string, string> = {
+      'CREATED': 'plan.created',
+      'UPDATED': 'plan.updated',
+      'DEPLOYED': 'plan.deployed',
+      'ARCHIVED': 'plan.archived',
+      'DELETED': 'plan.deleted',
+    };
+    return topicMap[eventType] || 'plan.unknown';
+  }
+  // #endregion
 }

@@ -10,7 +10,16 @@ import {
   TokenPackageDto,
   ListTokenTransactionsQueryDto, PaginatedTokenTransactionsDto,
   GetTokenBalanceQueryDto, TokenBalanceDto,
-  GetFinancialSummaryQueryDto, FinancialSummaryDto
+  GetFinancialSummaryQueryDto, FinancialSummaryDto,
+  // Nouveaux DTOs pour les plans dynamiques
+  CreatePlanDto,
+  UpdatePlanDto,
+  DeployPlanDto,
+  ArchivePlanDto,
+  DetailedPlanDto,
+  ListPlansQueryDto,
+  PaginatedPlansDto,
+  PlanAnalyticsDto,
 } from '../dtos/finance.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -26,9 +35,108 @@ import { TokenType } from '../../../shared/enums';
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
-  // 1. Subscription Plan Endpoints
+  // === NOUVEAUX ENDPOINTS POUR LA GESTION DYNAMIQUE DES PLANS ===
+
+  @Get('plans')
+  @ApiOperation({ summary: 'List subscription plans with advanced filtering and pagination' })
+  @ApiResponse({ status: 200, description: 'A paginated list of subscription plans.', type: PaginatedPlansDto })
+  @Roles(Role.Admin)
+  async listDynamicPlans(@Query() query: ListPlansQueryDto): Promise<PaginatedPlansDto> {
+    return this.financeService.listDynamicPlans(query);
+  }
+
+  @Get('plans/:planId')
+  @ApiOperation({ summary: 'Get detailed plan information by ID' })
+  @ApiResponse({ status: 200, description: 'Detailed plan information.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async getPlanById(@Param('planId', ParseUUIDPipe) planId: string): Promise<DetailedPlanDto> {
+    return this.financeService.getPlanById(planId);
+  }
+
+  @Post('plans')
+  @ApiOperation({ summary: 'Create a new subscription plan' })
+  @ApiResponse({ status: 201, description: 'The newly created plan.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async createPlan(@Body() createPlanDto: CreatePlanDto, @Req() req: Request): Promise<DetailedPlanDto> {
+    const adminUser = req.user as any;
+    return this.financeService.createPlan(createPlanDto, adminUser.id);
+  }
+
+  @Put('plans/:planId')
+  @ApiOperation({ summary: 'Update an existing subscription plan' })
+  @ApiResponse({ status: 200, description: 'The updated plan.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async updatePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @Body() updatePlanDto: UpdatePlanDto,
+    @Req() req: Request,
+  ): Promise<DetailedPlanDto> {
+    const adminUser = req.user as any;
+    return this.financeService.updatePlan(planId, updatePlanDto, adminUser.id);
+  }
+
+  @Post('plans/:planId/deploy')
+  @ApiOperation({ summary: 'Deploy a plan to production (make it available to customers)' })
+  @ApiResponse({ status: 200, description: 'The deployed plan.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async deployPlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @Body() deployPlanDto: DeployPlanDto,
+    @Req() req: Request,
+  ): Promise<DetailedPlanDto> {
+    const adminUser = req.user as any;
+    return this.financeService.deployPlan(planId, deployPlanDto, adminUser.id);
+  }
+
+  @Post('plans/:planId/archive')
+  @ApiOperation({ summary: 'Archive a plan (no longer available for new subscriptions)' })
+  @ApiResponse({ status: 200, description: 'The archived plan.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async archivePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @Body() archivePlanDto: ArchivePlanDto,
+    @Req() req: Request,
+  ): Promise<DetailedPlanDto> {
+    const adminUser = req.user as any;
+    return this.financeService.archivePlan(planId, archivePlanDto, adminUser.id);
+  }
+
+  @Delete('plans/:planId')
+  @ApiOperation({ summary: 'Delete a plan (only drafts with no subscriptions)' })
+  @ApiResponse({ status: 204, description: 'Plan successfully deleted.' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.Admin)
+  async deletePlan(@Param('planId', ParseUUIDPipe) planId: string, @Req() req: Request): Promise<void> {
+    const adminUser = req.user as any;
+    return this.financeService.deletePlan(planId, adminUser.id);
+  }
+
+  @Post('plans/:planId/duplicate')
+  @ApiOperation({ summary: 'Duplicate an existing plan with a new name' })
+  @ApiResponse({ status: 201, description: 'The duplicated plan.', type: DetailedPlanDto })
+  @Roles(Role.Admin)
+  async duplicatePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @Body() body: { name: string },
+    @Req() req: Request,
+  ): Promise<DetailedPlanDto> {
+    const adminUser = req.user as any;
+    return this.financeService.duplicatePlan(planId, body.name, adminUser.id);
+  }
+
+  @Get('plans/:planId/analytics')
+  @ApiOperation({ summary: 'Get detailed analytics for a specific plan' })
+  @ApiResponse({ status: 200, description: 'Plan analytics data.', type: PlanAnalyticsDto })
+  @Roles(Role.Admin)
+  async getPlanAnalytics(@Param('planId', ParseUUIDPipe) planId: string): Promise<PlanAnalyticsDto> {
+    return this.financeService.getPlanAnalytics(planId);
+  }
+
+  // === ENDPOINTS EXISTANTS (Legacy) ===
+
+  // 1. Subscription Plan Endpoints (Legacy)
   @Get('subscriptions/plans')
-  @ApiOperation({ summary: 'List all available subscription plans' })
+  @ApiOperation({ summary: 'List all available subscription plans (legacy endpoint)' })
   @ApiResponse({ status: 200, description: 'A list of subscription plans.', type: [SubscriptionPlanDto] })
   @Roles(Role.Admin)
   async getSubscriptionPlans(@Query() query: any = {}): Promise<SubscriptionPlanDto[]> {

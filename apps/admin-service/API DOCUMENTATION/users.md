@@ -33,7 +33,7 @@ Represents a user in the system.
   "id": "user-id-string",
   "name": "User Name",
   "email": "user@example.com",
-  "role": "company_user", // e.g., "super_admin", "cto", "growth_finance", "customer_support", "content_manager", "company_admin", "company_user"
+  "role": "company_user", // e.g., "super_admin", "cto", "growth_finance", "customer_support", "content_manager", "customer_manager", "financial_admin", "company_admin", "company_user"
   "userType": "internal", // "internal" or "external"
   "customerAccountId": "pme-123", // Optional, required if userType is "external"
   "customerName": "Customer Company Name", // Optional, for external users
@@ -47,22 +47,49 @@ Represents a user in the system.
     {
       "applicationId": "default",
       "permissions": ["view_own_profile", "edit_own_profile"]
+    },
+    {
+      "applicationId": "accounting",
+      "permissions": ["view_reports", "create_invoice"]
     }
   ],
   "departement": "Sales", // Optional, typically for "internal" users
   "phoneNumber": "+243123456789", // Optional
-  "position": "Senior Manager" // Optional, job title or position
+  "position": "Senior Manager", // Optional, job title or position
+  "idAgent": "IKH12345", // Optional, ID Agent commercial
+  "validityEnd": "2026-06-17T00:00:00.000Z", // Optional, date d'expiration compte
+  "language": "fr", // Optional, langue préférée utilisateur
+  "timezone": "Africa/Kinshasa", // Optional, fuseau horaire utilisateur
+  "kyc": { // Optional, informations KYC
+    "status": "verified",
+    "verifiedAt": "2025-01-10T09:30:00Z",
+    "documents": [
+      {
+        "type": "national_id",
+        "verified": true,
+        "uploadedAt": "2025-01-08T14:20:00Z"
+      }
+    ]
+  },
+  "auth0Id": "auth0|abc123def456" // Optional, ID Auth0 utilisateur
 }
 ```
 
 **Key changes:**
-*   `role`: Updated example roles to include `company_admin` and `company_user`.
+*   `role`: Updated example roles to include `customer_manager`, `financial_admin`, `company_admin` and `company_user`.
 *   `userType`: Added. Indicates if the user is internal to wanzo or an external client user.
 *   `customerAccountId`: Added. Links an external user to their company/customer account.
 *   `customerName`: Added. Optional field for external users to specify the associated customer company name.
 *   `customerType`: Added. Optional field to specify the type of customer, e.g., "pme" or "financial_institution".
 *   `updatedAt`: Added. Timestamp of the last update to the user object.
 *   `permissions`: Updated structure to be an array of objects, each with an `applicationId` and a list of `permissions`. This allows for more granular and application-specific permissions.
+*   `position`: Added. Job title or position of the user.
+*   `idAgent`: Added. ID of the commercial agent associated with the user.
+*   `validityEnd`: Added. Expiration date for the user account.
+*   `language`: Added. Preferred language of the user (e.g., "fr", "en").
+*   `timezone`: Added. User's timezone (e.g., "Africa/Kinshasa").
+*   `kyc`: Added. KYC (Know Your Customer) information including verification status and documents.
+*   `auth0Id`: Added. Auth0 user identifier for authentication integration.
 *   Removed `company` and `companyId` as `customerAccountId` serves a similar and more structured purpose for external users.
 
 ## 2. List Users

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { Subscription, SubscriptionStatus } from '../entities/subscription.entity';
-import { SubscriptionPlan } from '../entities/subscription.entity';
+import { Subscription, SubscriptionStatus, SubscriptionPlan, SubscriptionPlanType } from '../entities/subscription.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 
 interface CreateSubscriptionDto {
@@ -167,33 +166,141 @@ export class SubscriptionService {
   /**
    * Récupère les plans d'abonnement disponibles
    */
-  async getSubscriptionPlans(): Promise<any[]> {
+  async getSubscriptionPlans(customerType?: string): Promise<any[]> {
+    const whereCondition: any = { 
+      isActive: true, 
+      isVisible: true 
+    };
+    
+    if (customerType) {
+      whereCondition.customerType = customerType === 'pme' ? 'sme' : customerType;
+    }
+
     const plans = await this.planRepository.find({
-      where: { isActive: true, isVisible: true },
+      where: whereCondition,
       order: { sortOrder: 'ASC', priceUSD: 'ASC' },
     });
     
     // Transformer les plans pour correspondre à la structure attendue par le frontend
     return plans.map(plan => ({
       id: plan.id,
+      configId: plan.configId,
       name: plan.name,
       description: plan.description,
       customerType: plan.customerType,
-      billingPeriod: plan.type === 'annual' ? 'annual' : 'monthly',
-      monthlyPriceUSD: plan.type === 'annual' ? plan.priceUSD / 12 : plan.priceUSD,
-      annualPriceUSD: plan.type === 'annual' ? plan.priceUSD : plan.priceUSD * 12,
-      annualDiscountPercentage: plan.type === 'annual' ? 15 : 0, // Valeur par défaut
-      tokenAllocation: plan.tokenAllocation || {
+      planType: plan.tier,
+      billingPeriod: plan.type,
+      monthlyPriceUSD: this.calculateMonthlyPrice(plan),
+      annualPriceUSD: this.calculateAnnualPrice(plan),
+      annualDiscountPercentage: this.calculateDiscountPercentage(plan),
+      tokenAllocation: plan.tokenConfig || plan.tokenAllocation || {
         monthlyTokens: plan.includedTokens,
         tokenRollover: true,
         maxRolloverMonths: 3
       },
       features: plan.features || {},
+      limits: plan.limits || {},
       isPopular: plan.isPopular,
       isVisible: plan.isVisible,
       sortOrder: plan.sortOrder,
-      tags: plan.tags || []
+      tags: plan.tags || [],
+      metadata: {
+        ...plan.metadata,
+        fromAdminService: !!plan.metadata?.adminServicePlanId,
+        version: plan.metadata?.version || 1
+      }
     }));
+  }
+
+  /**
+   * Récupère un plan spécifique par son ID
+   */
+  async getSubscriptionPlan(planId: string): Promise<any | null> {
+    const plan = await this.planRepository.findOne({
+      where: [
+        { id: planId },
+        { configId: planId }
+      ]
+    });
+
+    if (!plan) {
+      return null;
+    }
+
+    return {
+      id: plan.id,
+      configId: plan.configId,
+      name: plan.name,
+      description: plan.description,
+      customerType: plan.customerType,
+      planType: plan.tier,
+      billingPeriod: plan.type,
+      monthlyPriceUSD: this.calculateMonthlyPrice(plan),
+      annualPriceUSD: this.calculateAnnualPrice(plan),
+      annualDiscountPercentage: this.calculateDiscountPercentage(plan),
+      tokenAllocation: plan.tokenConfig || plan.tokenAllocation || {
+        monthlyTokens: plan.includedTokens,
+        tokenRollover: true,
+        maxRolloverMonths: 3
+      },
+      features: plan.features || {},
+      limits: plan.limits || {},
+      isPopular: plan.isPopular,
+      isVisible: plan.isVisible,
+      sortOrder: plan.sortOrder,
+      tags: plan.tags || [],
+      metadata: {
+        ...plan.metadata,
+        fromAdminService: !!plan.metadata?.adminServicePlanId,
+        version: plan.metadata?.version || 1
+      }
+    };
+  }
+
+  // Méthodes utilitaires privées pour les calculs de prix
+
+  private calculateMonthlyPrice(plan: SubscriptionPlan): number {
+    switch (plan.type) {
+      case SubscriptionPlanType.MONTHLY:
+        return plan.priceUSD;
+      case SubscriptionPlanType.QUARTERLY:
+        return plan.priceUSD / 3;
+      case SubscriptionPlanType.ANNUAL:
+        return plan.priceUSD / 12;
+      default:
+        return plan.priceUSD;
+    }
+  }
+
+  private calculateAnnualPrice(plan: SubscriptionPlan): number {
+    switch (plan.type) {
+      case SubscriptionPlanType.MONTHLY:
+        return plan.priceUSD * 12;
+      case SubscriptionPlanType.QUARTERLY:
+        return plan.priceUSD * 4;
+      case SubscriptionPlanType.ANNUAL:
+        return plan.priceUSD;
+      default:
+        return plan.priceUSD * 12;
+    }
+  }
+
+  private calculateDiscountPercentage(plan: SubscriptionPlan): number {
+    if (plan.discounts && plan.discounts.length > 0) {
+      const annualDiscount = plan.discounts.find(d => d.code === 'ANNUAL');
+      if (annualDiscount) {
+        return annualDiscount.percentage;
+      }
+    }
+
+    // Calcul automatique de la réduction pour les plans annuels
+    if (plan.type === SubscriptionPlanType.ANNUAL) {
+      const monthlyEquivalent = plan.priceUSD / 12;
+      const discountPercentage = ((monthlyEquivalent * 12 - plan.priceUSD) / (monthlyEquivalent * 12)) * 100;
+      return Math.round(discountPercentage);
+    }
+
+    return 0;
   }
 
   /**

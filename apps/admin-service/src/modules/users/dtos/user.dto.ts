@@ -126,7 +126,7 @@ export class UserDto {
   @IsDateString()
   @IsOptional()
   lastLogin?: string;  @ApiProperty({
-    description: 'Permissions de l\'utilisateur',
+    description: 'Permissions de l\'utilisateur par application',
     type: 'array',
     items: {
       type: 'object',
@@ -135,7 +135,17 @@ export class UserDto {
         permissions: { type: 'array', items: { type: 'string' }, example: ['view_own_profile', 'edit_own_profile'] }
       }
     },
-    required: false
+    required: false,
+    example: [
+      {
+        applicationId: 'default',
+        permissions: ['view_own_profile', 'edit_own_profile']
+      },
+      {
+        applicationId: 'accounting',
+        permissions: ['view_reports', 'create_invoice']
+      }
+    ]
   })
   @IsArray()
   @IsOptional()
@@ -191,6 +201,24 @@ export class UserDto {
   validityEnd?: string;
 
   @ApiProperty({
+    description: 'Langue préférée de l\'utilisateur', 
+    example: 'fr',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  language?: string;
+
+  @ApiProperty({
+    description: 'Fuseau horaire de l\'utilisateur',
+    example: 'Africa/Kinshasa', 
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  timezone?: string;
+
+  @ApiProperty({
     description: 'Informations KYC',
     required: false,
     type: 'object'
@@ -205,6 +233,15 @@ export class UserDto {
       uploadedAt: string;
     }>;
   };
+
+  @ApiProperty({
+    description: 'ID Auth0 de l\'utilisateur',
+    example: 'auth0|abc123def456',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  auth0Id?: string;
 }
 
 export class CreateUserDto {
@@ -234,8 +271,11 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  permissions?: string[];
+  @ValidateNested({ each: true })
+  permissions?: {
+    applicationId: string;
+    permissions: string[];
+  }[];
 
   @IsOptional()
   @IsString()
@@ -244,6 +284,41 @@ export class CreateUserDto {
   @IsOptional()
   @IsPhoneNumber()
   phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  idAgent?: string;
+
+  @IsOptional()
+  @IsDateString()
+  validityEnd?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  kyc?: {
+    status: 'pending' | 'verified' | 'rejected';
+    verifiedAt?: string;
+    documents?: Array<{
+      type: string;
+      verified: boolean;
+      uploadedAt: string;
+    }>;
+  };
+
+  @IsOptional()
+  @IsString()
+  auth0Id?: string;
 
   @IsString()
   @MinLength(8)
@@ -280,8 +355,11 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  permissions?: string[];
+  @ValidateNested({ each: true })
+  permissions?: {
+    applicationId: string;
+    permissions: string[];
+  }[];
 
   @IsOptional()
   @IsString()
@@ -290,6 +368,41 @@ export class UpdateUserDto {
   @IsOptional()
   @IsPhoneNumber()
   phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  idAgent?: string;
+
+  @IsOptional()
+  @IsDateString()
+  validityEnd?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  kyc?: {
+    status: 'pending' | 'verified' | 'rejected';
+    verifiedAt?: string;
+    documents?: Array<{
+      type: string;
+      verified: boolean;
+      uploadedAt: string;
+    }>;
+  };
+
+  @IsOptional()
+  @IsString()
+  auth0Id?: string;
 
   @IsOptional()
   @IsBoolean()

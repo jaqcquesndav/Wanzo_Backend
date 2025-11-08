@@ -319,6 +319,325 @@ The Admin Service publishes events to notify other services about important stat
 
 ---
 
+### 1.2. Subscription Plan Events
+
+#### subscription.plan.created
+**Description:** Emitted when a new subscription plan is created
+
+**Event Pattern:** `subscription.plan.created`
+
+**Payload:**
+```typescript
+{
+  eventId: string;
+  timestamp: string;
+  eventType: 'subscription.plan.created';
+  data: {
+    planId: string;
+    name: string;
+    description?: string;
+    planType: 'basic' | 'standard' | 'premium' | 'enterprise' | 'custom';
+    customerType: 'pme' | 'financial';
+    status: 'draft' | 'deployed' | 'archived';
+    pricing: {
+      amount: number;
+      currency: string;
+      billingCycle: 'monthly' | 'annually' | 'quarterly' | 'biennially' | 'one_time';
+    };
+    tokens: {
+      baseAllocation: number;
+      overageRate: number;
+      maxOverage: number;
+    };
+    features: FeatureCode[];
+    version: number;
+    effectiveDate?: string;
+    expiryDate?: string;
+  };
+  actor: {
+    userId: string;
+    userName: string;
+    role: string;
+  };
+}
+```
+
+**Example:**
+```json
+{
+  "eventId": "evt_plan_abc123",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "eventType": "subscription.plan.created",
+  "data": {
+    "planId": "plan_premium_v2",
+    "name": "Premium Business Plan v2",
+    "description": "Enhanced premium plan with advanced analytics",
+    "planType": "premium",
+    "customerType": "pme",
+    "status": "draft",
+    "pricing": {
+      "amount": 199.99,
+      "currency": "USD",
+      "billingCycle": "monthly"
+    },
+    "tokens": {
+      "baseAllocation": 50000,
+      "overageRate": 0.01,
+      "maxOverage": 100000
+    },
+    "features": ["ADVANCED_ANALYTICS", "PRIORITY_SUPPORT", "CUSTOM_REPORTS"],
+    "version": 1,
+    "effectiveDate": "2024-02-01T00:00:00Z"
+  },
+  "actor": {
+    "userId": "admin_123",
+    "userName": "John Admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+**Consumers:** Customer Service, Analytics Service, Billing Service
+
+---
+
+#### subscription.plan.updated
+**Description:** Emitted when a subscription plan is modified
+
+**Event Pattern:** `subscription.plan.updated`
+
+**Payload:**
+```typescript
+{
+  eventId: string;
+  timestamp: string;
+  eventType: 'subscription.plan.updated';
+  data: {
+    planId: string;
+    version: number;
+    previousVersion: number;
+    changes: {
+      field: string;
+      oldValue: any;
+      newValue: any;
+    }[];
+    updatedFields: string[];
+    changeReason?: string;
+  };
+  actor: {
+    userId: string;
+    userName: string;
+    role: string;
+  };
+}
+```
+
+**Example:**
+```json
+{
+  "eventId": "evt_plan_upd456",
+  "timestamp": "2024-01-16T14:20:00Z",
+  "eventType": "subscription.plan.updated",
+  "data": {
+    "planId": "plan_premium_v2",
+    "version": 2,
+    "previousVersion": 1,
+    "changes": [
+      {
+        "field": "pricing.amount",
+        "oldValue": 199.99,
+        "newValue": 179.99
+      },
+      {
+        "field": "tokens.baseAllocation",
+        "oldValue": 50000,
+        "newValue": 60000
+      }
+    ],
+    "updatedFields": ["pricing", "tokens"],
+    "changeReason": "Market adjustment and competitive pricing"
+  },
+  "actor": {
+    "userId": "admin_123",
+    "userName": "John Admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+**Consumers:** Customer Service, Analytics Service, Billing Service
+
+---
+
+#### subscription.plan.deployed
+**Description:** Emitted when a subscription plan is deployed to production
+
+**Event Pattern:** `subscription.plan.deployed`
+
+**Payload:**
+```typescript
+{
+  eventId: string;
+  timestamp: string;
+  eventType: 'subscription.plan.deployed';
+  data: {
+    planId: string;
+    name: string;
+    version: number;
+    deployedAt: string;
+    effectiveDate: string;
+    previousStatus: 'draft' | 'archived';
+    migrationRequired: boolean;
+    affectedCustomers?: number;
+  };
+  actor: {
+    userId: string;
+    userName: string;
+    role: string;
+  };
+}
+```
+
+**Example:**
+```json
+{
+  "eventId": "evt_plan_dep789",
+  "timestamp": "2024-01-17T09:00:00Z",
+  "eventType": "subscription.plan.deployed",
+  "data": {
+    "planId": "plan_premium_v2",
+    "name": "Premium Business Plan v2",
+    "version": 2,
+    "deployedAt": "2024-01-17T09:00:00Z",
+    "effectiveDate": "2024-02-01T00:00:00Z",
+    "previousStatus": "draft",
+    "migrationRequired": false,
+    "affectedCustomers": 0
+  },
+  "actor": {
+    "userId": "admin_123",
+    "userName": "John Admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+**Consumers:** Customer Service, Analytics Service, Notification Service
+
+---
+
+#### subscription.plan.archived
+**Description:** Emitted when a subscription plan is archived
+
+**Event Pattern:** `subscription.plan.archived`
+
+**Payload:**
+```typescript
+{
+  eventId: string;
+  timestamp: string;
+  eventType: 'subscription.plan.archived';
+  data: {
+    planId: string;
+    name: string;
+    version: number;
+    archivedAt: string;
+    reason: string;
+    activeSubscriptions: number;
+    migrationPlanId?: string;
+    gracePeriodEnd?: string;
+  };
+  actor: {
+    userId: string;
+    userName: string;
+    role: string;
+  };
+}
+```
+
+**Example:**
+```json
+{
+  "eventId": "evt_plan_arch101",
+  "timestamp": "2024-01-18T16:30:00Z",
+  "eventType": "subscription.plan.archived",
+  "data": {
+    "planId": "plan_premium_v1",
+    "name": "Premium Business Plan v1",
+    "version": 1,
+    "archivedAt": "2024-01-18T16:30:00Z",
+    "reason": "Replaced by v2 with better features",
+    "activeSubscriptions": 15,
+    "migrationPlanId": "plan_premium_v2",
+    "gracePeriodEnd": "2024-03-01T00:00:00Z"
+  },
+  "actor": {
+    "userId": "admin_123",
+    "userName": "John Admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+**Consumers:** Customer Service, Analytics Service, Notification Service, Billing Service
+
+---
+
+#### subscription.plan.restored
+**Description:** Emitted when an archived subscription plan is restored
+
+**Event Pattern:** `subscription.plan.restored`
+
+**Payload:**
+```typescript
+{
+  eventId: string;
+  timestamp: string;
+  eventType: 'subscription.plan.restored';
+  data: {
+    planId: string;
+    name: string;
+    version: number;
+    restoredAt: string;
+    reason: string;
+    newStatus: 'draft' | 'deployed';
+    restoredBy: string;
+  };
+  actor: {
+    userId: string;
+    userName: string;
+    role: string;
+  };
+}
+```
+
+**Example:**
+```json
+{
+  "eventId": "evt_plan_res202",
+  "timestamp": "2024-01-19T11:15:00Z",
+  "eventType": "subscription.plan.restored",
+  "data": {
+    "planId": "plan_premium_v1",
+    "name": "Premium Business Plan v1",
+    "version": 1,
+    "restoredAt": "2024-01-19T11:15:00Z",
+    "reason": "Customer demand for legacy features",
+    "newStatus": "deployed",
+    "restoredBy": "admin_123"
+  },
+  "actor": {
+    "userId": "admin_123",
+    "userName": "John Admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+**Consumers:** Customer Service, Analytics Service, Notification Service
+
+---
+
 ## 2. Events Consumed by Admin Service
 
 The Admin Service listens to events from other microservices to trigger automated workflows and maintain system consistency.
@@ -865,7 +1184,7 @@ describe('Kafka Integration', () => {
 
 ## Appendix: Complete Event List
 
-### Emitted Events (35)
+### Emitted Events (40)
 
 **User Events (6)**
 1. `user.created` - UserEventTopics.USER_CREATED
@@ -898,21 +1217,28 @@ describe('Kafka Integration', () => {
 22. `subscription.plan.changed` - SubscriptionEventTopics.SUBSCRIPTION_PLAN_CHANGED
 23. `subscription.status.changed` - SubscriptionEventTopics.SUBSCRIPTION_STATUS_CHANGED
 
+**Subscription Plan Events (5)**
+24. `subscription.plan.created` - PlanEventTopics.PLAN_CREATED
+25. `subscription.plan.updated` - PlanEventTopics.PLAN_UPDATED
+26. `subscription.plan.deployed` - PlanEventTopics.PLAN_DEPLOYED
+27. `subscription.plan.archived` - PlanEventTopics.PLAN_ARCHIVED
+28. `subscription.plan.restored` - PlanEventTopics.PLAN_RESTORED
+
 **Token Events (4)**
-24. `token.purchase` - TokenEventTopics.TOKEN_PURCHASE
-25. `token.usage` - TokenEventTopics.TOKEN_USAGE
-26. `token.allocated` - TokenEventTopics.TOKEN_ALLOCATED
-27. `token.alert` - TokenEventTopics.TOKEN_ALERT
+29. `token.purchase` - TokenEventTopics.TOKEN_PURCHASE
+30. `token.usage` - TokenEventTopics.TOKEN_USAGE
+31. `token.allocated` - TokenEventTopics.TOKEN_ALLOCATED
+32. `token.alert` - TokenEventTopics.TOKEN_ALERT
 
 **Document Events (3)**
-28. `document.uploaded` - DocumentEventTopics.DOCUMENT_UPLOADED
-29. `document.deleted` - DocumentEventTopics.DOCUMENT_DELETED
-30. `document.analysis.completed` - DocumentEventTopics.DOCUMENT_ANALYSIS_COMPLETED
+33. `document.uploaded` - DocumentEventTopics.DOCUMENT_UPLOADED
+34. `document.deleted` - DocumentEventTopics.DOCUMENT_DELETED
+35. `document.analysis.completed` - DocumentEventTopics.DOCUMENT_ANALYSIS_COMPLETED
 
 **Institution Events (3)**
-31. `institution.created` - InstitutionEventTopics.INSTITUTION_CREATED
-32. `institution.profile.updated` - InstitutionEventTopics.INSTITUTION_PROFILE_UPDATED
-33. `institution.status.changed` - InstitutionEventTopics.INSTITUTION_STATUS_CHANGED
+36. `institution.created` - InstitutionEventTopics.INSTITUTION_CREATED
+37. `institution.profile.updated` - InstitutionEventTopics.INSTITUTION_PROFILE_UPDATED
+38. `institution.status.changed` - InstitutionEventTopics.INSTITUTION_STATUS_CHANGED
 
 ### Consumed Events (8)
 1. `customer.validation.requested` - Triggers customer validation workflow
@@ -924,6 +1250,6 @@ describe('Kafka Integration', () => {
 7. `subscription.renewal.due` - Processes subscription renewals
 8. `subscription.expiring.soon` - Sends expiration notifications
 
-**Total Events: 43** (35 emitted, 8 consumed)
+**Total Events: 48** (40 emitted, 8 consumed)
 
 **Note:** All emitted events use topic constants from `@wanzobe/shared` package for consistency across microservices.

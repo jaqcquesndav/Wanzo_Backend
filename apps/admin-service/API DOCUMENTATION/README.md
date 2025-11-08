@@ -16,11 +16,22 @@ The documentation aims to be rigorous and maintain consistency in naming, servin
 - ✅ **Token Integration in Subscription Plans** - Tokens now included in plans, no separate purchases
 - ✅ **Accounting Service Integration** - Complete financial operations (9 endpoints)
 - ✅ **Extended Customer Management** - Subscription/token/user modifications (6 methods)
-- ✅ **Bidirectional Kafka Events** - Emit 7 events, consume 8 events
+- ✅ **Bidirectional Kafka Events** - Emit 42 events, consume 8 events
 - ✅ **Data Structure Compatibility** - Aligned SubscriptionPlan and Subscription entities
 - ✅ **PaginatedResponse<T>** standard format for all list endpoints
 - ✅ **APIResponse<T>** standard format for all operation responses  
 - ✅ **100% Code Conformity** between documentation and implementation
+
+### 🆕 December 2025: Dynamic Subscription Plan Management
+- ✅ **Dynamic Plan Configuration** - Create and modify plans with flexible features (24 FeatureCode options)
+- ✅ **Plan State Management** - Complete workflow: DRAFT → DEPLOYED → ARCHIVED with restoration
+- ✅ **Plan Versioning System** - Version tracking with rollback capabilities
+- ✅ **Advanced Analytics** - Plan popularity, revenue tracking, and performance metrics
+- ✅ **Kafka Plan Events** - 5 new event types for plan lifecycle management
+- ✅ **Customer Type Targeting** - Plans specifically designed for PME or Financial customers
+- ✅ **Token Configuration** - Flexible base allocation, overage rates, and limits per plan
+- ✅ **Feature Matrix Management** - 24 distinct features with enable/disable capabilities
+- ✅ **Backward Compatibility** - All existing subscription workflows maintained
 
 ## Standard Response Types
 
@@ -55,7 +66,7 @@ interface APIResponse<T> {
 
 ### Customer & Finance Modules
 - [Customer Management (customers.md)](customers.md) - **Updated with Advanced Management endpoints**
-- [Finance & Subscriptions (finance.md)](finance.md) - **Updated with Token Integration**
+- [Finance & Subscriptions (finance.md)](finance.md) - **Updated with Dynamic Plan Management & Token Integration**
 - [Accounting Service Integration (accounting.md)](accounting.md) - **NEW - 9 endpoints**
 - [Token Management (tokens.md)](tokens.md)
 
@@ -71,7 +82,7 @@ interface APIResponse<T> {
 - [Chat (chat.md)](chat.md)
 
 ### Advanced Features
-- [Kafka Events System (kafka-events.md)](kafka-events.md) - **Bidirectional event communication**
+- [Kafka Events System (kafka-events.md)](kafka-events.md) - **Updated with Plan Management Events (48 total events)**
 - [Adha AI Context (adha-context.md)](adha-context.md) - AI assistant integration
 
 ### Master Documentation
