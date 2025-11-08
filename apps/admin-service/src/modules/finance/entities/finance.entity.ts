@@ -372,6 +372,17 @@ export class Payment {
   @Column('jsonb', { nullable: true })
   metadata: Record<string, any>;
 
+  // === NOUVEAUX CHAMPS POUR SUBSCRIPTION PAYMENTS ===
+  
+  @Column({ nullable: true })
+  planId?: string;
+  
+  @Column({ nullable: true })
+  subscriptionId?: string;
+  
+  @Column({ nullable: true })
+  providerTransactionId?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

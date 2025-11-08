@@ -149,6 +149,85 @@ export class AdminEventsController {
   }
 
   /**
+   * Écoute les paiements réussis depuis payment-service pour alimenter les calculs financiers
+   */
+  @EventPattern('finance.payment.received')
+  async handleFinancePaymentReceived(
+    @Payload() data: {
+      transactionId: string;
+      customerId: string;
+      customerName?: string;
+      planId?: string;
+      subscriptionId?: string;
+      amount: number;
+      currency: string;
+      paymentMethod: string;
+      status: string;
+      completedAt?: Date;
+      providerTransactionId?: string;
+      metadata?: {
+        planName?: string;
+        planType?: string;
+        tokensIncluded?: number;
+        isRenewal?: boolean;
+        billingCycle?: { start: string; end: string };
+        customerType?: string;
+        telecom?: string;
+        paymentType?: string;
+      };
+    },
+    @Ctx() context: KafkaContext,
+  ) {
+    this.logger.log(`Finance payment received: ${data.transactionId} - ${data.amount} ${data.currency}`);
+    
+    try {
+      // Créer/mettre à jour Payment entity pour calculs financiers
+      const payment = this.financeService.createOrUpdatePaymentFromEvent({
+        id: data.transactionId,
+        customerId: data.customerId,
+        customerName: data.customerName || 'Unknown Customer',
+        amount: data.amount,
+        currency: data.currency,
+        method: this.mapPaymentMethod(data.paymentMethod),
+        status: this.mapPaymentStatus(data.status),
+        transactionReference: data.transactionId,
+        paidAt: data.completedAt || new Date(),
+        planId: data.planId,
+        subscriptionId: data.subscriptionId,
+        providerTransactionId: data.providerTransactionId,
+        metadata: data.metadata
+      });
+
+      this.logger.log(`Payment ${data.transactionId} processed for financial calculations`);
+      
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to process finance payment: ${err.message}`, err.stack);
+    }
+  }
+
+  private mapPaymentMethod(method: string): any {
+    switch (method.toLowerCase()) {
+      case 'mobile_money': return 'MOBILE_MONEY';
+      case 'bank_transfer': return 'BANK_TRANSFER';
+      case 'card': return 'CARD';
+      default: return 'OTHER';
+    }
+  }
+
+  private mapPaymentStatus(status: string): any {
+    switch (status.toLowerCase()) {
+      case 'verified': 
+      case 'success': 
+      case 'completed': return 'VERIFIED';
+      case 'pending': return 'PENDING';
+      case 'rejected':
+      case 'failed': return 'REJECTED';
+      default: return 'PENDING';
+    }
+  }
+
+  /**
    * Écoute les demandes d'ajustement de tokens
    */
   @EventPattern('token.adjustment.requested')

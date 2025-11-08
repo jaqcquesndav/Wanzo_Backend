@@ -21,6 +21,7 @@ import { DisbursementService } from './services/disbursement.service';
 import { RepaymentService } from './services/repayment.service';
 import { PaymentScheduleService } from './services/payment-schedule.service';
 import { DocumentService } from './services/document.service';
+import { PortfolioPaymentInfoService } from './services/portfolio-payment-info.service';
 import { PortfolioController } from './controllers/portfolio.controller';
 import { PortfolioProductsController } from './controllers/portfolio-products.controller';
 import { PortfolioSettingsController } from './controllers/portfolio-settings.controller';
@@ -32,6 +33,7 @@ import { DisbursementController } from './controllers/disbursement.controller';
 import { RepaymentController } from './controllers/repayment.controller';
 import { PaymentScheduleController } from './controllers/payment-schedule.controller';
 import { DocumentController } from './controllers/document.controller';
+import { PortfolioPaymentInfoController } from './controllers/portfolio-payment-info.controller';
 import { EventsModule } from '../events/events.module';
 import { MulterModule } from '@nestjs/platform-express';
 
@@ -65,7 +67,8 @@ import { MulterModule } from '@nestjs/platform-express';
     DisbursementService,
     RepaymentService,
     PaymentScheduleService,
-    DocumentService
+    DocumentService,
+    PortfolioPaymentInfoService
   ],
   controllers: [
     PortfolioController,
@@ -78,7 +81,8 @@ import { MulterModule } from '@nestjs/platform-express';
     DisbursementController,
     RepaymentController,
     PaymentScheduleController,
-    DocumentController
+    DocumentController,
+    PortfolioPaymentInfoController
   ],
   exports: [
     PortfolioService,
@@ -89,7 +93,8 @@ import { MulterModule } from '@nestjs/platform-express';
     DisbursementService,
     RepaymentService,
     PaymentScheduleService,
-    DocumentService
+    DocumentService,
+    PortfolioPaymentInfoService
   ],
 })
 export class PortfoliosModule {}

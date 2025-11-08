@@ -1,6 +1,29 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+// Interfaces pour les informations de paiement
+interface BankAccountInfo {
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  bankCode?: string;
+  branchCode?: string;
+  swiftCode?: string;
+  rib?: string;
+  isDefault: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+}
+
+interface MobileMoneyAccount {
+  phoneNumber: string;
+  accountName: string;
+  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
+  operatorName: string;
+  isDefault: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  verificationStatus: 'pending' | 'verified' | 'failed';
+}
+
 @Entity('companies')
 export class Company {
   @ApiProperty({
@@ -72,4 +95,33 @@ export class Company {
   })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Comptes bancaires de l\'entreprise',
+    type: 'array',
+    required: false,
+  })
+  @Column('jsonb', { nullable: true })
+  bankAccounts?: BankAccountInfo[];
+
+  @ApiProperty({
+    description: 'Comptes mobile money de l\'entreprise',
+    type: 'array',
+    required: false,
+  })
+  @Column('jsonb', { nullable: true })
+  mobileMoneyAccounts?: MobileMoneyAccount[];
+
+  @ApiProperty({
+    description: 'Préférences de paiement par défaut',
+    required: false,
+  })
+  @Column('jsonb', { nullable: true })
+  paymentPreferences?: {
+    preferredMethod: 'bank' | 'mobile_money';
+    defaultBankAccountId?: string;
+    defaultMobileMoneyAccountId?: string;
+    allowPartialPayments: boolean;
+    allowAdvancePayments: boolean;
+  };
 }

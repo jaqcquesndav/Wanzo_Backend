@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Between, MoreThanOrEqual, LessThanOrEqual, Like } from 'typeorm';
+import { Repository, FindOptionsWhere, Between, MoreThanOrEqual, LessThanOrEqual, Like, Not, IsNull } from 'typeorm';
 import {
   SubscriptionPlan,
   Subscription,
   Invoice,
   Transaction,
   InvoiceItem,
+  Payment,
   TransactionStatus,
   PaymentStatus,
   PaymentMethod,
@@ -42,6 +43,8 @@ import { InvoiceStatus as KafkaInvoiceStatus } from '@wanzobe/shared';
 
 @Injectable()
 export class FinanceService {
+  private readonly logger = new Logger(FinanceService.name);
+
   constructor(
     @InjectRepository(SubscriptionPlan)
     private subscriptionPlanRepository: Repository<SubscriptionPlan>,
@@ -515,18 +518,155 @@ export class FinanceService {
   async getFinancialSummary(query: GetFinancialSummaryQueryDto): Promise<FinancialSummaryDto> {
     const { period, customerId } = query;
     
-    // Logique simplifiée pour la démo
-    // Dans une implémentation réelle, cela impliquerait des requêtes plus complexes
+    // Calculer la date de début selon la période
+    const startDate = this.calculatePeriodStart(period);
     
+    // 1. Calculer revenus totaux des paiements vérifiés
+    const paymentRepo = this.transactionRepository.manager.getRepository(Payment);
+    
+    const totalRevenueQuery = paymentRepo
+      .createQueryBuilder('payment')
+      .select('SUM(payment.amount)', 'total')
+      .where('payment.status = :status', { status: PaymentStatus.VERIFIED });
+      
+    if (startDate) {
+      totalRevenueQuery.andWhere('payment.createdAt >= :startDate', { startDate });
+    }
+    
+    if (customerId) {
+      totalRevenueQuery.andWhere('payment.customerId = :customerId', { customerId });
+    }
+    
+    const totalRevenueResult = await totalRevenueQuery.getRawOne();
+    const totalRevenue = parseFloat(totalRevenueResult.total) || 0;
+
+    // 2. Calculer revenus par mois
+    const revenueByMonth = await this.calculateRevenueByMonth(startDate, customerId);
+    
+    // 3. Top customers par revenus
+    const topCustomers = await this.getTopCustomersByRevenue(startDate, 5);
+    
+    // 4. Compter factures payées
+    const paidInvoicesCount = await this.invoiceRepository.count({
+      where: {
+        status: EntityInvoiceStatus.PAID,
+        ...(startDate && { createdAt: MoreThanOrEqual(startDate) }),
+        ...(customerId && { customerId })
+      }
+    });
+    
+    // 5. Compter factures en attente
+    const pendingInvoicesCount = await this.invoiceRepository.count({
+      where: {
+        status: EntityInvoiceStatus.PENDING,
+        ...(customerId && { customerId })
+      }
+    });
+    
+    // 6. Calculer montants en attente
+    const pendingAmountQuery = await this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .select('SUM(invoice.totalAmount)', 'total')
+      .where('invoice.status = :status', { status: EntityInvoiceStatus.PENDING })
+      .andWhere(customerId ? 'invoice.customerId = :customerId' : '1=1', customerId ? { customerId } : {})
+      .getRawOne();
+    const pendingAmount = parseFloat(pendingAmountQuery.total) || 0;
+    
+    // 7. Calculer montants en retard
+    const overdueAmountQuery = await this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .select('SUM(invoice.totalAmount)', 'total')
+      .where('invoice.status = :status', { status: EntityInvoiceStatus.OVERDUE })
+      .andWhere(customerId ? 'invoice.customerId = :customerId' : '1=1', customerId ? { customerId } : {})
+      .getRawOne();
+    const overdueAmount = parseFloat(overdueAmountQuery.total) || 0;
+
+    this.logger.log(`Financial summary calculated - Total Revenue: ${totalRevenue}, Paid Invoices: ${paidInvoicesCount}`);
+
     return {
-        totalRevenue: 0,
-        pendingInvoices: 0,
-        pendingAmount: 0,
-        overdueAmount: 0,
-        paidInvoices: 0,
-        revenueByMonth: {},
-        topCustomers: [],
+      totalRevenue,
+      pendingInvoices: pendingInvoicesCount,
+      pendingAmount,
+      overdueAmount,
+      paidInvoices: paidInvoicesCount,
+      revenueByMonth,
+      topCustomers,
     };
+  }
+
+  private calculatePeriodStart(period?: string): Date | null {
+    if (!period) return null;
+    
+    const now = new Date();
+    switch (period.toLowerCase()) {
+      case 'week':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case 'quarter':
+        const quarter = Math.floor(now.getMonth() / 3);
+        return new Date(now.getFullYear(), quarter * 3, 1);
+      case 'year':
+        return new Date(now.getFullYear(), 0, 1);
+      default:
+        return null;
+    }
+  }
+
+  private async calculateRevenueByMonth(startDate: Date | null, customerId?: string): Promise<Record<string, number>> {
+    const paymentRepo = this.transactionRepository.manager.getRepository(Payment);
+    
+    const query = paymentRepo
+      .createQueryBuilder('payment')
+      .select(`DATE_TRUNC('month', payment.createdAt)`, 'month')
+      .addSelect('SUM(payment.amount)', 'revenue')
+      .where('payment.status = :status', { status: PaymentStatus.VERIFIED })
+      .groupBy(`DATE_TRUNC('month', payment.createdAt)`)
+      .orderBy('month', 'ASC');
+
+    if (startDate) {
+      query.andWhere('payment.createdAt >= :startDate', { startDate });
+    }
+    
+    if (customerId) {
+      query.andWhere('payment.customerId = :customerId', { customerId });
+    }
+
+    const results = await query.getRawMany();
+    
+    const revenueByMonth: Record<string, number> = {};
+    results.forEach(result => {
+      const monthKey = new Date(result.month).toISOString().substring(0, 7); // YYYY-MM
+      revenueByMonth[monthKey] = parseFloat(result.revenue) || 0;
+    });
+
+    return revenueByMonth;
+  }
+
+  private async getTopCustomersByRevenue(startDate: Date | null, limit: number = 5): Promise<Array<{ customerId: string; customerName: string; totalSpent: number }>> {
+    const paymentRepo = this.transactionRepository.manager.getRepository(Payment);
+    
+    const query = paymentRepo
+      .createQueryBuilder('payment')
+      .select('payment.customerId', 'customerId')
+      .addSelect('payment.customerName', 'customerName')
+      .addSelect('SUM(payment.amount)', 'totalSpent')
+      .where('payment.status = :status', { status: PaymentStatus.VERIFIED })
+      .groupBy('payment.customerId, payment.customerName')
+      .orderBy('totalSpent', 'DESC')
+      .limit(limit);
+
+    if (startDate) {
+      query.andWhere('payment.createdAt >= :startDate', { startDate });
+    }
+
+    const results = await query.getRawMany();
+    
+    return results.map(result => ({
+      customerId: result.customerId,
+      customerName: result.customerName,
+      totalSpent: parseFloat(result.totalSpent) || 0
+    }));
   }
 
   // --- Mappers ---
@@ -665,5 +805,102 @@ export class FinanceService {
     console.log(`Sending reminder for invoice ${invoice.invoiceNumber} to customer ${invoice.customerId}`);
     
     return { message: 'Reminder sent successfully.' };
+  }
+
+  /**
+   * Crée ou met à jour un Payment depuis un événement Kafka de payment-service
+   * Utilisé pour alimenter les calculations financières et dashboards
+   */
+  async createOrUpdatePaymentFromEvent(paymentData: {
+    id: string;
+    customerId: string;
+    customerName: string;
+    amount: number;
+    currency: string;
+    method: any;
+    status: any;
+    transactionReference: string;
+    paidAt: Date;
+    planId?: string;
+    subscriptionId?: string;
+    providerTransactionId?: string;
+    metadata?: any;
+  }): Promise<void> {
+    const { Payment } = await import('../entities/finance.entity');
+    const paymentRepo = this.transactionRepository.manager.getRepository(Payment);
+    
+    // Vérifier si le payment existe déjà
+    let existingPayment = await paymentRepo.findOne({ 
+      where: { transactionReference: paymentData.transactionReference } 
+    });
+
+    if (existingPayment) {
+      // Mettre à jour payment existant
+      existingPayment.status = paymentData.status;
+      existingPayment.paidAt = paymentData.paidAt;
+      existingPayment.metadata = {
+        ...existingPayment.metadata,
+        ...paymentData.metadata
+      };
+      
+      await paymentRepo.save(existingPayment);
+      this.logger.log(`Updated existing payment ${existingPayment.id}`);
+    } else {
+      // Créer nouveau payment
+      const newPayment = paymentRepo.create({
+        customerId: paymentData.customerId,
+        customerName: paymentData.customerName,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        method: paymentData.method,
+        status: paymentData.status,
+        transactionReference: paymentData.transactionReference,
+        paidAt: paymentData.paidAt,
+        planId: paymentData.planId,
+        subscriptionId: paymentData.subscriptionId,
+        providerTransactionId: paymentData.providerTransactionId,
+        metadata: paymentData.metadata
+      });
+
+      await paymentRepo.save(newPayment);
+      this.logger.log(`Created new payment ${newPayment.id} for customer ${paymentData.customerId}`);
+    }
+  }
+
+  /**
+   * Méthode de test pour vérifier les calculs de revenus
+   * Récupère quelques statistiques de base pour validation
+   */
+  async getPaymentStatistics(): Promise<{
+    totalPayments: number;
+    totalRevenue: number;
+    verifiedPayments: number;
+    subscriptionPayments: number;
+  }> {
+    const paymentRepo = this.transactionRepository.manager.getRepository(Payment);
+    
+    const totalPayments = await paymentRepo.count();
+    
+    const totalRevenueResult = await paymentRepo
+      .createQueryBuilder('payment')
+      .select('SUM(payment.amount)', 'total')
+      .where('payment.status = :status', { status: PaymentStatus.VERIFIED })
+      .getRawOne();
+    const totalRevenue = parseFloat(totalRevenueResult.total) || 0;
+    
+    const verifiedPayments = await paymentRepo.count({
+      where: { status: PaymentStatus.VERIFIED }
+    });
+    
+    const subscriptionPayments = await paymentRepo.count({
+      where: { planId: Not(IsNull()) }
+    });
+
+    return {
+      totalPayments,
+      totalRevenue,
+      verifiedPayments,
+      subscriptionPayments
+    };
   }
 }

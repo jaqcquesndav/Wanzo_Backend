@@ -1,6 +1,16 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
-export type PaymentStatus = 'pending' | 'success' | 'failed';
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed'
+}
+
+export enum PaymentType {
+  SUBSCRIPTION = 'subscription',
+  TOKEN = 'token',
+  LEGACY = 'legacy'
+}
 
 @Entity('payment_transactions')
 export class PaymentTransaction {
@@ -37,8 +47,37 @@ export class PaymentTransaction {
   @Column({ type: 'varchar', length: 16 })
   status!: PaymentStatus;
 
+  // === NOUVELLES COLONNES POUR SUPPORT DES SUBSCRIPTIONS ===
+  // Ajoutées de manière nullable pour la rétrocompatibilité
+  
+  @Column({ nullable: true })
+  paymentType?: string; // 'subscription' | 'token' | null (null = legacy)
+
+  @Index()
+  @Column({ nullable: true })
+  customerId?: string; // Customer qui effectue le paiement
+
+  @Index()
+  @Column({ nullable: true })
+  planId?: string; // Plan acheté (si subscription)
+
+  @Column({ nullable: true })
+  subscriptionId?: string; // Référence vers customer-service subscription
+
   @Column({ type: 'json', nullable: true })
   meta?: any;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  completedAt?: Date;
+
+  // Alias pour compatibilité avec les nouveaux services
+  get metadata(): any {
+    return this.meta;
+  }
+
+  set metadata(value: any) {
+    this.meta = value;
+  }
 
   @CreateDateColumn()
   createdAt!: Date;

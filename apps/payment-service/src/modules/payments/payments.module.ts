@@ -3,9 +3,13 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule } from '@nestjs/microservices';
-import { SerdiPayController } from './controllers/serdipay.controller';
 import { TransactionsController } from './controllers/transactions.controller';
-import { PaymentsService } from './services/payments.service';
+import { SubscriptionPaymentsController } from './controllers/subscription-payments.controller';
+import { SerdiPayFinancingController } from './controllers/serdipay-financing.controller';
+import { SubscriptionPaymentService } from './services/subscription-payment.service';
+import { SubscriptionPaymentEventsService } from './services/subscription-payment-events.service';
+import { PaymentRequestListenerService } from './services/payment-request-listener.service';
+import { SerdiPayService } from './services/serdipay.service';
 import { SerdiPayProvider } from './providers/serdipay.provider';
 import { PaymentTransaction } from './entities/payment-transaction.entity';
 
@@ -16,8 +20,23 @@ import { PaymentTransaction } from './entities/payment-transaction.entity';
     TypeOrmModule.forFeature([PaymentTransaction]),
     ClientsModule,
   ],
-  controllers: [SerdiPayController, TransactionsController],
-  providers: [PaymentsService, SerdiPayProvider],
-  exports: [PaymentsService],
+  controllers: [
+    TransactionsController, 
+    SubscriptionPaymentsController,
+    SerdiPayFinancingController
+  ],
+  providers: [
+    SubscriptionPaymentService,
+    SubscriptionPaymentEventsService,
+    PaymentRequestListenerService,
+    SerdiPayService,
+    SerdiPayProvider
+  ],
+  exports: [
+    SubscriptionPaymentService,
+    SubscriptionPaymentEventsService,
+    PaymentRequestListenerService,
+    SerdiPayService
+  ],
 })
 export class PaymentsModule {}

@@ -120,6 +120,44 @@ class ManagerInfo {
   department?: string;
 }
 
+interface ManagerBankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  swiftCode?: string;
+  iban?: string;
+  branchCode?: string;
+  branchAddress?: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ManagerMobileMoneyAccount {
+  id: string;
+  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
+  phoneNumber: string;
+  accountHolderName: string;
+  isDefault: boolean;
+  verificationStatus: 'pending' | 'verified' | 'failed';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ManagerPaymentPreferences {
+  preferredMethod: 'bank' | 'mobile_money';
+  defaultBankAccount?: string;
+  defaultMobileMoneyAccount?: string;
+  allowAutomaticPayments: boolean;
+  minimumPaymentThreshold?: number;
+  notificationPreferences?: {
+    sms?: boolean;
+    email?: boolean;
+    push?: boolean;
+  };
+}
+
 @Entity('portfolios')
 export class Portfolio {
   @PrimaryGeneratedColumn('uuid')
@@ -220,9 +258,28 @@ export class Portfolio {
   @Column({ nullable: true })
   createdBy?: string;
 
+  // Informations de paiement du gestionnaire de portefeuille
+  @Column('jsonb', { nullable: true })
+  managerBankAccounts?: ManagerBankAccount[];
+
+  @Column('jsonb', { nullable: true })
+  managerMobileMoneyAccounts?: ManagerMobileMoneyAccount[];
+
+  @Column('jsonb', { nullable: true })
+  managerPaymentPreferences?: ManagerPaymentPreferences;
+
   @CreateDateColumn()
   created_at!: Date;
 
   @UpdateDateColumn()
   updated_at!: Date;
+
+  // Getters pour faciliter l'accès aux informations du gestionnaire
+  get managerName(): string {
+    return this.manager?.name || '';
+  }
+
+  get title(): string {
+    return this.name;
+  }
 }
