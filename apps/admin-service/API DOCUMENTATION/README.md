@@ -19,7 +19,7 @@ The documentation aims to be rigorous and maintain consistency in naming, servin
 - ✅ **Authentication Flows** - Updated to match JwtBlacklistGuard and RolesGuard implementation
 
 ### **Key Documentation Refactored:**
-- 📄 **customers.md** - Complete rewrite based on AdminCustomerProfilesController with Kafka sync
+- 📄 **customers.md** - ✅ **CONFORME** - Complete rewrite based on AdminCustomerProfilesController with Kafka sync, real entity structures, and v2.1 compatibility
 - 📄 **dashboard.md** - Rebuilt from DashboardController with real widget and metrics system
 - 📄 **kafka-architecture.md** - NEW comprehensive Kafka integration documentation 
 - 📄 **README.md** - Updated to reflect actual implementation vs previous assumptions
@@ -70,7 +70,7 @@ interface APIResponse<T> {
 - [System & Configuration (system.md)](system.md)
 
 ### Customer & Finance Modules
-- [Customer Management (customers.md)](customers.md) - **Updated with Advanced Management endpoints**
+- [Customer Management (customers.md)](customers.md) - ✅ **VERSION OFFICIELLE CONFORME** - Documentation complète alignée 100% avec code source réel (CustomerDetailedProfile, AdminCustomerProfilesController, Kafka v2.1)
 - [Finance & Subscriptions (finance.md)](finance.md) - **Updated with Dynamic Plan Management & Token Integration**
 - [Accounting Service Integration (accounting.md)](accounting.md) - **NEW - 9 endpoints**
 - [Token Management (tokens.md)](tokens.md)
