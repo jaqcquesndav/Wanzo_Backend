@@ -1,4 +1,23 @@
 // Export all shared modules - Wanzobe Backend
+
+// ==================== NOUVELLE ARCHITECTURE DE CONTRÔLE D'ACCÈS ====================
+// Export Business Features et système d'abonnement orienté métier
+export * from './enums/business-features.enum';
+export * from './events/business-feature-events';
+export * from './decorators/feature-access.decorator';
+export * from './guards/feature-access.guard';
+export { FeatureAccessModule } from './feature-access.module';
+
+// Export specific decorators
+export {
+  RequireAccountingEntries,
+  RequireAutomatedAccounting,
+  RequireFinancialReports,
+  RequireDocumentAnalysis,
+  RequireAITokens,
+  RequirePredictiveAnalytics
+} from './decorators/feature-access.decorator';
+
 // Core Kafka Configuration and Events
 export * from './events/kafka-config';
 export * from './events/kafka-error-handler';

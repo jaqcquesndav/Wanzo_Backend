@@ -3,6 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 
+// Import du module de contrôle d'accès aux fonctionnalités
+import { FeatureAccessModule } from '../../../packages/shared/src/feature-access.module';
+
 // Import de tous tes modules métier
 import { AuthModule } from './modules/auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
@@ -42,7 +45,13 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // 2) Connexion à la base de données Postgres
+    // 2) Configuration du module de contrôle d'accès aux fonctionnalités
+    FeatureAccessModule.forRoot({
+      kafkaBrokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
+      kafkaClientId: 'accounting-service',
+      kafkaGroupId: 'accounting-service-feature-access-group'
+    }),
+    // 3) Connexion à la base de données Postgres
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -57,7 +66,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
         logging: true,     // Enable logging for debugging
       }),
       inject: [ConfigService],
-    }),    // 3) Import de tous tes modules métier
+    }),    // 4) Import de tous tes modules métier
     AuthModule,
     AccountsModule,
     JournalsModule,
