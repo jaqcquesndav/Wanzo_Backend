@@ -1,16 +1,26 @@
 # API Documentation: Dashboard
 
-This document outlines the API endpoints, request/response structures, and functionalities related to the main dashboard. This includes fetching aggregated data, statistics, analytics, and user-specific dashboard configurations.
+This document outlines the **Admin Service Dashboard** API endpoints for retrieving aggregated data, analytics, metrics, and user-specific dashboard configurations. The dashboard provides comprehensive oversight for admin users managing the platform.
+
+## 🏗️ **Architecture Overview**
+
+### **Dashboard Data Sources**
+- **Real-time metrics** from multiple services (customer, analytics, system)
+- **Aggregated statistics** calculated from synchronized data
+- **User-specific configurations** and widget preferences
+- **System health monitoring** across all platform components
 
 ## Standard Response Types
 
-### PaginatedResponse<T>
+### DashboardCompleteDataDto
 ```typescript
-interface PaginatedResponse<T> {
-  items: T[];
-  totalCount: number;
-  page: number;
-  totalPages: number;
+interface DashboardCompleteDataDto {
+  userStatistics: UserStatisticsDto;
+  systemMetrics: SystemMetricsDto;
+  revenueStatistics: RevenueStatisticsDto;
+  tokenStatistics: TokenStatisticsDto;
+  adhaMetrics?: AdhaMetricsDto;
+  recentActivities: RecentActivitiesDto[];
 }
 ```
 
@@ -24,16 +34,34 @@ interface APIResponse<T> {
 }
 ```
 
+### WidgetResponseDto
+```typescript
+interface WidgetResponseDto {
+  data: {
+    widgetId: string;
+    title: string;
+    type: string;
+    content: WidgetContentDto[] | Record<string, any>[];
+  };
+}
+```
+
 ## 1. Dashboard Data Endpoints
 
 ### 1.1. Get Main Dashboard Data
-*   **Endpoint:** `GET /api/dashboard`
-*   **Description:** Retrieves aggregated data for the main dashboard view. This typically includes key performance indicators (KPIs), recent activities, and summaries from various modules.
-*   **Request:**
-    *   Query Parameters:
-        *   `userId` (optional, string): If the dashboard is user-specific.
-        *   `dateRange` (optional, string): e.g., "last7days", "last30days", "monthToDate".
-        *   `timeZone` (optional, string): IANA time zone name (e.g., "America/New_York") for date calculations.
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard`
+*   **Controller:** `DashboardController`
+*   **Description:** Retrieves aggregated data for the main dashboard view including KPIs, metrics, and analytics from all platform components.
+*   **Authentication:** Bearer Token + Role Guard (Admin required)
+*   **Query Parameters:**
+    *   `userId` (optional, string): User ID for user-specific dashboard data
+    *   `dateRange` (optional, string): Date range filter ("last7days", "last30days", "monthToDate", "yearToDate")
+    *   `timeZone` (optional, string): IANA time zone name (e.g., "Africa/Kinshasa") for date calculations
+    *   `startDate` (optional, ISO string): Custom start date for calculations
+    *   `endDate` (optional, ISO string): Custom end date for calculations
+    *   `period` (optional, enum): Grouping period ("daily", "weekly", "monthly", "quarterly", "yearly")
+    *   `metricType` (optional, string): Specific metric type to retrieve
 *   **Response:** `200 OK`
     ```json
     {
@@ -58,11 +86,11 @@ interface APIResponse<T> {
           "Other": 140
         },
         "userGrowth": [
-          { "date": "2025-05-01", "count": 1420 },
-          { "date": "2025-05-08", "count": 1450 },
-          { "date": "2025-05-15", "count": 1475 },
-          { "date": "2025-05-22", "count": 1490 },
-          { "date": "2025-05-29", "count": 1500 }
+          { "date": "2024-11-01", "count": 1420 },
+          { "date": "2024-11-02", "count": 1450 },
+          { "date": "2024-11-03", "count": 1475 },
+          { "date": "2024-11-04", "count": 1490 },
+          { "date": "2024-11-05", "count": 1500 }
         ]
       },
       "systemMetrics": {
@@ -99,6 +127,392 @@ interface APIResponse<T> {
           "averageResponseTime": 156.2,
           "errorRate": 0.24,
           "requestsByEndpoint": {
+            "/admin/customer-profiles": 15420,
+            "/dashboard": 8934,
+            "/admin/users": 5672,
+            "/settings": 3245
+          }
+        }
+      },
+      "revenueStatistics": {
+        "currentMonthRevenue": 125000.00,
+        "previousMonthRevenue": 118000.00,
+        "yearToDateRevenue": 1340000.00,
+        "projectedAnnualRevenue": 1620000.00,
+        "revenueBySubscriptionTier": {
+          "basic": 45000.00,
+          "standard": 62000.00,
+          "premium": 18000.00
+        },
+        "revenueByCountry": {
+          "RDC": 78000.00,
+          "Rwanda": 32000.00,
+          "Kenya": 15000.00,
+          "France": 0.00,
+          "Other": 0.00
+        },
+        "monthlyTrend": [
+          { "month": "2024-01", "amount": 98000.00 },
+          { "month": "2024-02", "amount": 102000.00 },
+          { "month": "2024-03", "amount": 115000.00 },
+          { "month": "2024-04", "amount": 108000.00 },
+          { "month": "2024-05", "amount": 125000.00 }
+        ]
+      },
+      "tokenStatistics": {
+        "totalTokensIssued": 5000000,
+        "tokensInCirculation": 3456789,
+        "averageMonthlyConsumption": 425000,
+        "consumptionByService": {
+          "chat": 156780,
+          "document_analysis": 98456,
+          "market_intelligence": 67234,
+          "other": 102530
+        },
+        "consumptionTrend": [
+          { "date": "2024-11-01", "count": 14250 },
+          { "date": "2024-11-02", "count": 13890 },
+          { "date": "2024-11-03", "count": 15670 },
+          { "date": "2024-11-04", "count": 14320 },
+          { "date": "2024-11-05", "count": 16540 }
+        ]
+      },
+      "adhaMetrics": {
+        "totalQueries": 45670,
+        "averageResponseTime": 1.24,
+        "successRate": 97.8,
+        "topQueryTypes": {
+          "financial_analysis": 18934,
+          "market_research": 12456,
+          "document_analysis": 8907,
+          "general_inquiry": 5373
+        }
+      },
+      "recentActivities": [
+        {
+          "id": "act_uuid_001",
+          "userId": "user_uuid_123",
+          "userName": "Admin User",
+          "action": "customer_profile_validated",
+          "timestamp": "2024-11-09T14:30:00Z",
+          "details": {
+            "customerId": "cust_uuid_456",
+            "customerName": "Acme Financial Corp"
+          }
+        },
+        {
+          "id": "act_uuid_002",
+          "userId": "user_uuid_789",
+          "userName": "Support Manager",
+          "action": "user_account_suspended",
+          "timestamp": "2024-11-09T13:45:00Z",
+          "details": {
+            "targetUserId": "user_uuid_999",
+            "reason": "policy_violation"
+          }
+        }
+      ]
+    }
+    ```
+
+### 1.2. Get Widget Data
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/widgets/{widgetId}`
+*   **Description:** Get data for a specific dashboard widget
+*   **Authentication:** Bearer Token + Role Guard (Admin or User)
+*   **Path Parameters:**
+    *   `widgetId` (required, string): The ID of the widget to fetch data for
+*   **Query Parameters:**
+    *   `userId` (optional, string): Optional user ID if widget data is user-specific
+*   **Response:** `200 OK`
+    ```json
+    {
+      "data": {
+        "widgetId": "customer_stats_widget",
+        "title": "Customer Statistics",
+        "type": "stats_card",
+        "content": [
+          {
+            "message": "Total active customers: 1,250",
+            "timestamp": "2024-11-09T14:30:00Z"
+          },
+          {
+            "message": "New customers this month: 45",
+            "timestamp": "2024-11-09T14:30:00Z"
+          }
+        ]
+      }
+    }
+    ```
+
+## 2. Dashboard Configuration
+
+### 2.1. Get Dashboard Configuration
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/configuration`
+*   **Description:** Get user dashboard configuration including widget layout and settings
+*   **Authentication:** Bearer Token + Role Guard (Admin or User)
+*   **Response:** `200 OK`
+    ```json
+    {
+      "userId": "user_uuid_123",
+      "layout": [
+        {
+          "widgetId": "customer_stats",
+          "x": 0,
+          "y": 0,
+          "w": 4,
+          "h": 2
+        },
+        {
+          "widgetId": "revenue_chart",
+          "x": 4,
+          "y": 0,
+          "w": 8,
+          "h": 4
+        }
+      ],
+      "widgets": [
+        {
+          "id": "customer_stats",
+          "type": "stats_card",
+          "settings": {
+            "showGrowthRate": true,
+            "compareWithLastMonth": true
+          }
+        },
+        {
+          "id": "revenue_chart",
+          "type": "line_chart",
+          "settings": {
+            "timeRange": "last_30_days",
+            "showProjections": true
+          }
+        }
+      ]
+    }
+    ```
+
+### 2.2. Update Dashboard Configuration
+*   **HTTP Method:** `PUT`
+*   **URL:** `/dashboard/configuration`
+*   **Description:** Update user dashboard configuration
+*   **Authentication:** Bearer Token + Role Guard (Admin or User)
+*   **Request Body:**
+    ```json
+    {
+      "layout": [
+        {
+          "widgetId": "customer_stats",
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        }
+      ],
+      "widgets": [
+        {
+          "id": "customer_stats",
+          "type": "stats_card",
+          "settings": {
+            "showGrowthRate": true,
+            "compareWithLastMonth": false
+          }
+        }
+      ]
+    }
+    ```
+*   **Response:** `200 OK`
+    ```json
+    {
+      "success": true,
+      "data": {
+        "userId": "user_uuid_123",
+        "layout": [...],
+        "widgets": [...]
+      },
+      "message": "Dashboard configuration updated successfully."
+    }
+    ```
+
+## 3. Legacy Dashboard Endpoints
+
+### 3.1. Get KPIs
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/kpis`
+*   **Description:** Get Key Performance Indicators
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Response:** `200 OK`
+    ```json
+    {
+      "customerGrowth": 12.5,
+      "revenueGrowth": 8.3,
+      "satisfactionRate": 94.2,
+      "averageResponseTime": 2.1
+    }
+    ```
+
+### 3.2. Get Financial Summary
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/financial-summary`
+*   **Description:** Get financial summary data
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Response:** `200 OK`
+    ```json
+    {
+      "totalRevenue": 1340000.00,
+      "totalExpenses": 890000.00,
+      "netProfit": 450000.00,
+      "lastTransactions": [
+        {
+          "id": "txn_uuid_001",
+          "date": "2024-11-09T14:30:00Z",
+          "description": "Monthly subscription payment",
+          "amount": 2500.00
+        }
+      ]
+    }
+    ```
+
+### 3.3. Get Recent Activities
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/recent-activities`
+*   **Description:** Get recent platform activities
+*   **Authentication:** Bearer Token + Role Guard (Admin or User)
+*   **Response:** `200 OK`
+    ```json
+    [
+      {
+        "id": "act_uuid_001",
+        "date": "2024-11-09T14:30:00Z",
+        "user": "Admin User",
+        "action": "Customer profile validated"
+      },
+      {
+        "id": "act_uuid_002",
+        "date": "2024-11-09T13:45:00Z",
+        "user": "Support Manager",
+        "action": "User account suspended"
+      }
+    ]
+    ```
+
+### 3.4. Get User Statistics
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/user-statistics`
+*   **Description:** Get user statistics summary
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Response:** `200 OK`
+    ```json
+    {
+      "totalUsers": 1500,
+      "activeUsers": 1250,
+      "inactiveUsers": 250,
+      "userRolesDistribution": {
+        "admins": 25,
+        "managers": 150,
+        "operators": 1325
+      }
+    }
+    ```
+
+### 3.5. Get System Health
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/system-health`
+*   **Description:** Get system health status
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Response:** `200 OK`
+    ```json
+    {
+      "cpuUsage": 32.5,
+      "memoryUsage": 60.2,
+      "databaseStatus": "healthy",
+      "apiResponseTime": 156.2
+    }
+    ```
+
+### 3.6. Get Notifications
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/notifications`
+*   **Description:** Get user notifications
+*   **Authentication:** Bearer Token + Role Guard (Admin or User)
+*   **Response:** `200 OK`
+    ```json
+    [
+      {
+        "id": "notif_uuid_001",
+        "message": "New customer registration requires approval",
+        "date": "2024-11-09T14:30:00Z",
+        "read": false
+      },
+      {
+        "id": "notif_uuid_002",
+        "message": "System maintenance scheduled for tonight",
+        "date": "2024-11-09T10:00:00Z",
+        "read": true
+      }
+    ]
+    ```
+
+## 4. Analytics Endpoints
+
+### 4.1. Get Sales Statistics
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/statistics/sales`
+*   **Description:** Get sales statistics with filters
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Query Parameters:**
+    *   `period` (optional, string): Time period for analysis
+    *   `startDate` (optional, ISO string): Start date for custom range
+    *   `endDate` (optional, ISO string): End date for custom range
+*   **Response:** `200 OK` - Returns sales analytics data
+
+### 4.2. Get User Engagement Statistics
+*   **HTTP Method:** `GET`
+*   **URL:** `/dashboard/statistics/user-engagement`
+*   **Description:** Get user engagement statistics
+*   **Authentication:** Bearer Token + Role Guard (Admin)
+*   **Query Parameters:**
+    *   `metricType` (optional, string): Specific engagement metric
+    *   `dateRange` (optional, string): Date range for analysis
+*   **Response:** `200 OK` - Returns user engagement analytics
+
+## 5. Data Sources & Architecture
+
+### **Real-time Data Integration**
+- **Customer Data**: Synchronized from customer-service via Kafka
+- **Financial Data**: Integrated from finance and payment services
+- **System Metrics**: Collected from monitoring systems
+- **User Activities**: Tracked across all platform interactions
+
+### **Widget System**
+- **Configurable Layout**: Drag-and-drop dashboard customization
+- **Real-time Updates**: WebSocket connections for live data
+- **Role-based Widgets**: Different widgets based on user permissions
+- **Responsive Design**: Adaptive layout for different screen sizes
+
+### **Performance Considerations**
+- **Caching Strategy**: Redis caching for frequently accessed metrics
+- **Aggregation Pipeline**: Pre-calculated statistics for fast retrieval
+- **Lazy Loading**: On-demand widget data loading
+- **Rate Limiting**: Protection against excessive API calls
+
+## 6. Security & Access Control
+
+### **Authentication Requirements**
+- Bearer Token authentication for all endpoints
+- JWT validation and blacklist checking
+- Role-based access control (RBAC)
+
+### **Authorization Levels**
+- **Admin**: Full access to all dashboard data and configurations
+- **User**: Limited access to user-specific data and basic metrics
+- **Company User**: Access restricted to company-related data only
+
+### **Data Protection**
+- Sensitive financial data requires elevated permissions
+- Personal user data is anonymized in aggregated views
+- Audit logging for all dashboard data access
             "/api/users": 12500,
             "/api/auth": 15000,
             "/api/dashboard": 8500

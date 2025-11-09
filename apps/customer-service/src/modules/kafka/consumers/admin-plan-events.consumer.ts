@@ -317,6 +317,40 @@ export class AdminPlanEventsConsumer {
     }
   }
 
+  @EventPattern('subscription.plan.deleted')
+  async handlePlanDeleted(@Payload() message: any) {
+    try {
+      this.logger.log('Handling plan deleted event', message.value);
+      const event = JSON.parse(message.value);
+
+      const plan = await this.subscriptionPlanRepository.findOne({
+        where: { configId: event.data.planId }
+      });
+
+      if (!plan) {
+        this.logger.warn(`Plan ${event.data.planId} not found for deletion`);
+        return;
+      }
+
+      // Marquer comme supprimé plutôt que de supprimer physiquement
+      // pour préserver l'historique des abonnements
+      plan.isActive = false;
+      plan.isVisible = false;
+      plan.metadata = {
+        ...plan.metadata,
+        deletedAt: event.data.deletedAt || new Date().toISOString(),
+        deletionReason: event.data.reason || 'Deleted from admin service',
+        isDeleted: true
+      };
+
+      await this.subscriptionPlanRepository.save(plan);
+      this.logger.log(`Successfully marked plan ${event.data.planId} as deleted`);
+
+    } catch (error) {
+      this.logger.error('Error handling plan deleted event', error);
+    }
+  }
+
   // Méthodes utilitaires privées
 
   private mapBillingCycleToType(billingCycle: string): any {

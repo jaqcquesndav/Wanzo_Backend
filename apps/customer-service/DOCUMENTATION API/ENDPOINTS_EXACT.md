@@ -109,7 +109,7 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 | `POST` | `/chat/conversations` | Sauvegarde une conversation |
 | `DELETE` | `/chat/conversations/{id}` | Supprime une conversation |
 
-**Note**: Le service utilise `VITE_API_BASE_URL` (défaut: `https://api.wanzo.cd`) et inclut un mode dégradé avec réponses de fallback.
+**Note**: Le service utilise `VITE_API_URL` (défaut: `http://localhost:8000/land/api/v1`) et inclut un mode dégradé avec réponses de fallback.
 
 ### 7. Paiements (`/payments`) - subscriptionApi.ts
 

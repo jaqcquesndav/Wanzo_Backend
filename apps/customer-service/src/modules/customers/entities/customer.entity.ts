@@ -8,6 +8,8 @@ import { EnterpriseIdentificationForm } from './enterprise-identification-form.e
 import { User } from '../../system-users/entities/user.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { TokenUsage } from '../../tokens/entities/token-usage.entity';
+import { AssetData } from './asset-data.entity';
+import { StockData } from './stock-data.entity';
 import { EncryptedColumnTransformer, EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
 
 export enum CustomerType {
@@ -110,6 +112,64 @@ export class Customer {
   @Column({ nullable: true })
   linkedinPage?: string;
 
+  // Nouveaux champs selon documentation v2.1
+  @Column({ nullable: true })
+  legalForm?: string;
+
+  @Column({ nullable: true })
+  industry?: string;
+
+  @Column({ nullable: true })
+  size?: string;
+
+  @Column({ nullable: true })
+  rccm?: string;
+
+  @Column({ nullable: true })
+  taxId?: string;
+
+  @Column({ nullable: true })
+  natId?: string;
+
+  // Activités étendues v2.1
+  @Column('jsonb', { nullable: true })
+  activities?: {
+    primary?: string;
+    secondary?: string[];
+  };
+
+  // Secteurs personnalisés v2.1
+  @Column('simple-array', { nullable: true })
+  secteursPersnnalises?: string[];
+
+  // Capital social
+  @Column('jsonb', { nullable: true })
+  capital?: {
+    isApplicable?: boolean;
+    amount?: number;
+    currency?: 'USD' | 'CDF' | 'EUR';
+  };
+
+  // Données financières
+  @Column('jsonb', { nullable: true })
+  financials?: {
+    revenue?: number;
+    netIncome?: number;
+    totalAssets?: number;
+    equity?: number;
+  };
+
+  // Affiliations institutionnelles
+  @Column('jsonb', { nullable: true })
+  affiliations?: {
+    cnss?: string;
+    inpp?: string;
+    onem?: string;
+    intraCoop?: string;
+    interCoop?: string;
+    partners?: string[];
+  };
+
   @Column({ nullable: true })
   billingContactName?: string;
 
@@ -207,7 +267,7 @@ export class Customer {
   documents!: CustomerDocument[];
 
   @OneToMany(() => CustomerActivity, activity => activity.customer)
-  activities!: CustomerActivity[];
+  customerActivities!: CustomerActivity[];
 
   @OneToMany(() => ValidationProcess, process => process.customer)
   validationProcesses!: ValidationProcess[];
@@ -232,6 +292,13 @@ export class Customer {
 
   @OneToMany(() => TokenUsage, tokenUsage => tokenUsage.customer)
   tokenUsages!: TokenUsage[];
+
+  // Relations patrimoine v2.1
+  @OneToMany(() => AssetData, asset => asset.customer)
+  assets!: AssetData[];
+
+  @OneToMany(() => StockData, stock => stock.customer)
+  stocks!: StockData[];
 
   @Column({ nullable: true })
   createdBy?: string;

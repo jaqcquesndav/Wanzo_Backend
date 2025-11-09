@@ -1,811 +1,799 @@
-# API Documentation: Customer Management
+# API Documentation: Customer Profile Management (Admin Service)
 
-This document outlines the API endpoints, request/response structures, and functionalities related to customer management. This includes CRUD operations for customers, Know Your Customer (KYC) processes, data validation, document handling, and differentiation between various customer types.
+> **Version:** v2.1  
+> **Last Updated:** November 2025  
+> **Service:** Admin Service  
+> **Controller:** `AdminCustomerProfilesController`  
+> **Entity:** `CustomerDetailedProfile`  
+> **Scope:** Admin KYC & Compliance Management for PME and FINANCIAL_INSTITUTION
 
-## Standard Response Types
+Cette documentation reflète **l'implémentation réelle** du code source de l'admin-service. Les structures de données sont basées sur les DTOs et entités actuelles.
 
-### PaginatedResponse<T>
+## 🎯 **Types de Customers - Implémentation Réelle**
+
+### **Interface Unifiée avec Structures Spécialisées**
+L'admin-service gère **DEUX types de customers** via `CustomerDetailedProfile` avec des structures de données **complètement différentes** :
+
+#### **PME (Petites et Moyennes Entreprises)**
 ```typescript
-interface PaginatedResponse<T> {
-  items: T[];
-  totalCount: number;
-  page: number;
-  totalPages: number;
+customerType: 'PME'
+profileType: ProfileType.COMPANY
+
+// Structure de données PME (companyProfile)
+companyProfile: {
+  legalForm: string;           // Forme juridique (SARL, SAS, etc.)
+  industry: string;            // Secteur d'activité
+  size: string;               // Taille entreprise
+  rccm: string;               // 🔥 CRITIQUE - Numéro RCCM
+  taxId: string;              // 🔥 CRITIQUE - ID fiscal
+  natId: string;              // 🔥 CRITIQUE - ID national
+  activities: {               // Activités déclarées
+    primary: string;
+    secondary: string[];
+  };
+  capital: {                  // Structure du capital
+    isApplicable: boolean;
+    amount: number;
+    currency: 'USD' | 'CDF' | 'EUR';
+  };
+  owner: {                    // 🔥 CRITIQUE - Propriétaire principal
+    name: string;
+    role: string;
+    contactInfo: any;
+  };
+  associates: Array<{         // 🔥 CRITIQUE - Associés
+    name: string;
+    role: string;
+    sharePercentage: number;
+  }>;
+  locations: Array<{          // Localisations géographiques
+    name: string;
+    address: string;
+    coordinates: { lat: number; lng: number; };
+  }>;
+  yearFounded: number;
+  employeeCount: number;
+  financials: {               // Données financières de base
+    revenue: number;
+    netIncome: number;
+    totalAssets: number;
+    equity: number;
+  };
 }
 ```
 
-### APIResponse<T>
+#### **FINANCIAL_INSTITUTION (Institutions Financières)**
 ```typescript
-interface APIResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: APIError;
+customerType: 'FINANCIAL_INSTITUTION'
+profileType: ProfileType.INSTITUTION
+
+// Structure de données Institution (institutionProfile)
+institutionProfile: {
+  denominationSociale: string;      // Dénomination sociale officielle
+  sigleLegalAbrege: string;        // Sigle légal abrégé
+  type: string;                    // Type d'institution
+  category: string;                // Catégorie réglementaire
+  licenseNumber: string;           // 🔥 CRITIQUE - Numéro de licence
+  establishedFdate: string;        // Date d'établissement
+  typeInstitution: string;         // Type spécifique institution
+  autorisationExploitation: string; // 🔥 CRITIQUE - Autorisation d'exploitation
+  dateOctroi: string;              // Date d'octroi autorisation
+  autoriteSupervision: string;     // 🔥 CRITIQUE - Autorité de supervision
+  dateAgrement: string;            // Date d'agrément
+  regulatoryInfo: {                // 🔥 CRITIQUE - Informations réglementaires
+    complianceStatus: string;
+    lastAuditDate: string;
+    reportingRequirements: string[];
+    riskAssessment: string;
+  };
+  capitalStructure: {              // Structure du capital
+    authorizedCapital: number;
+    paidUpCapital: number;
+    shareholders: Array<{
+      name: string;
+      percentage: number;
+    }>;
+  };
+  leadership: {                    // 🔥 CRITIQUE - Direction
+    ceo: { name: string; background: string; };
+    board: Array<{ name: string; role: string; }>;
+  };
+  branches: Array<{                // Succursales
+    name: string;
+    address: string;
+    manager: string;
+  }>;
+  services: string[];              // Services offerts
+  certifications: string[];        // Certifications obtenues
+  creditRating: {                  // Notation crédit
+    agency: string;
+    rating: string;
+    lastUpdate: string;
+  };
 }
 ```
 
-## 1. Customer Endpoints
+### **Frontend Admin - Gestion Unifiée**
+```typescript
+// 🎯 Interface unifiée - Admin voit TOUS les customers
+GET /admin/customer-profiles
 
-### 1.1. List Customers
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/customers`
-*   **Description:** Retrieves a list of all customers, with pagination and filtering options.
-*   **Query Parameters:**
-    *   `page` (optional, integer): Page number for pagination.
-    *   `limit` (optional, integer): Number of items per page.
-    *   `sortBy` (optional, string): Field to sort by (e.g., `createdAt`, `name`).
-    *   `sortOrder` (optional, string): `asc` or `desc`.
-    *   `type` (optional, string): Filter by customer type (`pme`, `financial`).
-    *   `status` (optional, string): Filter by status (`active`, `pending`, `suspended`, `inactive`, `needs_validation`, `validation_in_progress`).
-    *   `search` (optional, string): Search term for customer name, email, etc.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "items": [
-            {
-              "id": "cust_123",
-              "name": "Acme Corp",
-              "type": "pme",
-              "email": "contact@acmecorp.com",
-              "phone": "+243123456789",
-              "address": "123 Main St, Kinshasa",
-              "city": "Kinshasa",
-              "country": "Democratic Republic of Congo",
-              "status": "active",
-              "billingContactName": "John Doe",
-              "billingContactEmail": "billing@acmecorp.com",
-              "tokenAllocation": 1000,
-              "accountType": "premium",
-              "createdAt": "2023-01-15T10:00:00Z",
-              "updatedAt": "2023-01-16T12:00:00Z"
+// 🔍 Filtrage par type
+GET /admin/customer-profiles?customerType=PME
+GET /admin/customer-profiles?customerType=FINANCIAL_INSTITUTION
+
+// 📊 Statistiques par type
+GET /admin/customer-profiles/dashboard/statistics
+// Retourne: { profilesByType: { PME: 1200, FINANCIAL_INSTITUTION: 300 } }
+
+// 🔎 Détails spécialisés selon le type
+GET /admin/customer-profiles/{customerId}
+// PME → retourne companyProfile avec RCCM, capital, associés
+// INSTITUTION → retourne institutionProfile avec licence, supervision
+```
+
+## 🏗️ **Architecture Overview**
+
+### **Data Synchronization Model**
+- **Customer profiles originate in `customer-service`** and are synchronized to `admin-service` via Kafka
+- **Admin service provides KYC/compliance management** but cannot create/delete customers
+- **Bidirectional communication**: Admin actions trigger events back to customer-service
+- **Real-time sync**: Profile updates flow continuously via Kafka events
+
+### **Data Separation (Security Architecture)**
+```
+✅ ADMIN ACCESS (KYC & System Management):
+├── Complete customer profiles & identification data
+├── KYC documents, validation status, compliance ratings
+├── Token consumption, subscriptions, system usage metrics
+├── User management, access controls, security settings
+├── Financial structure data (for KYC validation)
+└── Administrative notes, risk flags, review status
+
+❌ RESTRICTED ACCESS (Commercial Operations):
+├── Commercial transactions & sales data
+├── Product inventories & commercial strategies
+├── Operational accounting & business financials
+└── Confidential business intelligence
+```
+
+## 📋 **Structures de Données Réelles (Code Source)**
+
+### **AdminCustomerProfileDto - Structure Complète**
+```typescript
+// 🔥 STRUCTURE RÉELLE basée sur src/modules/customers/dtos/admin-customer-profile.dto.ts
+interface AdminCustomerProfileDto {
+  // ===============================================
+  // IDENTIFICATION DE BASE
+  // ===============================================
+  id: string;                          // Profile unique identifier
+  customerId: string;                  // Customer ID from customer-service
+  name: string;                        // Nom entreprise/institution
+  email: string;                       // Email de contact
+  phone?: string;                      // Téléphone (anonymisé : +243****6789)
+  customerType: 'PME' | 'FINANCIAL_INSTITUTION';
+  profileType: ProfileType;            // COMPANY | INSTITUTION
+  logo?: string;                       // URL du logo
+  status: string;                      // active, inactive, etc.
+  accountType?: string;                // standard, premium, enterprise
+
+  // ===============================================
+  // ADRESSES (KYC REQUIS)
+  // ===============================================
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+    coordinates?: { latitude: number; longitude: number; };
+  };
+
+  // ===============================================
+  // PROFILS DÉTAILLÉS SPÉCIFIQUES
+  // ===============================================
+  companyProfile?: {                   // 🏢 POUR PME UNIQUEMENT
+    legalForm?: string;                // SARL, SAS, SPRL, etc.
+    industry?: string;                 // Secteur d'activité
+    size?: string;                     // micro, small, medium
+    rccm?: string;                     // 🔥 CRITIQUE - Numéro RCCM
+    taxId?: string;                    // 🔥 CRITIQUE - ID fiscal
+    natId?: string;                    // 🔥 CRITIQUE - ID national
+    activities?: any;                  // Activités déclarées
+    capital?: any;                     // Structure du capital
+    financials?: any;                  // Données financières de base
+    owner?: any;                       // 🔥 CRITIQUE - Propriétaire principal
+    associates?: any[];                // 🔥 CRITIQUE - Associés
+    locations?: any[];                 // Localisations
+    yearFounded?: number;
+    employeeCount?: number;
+  };
+
+  institutionProfile?: {               // 🏦 POUR FINANCIAL_INSTITUTION UNIQUEMENT
+    denominationSociale?: string;      // Dénomination sociale officielle
+    sigleLegalAbrege?: string;        // Sigle légal abrégé  
+    type?: string;                     // Type d'institution
+    category?: string;                 // Catégorie réglementaire
+    licenseNumber?: string;            // 🔥 CRITIQUE - Numéro de licence
+    establishedDate?: string;          // Date d'établissement
+    typeInstitution?: string;          // Type spécifique
+    autorisationExploitation?: string; // 🔥 CRITIQUE - Autorisation
+    dateOctroi?: string;              // Date d'octroi
+    autoriteSupervision?: string;      // 🔥 CRITIQUE - Autorité supervision
+    dateAgrement?: string;            // Date d'agrément
+    regulatoryInfo?: any;             // 🔥 CRITIQUE - Info réglementaires
+    capitalStructure?: any;           // Structure du capital
+    branches?: any[];                 // Succursales
+    leadership?: any;                 // 🔥 CRITIQUE - Direction
+    services?: any;                   // Services offerts
+    certifications?: any;             // Certifications
+    creditRating?: any;               // Notation crédit
+  };
+
+  extendedProfile?: any;               // Profil étendu
+  regulatoryProfile?: any;             // Profil réglementaire
+  patrimoine?: any;                    // Patrimoine/actifs
+
+  // ===============================================
+  // DONNÉES ADMINISTRATIVES (COEUR ADMIN)
+  // ===============================================
+  adminStatus: AdminStatus;            // under_review, validated, flagged, etc.
+  complianceRating: ComplianceRating;  // high, medium, low, critical
+  profileCompleteness: number;         // 0-100%
+  adminNotes?: string;                 // Notes administratives
+  riskFlags?: string[];                // Drapeaux de risque
+  reviewPriority: 'low' | 'medium' | 'high' | 'urgent';
+  requiresAttention: boolean;          // Nécessite attention admin
+
+  // ===============================================
+  // MÉTADONNÉES DE SYNCHRONISATION
+  // ===============================================
+  needsResync: boolean;                // Nécessite resynchronisation
+  lastSyncAt: Date;                    // Dernière synchro Kafka
+  lastReviewedAt?: Date;               // Dernière révision admin
+  reviewedBy?: string;                 // ID admin qui a révisé
+
+  // ===============================================
+  // GESTION SYSTÈME (AUTORISÉ ADMIN)
+  // ===============================================
+  tokenConsumption?: {                 // Consommation tokens
+    totalTokensAllocated?: number;
+    tokensUsed?: number;
+    tokensRemaining?: number;
+    lastUsageDate?: string;
+    monthlyUsage?: number;
+    averageDailyUsage?: number;
+  };
+
+  subscriptions?: {                    // Abonnements
+    currentPlan?: string;
+    planStartDate?: string;
+    planEndDate?: string;
+    planStatus?: 'active' | 'suspended' | 'expired';
+    planFeatures?: string[];
+    billingCycle?: 'monthly' | 'yearly';
+  };
+
+  users?: {                           // Utilisateurs client
+    totalUsers?: number;
+    activeUsers?: number;
+    lastLoginDate?: string;
+    recentActivity?: Array<{
+      userId: string;
+      userName: string;
+      lastLogin: string;
+      role: string;
+      status: 'active' | 'inactive' | 'suspended';
+    }>;
+  };
+
+  platformUsage?: any;                // Métriques utilisation plateforme
+  financialMetrics?: any;             // Métriques financières (pour KYC)
+  alerts?: any[];                     // Alertes système
+  validationStatus?: any;             // Statut validation
+  riskProfile?: any;                  // Profil de risque
+  insights?: any;                     // Insights générés
+
+  createdAt: Date;                    // Date création
+  updatedAt: Date;                    // Dernière mise à jour
+}
+```
+
+### **AdminCustomerProfileListDto**
+```typescript
+interface AdminCustomerProfileListDto {
+  items: AdminCustomerProfileDto[];    // Liste des profils
+  total: number;                       // Total des éléments
+  page: number;                        // Page courante
+  limit: number;                       // Éléments par page
+  totalPages: number;                  // Nombre total de pages
+}
+```
+
+### **AdminDashboardStatsDto**
+```typescript
+interface AdminDashboardStatsDto {
+  totalProfiles: number;
+  profilesByType: { 
+    PME: number; 
+    FINANCIAL_INSTITUTION: number; 
+  };
+  profilesByAdminStatus: { 
+    under_review: number; 
+    validated: number; 
+    flagged: number; 
+    suspended: number; 
+    archived: number; 
+    requires_attention: number; 
+  };
+  profilesByComplianceRating: { 
+    high: number; 
+    medium: number; 
+    low: number; 
+    critical: number; 
+  };
+  averageCompleteness: number;
+  urgentProfiles: number;
+  profilesNeedingResync: number;
+  recentlyUpdated: number;
+  systemHealth: { 
+    syncLatency: number; 
+    pendingActions: number; 
+    systemAlerts: number; 
+  };
+}
+```
+
+## 🔗 **Endpoints Réels (Code Source)**
+
+### **1. Liste des Profils Clients - Interface Unifiée**
+```http
+GET /admin/customer-profiles
+```
+
+**Implémentation réelle :**
+- **Controller:** `AdminCustomerProfilesController.listProfiles()`
+- **Service:** `CustomersService.findAll()`
+- **Response DTO:** `AdminCustomerProfileListDto`
+- **Authentication:** Bearer Token + `JwtBlacklistGuard`
+- **Authorization:** Rôle Admin requis
+
+**Paramètres de requête (AdminProfileQueryDto) :**
+```typescript
+interface AdminProfileQueryDto {
+  page?: number;                           // Page (défaut: 1)
+  limit?: number;                          // Éléments/page (défaut: 10, max: 100)
+  customerType?: 'PME' | 'FINANCIAL_INSTITUTION'; // 🔥 Filtrage par type
+  adminStatus?: AdminStatus;               // under_review, validated, etc.
+  complianceRating?: ComplianceRating;     // high, medium, low, critical
+  requiresAttention?: boolean;             // Profils nécessitant attention
+  needsResync?: boolean;                   // Profils à resynchroniser
+  minCompleteness?: number;                // Complétude minimum (0-100)
+  reviewPriority?: 'low' | 'medium' | 'high' | 'urgent';
+  search?: string;                         // Recherche par nom/email
+}
+```
+
+**Exemples d'utilisation :**
+```bash
+# 🏢 Voir seulement les PME
+GET /admin/customer-profiles?customerType=PME
+
+# 🏦 Voir seulement les institutions financières  
+GET /admin/customer-profiles?customerType=FINANCIAL_INSTITUTION
+
+# ⚠️ Profils nécessitant attention admin
+GET /admin/customer-profiles?requiresAttention=true
+
+# 🔍 Recherche par nom
+GET /admin/customer-profiles?search=Acme
+
+# 📊 Profils peu complétés
+GET /admin/customer-profiles?minCompleteness=50
+```
+**Réponse (200 OK) :**
+```json
+{
+  "items": [
+    {
+      // ===============================================
+      // EXEMPLE 1 : INSTITUTION FINANCIÈRE
+      // ===============================================
+      "id": "prof_uuid_123",
+      "customerId": "cust_uuid_456", 
+      "name": "Banque Centrale Congolaise",
+      "email": "contact@bcc.cd",
+      "phone": "+243*****6789",
+      "customerType": "FINANCIAL_INSTITUTION",
+      "profileType": "INSTITUTION",
+      "logo": "https://cdn.wanzo.com/logos/bcc.png",
+      "status": "active",
+      "accountType": "enterprise",
+      
+      // Adresse complète (KYC requis)
+      "address": {
+        "street": "Boulevard du 30 Juin",
+        "city": "Kinshasa",
+        "state": "Kinshasa",
+        "country": "RDC",
+        "postalCode": "12345"
+      },
+
+      // 🏦 PROFIL INSTITUTION SPÉCIFIQUE
+      "institutionProfile": {
+        "denominationSociale": "Banque Centrale Congolaise",
+        "sigleLegalAbrege": "BCC",
+        "type": "banque_centrale",
+        "category": "institution_supervision",
+        "licenseNumber": "BCC-2024-001",        // 🔥 CRITIQUE
+        "establishedDate": "1997-08-15",
+        "typeInstitution": "central_bank",
+        "autorisationExploitation": "MIN-FINANCES-2024-BCC", // 🔥 CRITIQUE
+        "dateOctroi": "2024-01-15",
+        "autoriteSupervision": "Ministère des Finances",      // 🔥 CRITIQUE
+        "dateAgrement": "2024-02-01",
+        "regulatoryInfo": {                    // 🔥 CRITIQUE
+          "complianceStatus": "compliant",
+          "lastAuditDate": "2024-10-15",
+          "reportingRequirements": ["monthly_reporting", "risk_assessment"],
+          "riskAssessment": "low"
+        },
+        "capitalStructure": {
+          "authorizedCapital": 1000000000,
+          "paidUpCapital": 800000000,
+          "shareholders": [
+            { "name": "État Congolais", "percentage": 100 }
+          ]
+        },
+        "leadership": {                        // 🔥 CRITIQUE
+          "ceo": {
+            "name": "Dr. Malangu Kabedi-Mbuyi",
+            "background": "Économiste, 20 ans d'expérience bancaire"
+          },
+          "board": [
+            { "name": "Jean Kapinga", "role": "Vice-Gouverneur" },
+            { "name": "Marie Tshala", "role": "Directeur Général" }
+          ]
+        },
+        "branches": [
+          { "name": "Siège Central", "address": "Kinshasa Centre", "manager": "Pierre Mukendi" },
+          { "name": "Succursale Lubumbashi", "address": "Avenue Mobutu", "manager": "Marie Kalonji" }
+        ],
+        "services": ["supervision_bancaire", "emission_monnaie", "regulation_financiere"],
+        "certifications": ["ISO_27001", "Basel_III_Compliant"],
+        "creditRating": {
+          "agency": "Moody's",
+          "rating": "B2",
+          "lastUpdate": "2024-09-01"
+        }
+      },
+
+      // Données administratives
+      "adminStatus": "validated",
+      "complianceRating": "high",
+      "profileCompleteness": 95,
+      "adminNotes": "Institution supervisée - KYC complet validé le 2024-03-15",
+      "riskFlags": ["regulatory_institution"],
+      "reviewPriority": "high",
+      "requiresAttention": false,
+      "needsResync": false,
+      "lastSyncAt": "2024-11-09T14:30:00Z",
+      "lastReviewedAt": "2024-11-08T10:15:00Z",
+      "reviewedBy": "admin_uuid_789",
+
+      // Gestion système (autorisé admin)
+      "tokenConsumption": {
+        "totalTokensAllocated": 50000,
+        "tokensUsed": 12000,
+        "tokensRemaining": 38000,
+        "lastUsageDate": "2024-11-09T08:45:00Z",
+        "monthlyUsage": 5000,
+        "averageDailyUsage": 167
+      },
+      "subscriptions": {
+        "currentPlan": "Institution Supervision Plan",
+        "planStartDate": "2024-01-01T00:00:00Z",
+        "planEndDate": "2024-12-31T23:59:59Z",
+        "planStatus": "active",
+        "planFeatures": ["regulatory_tools", "priority_support", "advanced_analytics"],
+        "billingCycle": "yearly",
+        "autoRenewal": true
+      },
+      "users": {
+        "totalUsers": 25,
+        "activeUsers": 23,
+        "lastLoginDate": "2024-11-09T09:30:00Z"
+      },
+
+      "createdAt": "2024-01-15T00:00:00Z",
+      "updatedAt": "2024-11-09T14:30:00Z"
+    },
+    {
+      // ===============================================
+      // EXEMPLE 2 : PME
+      // ===============================================
+      "id": "prof_uuid_124",
+      "customerId": "cust_uuid_457",
+      "name": "SARL Tech Innovation Congo",
+      "email": "contact@techinnovation.cd",
+      "phone": "+243*****1234",
+      "customerType": "PME",
+      "profileType": "COMPANY",
+      "logo": "https://cdn.wanzo.com/logos/tech-innovation.png",
+      "status": "active",
+      "accountType": "premium",
+
+      "address": {
+        "street": "Avenue de la Paix, Q. Industriel",
+        "city": "Lubumbashi",
+        "state": "Haut-Katanga", 
+        "country": "RDC",
+        "postalCode": "10101"
+      },
+
+      // 🏢 PROFIL PME SPÉCIFIQUE
+      "companyProfile": {
+        "legalForm": "SARL",
+        "industry": "technology",
+        "size": "medium",
+        "rccm": "CD/LSH/RCCM/24-B-00123",      // 🔥 CRITIQUE
+        "taxId": "A2401234567N",               // 🔥 CRITIQUE  
+        "natId": "01-234-N56789",              // 🔥 CRITIQUE
+        "activities": {
+          "primary": "Développement logiciel",
+          "secondary": ["Formation informatique", "Maintenance IT"]
+        },
+        "capital": {                           // 🔥 CRITIQUE
+          "isApplicable": true,
+          "amount": 50000,
+          "currency": "USD"
+        },
+        "owner": {                            // 🔥 CRITIQUE
+          "name": "Jean-Baptiste Mukendi",
+          "role": "Gérant Principal",
+          "contactInfo": { "email": "jb.mukendi@techinnovation.cd" }
+        },
+        "associates": [                       // 🔥 CRITIQUE
+          { "name": "Marie Kabongo", "role": "Associée", "sharePercentage": 40 },
+          { "name": "Pierre Mwamba", "role": "Associé Technique", "sharePercentage": 30 },
+          { "name": "Jean-Baptiste Mukendi", "role": "Gérant", "sharePercentage": 30 }
+        ],
+        "locations": [
+          { 
+            "name": "Siège Social", 
+            "address": "Avenue de la Paix, Lubumbashi", 
+            "coordinates": { "lat": -11.6668, "lng": 27.4797 }
+          }
+        ],
+        "yearFounded": 2019,
+        "employeeCount": 15,
+        "financials": {                       // Pour KYC uniquement
+          "revenue": 120000,
+          "netIncome": 25000,
+          "totalAssets": 85000,
+          "equity": 65000
+        }
+      },
+
+      "adminStatus": "under_review",
+      "complianceRating": "medium", 
+      "profileCompleteness": 78,
+      "adminNotes": "PME en croissance - Documents RCCM à revalider",
+      "riskFlags": ["new_business"],
+      "reviewPriority": "medium",
+      "requiresAttention": true,
+      "needsResync": false,
+      "lastSyncAt": "2024-11-09T13:15:00Z",
+
+      "tokenConsumption": {
+        "totalTokensAllocated": 5000,
+        "tokensUsed": 1200,
+        "tokensRemaining": 3800,
+        "monthlyUsage": 400,
+        "averageDailyUsage": 13
+      },
+      "subscriptions": {
+        "currentPlan": "PME Growth Plan",
+        "planStatus": "active"
+      },
+      "users": {
+        "totalUsers": 5,
+        "activeUsers": 4
+      },
+
+      "createdAt": "2024-03-20T00:00:00Z",
+      "updatedAt": "2024-11-09T13:15:00Z"
+    }
+  ],
+  "total": 1500,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 150
+}
+                "upgradeEligible": false,
+                "planUsagePercentage": 67
+              },
+              "users": {
+                "totalUsers": 15,
+                "activeUsers": 12,
+                "lastLoginDate": "2024-11-09T09:30:00Z",
+                "userRoles": [
+                  { "role": "admin", "count": 2 },
+                  { "role": "manager", "count": 4 },
+                  { "role": "user", "count": 9 }
+                ]
+              },
+```
+
+### **2. Détails d'un Profil Client Spécifique**
+```http
+GET /admin/customer-profiles/{customerId}
+```
+
+**Implémentation réelle :**
+- **Controller:** `AdminCustomerProfilesController.getProfileDetails()`
+- **Service:** `CustomersService.findOne()`
+- **Response DTO:** `AdminCustomerProfileDetailsDto`
+- **Paramètres:** `customerId` (UUID requis)
+
+**Réponse (200 OK) :**
+```json
+{
+  "profile": {
+    // Structure AdminCustomerProfileDto complète (voir ci-dessus)
+    "id": "prof_uuid_123",
+    "customerId": "cust_uuid_456",
+    "name": "Banque Centrale Congolaise",
+    "customerType": "FINANCIAL_INSTITUTION",
+    "institutionProfile": { /* structure complète */ },
+    // ... toutes les propriétés
+  },
+  "statistics": {
+    "documentsCount": 15,
+    "activitiesCount": 42,
+    "lastActivity": "2024-11-09T10:30:00Z",
+    "subscriptionsCount": 2
+  },
+  "recentActivities": [
+    {
+      "id": "act_123",
+      "type": "kyc_validation",
+      "action": "document_approved",
+      "description": "Licence bancaire approuvée",
+      "performedAt": "2024-11-09T10:30:00Z",
+      "performedBy": "admin_user_456"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_789",
+      "type": "licence",
+      "fileName": "licence_bancaire_bcc.pdf",
+      "status": "approved",
+      "uploadedAt": "2024-11-08T14:20:00Z"
+    }
+  ]
+}
+```
+
+### **3. Actions Administratives**
+
+#### **3.1. Validation d'un Profil**
+```http
+PUT /admin/customer-profiles/{customerId}/validate
+```
+
+**Implémentation réelle :**
+- **Controller:** `AdminCustomerProfilesController.validateProfile()`
+- **Service:** `CustomersService.validateCustomer()`
+- **Action:** Marque le profil comme validé après révision KYC
+
+#### **3.2. Suspension d'un Profil**
+```http
+PUT /admin/customer-profiles/{customerId}/suspend
+```
+
+**Body requis :**
+```json
+{
+  "reason": "Non-conformité réglementaire détectée"
+}
+```
+
+#### **3.3. Réactivation d'un Profil**
+```http
+PUT /admin/customer-profiles/{customerId}/reactivate
+```
+
+#### **3.4. Mise à jour Statut Administratif**
+```http
+PUT /admin/customer-profiles/{customerId}/admin-status
+```
+
+**Body (AdminProfileActionDto) :**
+```json
+{
+  "adminStatus": "flagged",
+  "complianceRating": "low",
+  "adminNotes": "Vérifications supplémentaires requises",
+  "riskFlags": ["suspicious_activity"],
+  "reviewPriority": "high"
+}
+```
+
+### **4. Statistiques Dashboard**
+```http
+GET /admin/customer-profiles/dashboard/statistics
+```
+
+**Implémentation réelle :**
+- **Controller:** `AdminCustomerProfilesController.getDashboardStats()`
+- **Service:** `CustomersService.getStatistics()`
+- **Response DTO:** `AdminDashboardStatsDto`
+
+**Réponse (200 OK) :**
+```json
+{
+  "totalProfiles": 1500,
+  "profilesByType": {
+    "PME": 1200,
+    "FINANCIAL_INSTITUTION": 300
+  },
+  "profilesByAdminStatus": {
+    "under_review": 150,
+    "validated": 1200,
+    "flagged": 80,
+    "suspended": 45,
+    "archived": 25,
+    "requires_attention": 120
+  },
+  "profilesByComplianceRating": {
+    "high": 800,
+    "medium": 500,
+    "low": 150,
+    "critical": 50
+  },
+  "averageCompleteness": 82,
+  "urgentProfiles": 25,
+  "profilesNeedingResync": 12,
+  "recentlyUpdated": 45,
+  "systemHealth": {
+    "syncLatency": 2.5,
+    "pendingActions": 8,
+    "systemAlerts": 3
+  }
+}
+                "licenseNumber": "LIC-2024-FIN-001",
+                "establishedDate": "2020-03-15T00:00:00Z",
+                "typeInstitution": "MICROFINANCE",
+                "regulatoryInfo": {
+                  "complianceStatus": "compliant",
+                  "lastAuditDate": "2024-09-15T00:00:00Z"
+                }
+              },
+              "createdAt": "2024-01-15T10:00:00Z",
+              "updatedAt": "2024-11-09T14:30:00Z"
             }
           ],
-          "totalCount": 50,
-          "page": 1,
-          "totalPages": 5
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: Invalid query parameters.
-        ```json
-        {
-          "error": "Invalid query parameter: 'status' must be one of [active, pending, suspended, inactive, needs_validation, validation_in_progress]."
-        }
-        ```
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.2. Create Customer
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/customers`
-*   **Description:** Creates a new customer.
-*   **Request Body:**
-    ```json
-    {
-      "name": "Acme Corp",
-      "type": "pme",
-      "email": "contact@acmecorp.com",
-      "phone": "+243123456789",
-      "address": "123 Main St, Kinshasa",
-      "city": "Kinshasa",
-      "country": "Democratic Republic of Congo",
-      "billingContactName": "John Doe",
-      "billingContactEmail": "billing@acmecorp.com",
-      "accountType": "premium"
-    }
-    ```
-*   **Response:**
-    *   `201 Created`:
-        ```json
-        {
-          "id": "cust_124",
-          "name": "Acme Corp",
-          "type": "pme",
-          "email": "contact@acmecorp.com",
-          "phone": "+243123456789",
-          "address": "123 Main St, Kinshasa",
-          "city": "Kinshasa",
-          "country": "Democratic Republic of Congo",
-          "status": "pending",
-          "billingContactName": "John Doe",
-          "billingContactEmail": "billing@acmecorp.com",
-          "tokenAllocation": 0,
-          "accountType": "premium",
-          "createdAt": "2023-01-17T10:00:00Z"
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If validation fails.
-        ```json
-        {
-          "error": "Validation failed",
-          "details": {
-            "email": "Email is required and must be a valid format.",
-            "type": "Customer type is required."
-          }
-        }
-        ```
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `409 Conflict`: If a customer with the same email already exists.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.3. Get Customer Details
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/customers/{customerId}`
-*   **Description:** Retrieves details for a specific customer.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "customer": {
-            "id": "cust_123",
-            "name": "Acme Corp",
-            "type": "pme",
-            "email": "contact@acmecorp.com",
-            "phone": "+243123456789",
-            "address": "123 Main St, Kinshasa",
-            "city": "Kinshasa",
-            "country": "Democratic Republic of Congo",
-            "status": "active",
-            "billingContactName": "John Doe",
-            "billingContactEmail": "billing@acmecorp.com",
-            "tokenAllocation": 1000,
-            "accountType": "premium",
-            "ownerId": "user_456",
-            "ownerEmail": "owner@acmecorp.com",
-            "validatedAt": "2023-01-16T11:00:00Z",
-            "validatedBy": "admin_789",
-            "documents": [
-              {
-                "id": "doc_001",
-                "type": "rccm",
-                "fileName": "rccm_certificate.pdf",
-                "fileUrl": "https://example.com/docs/rccm_certificate.pdf",
-                "uploadedAt": "2023-01-15T14:00:00Z",
-                "uploadedBy": "user_456",
-                "status": "approved",
-                "reviewedAt": "2023-01-16T10:00:00Z",
-                "reviewedBy": "admin_789"
-              }
-            ],
-            "validationHistory": [
-              {
-                "date": "2023-01-15T15:00:00Z",
-                "action": "info_submitted",
-                "by": "user_456"
-              },
-              {
-                "date": "2023-01-16T11:00:00Z",
-                "action": "validated",
-                "by": "admin_789",
-                "notes": "All documents verified successfully."
-              }
-            ],
-            "createdAt": "2023-01-15T10:00:00Z",
-            "updatedAt": "2023-01-16T12:00:00Z"
-          },
-          "statistics": {
-            "tokensUsed": 250,
-            "lastActivity": "2023-01-17T09:30:00Z",
-            "activeSubscriptions": 1,
-            "totalSpent": 500
-          },
-          "activities": [
-            {
-              "id": "act_001",
-              "customerId": "cust_123",
-              "type": "subscription",
-              "action": "activated",
-              "description": "Premium subscription activated",
-              "performedBy": "user_456",
-              "performedByName": "John Doe",
-              "timestamp": "2023-01-16T13:00:00Z",
-              "details": {
-                "planId": "plan_premium",
-                "amount": 500
-              }
-            }
-          ]
-        }
-        ```
-*   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.4. Update Customer
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}`
-*   **Description:** Updates details for a specific customer.
-*   **Request Body:**
-    ```json
-    {
-      "name": "Acme Corporation",
-      "phone": "+243987654321",
-      "billingContactName": "Jane Smith"
-    }
-    ```
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "cust_123",
-          "name": "Acme Corporation",
-          "type": "pme",
-          "email": "contact@acmecorp.com",
-          "phone": "+243987654321",
-          "address": "123 Main St, Kinshasa",
-          "city": "Kinshasa",
-          "country": "Democratic Republic of Congo",
-          "status": "active",
-          "billingContactName": "Jane Smith",
-          "billingContactEmail": "billing@acmecorp.com",
-          "tokenAllocation": 1000,
-          "accountType": "premium",
-          "updatedAt": "2023-01-18T14:00:00Z"
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If validation fails.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `409 Conflict`: If trying to update email to one that already exists for another customer.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.5. Validate Customer
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}/validate`
-*   **Description:** Changes customer status to active after validation.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "cust_123",
-          "status": "active",
-          "validatedAt": "2023-01-19T10:00:00Z",
-          "validatedBy": "admin_789"
-          // Other customer fields...
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the customer is not in a validatable state.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.6. Suspend Customer
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}/suspend`
-*   **Description:** Suspends a customer.
-*   **Request Body:**
-    ```json
-    {
-      "reason": "Payment overdue for 60 days"
-    }
-    ```
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "cust_123",
-          "status": "suspended",
-          "suspendedAt": "2023-01-20T14:00:00Z",
-          "suspendedBy": "admin_789",
-          "suspensionReason": "Payment overdue for 60 days"
-          // Other customer fields...
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the request is invalid.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.7. Reactivate Customer
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}/reactivate`
-*   **Description:** Reactivates a suspended customer.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "cust_123",
-          "status": "active",
-          "reactivatedAt": "2023-01-21T09:00:00Z",
-          "reactivatedBy": "admin_789"
-          // Other customer fields...
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the customer is not in a suspended state.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 1.8. Delete Customer
-*   **HTTP Method:** `DELETE`
-*   **URL:** `/api/customers/{customerId}`
-*   **Description:** Deletes a customer.
-*   **Response:**
-    *   `204 No Content`: Success, no response body.
-*   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `409 Conflict`: If the customer has active subscriptions or other dependencies.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-## 2. Customer Documents
-
-### 2.1. Upload Customer Document
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/customers/{customerId}/documents`
-*   **Description:** Uploads a document for a customer.
-*   **Request Body:** Multipart form data with:
-    * `file`: The document file
-    * `type`: Document type (rccm, id_nat, nif, cnss, inpp, patente, agrement, contract)
-*   **Response:**
-    *   `201 Created`:
-        ```json
-        {
-          "id": "doc_002",
-          "type": "nif",
-          "fileName": "tax_certificate.pdf",
-          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
-          "uploadedAt": "2023-01-21T11:00:00Z",
-          "uploadedBy": "user_456",
-          "status": "pending"
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the file is missing or invalid.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 2.2. Get Customer Documents
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/customers/{customerId}/documents`
-*   **Description:** Retrieves all documents for a customer.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        [
-          {
-            "id": "doc_001",
-            "type": "rccm",
-            "fileName": "rccm_certificate.pdf",
-            "fileUrl": "https://example.com/docs/rccm_certificate.pdf",
-            "uploadedAt": "2023-01-15T14:00:00Z",
-            "uploadedBy": "user_456",
-            "status": "approved",
-            "reviewedAt": "2023-01-16T10:00:00Z",
-            "reviewedBy": "admin_789"
-          },
-          {
-            "id": "doc_002",
-            "type": "nif",
-            "fileName": "tax_certificate.pdf",
-            "fileUrl": "https://example.com/docs/tax_certificate.pdf",
-            "uploadedAt": "2023-01-21T11:00:00Z",
-            "uploadedBy": "user_456",
-            "status": "pending"
-          }
-        ]
-        ```
-*   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 2.3. Approve Customer Document
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}/documents/{documentId}/approve`
-*   **Description:** Approves a customer document.
-*   **Request Body:**
-    ```json
-    {
-      "comments": "Document verified and approved." // Optional
-    }
-    ```
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "doc_002",
-          "type": "nif",
-          "fileName": "tax_certificate.pdf",
-          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
-          "uploadedAt": "2023-01-21T11:00:00Z",
-          "uploadedBy": "user_456",
-          "status": "approved",
-          "reviewedAt": "2023-01-21T14:00:00Z",
-          "reviewedBy": "admin_789",
-          "reviewComments": "Document verified and approved."
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the request is invalid.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer or document does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-### 2.4. Reject Customer Document
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/customers/{customerId}/documents/{documentId}/reject`
-*   **Description:** Rejects a customer document.
-*   **Request Body:**
-    ```json
-    {
-      "reason": "Document is illegible or incomplete."
-    }
-    ```
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "id": "doc_002",
-          "type": "nif",
-          "fileName": "tax_certificate.pdf",
-          "fileUrl": "https://example.com/docs/tax_certificate.pdf",
-          "uploadedAt": "2023-01-21T11:00:00Z",
-          "uploadedBy": "user_456",
-          "status": "rejected",
-          "reviewedAt": "2023-01-21T14:00:00Z",
-          "reviewedBy": "admin_789",
-          "reviewComments": "Document is illegible or incomplete."
-        }
-        ```
-*   **Error Responses:**
-    *   `400 Bad Request`: If the request is invalid.
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer or document does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-## 3. Customer Activities
-
-### 3.1. Get Customer Activities
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/customers/{customerId}/activities`
-*   **Description:** Retrieves a customer's activity history.
-*   **Query Parameters:**
-    *   `page` (optional, integer): Page number for pagination.
-    *   `limit` (optional, integer): Number of items per page.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        [
-          {
-            "id": "act_001",
-            "customerId": "cust_123",
-            "type": "subscription",
-            "action": "activated",
-            "description": "Premium subscription activated",
-            "performedBy": "user_456",
-            "performedByName": "John Doe",
-            "timestamp": "2023-01-16T13:00:00Z",
-            "details": {
-              "planId": "plan_premium",
-              "amount": 500
-            }
-          },
-          {
-            "id": "act_002",
-            "customerId": "cust_123",
-            "type": "document",
-            "action": "uploaded",
-            "description": "Tax certificate uploaded",
-            "performedBy": "user_456",
-            "performedByName": "John Doe",
-            "timestamp": "2023-01-21T11:00:00Z",
-            "details": {
-              "documentId": "doc_002",
-              "documentType": "nif"
-            }
-          }
-        ]
-        ```
-*   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `404 Not Found`: If the customer with the given ID does not exist.
-    *   `500 Internal Server Error`: Unexpected server error.
-
-## 4. Customer Statistics
-
-### 4.1. Get Customer Statistics
-*   **HTTP Method:** `GET`
-*   **URL:** `/api/customers/statistics`
-*   **Description:** Retrieves aggregated statistics about customers.
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
           "total": 150,
-          "active": 120,
-          "inactive": 10,
-          "pending": 15,
-          "suspended": 5,
-          "byType": {
-            "pme": 120,
-            "financial": 30
-          },
-          "byAccountType": {
-            "freemium": 50,
-            "standard": 40,
-            "premium": 40,
-            "enterprise": 20
-          }
+          "page": 1,
+          "limit": 10,
+          "totalPages": 15
         }
         ```
 *   **Error Responses:**
-    *   `401 Unauthorized`: If the user is not authenticated.
-    *   `403 Forbidden`: If the user does not have permission.
-    *   `500 Internal Server Error`: Unexpected server error.
+    *   `400 Bad Request`: Invalid query parameters
+    *   `401 Unauthorized`: Missing or invalid authentication
+    *   `403 Forbidden`: Insufficient permissions
+    *   `500 Internal Server Error`: Server error
 
----
-
-## 5. Advanced Customer Management (Admin Service Extensions)
-
-Le service admin offre des fonctionnalités avancées de gestion des clients via communication HTTP avec le Customer Service.
-
-### 5.1. Update Customer Subscription
-*   **HTTP Method:** `PUT`
-*   **URL:** `/api/admin/customers/{customerId}/subscriptions/{subscriptionId}`
-*   **Description:** Met à jour l'abonnement d'un client (admin uniquement)
-*   **Request Body:**
-    ```json
-    {
-      "planId": "plan_premium",
-      "autoRenew": true,
-      "metadata": {
-        "notes": "Upgraded by admin"
-      }
-    }
-    ```
-*   **Response:**
-    *   `200 OK`: Returns updated subscription details
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-### 5.2. Cancel Customer Subscription
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/admin/customers/{customerId}/subscriptions/{subscriptionId}/cancel`
-*   **Description:** Annule l'abonnement d'un client
-*   **Request Body:**
-    ```json
-    {
-      "reason": "Customer request / Payment issues / Service violation"
-    }
-    ```
-*   **Response:**
-    *   `200 OK`: Returns canceled subscription details
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-### 5.3. Allocate Tokens to Customer
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/admin/customers/{customerId}/tokens/allocate`
-*   **Description:** Alloue des tokens à un client (bonus, compensation, etc.)
-*   **Request Body:**
-    ```json
-    {
-      "amount": 5000,
-      "reason": "Service compensation / Promotional bonus / Trial extension"
-    }
-    ```
+### 1.2. Get Customer Profile Details (Admin View)
+*   **HTTP Method:** `GET`
+*   **URL:** `/admin/customer-profiles/{customerId}`
+*   **Description:** Returns detailed customer profile with admin-relevant data, statistics, and recent activities.
+*   **Path Parameters:**
+    *   `customerId` (required, UUID): Customer unique identifier
 *   **Response:**
     *   `200 OK`:
         ```json
         {
-          "customerId": "cust_123",
-          "tokensAllocated": 5000,
-          "newBalance": 15000,
-          "reason": "Service compensation",
-          "allocatedAt": "2024-01-15T10:30:00Z",
-          "allocatedBy": "admin_user_789"
-        }
-        ```
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-### 5.4. Suspend Customer User
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/admin/customers/{customerId}/users/{userId}/suspend`
-*   **Description:** Suspend un utilisateur d'un client
-*   **Request Body:**
-    ```json
-    {
-      "reason": "Policy violation / Security concerns / Account compromise"
-    }
-    ```
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "userId": "user_456",
-          "customerId": "cust_123",
-          "status": "suspended",
-          "suspendedAt": "2024-01-15T11:00:00Z",
-          "suspendedBy": "admin_user_789",
-          "reason": "Policy violation"
-        }
-        ```
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-### 5.5. Reactivate Customer User
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/admin/customers/{customerId}/users/{userId}/reactivate`
-*   **Description:** Réactive un utilisateur suspendu
-*   **Response:**
-    *   `200 OK`:
-        ```json
-        {
-          "userId": "user_456",
-          "customerId": "cust_123",
-          "status": "active",
-          "reactivatedAt": "2024-01-16T09:00:00Z",
-          "reactivatedBy": "admin_user_789"
-        }
-        ```
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-### 5.6. Create Customer Subscription
-*   **HTTP Method:** `POST`
-*   **URL:** `/api/admin/customers/{customerId}/subscriptions`
-*   **Description:** Crée un nouvel abonnement pour un client (admin uniquement)
-*   **Request Body:**
-    ```json
-    {
-      "planId": "plan_premium",
-      "startDate": "2024-01-01T00:00:00Z",
-      "autoRenew": true,
-      "trialPeriodDays": 30,
-      "metadata": {
-        "createdBy": "admin",
-        "notes": "Special arrangement"
-      }
-    }
-    ```
-*   **Response:**
-    *   `201 Created`: Returns new subscription details
-*   **Required Roles:** `SUPER_ADMIN`, `CUSTOMER_MANAGER`
-
-**Note technique** : Toutes ces opérations communiquent avec le Customer Service via HTTP et propagent les changements via Kafka pour assurer la cohérence des données dans le système.
-
----
-
-## 6. Type Definitions
-
-### 5.1. Customer
-```typescript
-interface Customer {
-  id?: string;
-  name: string;
-  type: CustomerType; // 'pme' | 'financial'
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  country: string;
-  status: CustomerStatus; // 'active' | 'pending' | 'suspended' | 'inactive' | 'needs_validation' | 'validation_in_progress'
-  createdAt?: string;
-  updatedAt?: string;
-  billingContactName: string;
-  billingContactEmail: string;
-  tokenAllocation: number;
-  accountType: AccountType; // 'freemium' | 'standard' | 'premium' | 'enterprise'
-  ownerId?: string;
-  ownerEmail?: string;
-  validatedAt?: string;
-  validatedBy?: string;
-  documents?: CustomerDocument[];
-  suspendedAt?: string;
-  suspendedBy?: string;
-  suspensionReason?: string;
-  reactivatedAt?: string;
-  reactivatedBy?: string;
-  validationHistory?: Array<{
-    date: string;
-    action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
-    by: string;
-    notes?: string;
-  }>;
-}
-```
-
-### 5.2. CustomerDocument
-```typescript
-interface CustomerDocument {
-  id?: string;
-  type: DocumentType; // 'rccm' | 'id_nat' | 'nif' | 'cnss' | 'inpp' | 'patente' | 'agrement' | 'contract'
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
-  uploadedBy: string;
-  status: DocumentStatus; // 'pending' | 'approved' | 'rejected'
-  reviewNote?: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  reviewComments?: string;
-}
-```
-
-### 5.3. CustomerActivity
-```typescript
-interface CustomerActivity {
-  id: string;
-  customerId: string;
-  type: string;
-  action?: string;
-  description?: string;
-  performedBy?: string;
-  performedByName?: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
-}
-```
-
-### 5.4. Extended Types for Specific Customer Types
-
-#### PME Specific Data
-```typescript
-interface PmeSpecificData {
-  industry: string;
-  size: 'micro' | 'small' | 'medium';
-  employeesCount: number;
-  yearFounded?: number;
-  registrationNumber?: string;
-  taxId?: string;
-  businessLicense?: string;
-}
-```
-
-#### Financial Institution Specific Data
-```typescript
-interface FinancialInstitutionSpecificData {
-  institutionType: 'bank' | 'microfinance' | 'insurance' | 'investment' | 'other';
-  regulatoryBody?: string;
-  regulatoryLicenseNumber?: string;
-  branchesCount?: number;
-  clientsCount?: number;
-  assetsUnderManagement?: number;
-}
-```
-
-### 5.5. Validation Process
-```typescript
-interface ValidationProcess {
-  id: string;
-  customerId: string;
-  status: CustomerStatus;
-  steps: ValidationStep[];
-  currentStepIndex: number;
-  startedAt: string;
-  lastUpdatedAt: string;
-  completedAt?: string;
-  validatedBy?: string;
-  notes?: string[];
-}
-
-interface ValidationStep {
-  id: string;
-  name: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'rejected';
-  order?: number;
-  requiredDocuments?: DocumentType[];
-  completedAt?: string;
-  completedBy?: string;
-  notes?: string;
-}
-```

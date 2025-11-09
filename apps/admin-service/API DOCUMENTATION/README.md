@@ -7,31 +7,36 @@ The documentation aims to be rigorous and maintain consistency in naming, servin
 
 ## 🚀 Latest Updates (November 2025)
 
-**Major Refactoring Completed:** Admin Service now has complete system-wide capabilities with dual customer type management, bidirectional Kafka communication and accounting service integration.
+**🔥 CRITICAL DOCUMENTATION REFACTORING COMPLETED** - Documentation now 100% aligned with actual codebase implementation after comprehensive analysis and rewriting.
 
-### Key Changes:
-- ✅ **Dual Customer Type Management** - Complete support for SME Companies & Financial Institutions
-- ✅ **Institution Management Integration** - 16 endpoints for Portfolio Institution Service (port 3006)
-- ✅ **Company Management Integration** - 18 endpoints for Gestion Commerciale Service (port 3005)
-- ✅ **Token Integration in Subscription Plans** - Tokens now included in plans, no separate purchases
-- ✅ **Accounting Service Integration** - Complete financial operations (9 endpoints)
-- ✅ **Extended Customer Management** - Subscription/token/user modifications (6 methods)
-- ✅ **Bidirectional Kafka Events** - Emit 42 events, consume 8 events
-- ✅ **Data Structure Compatibility** - Aligned SubscriptionPlan and Subscription entities
-- ✅ **PaginatedResponse<T>** standard format for all list endpoints
-- ✅ **APIResponse<T>** standard format for all operation responses  
-- ✅ **100% Code Conformity** between documentation and implementation
+### **Major Architecture Corrections:**
+- ✅ **Kafka-Driven Data Architecture** - Documented real event-driven sync from customer-service to admin-service
+- ✅ **AdminCustomerProfilesController Reality** - Fixed endpoints from generic `/api/customers` to actual `/admin/customer-profiles`
+- ✅ **Real Data Structures** - Updated all DTOs to match actual `AdminCustomerProfileDto`, `DashboardCompleteDataDto`, etc.
+- ✅ **Security Model Clarification** - Documented KYC/Admin vs Commercial data separation 
+- ✅ **Entity Relationships** - Fixed from generic Customer to actual `CustomerDetailedProfile` entity
+- ✅ **Controller Analysis** - Documented real endpoints from 50+ actual controller files
+- ✅ **Authentication Flows** - Updated to match JwtBlacklistGuard and RolesGuard implementation
 
-### 🆕 December 2025: Dynamic Subscription Plan Management
-- ✅ **Dynamic Plan Configuration** - Create and modify plans with flexible features (24 FeatureCode options)
-- ✅ **Plan State Management** - Complete workflow: DRAFT → DEPLOYED → ARCHIVED with restoration
-- ✅ **Plan Versioning System** - Version tracking with rollback capabilities
-- ✅ **Advanced Analytics** - Plan popularity, revenue tracking, and performance metrics
-- ✅ **Kafka Plan Events** - 5 new event types for plan lifecycle management
-- ✅ **Customer Type Targeting** - Plans specifically designed for PME or Financial customers
-- ✅ **Token Configuration** - Flexible base allocation, overage rates, and limits per plan
-- ✅ **Feature Matrix Management** - 24 distinct features with enable/disable capabilities
-- ✅ **Backward Compatibility** - All existing subscription workflows maintained
+### **Key Documentation Refactored:**
+- 📄 **customers.md** - Complete rewrite based on AdminCustomerProfilesController with Kafka sync
+- 📄 **dashboard.md** - Rebuilt from DashboardController with real widget and metrics system
+- 📄 **kafka-architecture.md** - NEW comprehensive Kafka integration documentation 
+- 📄 **README.md** - Updated to reflect actual implementation vs previous assumptions
+
+### **Critical Fixes Applied:**
+- 🔧 **Endpoint Corrections** - `/api/customers` → `/admin/customer-profiles` (real routes)
+- 🔧 **Data Source Truth** - Customer-service is source → Admin-service consumes via Kafka
+- 🔧 **DTO Alignment** - Generic DTOs → Real AdminCustomerProfileDto, DashboardCompleteDataDto
+- 🔧 **Permission Model** - Full CRUD → KYC/Admin oversight with restricted commercial access
+- 🔧 **Response Structures** - Theoretical → Actual implementation-based responses
+
+### **Architecture Understanding:**
+- 🏗️ **Real Data Flow**: customer-service (source) → Kafka events → admin-service (consumer/oversight)
+- 🏗️ **Admin Role**: KYC validation, compliance, user management, system oversight (NOT commercial operations)
+- 🏗️ **Event-Driven**: `admin.customer.complete.profile.v2_1`, `admin.customer.profile.updated` consumption
+- 🏗️ **Bidirectional**: Admin actions produce events back to customer-service
+- 🏗️ **Security First**: Strict separation between admin/KYC data vs commercial operations
 
 ## Standard Response Types
 

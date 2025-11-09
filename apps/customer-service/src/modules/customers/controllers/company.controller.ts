@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, UseGuards, Req, HttpStatus, HttpCode, UnauthorizedException, NotFoundException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Put, Query, UseGuards, Req, HttpStatus, HttpCode, UnauthorizedException, NotFoundException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { SmeService } from '../services/sme.service';
@@ -538,6 +538,162 @@ export class CompanyController {
     return {
       success: true,
       data: completion
+    };
+  }
+
+  // =====================================================
+  // NOUVEAUX ENDPOINTS PATRIMOINE v2.1
+  // =====================================================
+
+  @Get(':id/patrimoine')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Récupérer le patrimoine complet d\'une entreprise' })
+  @ApiResponse({ status: 200, description: 'Patrimoine récupéré avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Entreprise non trouvée', type: ApiErrorResponseDto })
+  async getPatrimoine(
+    @Param('id') id: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<{ assets: any[], stocks: any[], valorisation: any }>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const patrimoine = await this.smeService.getCompanyPatrimoine(id);
+    return {
+      success: true,
+      data: patrimoine
+    };
+  }
+
+  @Post(':id/patrimoine/assets')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Ajouter un actif au patrimoine' })
+  @ApiResponse({ status: 201, description: 'Actif ajouté avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
+  async addAsset(
+    @Param('id') id: string,
+    @Body() assetDto: any, // TODO: Créer AssetDataDto
+    @Req() req: any
+  ): Promise<ApiResponseDto<any>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const asset = await this.smeService.addCompanyAsset(id, assetDto);
+    return {
+      success: true,
+      data: asset
+    };
+  }
+
+  @Put(':id/patrimoine/assets/:assetId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Modifier un actif du patrimoine' })
+  @ApiResponse({ status: 200, description: 'Actif modifié avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Actif non trouvé', type: ApiErrorResponseDto })
+  async updateAsset(
+    @Param('id') id: string,
+    @Param('assetId') assetId: string,
+    @Body() assetDto: any, // TODO: Créer UpdateAssetDataDto
+    @Req() req: any
+  ): Promise<ApiResponseDto<any>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const asset = await this.smeService.updateCompanyAsset(id, assetId, assetDto);
+    return {
+      success: true,
+      data: asset
+    };
+  }
+
+  @Delete(':id/patrimoine/assets/:assetId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Supprimer un actif du patrimoine' })
+  @ApiResponse({ status: 200, description: 'Actif supprimé avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Actif non trouvé', type: ApiErrorResponseDto })
+  async deleteAsset(
+    @Param('id') id: string,
+    @Param('assetId') assetId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    await this.smeService.deleteCompanyAsset(id, assetId);
+    return {
+      success: true,
+      data: { message: 'Actif supprimé avec succès' }
+    };
+  }
+
+  @Post(':id/patrimoine/stocks')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Ajouter un stock/inventaire' })
+  @ApiResponse({ status: 201, description: 'Stock ajouté avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
+  async addStock(
+    @Param('id') id: string,
+    @Body() stockDto: any, // TODO: Créer StockDataDto
+    @Req() req: any
+  ): Promise<ApiResponseDto<any>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const stock = await this.smeService.addCompanyStock(id, stockDto);
+    return {
+      success: true,
+      data: stock
+    };
+  }
+
+  @Put(':id/patrimoine/stocks/:stockId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Modifier un stock/inventaire' })
+  @ApiResponse({ status: 200, description: 'Stock modifié avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Stock non trouvé', type: ApiErrorResponseDto })
+  async updateStock(
+    @Param('id') id: string,
+    @Param('stockId') stockId: string,
+    @Body() stockDto: any, // TODO: Créer UpdateStockDataDto
+    @Req() req: any
+  ): Promise<ApiResponseDto<any>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const stock = await this.smeService.updateCompanyStock(id, stockId, stockDto);
+    return {
+      success: true,
+      data: stock
+    };
+  }
+
+  @Delete(':id/patrimoine/stocks/:stockId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Supprimer un stock/inventaire' })
+  @ApiResponse({ status: 200, description: 'Stock supprimé avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Stock non trouvé', type: ApiErrorResponseDto })
+  async deleteStock(
+    @Param('id') id: string,
+    @Param('stockId') stockId: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<{ message: string }>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    await this.smeService.deleteCompanyStock(id, stockId);
+    return {
+      success: true,
+      data: { message: 'Stock supprimé avec succès' }
+    };
+  }
+
+  @Get(':id/patrimoine/valorisation')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtenir la valorisation du patrimoine' })
+  @ApiResponse({ status: 200, description: 'Valorisation calculée avec succès', type: ApiResponseDto })
+  @ApiResponse({ status: 404, description: 'Entreprise non trouvée', type: ApiErrorResponseDto })
+  async getPatrimoineValorisation(
+    @Param('id') id: string,
+    @Req() req: any
+  ): Promise<ApiResponseDto<any>> {
+    await this.checkCompanyOwnership(id, req.user?.sub);
+    
+    const valorisation = await this.smeService.calculatePatrimoineValorisation(id);
+    return {
+      success: true,
+      data: valorisation
     };
   }
 }

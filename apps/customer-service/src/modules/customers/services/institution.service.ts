@@ -106,6 +106,11 @@ export class InstitutionService {
       category: createDto.category as InstitutionCategory,
       licenseNumber: createDto.licenseNumber,
       establishedDate: createDto.establishedDate ? new Date(createDto.establishedDate) : undefined,
+      regulatoryInfo: createDto.regulatoryStatus ? {
+        regulatoryStatus: createDto.regulatoryStatus,
+        licenseExpiryDate: createDto.licenseExpiryDate ? new Date(createDto.licenseExpiryDate) : undefined,
+      } : undefined,
+      brandColors: createDto.brandColors,
       contacts: createDto.contacts,
       leadership: leadership, // Use the enhanced leadership
     });
@@ -148,6 +153,36 @@ export class InstitutionService {
       institution: {
         customerId: savedFinancialData.id,
         institutionType: savedFinancialData.type
+      }
+    });
+
+    // Publier le profil complet pour l'admin-service
+    await this.customerEventsProducer.emitInstitutionProfileShare({
+      customer: savedCustomer,
+      financialData: savedFinancialData,
+      regulatoryData: {
+        complianceStatus: 'pending',
+        lastAuditDate: null,
+        reportingRequirements: [],
+        riskAssessment: 'not_assessed'
+      },
+      performanceMetrics: {
+        totalCustomers: 0,
+        totalAssets: 0,
+        monthlyGrowth: 0,
+        complianceScore: 0
+      }
+    });
+
+    // Notifier la création du profil
+    await this.customerEventsProducer.emitCustomerProfileUpdated({
+      customerId: savedCustomer.id,
+      customerType: 'FINANCIAL_INSTITUTION',
+      updatedFields: ['institution_created', 'basic_profile'],
+      updateContext: {
+        updatedBy: auth0Id,
+        updateSource: 'form_submission',
+        formType: 'institution_creation'
       }
     });
     
@@ -203,12 +238,24 @@ export class InstitutionService {
     
     // Update customer level fields
     if (updateDto.description) customer.description = updateDto.description;
-    if (updateDto.website) customer.website = updateDto.website;
-    if (updateDto.facebookPage) customer.facebookPage = updateDto.facebookPage;
-    if (updateDto.linkedinPage) customer.linkedinPage = updateDto.linkedinPage;
     
     // Update financial data fields
     if (customer.financialData) {
+      if (updateDto.website) customer.financialData.website = updateDto.website;
+      if (updateDto.facebookPage) customer.financialData.facebookPage = updateDto.facebookPage;
+      if (updateDto.linkedinPage) customer.financialData.linkedinPage = updateDto.linkedinPage;
+      
+      if (updateDto.regulatoryStatus || updateDto.licenseExpiryDate) {
+        customer.financialData.regulatoryInfo = {
+          ...customer.financialData.regulatoryInfo,
+          ...(updateDto.regulatoryStatus && { regulatoryStatus: updateDto.regulatoryStatus }),
+          ...(updateDto.licenseExpiryDate && { licenseExpiryDate: new Date(updateDto.licenseExpiryDate) })
+        };
+      }
+      
+      if (updateDto.brandColors) {
+        customer.financialData.brandColors = updateDto.brandColors;
+      }
       if (updateDto.leadership) customer.financialData.leadership = {
         ...customer.financialData.leadership,
         ...updateDto.leadership
@@ -253,6 +300,36 @@ export class InstitutionService {
       institution: {
         customerId: customer.financialData?.id,
         institutionType: customer.financialData?.type
+      }
+    });
+
+    // Publier le profil mis à jour pour l'admin-service
+    await this.customerEventsProducer.emitInstitutionProfileShare({
+      customer: savedCustomer,
+      financialData: savedCustomer.financialData,
+      regulatoryData: {
+        complianceStatus: savedCustomer.financialData?.regulatoryInfo?.complianceRating || 'pending',
+        lastAuditDate: savedCustomer.financialData?.regulatoryInfo?.lastInspectionDate,
+        reportingRequirements: savedCustomer.financialData?.reportingRequirements || [],
+        riskAssessment: 'updated'
+      },
+      performanceMetrics: {
+        totalCustomers: savedCustomer.financialData?.financialInfo?.numberOfCustomers || 0,
+        totalAssets: savedCustomer.financialData?.financialInfo?.assets || 0,
+        monthlyGrowth: 0,
+        complianceScore: 0
+      }
+    });
+
+    // Notifier la mise à jour du profil
+    const updatedFields = Object.keys(updateDto);
+    await this.customerEventsProducer.emitCustomerProfileUpdated({
+      customerId: savedCustomer.id,
+      customerType: 'FINANCIAL_INSTITUTION',
+      updatedFields,
+      updateContext: {
+        updateSource: 'form_submission',
+        formType: 'institution_update'
       }
     });
     
@@ -506,18 +583,62 @@ export class InstitutionService {
 
   // Private helper method to map Customer entity to FinancialInstitutionResponseDto
   private mapToFinancialInstitutionDto(customer: Customer): FinancialInstitutionResponseDto {
-    // Implementation details would go here
+    const financialData = customer.financialData;
+    
     return {
       id: customer.id,
       name: customer.name,
+      logo: customer.logo,
       description: customer.description,
-      type: customer.financialData?.type || InstitutionType.BANK,
-      category: customer.financialData?.category || InstitutionCategory.COMMERCIAL,
-      status: customer.status,
-      // Add other fields as needed
+      type: financialData?.type || InstitutionType.BANK,
+      category: financialData?.category || InstitutionCategory.COMMERCIAL,
+      licenseNumber: financialData?.licenseNumber,
+      establishedDate: financialData?.establishedDate,
+      regulatoryStatus: financialData?.regulatoryInfo?.regulatoryStatus || 'active',
+      licenseExpiryDate: financialData?.regulatoryInfo?.licenseExpiryDate,
+      brandColors: financialData?.brandColors,
+      website: financialData?.website,
+      facebookPage: financialData?.facebookPage,
+      linkedinPage: financialData?.linkedinPage,
+      
+      // NOUVEAUX CHAMPS v2.1 - Conformité documentation
+      denominationSociale: financialData?.denominationSociale,
+      sigleLegalAbrege: financialData?.sigleLegalAbrege,
+      typeInstitution: financialData?.typeInstitution,
+      autorisationExploitation: financialData?.autorisationExploitation,
+      dateOctroi: financialData?.dateOctroi,
+      autoriteSupervision: financialData?.autoriteSupervision,
+      dateAgrement: financialData?.dateAgrement,
+      coordonneesGeographiques: financialData?.coordonneesGeographiques ? {
+        lat: financialData.coordonneesGeographiques.latitude || 0,
+        lng: financialData.coordonneesGeographiques.longitude || 0
+      } : undefined,
+      capaciteFinanciere: financialData?.capaciteFinanciere,
+      zonesCouverture: financialData?.zonesCouverture,
+      typeOperation: financialData?.typeOperation,
+      statutOperationnel: financialData?.statutOperationnel || 'actif',
+      address: customer.address ? {
+        headquarters: customer.address
+      } : undefined,
+      branches: financialData?.branches || [],
+      contacts: financialData?.contacts,
+      leadership: financialData?.leadership,
+      services: financialData?.services,
+      financialInfo: financialData?.financialInfo,
+      creditRating: financialData?.creditRating ? {
+        ...financialData.creditRating,
+        lastUpdated: financialData.creditRating.lastUpdated?.toISOString()
+      } : undefined,
+      digitalPresence: financialData?.digitalPresence,
+      subscription: customer.subscriptions?.[0] ? {
+        plan: { name: customer.subscriptions[0].plan?.name },
+        status: customer.subscriptions[0].status,
+        endDate: customer.subscriptions[0].endDate
+      } : undefined,
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,
-    } as FinancialInstitutionResponseDto;
+      createdBy: customer.createdBy,
+    };
   }
 
   async remove(id: string): Promise<{ success: boolean; message: string }> {

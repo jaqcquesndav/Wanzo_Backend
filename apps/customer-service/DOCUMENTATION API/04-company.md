@@ -1,8 +1,27 @@
-# Gestion des Entreprises (PME) - Version 2.0
+# Gestion des Entreprises (PME) - Version 2.1
 
 ## Vue d'ensemble
 
 Le module de gestion des entreprises a été complètement refondu pour supporter un **Formulaire d'Identification Entreprise Étendu** avec des données détaillées de patrimoine, performance et spécificités sectorielles.
+
+### 🆕 Nouveautés Version 2.1
+
+#### Secteurs d'Activité Améliorés
+- **Secteur principal** : Sélection obligatoire du secteur d'activité principal
+- **Secteurs secondaires** : Sélection multiple de secteurs d'activité secondaires via tags
+- **Secteurs personnalisés** : Possibilité d'ajouter des secteurs non prévus dans les constantes
+
+#### Gestion Patrimoniale Professionnelle
+- **Actifs immobilisés** : Suivi détaillé avec date d'acquisition, prix d'achat, valeur actuelle
+- **Actifs circulants** : Gestion spécialisée des stocks avec paramètres professionnels
+- **Traçabilité financière** : Distinction claire entre prix d'achat et valeur actuelle
+- **États détaillés** : 6 niveaux d'état (Neuf, Excellent, Bon, Moyen, Mauvais, Détérioré)
+
+#### 🎯 Accompagnement Entrepreneurial (Nouveau)
+- **Statut d'incubation/accélération** : Indicateur optionnel si l'entreprise bénéficie d'un accompagnement
+- **Type d'accompagnement** : Distinction entre incubation et accélération
+- **Identification de l'incubateur** : Nom de l'incubateur ou accélérateur partenaire
+- **Certification d'affiliation** : Upload du certificat ou attestation d'affiliation (PDF)
 
 ## Architecture Moderne
 
@@ -46,18 +65,17 @@ interface Company {
   owner?: Owner;
   associates?: Associate[];
 
-  // Activités commerciales
+  // Activités commerciales - MIS À JOUR (v2.1)
   activities?: {
-    primary?: string;
-    secondary?: string[];
+    primary?: string; // Secteur d'activité principal
+    secondary?: string[]; // Secteurs secondaires + secteurs personnalisés combinés
   };
+  // NOUVEAU: Secteurs personnalisés (v2.1)
+  secteursPersnnalises?: string[]; // Secteurs ajoutés par l'entreprise non prévus dans les constantes
 
-  // Capital et finances
-  capital?: {
-    isApplicable?: boolean;
-    amount?: number;
-    currency?: 'USD' | 'CDF' | 'EUR';
-  };
+  // Capital et finances  
+  capitalSocial?: string;
+  deviseCapital?: 'USD' | 'CDF' | 'EUR';
 
   // **NOUVEAU**: Formulaire d'identification étendu
   extendedIdentification?: EnterpriseIdentificationForm;
@@ -76,21 +94,125 @@ interface Company {
 interface EnterpriseIdentificationForm {
   generalInfo: GeneralInfo;
   legalInfo: LegalInfo;
-  patrimonyAndMeans: PatrimonyAndMeans;
+  patrimonyAndMeans: PatrimonyAndMeans; // MIS À JOUR v2.1
   specificities: Specificities;
   performance: Performance;
+}
+```
+
+#### 🆕 Interfaces v2.1 - Secteurs d'Activité
+
+```typescript
+interface ActivitiesExtended {
+  // Secteur d'activité principal (obligatoire)
+  secteurActivitePrincipal: string;
+  
+  // Secteurs d'activité secondaires (sélection multiple)
+  secteursActiviteSecondaires: string[];
+  
+  // Secteurs personnalisés (ajoutés par l'entreprise)
+  secteursPersonalises: string[];
+  
+  // Compatibilité descendante
+  activities?: {
+    primary?: string;
+    secondary?: string[]; // Combine secondaires + personnalisés
+  };
+}
+```
+
+#### 🆕 Interfaces v2.1 - Actifs Détaillés
+
+```typescript
+// Interface pour les actifs immobilisés
+interface AssetData {
+  id: string;
+  designation: string;
+  type: 'immobilier' | 'vehicule' | 'equipement' | 'autre';
+  description?: string;
+  
+  // Valeurs financières détaillées
+  prixAchat?: number; // Prix d'achat original
+  valeurActuelle?: number; // Valeur actuelle estimée
+  devise?: 'USD' | 'CDF' | 'EUR';
+  
+  // Informations temporelles
+  dateAcquisition?: string; // Date d'acquisition
+  
+  // État et localisation
+  etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+  localisation?: string;
+  
+  // Informations techniques
+  numeroSerie?: string;
+  marque?: string;
+  modele?: string;
+  quantite?: number;
+  unite?: string;
+  
+  // Statut de propriété
+  proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+  
+  // Observations
+  observations?: string;
+}
+
+// Interface spécialisée pour les stocks (actifs circulants)
+interface StockData {
+  id: string;
+  designation: string;
+  categorie: 'matiere_premiere' | 'produit_semi_fini' | 'produit_fini' | 'fourniture' | 'emballage' | 'autre';
+  description?: string;
+  
+  // Quantités et unités
+  quantiteStock: number;
+  unite: string;
+  seuilMinimum?: number;
+  seuilMaximum?: number;
+  
+  // Valeurs financières (actifs circulants)
+  coutUnitaire: number;
+  valeurTotaleStock: number; // Calculé automatiquement
+  devise: 'USD' | 'CDF' | 'EUR';
+  
+  // Informations temporelles et rotation
+  dateDernierInventaire?: string;
+  dureeRotationMoyenne?: number; // En jours
+  datePeremption?: string;
+  
+  // Localisation et stockage
+  emplacement?: string;
+  conditionsStockage?: string;
+  
+  // Suivi et gestion
+  fournisseurPrincipal?: string;
+  numeroLot?: string;
+  codeArticle?: string;
+  
+  // État et observations
+  etatStock: 'excellent' | 'bon' | 'moyen' | 'deteriore' | 'perime';
+  observations?: string;
 }
 ```
 
 #### 1. Informations Générales
 ```typescript
 interface GeneralInfo {
-  companyName: string;
-  tradeName?: string;
-  legalForm: LegalFormOHADA;
-  companyType: CompanyType;
-  sector: TraditionalSector | StartupSector;
-  foundingDate?: Date;
+  raisonSociale: string;
+  sigle?: string;
+  formeJuridiqueOHADA: LegalFormOHADA;
+  typeEntreprise: CompanyType;
+  secteurActivitePrincipal: TraditionalSector | StartupSector;
+  secteursActiviteSecondaires?: string[];
+  secteursPersonalises?: string[];
+  descriptionActivites?: string;
+  produitsServices?: string[];
+  dateCreation?: string;
+  dateDebutActivites?: string;
+  tailleEntreprise?: CompanySize;
+  numeroRCCM?: string;
+  numeroIdentificationNationale?: string;
+  numeroImpotFiscal?: string;
   
   // Siège social
   headquarters: {
@@ -122,6 +244,15 @@ interface GeneralInfo {
     instagram?: string;
     twitter?: string;
   };
+  
+  // 🆕 Incubation et Accélération (v2.1) - OPTIONNEL
+  enIncubation?: boolean;
+  typeAccompagnement?: 'incubation' | 'acceleration';
+  nomIncubateurAccelerateur?: string;
+  certificatAffiliation?: Array<{
+    url: string;
+    name: string;
+  }>;
 }
 ```
 
@@ -196,27 +327,89 @@ interface PatrimonyAndMeans {
     monthlyRent?: number;
   }>;
 
-  // Équipements et machines
+  // Équipements et machines - MIS À JOUR (v2.1)
   equipment?: Array<{
-    category: string;
-    description: string;
-    quantity: number;
-    unitValue: number;
-    totalValue: number;
-    currency: string;
-    acquisitionDate: Date;
-    condition: 'new' | 'good' | 'fair' | 'poor';
+    id: string;
+    designation: string; // Nom de l'actif
+    type: 'immobilier' | 'vehicule' | 'equipement' | 'autre';
+    description?: string;
+    
+    // Valeurs financières détaillées (v2.1)
+    prixAchat?: number; // Prix d'achat original
+    valeurActuelle?: number; // Valeur actuelle estimée
+    devise?: 'USD' | 'CDF' | 'EUR';
+    
+    // Informations temporelles
+    dateAcquisition?: string; // Date d'acquisition
+    
+    // État et localisation
+    etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+    localisation?: string;
+    
+    // Informations techniques
+    marque?: string;
+    modele?: string;
+    quantite?: number;
+    unite?: string;
+    
+    // Statut de propriété
+    proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+    
+    // Observations
+    observations?: string;
   }>;
 
   // Véhicules
   vehicles?: Array<{
-    type: 'car' | 'truck' | 'motorcycle' | 'other';
-    brand: string;
-    model: string;
-    year: number;
-    value: number;
-    currency: string;
-    isOwned: boolean;
+    id: string;
+    designation: string;
+    type: 'vehicule';
+    marque?: string;
+    modele?: string;
+    annee?: number;
+    prixAchat?: number;
+    valeurActuelle?: number;
+    devise?: 'USD' | 'CDF' | 'EUR';
+    dateAcquisition?: string;
+    etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+    proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+  }>;
+
+  // NOUVEAU: Stocks et Inventaires - Actifs Circulants (v2.1)
+  stocks?: Array<{
+    id: string;
+    designation: string;
+    categorie: 'matiere_premiere' | 'produit_semi_fini' | 'produit_fini' | 'fourniture' | 'emballage' | 'autre';
+    description?: string;
+    
+    // Quantités et unités
+    quantiteStock: number;
+    unite: string; // kg, litres, pièces, m², etc.
+    seuilMinimum?: number; // Seuil d'alerte
+    seuilMaximum?: number; // Capacité maximale
+    
+    // Valeurs financières (actifs circulants)
+    coutUnitaire: number; // Coût unitaire d'acquisition
+    valeurTotaleStock: number; // Quantité × Coût unitaire
+    devise: 'USD' | 'CDF' | 'EUR';
+    
+    // Informations temporelles et rotation
+    dateDernierInventaire?: string;
+    dureeRotationMoyenne?: number; // En jours
+    datePeremption?: string; // Pour les produits périssables
+    
+    // Localisation et stockage
+    emplacement?: string; // Entrepôt, magasin, etc.
+    conditionsStockage?: string; // Température, humidité, etc.
+    
+    // Suivi et gestion
+    fournisseurPrincipal?: string;
+    numeroLot?: string;
+    codeArticle?: string;
+    
+    // État et observations
+    etatStock: 'excellent' | 'bon' | 'moyen' | 'deteriore' | 'perime';
+    observations?: string;
   }>;
 
   // Ressources humaines
@@ -532,18 +725,19 @@ interface Performance {
     }
   ],
   "activities": {
-    "primary": "Développement de logiciels et solutions numériques sur mesure.",
+    "primary": "Développement de logiciels et solutions numériques sur mesure",
     "secondary": [
       "Conseil en transformation digitale",
       "Formation professionnelle en IT", 
-      "Vente et intégration de matériel informatique"
+      "Vente et intégration de matériel informatique",
+      "Solutions FinTech personnalisées"
     ]
   },
-  "capital": {
-    "isApplicable": true,
-    "amount": 50000,
-    "currency": "USD"
-  },
+  "secteursPersnnalises": [
+    "Solutions FinTech personnalisées"
+  ],
+  "capitalSocial": "50000",
+  "deviseCapital": "USD",
   "financials": {
     "revenue": 1200000,
     "netIncome": 150000,
@@ -992,11 +1186,20 @@ Content-Type: application/json
   },
   "extendedIdentification": {
     "generalInfo": {
-      "companyName": "KIOTA TECH SARL",
-      "legalForm": "SARL",
-      "companyType": "startup",
-      "sector": "fintech",
-      "foundingDate": "2023-01-15",
+      "raisonSociale": "KIOTA TECH SARL",
+      "sigle": "KIOTA TECH",
+      "formeJuridiqueOHADA": "SARL",
+      "typeEntreprise": "startup",
+      "secteurActivitePrincipal": "fintech",
+      "secteursActiviteSecondaires": ["agritech", "edtech"],
+      "descriptionActivites": "Développement de solutions FinTech pour l'Afrique...",
+      "produitsServices": ["Paiements mobiles", "Microfinance digitale"],
+      "dateCreation": "2023-01-15",
+      "dateDebutActivites": "2023-02-01",
+      "numeroRCCM": "CD/KIN/RCCM/22-B-01234",
+      "numeroIdentificationNationale": "01-2345-C67890D",
+      "numeroImpotFiscal": "A1234567B",
+      "tailleEntreprise": "11-50",
       "headquarters": {
         "address": "Avenue Roi Baudouin 123",
         "city": "Kinshasa",
@@ -1009,7 +1212,16 @@ Content-Type: application/json
         "position": "CEO",
         "email": "jacques@kiota-tech.com",
         "phone": "+243999123456"
-      }
+      },
+      "enIncubation": true,
+      "typeAccompagnement": "acceleration",
+      "nomIncubateurAccelerateur": "CTIC Dakar",
+      "certificatAffiliation": [
+        {
+          "url": "https://files.kiota-tech.com/ctic-dakar-certificate.pdf",
+          "name": "Certificat CTIC Dakar"
+        }
+      ]
     },
     "specificities": {
       "startup": {
@@ -1430,3 +1642,41 @@ Le système calcule automatiquement :
 - **Due Diligence** : Dossier investisseur
 - **Compliance** : État conformité réglementaire
 - **Export** : PDF/Excel pour partenaires
+
+## 🔄 Changelog Version 2.1
+
+### Nouvelles Fonctionnalités
+
+#### Secteurs d'Activité
+- ✅ **Secteur principal** : Champ obligatoire distinct
+- ✅ **Secteurs secondaires** : Interface tags avec suggestions
+- ✅ **Secteurs personnalisés** : Ajout libre de nouveaux secteurs
+- ✅ **Compatibilité** : Maintien de l'interface `activities` existante
+
+#### Gestion du Patrimoine
+- ✅ **Actifs détaillés** : Prix d'achat vs valeur actuelle
+- ✅ **États étendus** : 6 niveaux d'état (Neuf → Détérioré)
+- ✅ **Actifs circulants** : Composant spécialisé pour les stocks
+- ✅ **Traçabilité** : Date d'acquisition, marque, modèle, localisation
+
+#### Stocks et Inventaires
+- ✅ **Catégorisation** : 6 types (Matière première → Emballage)
+- ✅ **Valorisation** : Coût unitaire × Quantité automatique
+- ✅ **Rotation** : Durée de rotation, seuils d'alerte
+- ✅ **Gestion** : Fournisseur, lot, code article, emplacement
+
+### Améliorations UX/UI
+- ✅ **Interface intuitive** : Formulaires par étapes
+- ✅ **Validation temps réel** : Contrôles immédiats
+- ✅ **Auto-calculs** : Valeurs totales automatiques
+- ✅ **Suggestions** : Aide contextuelle
+
+### Compatibilité
+- ✅ **Backward compatible** : Anciens champs maintenus
+- ✅ **Migration transparente** : Conversion automatique
+- ✅ **Types étendus** : Interfaces enrichies sans breaking changes
+
+### API Changes
+- ✅ **Nouveaux endpoints** : Support des nouvelles structures
+- ✅ **Validation Zod** : Schémas mis à jour
+- ✅ **Sérialisation/Désérialisation** : Conversion automatique entre formats

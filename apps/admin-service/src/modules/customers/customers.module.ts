@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { CustomersController } from './controllers';
+import { AdminCustomerProfilesController } from './controllers/admin-customer-profiles.controller';
 import { ValidationController } from './controllers/validation.controller';
 import { DocumentsController } from './controllers/documents.controller';
 import { CustomersService } from './services';
 import { ValidationService } from './services/validation.service';
+import { CustomerProfileWorkflowService } from './services/customer-profile-workflow.service';
 import { 
   Customer, 
   CustomerDocument, 
@@ -15,7 +16,8 @@ import {
   ValidationProcess, 
   ValidationStep,
   PmeSpecificData,
-  FinancialInstitutionSpecificData
+  FinancialInstitutionSpecificData,
+  CustomerDetailedProfile
 } from './entities';
 import { AuthModule } from '../auth/auth.module';
 import { HttpModule } from '@nestjs/axios';
@@ -30,7 +32,8 @@ import { EventsModule } from '../events/events.module';
       ValidationProcess, 
       ValidationStep,
       PmeSpecificData,
-      FinancialInstitutionSpecificData
+      FinancialInstitutionSpecificData,
+      CustomerDetailedProfile
     ]),
     MulterModule.register({
       storage: diskStorage({
@@ -51,8 +54,20 @@ import { EventsModule } from '../events/events.module';
     }),
     EventsModule,
   ],
-  controllers: [CustomersController, ValidationController, DocumentsController],
-  providers: [CustomersService, ValidationService],
-  exports: [CustomersService, ValidationService]
+  controllers: [
+    AdminCustomerProfilesController, 
+    ValidationController, 
+    DocumentsController
+  ],
+  providers: [
+    CustomersService, 
+    ValidationService,
+    CustomerProfileWorkflowService
+  ],
+  exports: [
+    CustomersService, 
+    ValidationService,
+    CustomerProfileWorkflowService
+  ]
 })
 export class CustomersModule {}

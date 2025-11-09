@@ -310,34 +310,178 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async publishPlanCreated(event: any): Promise<void> {
-    await this.emit('plan.created', event);
+    await this.emit('subscription.plan.created', event);
   }
 
   async publishPlanUpdated(event: any): Promise<void> {
-    await this.emit('plan.updated', event);
+    await this.emit('subscription.plan.updated', event);
   }
 
   async publishPlanDeployed(event: any): Promise<void> {
-    await this.emit('plan.deployed', event);
+    await this.emit('subscription.plan.deployed', event);
   }
 
   async publishPlanArchived(event: any): Promise<void> {
-    await this.emit('plan.archived', event);
+    await this.emit('subscription.plan.archived', event);
   }
 
   async publishPlanDeleted(event: any): Promise<void> {
-    await this.emit('plan.deleted', event);
+    await this.emit('subscription.plan.deleted', event);
   }
 
   private getPlanEventTopic(eventType: string): string {
     const topicMap: Record<string, string> = {
-      'CREATED': 'plan.created',
-      'UPDATED': 'plan.updated',
-      'DEPLOYED': 'plan.deployed',
-      'ARCHIVED': 'plan.archived',
-      'DELETED': 'plan.deleted',
+      'CREATED': 'subscription.plan.created',
+      'UPDATED': 'subscription.plan.updated',
+      'DEPLOYED': 'subscription.plan.deployed',
+      'ARCHIVED': 'subscription.plan.archived',
+      'DELETED': 'subscription.plan.deleted',
     };
-    return topicMap[eventType] || 'plan.unknown';
+    return topicMap[eventType] || 'subscription.plan.unknown';
+  }
+  // #endregion
+
+  // #region Customer Profile Sync Events
+  async publishCustomerSyncRequested(event: {
+    customerId: string;
+    profileType?: string;
+    reason?: string;
+    requestedBy?: string;
+    timestamp: string;
+    syncId?: string;
+    priority?: string;
+    requestedData?: string[];
+    requestingService?: string;
+  }): Promise<void> {
+    await this.emit('customer.profile.sync_requested', event);
+  }
+
+  /**
+   * Publier une notification pour les administrateurs
+   */
+  async publishAdminNotification(event: {
+    type: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    customerId?: string;
+    message: string;
+    details?: any;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('admin.notification', event);
+  }
+
+  /**
+   * Publier un événement de synchronisation de profil complété
+   */
+  async publishCustomerProfileSynced(event: {
+    customerId: string;
+    customerType: string;
+    syncId: string;
+    success: boolean;
+    changes?: string[];
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.profile.synced', event);
+  }
+
+  /**
+   * Publier un événement d'échec de synchronisation
+   */
+  async publishCustomerSyncFailed(event: {
+    customerId: string;
+    syncId: string;
+    error: string;
+    attemptNumber: number;
+    willRetry: boolean;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.profile.sync_failed', event);
+  }
+
+  /**
+   * Publier un événement de mise à jour de statut de conformité
+   */
+  async publishComplianceStatusUpdated(event: {
+    customerId: string;
+    previousRating: string;
+    newRating: string;
+    updatedBy: string;
+    reason?: string;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.compliance.status_updated', event);
+  }
+
+  /**
+   * Publier un événement d'alerte de risque
+   */
+  async publishRiskAlert(event: {
+    customerId: string;
+    riskLevel: 'low' | 'medium' | 'high';
+    riskFactors: string[];
+    triggeredBy: string;
+    requiresAttention: boolean;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.risk.alert', event);
+  }
+
+  /**
+   * Publier un événement de validation de profil
+   */
+  async publishProfileValidated(event: {
+    customerId: string;
+    customerType: string;
+    validatedBy: string;
+    conformityScore: number;
+    issues?: any[];
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.profile.validated', event);
+  }
+
+  /**
+   * Publier un événement de mise à jour d'insights
+   */
+  async publishInsightsGenerated(event: {
+    customerId: string;
+    insights: string[];
+    recommendations: string[];
+    opportunities: string[];
+    generatedBy: 'system' | 'admin';
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('customer.insights.generated', event);
+  }
+
+  /**
+   * Publier un événement de planification de tâche
+   */
+  async publishTaskScheduled(event: {
+    taskType: string;
+    customerId?: string;
+    scheduledFor: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    metadata?: any;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('admin.task.scheduled', event);
+  }
+
+  /**
+   * Publier un événement d'audit trail
+   */
+  async publishAuditTrail(event: {
+    entityType: 'customer' | 'profile' | 'document' | 'subscription';
+    entityId: string;
+    action: string;
+    performedBy: string;
+    previousState?: any;
+    newState?: any;
+    metadata?: any;
+    timestamp: string;
+  }): Promise<void> {
+    await this.emit('audit.trail', event);
   }
   // #endregion
 }

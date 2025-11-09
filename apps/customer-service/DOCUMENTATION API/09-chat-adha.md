@@ -6,10 +6,10 @@ Le système de chat Adha est un assistant IA intelligent intégré à Wanzo Land
 
 ### Base URL
 ```
-https://api.wanzo.cd/chat
+http://localhost:8000/land/api/v1/chat
 ```
 
-**Note**: Configuration via `VITE_API_BASE_URL` avec fallback sur `https://api.wanzo.cd`
+**Note**: Configuration via `VITE_API_URL` - Utilise la même base URL que le reste de l'application
 
 ## 🏗️ Architecture des Données
 
@@ -87,14 +87,16 @@ POST /chat/message
 {
   'Content-Type': 'application/json',
   'Authorization': 'Bearer {access_token}',
-  'Accept': 'application/json'
+  'Accept': 'text/event-stream' // Pour le streaming SSE (recommandé)
+  // OU
+  'Accept': 'application/json'   // Pour réponse JSON classique
 }
 ```
 
 **Payload** :
 ```typescript
 interface SendMessageRequest {
-  message: string;                      // Message utilisateur
+  content: string;                      // Message utilisateur (REQUIS)
   conversationHistory: Array<{
     role: 'user' | 'assistant';         // Rôle dans la conversation
     content: string;                    // Contenu du message
@@ -114,20 +116,55 @@ interface SendMessageRequest {
 }
 ```
 
-**Réponse** :
+**Note importante** : Le backend utilise le paramètre `content` (et non `message`) pour le contenu du message.
+
+**Réponse (Mode Streaming SSE)** :
+
+Le backend renvoie les données en Server-Sent Events (SSE) :
+
+```
+Content-Type: text/event-stream
+
+data: {"type":"start","conversationId":"abc123"}
+
+data: {"content":"Bonjour","role":"assistant"}
+
+data: {"content":" ! Comment","role":"assistant"}
+
+data: {"content":" puis-je vous aider ?","role":"assistant"}
+
+data: {"type":"end","id":"msg-456","status":"sent","createdAt":"2025-11-06T22:38:33.809Z"}
+
+data: [DONE]
+```
+
+**Réponse (Mode JSON)** :
 ```typescript
 interface ChatApiResponse {
-  success: boolean;
-  message?: string;                     // Réponse d'Adha
-  conversationId?: string;              // ID de conversation
-  timestamp?: string;                   // ISO 8601 timestamp
-  error?: string;                       // Message d'erreur si échec
+  id: string;                           // ID du message
+  conversationId: string;               // ID de la conversation
+  content: string;                      // Réponse complète d'Adha
+  role: 'assistant';                   // Toujours 'assistant' pour Adha
+  status: 'sent';                      // Statut du message
+  createdAt: string;                   // ISO 8601 timestamp
   metadata?: {
     fallback?: boolean;                 // Mode dégradé activé
     reason?: string;                    // Raison du fallback
     confidence?: number;                // Confiance de l'IA (0-1)
     sources?: string[];                 // Sources utilisées par l'IA
   };
+}
+```
+
+**Exemple de réponse réelle** :
+```json
+{
+  "id": "4fc2d9f3-1902-4771-9afb-7441118effef",
+  "conversationId": "14d7c092-d228-4f4b-9ab7-9a800e92ef33",
+  "content": "Je rencontre actuellement des difficultés techniques. Veuillez contacter un conseiller humain pour une assistance immédiate.",
+  "role": "assistant",
+  "status": "sent",
+  "createdAt": "2025-11-06T22:38:33.809Z"
 }
 ```
 
@@ -315,6 +352,25 @@ const response = await chatApiService.sendMessage({
 });
 ```
 
+### Envoi avec Streaming (Recommandé)
+
+```typescript
+let accumulatedResponse = '';
+
+const response = await chatApiService.sendMessage({
+  content: "Explique-moi le leasing",
+  context: { userType: 'sme' },
+  onStream: (chunk: string) => {
+    // Callback appelé pour chaque morceau de réponse
+    accumulatedResponse += chunk;
+    console.log('Chunk reçu:', chunk);
+    // Mettre à jour l'interface en temps réel
+  }
+});
+
+console.log('Réponse complète:', response.message);
+```
+
 ### Gestion d'une Conversation avec Historique
 
 ```typescript
@@ -332,8 +388,22 @@ const response = await chatApiService.sendMessage({
       timestamp: '2025-11-06T10:00:05.000Z'
     }
   ],
-  context: { userType: 'sme' }
+  context: { userType: 'sme' },
+  onStream: (chunk) => {
+    // Afficher le streaming en temps réel
+    updateChatUI(chunk);
+  }
 });
+```
+
+### Exemple PowerShell pour Tester l'API
+
+```powershell
+# Envoi d'un message simple
+Invoke-WebRequest -Uri "http://localhost:8000/land/api/v1/chat/message" `
+  -Method POST `
+  -Headers @{"Content-Type"="application/json"} `
+  -Body '{"content":"Bonjour Adha!"}'
 ```
 
 ## 🚀 Intégration Frontend
@@ -360,6 +430,15 @@ interface UseChatReturn {
 }
 ```
 
+### Fonctionnalités Clés
+
+- **Streaming en temps réel** : Les réponses d'Adha s'affichent progressivement via SSE
+- **Historique de conversation** : Contexte conservé entre les messages
+- **Mode dégradé** : Réponses de fallback si l'IA est indisponible
+- **Retry automatique** : 3 tentatives avec délai progressif
+- **Persistance locale** : Sauvegarde dans localStorage
+- **Gestion d'erreurs** : Feedback utilisateur pour tous les cas d'erreur
+
 ### Composant Chat Principal
 
 Le chat est implémenté via `AdhaChat.tsx` avec :
@@ -368,6 +447,7 @@ Le chat est implémenté via `AdhaChat.tsx` avec :
 - Sauvegarde automatique des conversations
 - Gestion d'état optimisée avec useReducer
 - Support du mode plein écran
+- **Affichage progressif des réponses** (streaming SSE)
 
 ## 📋 Codes d'Erreur Spécifiques
 
@@ -399,6 +479,13 @@ Le chat est implémenté via `AdhaChat.tsx` avec :
 
 ---
 
-**Version** : 2.0  
+**Version** : 3.0  
 **Dernière mise à jour** : 6 novembre 2025  
-**Statut** : ✅ Production Ready avec mode dégradé
+**Statut** : ✅ Production Ready avec streaming SSE
+
+### Changements Version 3.0
+- ✅ Support du streaming SSE (Server-Sent Events)
+- ✅ Paramètre `content` au lieu de `message` dans la requête
+- ✅ Réponse structurée avec `id`, `conversationId`, `content`, `role`, `status`, `createdAt`
+- ✅ Affichage progressif des réponses en temps réel
+- ✅ Compatibilité JSON classique pour fallback

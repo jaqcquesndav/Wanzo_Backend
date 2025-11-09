@@ -15,6 +15,24 @@ export enum CompanyType {
   TRADITIONAL = 'traditional'
 }
 
+// NOUVEAU v2.1 - Interface pour les secteurs d'activité étendus
+export interface ActivitiesExtended {
+  // Secteur d'activité principal (obligatoire)
+  secteurActivitePrincipal: string;
+  
+  // Secteurs d'activité secondaires (sélection multiple)
+  secteursActiviteSecondaires: string[];
+  
+  // Secteurs personnalisés (ajoutés par l'entreprise)
+  secteursPersonalises: string[];
+  
+  // Compatibilité descendante
+  activities?: {
+    primary?: string;
+    secondary?: string[]; // Combine secondaires + personnalisés
+  };
+}
+
 export interface GeneralInfo {
   companyName: string;
   tradeName?: string;
@@ -102,24 +120,88 @@ export interface PatrimonyAndMeans {
     isOwned: boolean;
     monthlyRent?: number;
   }>;
+  // Mise à jour v2.1 - Actifs immobilisés détaillés avec patrimoine
   equipment?: Array<{
-    category: string;
-    description: string;
-    quantity: number;
-    unitValue: number;
-    totalValue: number;
-    currency: string;
-    acquisitionDate: Date;
-    condition: 'new' | 'good' | 'fair' | 'poor';
+    id: string;
+    designation: string; // Nom de l'actif
+    type: 'immobilier' | 'vehicule' | 'equipement' | 'autre';
+    description?: string;
+    
+    // Valeurs financières détaillées (v2.1)
+    prixAchat?: number; // Prix d'achat original
+    valeurActuelle?: number; // Valeur actuelle estimée
+    devise?: 'USD' | 'CDF' | 'EUR';
+    
+    // Informations temporelles
+    dateAcquisition?: string; // Date d'acquisition
+    
+    // État et localisation
+    etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+    localisation?: string;
+    
+    // Informations techniques
+    marque?: string;
+    modele?: string;
+    quantite?: number;
+    unite?: string;
+    
+    // Statut de propriété
+    proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+    
+    // Observations
+    observations?: string;
   }>;
+  // Mise à jour v2.1 - Véhicules avec structure détaillée
   vehicles?: Array<{
-    type: 'car' | 'truck' | 'motorcycle' | 'other';
-    brand: string;
-    model: string;
-    year: number;
-    value: number;
-    currency: string;
-    isOwned: boolean;
+    id: string;
+    designation: string;
+    type: 'vehicule';
+    marque?: string;
+    modele?: string;
+    annee?: number;
+    prixAchat?: number;
+    valeurActuelle?: number;
+    devise?: 'USD' | 'CDF' | 'EUR';
+    dateAcquisition?: string;
+    etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+    proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+  }>;
+
+  // NOUVEAU v2.1 - Stocks et Inventaires (Actifs Circulants)
+  stocks?: Array<{
+    id: string;
+    designation: string;
+    categorie: 'matiere_premiere' | 'produit_semi_fini' | 'produit_fini' | 'fourniture' | 'emballage' | 'autre';
+    description?: string;
+    
+    // Quantités et unités
+    quantiteStock: number;
+    unite: string; // kg, litres, pièces, m², etc.
+    seuilMinimum?: number; // Seuil d'alerte
+    seuilMaximum?: number; // Capacité maximale
+    
+    // Valeurs financières (actifs circulants)
+    coutUnitaire: number; // Coût unitaire d'acquisition
+    valeurTotaleStock: number; // Quantité × Coût unitaire
+    devise: 'USD' | 'CDF' | 'EUR';
+    
+    // Informations temporelles et rotation
+    dateDernierInventaire?: string;
+    dureeRotationMoyenne?: number; // En jours
+    datePeremption?: string; // Pour les produits périssables
+    
+    // Localisation et stockage
+    emplacement?: string; // Entrepôt, magasin, etc.
+    conditionsStockage?: string; // Température, humidité, etc.
+    
+    // Suivi et gestion
+    fournisseurPrincipal?: string;
+    numeroLot?: string;
+    codeArticle?: string;
+    
+    // État et observations
+    etatStock: 'excellent' | 'bon' | 'moyen' | 'deteriore' | 'perime';
+    observations?: string;
   }>;
   humanResources: {
     totalEmployees: number;

@@ -739,6 +739,42 @@ export class CustomerEventsProducer {
   }
 
   /**
+   * Notifie l'Admin Service qu'une nouvelle souscription a été créée
+   * Utilisé pour la communication bidirectionnelle Customer Service → Admin Service
+   */
+  async notifyAdminServiceSubscriptionCreated(subscription: {
+    id: string;
+    customerId: string;
+    planId: string;
+    status: string;
+    startDate: Date;
+    endDate: Date;
+    amount: number;
+    currency?: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    const eventData = {
+      subscriptionId: subscription.id,
+      customerId: subscription.customerId,
+      planId: subscription.planId,
+      status: subscription.status,
+      startDate: subscription.startDate.toISOString(),
+      endDate: subscription.endDate.toISOString(),
+      amount: subscription.amount,
+      currency: subscription.currency || 'USD',
+      metadata: subscription.metadata || {},
+      source: 'customer-service',
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin-service.subscription.created',
+      eventData,
+      `Event admin-service.subscription.created published for subscription ${subscription.id}`
+    );
+  }
+
+  /**
    * Centralisation des événements pour communication inter-services
    * 
    * Les autres microservices pourront:
@@ -977,5 +1013,720 @@ export class CustomerEventsProducer {
       data,
       `Event user.document.uploaded published for user ${data.userId}`
     );
+  }
+
+  // =====================================================
+  // ÉVÉNEMENTS PROFIL CLIENT POUR ADMIN-SERVICE
+  // =====================================================
+
+  /**
+   * Publie le profil complet d'une entreprise (PME) pour l'admin-service
+   */
+  async emitCompanyProfileShare(data: {
+    customer: Customer;
+    smeData: any;
+    extendedIdentification?: any;
+    assets?: any[];
+    stocks?: any[];
+    financialData?: any;
+  }): Promise<void> {
+    const profileData = {
+      // Informations client de base
+      customerId: data.customer.id,
+      customerType: 'COMPANY',
+      name: data.customer.name,
+      email: data.customer.email,
+      phone: data.customer.phone,
+      logo: data.customer.logo,
+      address: data.customer.address,
+      status: data.customer.status,
+      accountType: data.customer.accountType,
+      createdAt: data.customer.createdAt?.toISOString(),
+      updatedAt: data.customer.updatedAt?.toISOString(),
+      
+      // Données spécifiques entreprise
+      companyProfile: {
+        legalForm: data.smeData?.legalForm,
+        industry: data.smeData?.industry,
+        size: data.smeData?.size,
+        rccm: data.smeData?.rccm,
+        taxId: data.smeData?.taxId,
+        natId: data.smeData?.natId,
+        activities: data.smeData?.activities,
+        capital: data.smeData?.capital,
+        financials: data.smeData?.financials,
+        affiliations: data.smeData?.affiliations,
+        owner: data.smeData?.owner,
+        associates: data.smeData?.associates,
+        locations: data.smeData?.locations,
+        yearFounded: data.smeData?.yearFounded,
+        employeeCount: data.smeData?.employeeCount,
+        contactPersons: data.smeData?.contactPersons,
+        socialMedia: data.smeData?.socialMedia,
+      },
+      
+      // Identification étendue (formulaire détaillé)
+      extendedProfile: data.extendedIdentification ? {
+        generalInfo: data.extendedIdentification.generalInfo,
+        legalInfo: data.extendedIdentification.legalInfo,
+        patrimonyAndMeans: data.extendedIdentification.patrimonyAndMeans,
+        specificities: data.extendedIdentification.specificities,
+        performance: data.extendedIdentification.performance,
+        completionPercentage: data.extendedIdentification.completionPercentage,
+        isComplete: data.extendedIdentification.isComplete,
+      } : null,
+      
+      // Patrimoine détaillé
+      patrimoine: {
+        assets: data.assets || [],
+        stocks: data.stocks || [],
+        totalAssetsValue: data.financialData?.totalAssetsValue || 0,
+        lastValuationDate: data.financialData?.lastValuationDate,
+      },
+      
+      profileCompleteness: this.calculateCompanyProfileCompleteness(data),
+      lastProfileUpdate: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.company.profile.shared',
+      profileData,
+      `Company profile shared with admin-service for customer ${data.customer.id}`
+    );
+  }
+
+  /**
+   * Publie le profil complet d'une institution financière pour l'admin-service
+   */
+  async emitInstitutionProfileShare(data: {
+    customer: Customer;
+    financialData: any;
+    regulatoryData?: any;
+    performanceMetrics?: any;
+  }): Promise<void> {
+    const profileData = {
+      // Informations client de base
+      customerId: data.customer.id,
+      customerType: 'FINANCIAL_INSTITUTION',
+      name: data.customer.name,
+      email: data.customer.email,
+      phone: data.customer.phone,
+      logo: data.customer.logo,
+      address: data.customer.address,
+      status: data.customer.status,
+      accountType: data.customer.accountType,
+      createdAt: data.customer.createdAt?.toISOString(),
+      updatedAt: data.customer.updatedAt?.toISOString(),
+      
+      // Données spécifiques institution financière
+      institutionProfile: {
+        // Informations de base
+        denominationSociale: data.financialData?.denominationSociale,
+        sigleLegalAbrege: data.financialData?.sigleLegalAbrege,
+        type: data.financialData?.type,
+        category: data.financialData?.category,
+        licenseNumber: data.financialData?.licenseNumber,
+        establishedDate: data.financialData?.establishedDate,
+        
+        // Informations réglementaires
+        typeInstitution: data.financialData?.typeInstitution,
+        autorisationExploitation: data.financialData?.autorisationExploitation,
+        dateOctroi: data.financialData?.dateOctroi,
+        autoriteSupervision: data.financialData?.autoriteSupervision,
+        dateAgrement: data.financialData?.dateAgrement,
+        coordonneesGeographiques: data.financialData?.coordonneesGeographiques,
+        regulatoryInfo: data.financialData?.regulatoryInfo,
+        
+        // Présence digitale et branding
+        website: data.financialData?.website,
+        brandColors: data.financialData?.brandColors,
+        facebookPage: data.financialData?.facebookPage,
+        linkedinPage: data.financialData?.linkedinPage,
+        
+        // Structure organisationnelle
+        capitalStructure: data.financialData?.capitalStructure,
+        branches: data.financialData?.branches,
+        contacts: data.financialData?.contacts,
+        leadership: data.financialData?.leadership,
+        
+        // Services et capacités
+        services: data.financialData?.services,
+        financialInfo: data.financialData?.financialInfo,
+        digitalPresence: data.financialData?.digitalPresence,
+        partnerships: data.financialData?.partnerships,
+        certifications: data.financialData?.certifications,
+        
+        // Métriques de performance
+        creditRating: data.financialData?.creditRating,
+        performanceMetrics: data.performanceMetrics,
+      },
+      
+      // Données réglementaires spécifiques
+      regulatoryProfile: data.regulatoryData ? {
+        complianceStatus: data.regulatoryData.complianceStatus,
+        lastAuditDate: data.regulatoryData.lastAuditDate,
+        reportingRequirements: data.regulatoryData.reportingRequirements,
+        riskAssessment: data.regulatoryData.riskAssessment,
+      } : null,
+      
+      profileCompleteness: this.calculateInstitutionProfileCompleteness(data),
+      lastProfileUpdate: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.institution.profile.shared',
+      profileData,
+      `Institution profile shared with admin-service for customer ${data.customer.id}`
+    );
+  }
+
+  /**
+   * Publie une mise à jour de profil client (entreprise ou institution)
+   */
+  async emitCustomerProfileUpdated(data: {
+    customerId: string;
+    customerType: 'COMPANY' | 'FINANCIAL_INSTITUTION';
+    updatedFields: string[];
+    updateContext: {
+      updatedBy?: string;
+      updateSource: 'form_submission' | 'admin_action' | 'system_update';
+      formType?: string;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      customerType: data.customerType,
+      updatedFields: data.updatedFields,
+      updateContext: data.updateContext,
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.profile.updated',
+      eventData,
+      `Customer profile update notification sent to admin-service for ${data.customerId}`
+    );
+  }
+
+  // =====================================================
+  // NOUVEAUX ÉVÉNEMENTS POUR STRUCTURES V2.1
+  // =====================================================
+
+  /**
+   * Publie les données spécialisées d'une institution financière (70+ champs v2.1)
+   */
+  async emitFinancialInstitutionSpecificData(data: {
+    customerId: string;
+    specificData: {
+      // Informations légales et réglementaires
+      denominationSociale: string;
+      sigleLegalAbrege?: string;
+      numeroAgrement: string;
+      dateAgrement: string;
+      autoriteSupervision: string;
+      typeInstitution: string;
+      categorieInstitution?: string;
+      
+      // Activités autorisées
+      activitesAutorisees: string[];
+      servicesOfferts: string[];
+      produitsBancaires?: string[];
+      
+      // Structure du capital
+      capitalSocial: number;
+      capitalMinimumReglementaire: number;
+      structureActionnariat: any[];
+      principauxActionnaires: any[];
+      
+      // Gouvernance
+      conseilAdministration: any[];
+      directionGenerale: any[];
+      comitesSpecialises: any[];
+      
+      // Réseau et implantations
+      siegeSocial: any;
+      agences: any[];
+      pointsService: any[];
+      reseauDistribution: any;
+      
+      // Informations financières
+      chiffreAffaires: number;
+      totalBilan: number;
+      fondsPropreNets: number;
+      ratioSolvabilite: number;
+      notationCredit?: string;
+      
+      // Présence digitale
+      siteWeb?: string;
+      plateformeDigitale?: any;
+      servicesEnLigne: string[];
+      applicationsMobiles?: any[];
+      
+      // Partenariats et affiliations
+      partenairesStrategiques?: any[];
+      affiliationsInternationales?: any[];
+      reseauxCorrespondants?: any[];
+      
+      // Conformité et certifications
+      certificationsISO?: string[];
+      auditExterne?: any;
+      rapportsConformite: any[];
+      
+      // Données complémentaires
+      historiquePerformances?: any[];
+      indicateursRisque?: any;
+      perspectivesStrategiques?: string;
+      notesSpeciales?: string;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      dataType: 'FINANCIAL_INSTITUTION_SPECIFIC_V2_1',
+      specificData: data.specificData,
+      dataVersion: '2.1',
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.financial.institution.specific.data',
+      eventData,
+      `Financial institution specific data (v2.1) shared for customer ${data.customerId}`
+    );
+  }
+
+  /**
+   * Publie les données détaillées de patrimoine (AssetData)
+   */
+  async emitAssetDataUpdate(data: {
+    customerId: string;
+    assets: {
+      id: string;
+      nom: string;
+      description: string;
+      categorie: string;
+      sousCategorie?: string;
+      prixAchat: number;
+      dateAcquisition: string;
+      valeurActuelle: number;
+      dateEvaluation: string;
+      etatActuel: 'neuf' | 'tres_bon' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+      proprietaire: string;
+      localisation?: string;
+      numeroSerie?: string;
+      garantie?: {
+        dateExpiration: string;
+        fournisseur: string;
+      };
+      documentsAssocies?: string[];
+      metadata?: Record<string, any>;
+    }[];
+    summary: {
+      totalValue: number;
+      assetsCount: number;
+      lastUpdateDate: string;
+      depreciation: number;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      dataType: 'ASSET_DATA_V2_1',
+      assets: data.assets,
+      summary: data.summary,
+      dataVersion: '2.1',
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.assets.data',
+      eventData,
+      `Asset data (v2.1) shared for customer ${data.customerId} - ${data.assets.length} assets`
+    );
+  }
+
+  /**
+   * Publie les données de stock professionnel (StockData)
+   */
+  async emitStockDataUpdate(data: {
+    customerId: string;
+    stocks: {
+      id: string;
+      nomProduit: string;
+      codeProduit: string;
+      categorie: string;
+      quantiteStock: number;
+      seuilMinimum: number;
+      seuilMaximum: number;
+      coutUnitaire: number;
+      valeurTotaleStock: number;
+      uniteMessure: string;
+      fournisseurPrincipal?: string;
+      dateEntreeStock: string;
+      dateDerniereRotation?: string;
+      emplacementStock: string;
+      etatStock: 'disponible' | 'reserve' | 'endommage' | 'expire';
+      metadata?: Record<string, any>;
+    }[];
+    summary: {
+      totalStockValue: number;
+      totalItems: number;
+      lowStockItems: number;
+      lastUpdateDate: string;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      dataType: 'STOCK_DATA_V2_1',
+      stocks: data.stocks,
+      summary: data.summary,
+      dataVersion: '2.1',
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.stocks.data',
+      eventData,
+      `Stock data (v2.1) shared for customer ${data.customerId} - ${data.stocks.length} items`
+    );
+  }
+
+  /**
+   * Publie le formulaire d'identification d'entreprise étendu
+   */
+  async emitEnterpriseIdentificationForm(data: {
+    customerId: string;
+    identification: {
+      // Informations générales
+      generalInfo: {
+        denominationSociale: string;
+        sigleCommercial?: string;
+        formeJuridique: string;
+        secteurActivite: {
+          principal: string;
+          secondaire?: string[];
+          custom?: string;
+        };
+        tailleEntreprise: 'micro' | 'petite' | 'moyenne' | 'grande';
+        anneeCreation: number;
+        numeroRCCM?: string;
+        numeroImpot?: string;
+        numeroEmployeur?: string;
+      };
+      
+      // Informations légales
+      legalInfo: {
+        siegeSocial: any;
+        adressePostale?: any;
+        capitalSocial?: number;
+        nombreActions?: number;
+        valeurNominaleAction?: number;
+        dirigeants: any[];
+        actionnaires?: any[];
+        commissaireComptes?: any;
+      };
+      
+      // Patrimoine et moyens
+      patrimonyAndMeans: {
+        chiffreAffairesAnnuel?: number;
+        beneficeNet?: number;
+        totalActifs?: number;
+        nombreEmployes?: number;
+        massSalariale?: number;
+        equipementsProduction?: any[];
+        immobilisations?: any[];
+        creancesClients?: number;
+        dettesFournisseurs?: number;
+      };
+      
+      // Spécificités sectorielles
+      specificities: {
+        licencesProfessionnelles?: string[];
+        certificationsQualite?: string[];
+        agreementsSpeciaux?: string[];
+        partenairesStrategiques?: any[];
+        clientsPrincipaux?: any[];
+        fournisseursPrincipaux?: any[];
+      };
+      
+      // Performance et perspectives
+      performance: {
+        croissanceCA?: number;
+        evolitionEffectifs?: number;
+        projetsDeveloppement?: string[];
+        investissementsPrevis?: any[];
+        objectifsStrategiques?: string[];
+        defisRencontres?: string[];
+      };
+      
+      // Métadonnées du formulaire
+      completionPercentage: number;
+      lastUpdated: string;
+      isComplete: boolean;
+      validatedBy?: string;
+      validationDate?: string;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      dataType: 'ENTERPRISE_IDENTIFICATION_FORM_V2_1',
+      identification: data.identification,
+      dataVersion: '2.1',
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.publishEvent(
+      'admin.customer.enterprise.identification',
+      eventData,
+      `Enterprise identification form (v2.1) shared for customer ${data.customerId} - ${data.identification.completionPercentage}% complete`
+    );
+  }
+
+  /**
+   * Publie une mise à jour complète de profil avec toutes les données v2.1
+   */
+  async emitCompleteProfileShare(data: {
+    customer: Customer;
+    customerType: 'COMPANY' | 'FINANCIAL_INSTITUTION';
+    specificData?: any;
+    assets?: any[];
+    stocks?: any[];
+    extendedIdentification?: any;
+    performanceMetrics?: any;
+    complianceData?: any;
+  }): Promise<void> {
+    // Construire le profil complet selon le type
+    const baseProfile = {
+      customerId: data.customer.id,
+      customerType: data.customerType,
+      name: data.customer.name,
+      email: data.customer.email,
+      phone: data.customer.phone,
+      logo: data.customer.logo,
+      address: data.customer.address,
+      status: data.customer.status,
+      accountType: data.customer.accountType,
+      createdAt: data.customer.createdAt?.toISOString(),
+      updatedAt: data.customer.updatedAt?.toISOString(),
+      dataVersion: '2.1',
+    };
+
+    let profileData: any = { ...baseProfile };
+
+    if (data.customerType === 'FINANCIAL_INSTITUTION') {
+      profileData = {
+        ...profileData,
+        institutionSpecificData: data.specificData,
+        complianceData: data.complianceData,
+        performanceMetrics: data.performanceMetrics,
+        profileCompleteness: this.calculateInstitutionProfileCompleteness({
+          customer: data.customer,
+          financialData: data.specificData,
+          regulatoryData: data.complianceData
+        }),
+      };
+    } else if (data.customerType === 'COMPANY') {
+      profileData = {
+        ...profileData,
+        companySpecificData: data.specificData,
+        extendedIdentification: data.extendedIdentification,
+        patrimoine: {
+          assets: data.assets || [],
+          stocks: data.stocks || [],
+          totalAssetsValue: data.assets?.reduce((sum, asset) => sum + (asset.valeurActuelle || 0), 0) || 0,
+          totalStockValue: data.stocks?.reduce((sum, stock) => sum + (stock.valeurTotaleStock || 0), 0) || 0,
+          lastUpdateDate: new Date().toISOString(),
+        },
+        profileCompleteness: this.calculateCompanyProfileCompleteness({
+          customer: data.customer,
+          smeData: data.specificData,
+          extendedIdentification: data.extendedIdentification,
+          assets: data.assets,
+          stocks: data.stocks
+        }),
+      };
+    }
+
+    await this.publishEvent(
+      'admin.customer.complete.profile.v2_1',
+      profileData,
+      `Complete profile (v2.1) shared with admin-service for ${data.customerType} customer ${data.customer.id}`
+    );
+  }
+
+  /**
+   * Publie un événement de synchronisation de données critique
+   */
+  async emitCriticalDataSync(data: {
+    customerId: string;
+    syncType: 'full_profile' | 'financial_data' | 'assets_update' | 'compliance_update';
+    priority: 'high' | 'medium' | 'low';
+    changes: {
+      field: string;
+      oldValue: any;
+      newValue: any;
+      impact: 'high' | 'medium' | 'low';
+    }[];
+    metadata: {
+      source: string;
+      requestId: string;
+      requiresAdminApproval?: boolean;
+    };
+  }): Promise<void> {
+    const eventData = {
+      customerId: data.customerId,
+      syncType: data.syncType,
+      priority: data.priority,
+      changes: data.changes,
+      metadata: data.metadata,
+      timestamp: new Date().toISOString(),
+      dataVersion: '2.1',
+    };
+
+    // Utiliser un topic de haute priorité pour les synchronisations critiques
+    const topic = data.priority === 'high' 
+      ? 'admin.customer.critical.sync.priority'
+      : 'admin.customer.data.sync';
+
+    await this.publishEvent(
+      topic,
+      eventData,
+      `Critical data sync (${data.syncType}) for customer ${data.customerId} with ${data.changes.length} changes`
+    );
+  }
+
+  /**
+   * Calcule le pourcentage de complétude du profil d'une entreprise
+   */
+  private calculateCompanyProfileCompleteness(data: {
+    customer: Customer;
+    smeData: any;
+    extendedIdentification?: any;
+    assets?: any[];
+    stocks?: any[];
+  }): { percentage: number; missingFields: string[]; completedSections: string[] } {
+    const missingFields: string[] = [];
+    const completedSections: string[] = [];
+    let totalFields = 0;
+    let completedFields = 0;
+
+    // Vérification des champs de base du customer
+    const customerFields = ['name', 'email', 'phone', 'address'];
+    customerFields.forEach(field => {
+      totalFields++;
+      if (data.customer[field as keyof Customer]) {
+        completedFields++;
+      } else {
+        missingFields.push(`customer.${field}`);
+      }
+    });
+
+    // Vérification des données SME
+    if (data.smeData) {
+      const smeFields = ['legalForm', 'industry', 'rccm', 'taxId', 'activities', 'capital'];
+      smeFields.forEach(field => {
+        totalFields++;
+        if (data.smeData[field]) {
+          completedFields++;
+        } else {
+          missingFields.push(`sme.${field}`);
+        }
+      });
+      
+      if (data.smeData.owner) completedSections.push('owner_info');
+      if (data.smeData.associates && data.smeData.associates.length > 0) completedSections.push('associates');
+      if (data.smeData.locations && data.smeData.locations.length > 0) completedSections.push('locations');
+    }
+
+    // Vérification identification étendue
+    if (data.extendedIdentification) {
+      completedSections.push('extended_identification');
+      if (data.extendedIdentification.isComplete) {
+        completedFields += 5; // Bonus pour identification complète
+      }
+      totalFields += 5;
+    } else {
+      missingFields.push('extended_identification');
+      totalFields += 5;
+    }
+
+    // Vérification patrimoine
+    if (data.assets && data.assets.length > 0) completedSections.push('assets');
+    if (data.stocks && data.stocks.length > 0) completedSections.push('stocks');
+
+    const percentage = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
+    
+    return {
+      percentage,
+      missingFields,
+      completedSections
+    };
+  }
+
+  /**
+   * Calcule le pourcentage de complétude du profil d'une institution financière
+   */
+  private calculateInstitutionProfileCompleteness(data: {
+    customer: Customer;
+    financialData: any;
+    regulatoryData?: any;
+  }): { percentage: number; missingFields: string[]; completedSections: string[] } {
+    const missingFields: string[] = [];
+    const completedSections: string[] = [];
+    let totalFields = 0;
+    let completedFields = 0;
+
+    // Vérification des champs de base du customer
+    const customerFields = ['name', 'email', 'phone', 'address'];
+    customerFields.forEach(field => {
+      totalFields++;
+      if (data.customer[field as keyof Customer]) {
+        completedFields++;
+      } else {
+        missingFields.push(`customer.${field}`);
+      }
+    });
+
+    // Vérification des données financières
+    if (data.financialData) {
+      const requiredFields = [
+        'denominationSociale', 'type', 'licenseNumber', 'typeInstitution',
+        'autorisationExploitation', 'autoriteSupervision'
+      ];
+      
+      requiredFields.forEach(field => {
+        totalFields++;
+        if (data.financialData[field]) {
+          completedFields++;
+        } else {
+          missingFields.push(`financial.${field}`);
+        }
+      });
+
+      // Vérification des sections complexes
+      if (data.financialData.regulatoryInfo) completedSections.push('regulatory_info');
+      if (data.financialData.capitalStructure) completedSections.push('capital_structure');
+      if (data.financialData.branches && data.financialData.branches.length > 0) completedSections.push('branches');
+      if (data.financialData.leadership) completedSections.push('leadership');
+      if (data.financialData.services) completedSections.push('services');
+      if (data.financialData.financialInfo) completedSections.push('financial_metrics');
+      if (data.financialData.digitalPresence) completedSections.push('digital_presence');
+    }
+
+    // Vérification données réglementaires
+    if (data.regulatoryData) {
+      completedSections.push('regulatory_compliance');
+      completedFields += 3; // Bonus pour conformité réglementaire
+      totalFields += 3;
+    } else {
+      missingFields.push('regulatory_data');
+      totalFields += 3;
+    }
+
+    const percentage = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
+    
+    return {
+      percentage,
+      missingFields,
+      completedSections
+    };
   }
 }

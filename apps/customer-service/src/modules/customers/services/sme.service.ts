@@ -22,6 +22,8 @@ import {
   CompletionStatusDto 
 } from '../dto/extended-company.dto';
 import { EnterpriseIdentificationForm } from '../entities/enterprise-identification-form.entity';
+import { AssetData } from '../entities/asset-data.entity';
+import { StockData } from '../entities/stock-data.entity';
 
 // Helper function to generate UUID-like ID
 const generateId = () => {
@@ -41,6 +43,10 @@ export class SmeService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(EnterpriseIdentificationForm)
     private readonly enterpriseIdentificationFormRepository: Repository<EnterpriseIdentificationForm>,
+    @InjectRepository(AssetData)
+    private readonly assetRepository: Repository<AssetData>,
+    @InjectRepository(StockData)
+    private readonly stockRepository: Repository<StockData>,
     private readonly customerEventsProducer: CustomerEventsProducer,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
@@ -718,20 +724,49 @@ export class SmeService {
     } else {
       // Création d'un nouveau formulaire
       extendedIdentification = this.enterpriseIdentificationFormRepository.create({
-        ...extendedIdentificationDto,
-        customer: customer
+        customerId: customer.id,
+        generalInfo: extendedIdentificationDto.generalInfo as any,
+        legalInfo: extendedIdentificationDto.legalInfo as any,
+        patrimonyAndMeans: extendedIdentificationDto.patrimonyAndMeans as any,
+        specificities: extendedIdentificationDto.specificities as any,
+        performance: extendedIdentificationDto.performance as any
       });
       extendedIdentification = await this.enterpriseIdentificationFormRepository.save(
         extendedIdentification
       );
+      
+      // Associer le formulaire au customer
+      customer.extendedIdentification = extendedIdentification;
+      await this.customerRepository.save(customer);
     }
 
-    // Émettre un événement Kafka (en commentaire car la méthode emit n'existe pas)
-    // await this.customerEventsProducer.emit('customer.extended-identification.updated', {
-    //   customerId: companyId,
-    //   timestamp: new Date(),
-    //   data: extendedIdentification
-    // });
+    // Publier le profil complet pour l'admin-service
+    const smeData = await this.smeDataRepository.findOne({ where: { id: customer.smeData?.id } });
+    const assets = await this.assetRepository.find({ where: { customer: { id: companyId } } });
+    const stocks = await this.stockRepository.find({ where: { customer: { id: companyId } } });
+    
+    await this.customerEventsProducer.emitCompanyProfileShare({
+      customer,
+      smeData: smeData || null,
+      extendedIdentification,
+      assets,
+      stocks,
+      financialData: {
+        totalAssetsValue: assets.reduce((sum, asset) => sum + (asset.valeurActuelle || 0), 0),
+        lastValuationDate: new Date().toISOString(),
+      }
+    });
+
+    // Notifier la mise à jour du profil
+    await this.customerEventsProducer.emitCustomerProfileUpdated({
+      customerId: companyId,
+      customerType: 'COMPANY',
+      updatedFields: ['extended_identification', 'completion_percentage'],
+      updateContext: {
+        updateSource: 'form_submission',
+        formType: 'extended_identification'
+      }
+    });
 
     return this.transformToExtendedCompanyResponse(extendedIdentification);
   }
@@ -1049,5 +1084,183 @@ export class SmeService {
     if (!form.performance) missing.push('Performances');
 
     return missing;
+  }
+
+  // =====================================================
+  // NOUVEAUX MÉTHODES POUR GESTION PATRIMOINE 
+  // =====================================================
+
+  async getCompanyPatrimoine(companyId: string): Promise<any> {
+    const customer = await this.customerRepository.findOne({
+      where: { id: companyId },
+      relations: ['assets', 'stocks']
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Entreprise avec l'ID ${companyId} non trouvée`);
+    }
+
+    return {
+      companyId: customer.id,
+      companyName: customer.name,
+      assets: customer.assets || [],
+      stocks: customer.stocks || [],
+      totalAssetValue: this.calculateTotalAssetValue(customer.assets || []),
+      totalStockValue: this.calculateTotalStockValue(customer.stocks || [])
+    };
+  }
+
+  async addCompanyAsset(companyId: string, assetData: any): Promise<any> {
+    const customer = await this.customerRepository.findOne({
+      where: { id: companyId },
+      relations: ['assets']
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Entreprise avec l'ID ${companyId} non trouvée`);
+    }
+
+    const newAsset = this.assetRepository.create({
+      ...assetData,
+      customer: customer
+    });
+
+    const savedAsset = await this.assetRepository.save(newAsset);
+
+    // Notifier la mise à jour du patrimoine
+    await this.customerEventsProducer.emitCustomerProfileUpdated({
+      customerId: companyId,
+      customerType: 'COMPANY',
+      updatedFields: ['assets', 'patrimoine'],
+      updateContext: {
+        updateSource: 'form_submission',
+        formType: 'asset_addition'
+      }
+    });
+
+    return savedAsset;
+  }
+
+  async updateCompanyAsset(companyId: string, assetId: string, updateData: any): Promise<any> {
+    const asset = await this.assetRepository.findOne({
+      where: { id: assetId, customer: { id: companyId } }
+    });
+
+    if (!asset) {
+      throw new NotFoundException(`Actif avec l'ID ${assetId} non trouvé pour cette entreprise`);
+    }
+
+    Object.assign(asset, updateData);
+    return await this.assetRepository.save(asset);
+  }
+
+  async deleteCompanyAsset(companyId: string, assetId: string): Promise<void> {
+    const asset = await this.assetRepository.findOne({
+      where: { id: assetId, customer: { id: companyId } }
+    });
+
+    if (!asset) {
+      throw new NotFoundException(`Actif avec l'ID ${assetId} non trouvé pour cette entreprise`);
+    }
+
+    await this.assetRepository.remove(asset);
+
+    // Notifier la mise à jour du patrimoine
+    await this.customerEventsProducer.emitCustomerProfileUpdated({
+      customerId: companyId,
+      customerType: 'COMPANY',
+      updatedFields: ['assets', 'patrimoine'],
+      updateContext: {
+        updateSource: 'form_submission',
+        formType: 'asset_deletion'
+      }
+    });
+  }
+
+  async addCompanyStock(companyId: string, stockData: any): Promise<any> {
+    const customer = await this.customerRepository.findOne({
+      where: { id: companyId },
+      relations: ['stocks']
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Entreprise avec l'ID ${companyId} non trouvée`);
+    }
+
+    const newStock = this.stockRepository.create({
+      ...stockData,
+      customer: customer
+    });
+
+    const savedStock = await this.stockRepository.save(newStock);
+    return savedStock;
+  }
+
+  async updateCompanyStock(companyId: string, stockId: string, updateData: any): Promise<any> {
+    const stock = await this.stockRepository.findOne({
+      where: { id: stockId, customer: { id: companyId } }
+    });
+
+    if (!stock) {
+      throw new NotFoundException(`Stock avec l'ID ${stockId} non trouvé pour cette entreprise`);
+    }
+
+    Object.assign(stock, updateData);
+    return await this.stockRepository.save(stock);
+  }
+
+  async deleteCompanyStock(companyId: string, stockId: string): Promise<void> {
+    const stock = await this.stockRepository.findOne({
+      where: { id: stockId, customer: { id: companyId } }
+    });
+
+    if (!stock) {
+      throw new NotFoundException(`Stock avec l'ID ${stockId} non trouvé pour cette entreprise`);
+    }
+
+    await this.stockRepository.remove(stock);
+  }
+
+  async calculatePatrimoineValorisation(companyId: string): Promise<any> {
+    const customer = await this.customerRepository.findOne({
+      where: { id: companyId },
+      relations: ['assets', 'stocks']
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Entreprise avec l'ID ${companyId} non trouvée`);
+    }
+
+    const totalAssetValue = this.calculateTotalAssetValue(customer.assets || []);
+    const totalStockValue = this.calculateTotalStockValue(customer.stocks || []);
+    const totalPatrimoine = totalAssetValue + totalStockValue;
+
+    return {
+      companyId: customer.id,
+      companyName: customer.name,
+      valorisation: {
+        totalAssetValue,
+        totalStockValue,
+        totalPatrimoine,
+        currency: 'USD',
+        calculatedAt: new Date().toISOString()
+      },
+      breakdown: {
+        assetCount: customer.assets?.length || 0,
+        stockItemCount: customer.stocks?.length || 0
+      }
+    };
+  }
+
+  private calculateTotalAssetValue(assets: any[]): number {
+    return assets.reduce((total, asset) => {
+      return total + (asset.valeurActuelle || asset.prixAchat || 0);
+    }, 0);
+  }
+
+  private calculateTotalStockValue(stocks: any[]): number {
+    return stocks.reduce((total, stock) => {
+      return total + (stock.valeurTotaleStock || 0);
+    }, 0);
   }
 }

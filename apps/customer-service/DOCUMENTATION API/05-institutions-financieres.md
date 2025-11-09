@@ -2,71 +2,217 @@
 
 ## 🎯 Vue d'Ensemble
 
-Le module des institutions financières permet la gestion complète des banques, coopératives et microfinances partenaires de la plateforme Wanzo Land. Il offre des fonctionnalités pour créer, modifier, consulter et gérer les profils institutionnels avec leurs agences et équipes dirigeantes.
+Le module des institutions financières permet la gestion complète des banques, coopératives et microfinances partenaires de la plateforme Wanzo Land. Il offre des fonctionnalités pour créer, modifier, consulter et gérer les profils institutionnels.
+
+> **⚠️ IMPORTANT - SOURCE DE VÉRITÉ**  
+> Cette documentation a été mise à jour pour être **100% conforme à la structure du formulaire d'institution financière**. Le formulaire est la source de vérité - toutes les interfaces, APIs et données doivent correspondre exactement à sa structure.
 
 ### Base URL
 ```
 http://localhost:8000/land/api/v1
 ```
 
-## 🏗️ Structure des Données Modernisée
+### Changements Majeurs (v2.0)
+- ✅ **Structure unifiée** : Tous les champs correspondent au formulaire validé
+- ✅ **Types harmonisés** : `BANQUE`, `MICROFINANCE`, `COOPEC`, etc.
+- ✅ **Données complètes** : 70+ champs métier spécialisés
+- ✅ **Validation Zod** : Schémas de validation alignés
+- ✅ **Mocks cohérents** : Données de test conformes
+
+## 🏗️ Structure des Données (Basée sur le Formulaire - Source de Vérité)
 
 ### Institution Financière Principale
 
 ```typescript
 interface FinancialInstitution {
   id: string;
-  name: string;
-  type: FinancialInstitutionType;
-  category: FinancialInstitutionCategory;
+  userId: string; // Lien vers l'utilisateur propriétaire
+  
+  // Identification institutionnelle (exactement comme dans le formulaire)
+  denominationSociale: string;
+  sigle: string;
+  typeInstitution: string;
+  sousCategorie: string;
+  dateCreation: string;
+  paysOrigine: string;
+  statutJuridique: string;
   
   // Informations réglementaires
-  approvalNumber?: string;
-  regulatoryStatus: 'active' | 'suspended' | 'pending';
-  licenseExpiryDate?: string;
+  autoritéSupervision: string;
+  numeroAgrement: string;
+  dateAgrement: string;
+  validiteAgrement: string;
+  numeroRCCM: string;
+  numeroNIF: string;
   
-  // Identité visuelle
-  logo?: string;
-  brandColors?: {
-    primary: string;
-    secondary: string;
-  };
+  // Activités autorisées
+  activitesAutorisees: string[];
   
-  // Localisation
-  address: InstitutionAddress;
-  contacts: InstitutionContacts;
+  // Informations opérationnelles
+  siegeSocial: string;
+  nombreAgences: number;
+  villesProvincesCouvertes: string[];
+  presenceInternationale: boolean;
   
-  // Organisation
-  ceoPhoto?: string;
-  establishedYear?: number;
-  branches: InstitutionBranch[];
-  managementTeam: ManagementExecutive[];
+  // Capacités financières
+  capitalSocialMinimum: string;
+  capitalSocialActuel: string;
+  fondsPropresMontant: string;
+  totalBilan: string;
+  chiffreAffairesAnnuel: string;
+  devise: 'USD' | 'CDF' | 'EUR';
+  
+  // Clientèle et marché
+  segmentClientelePrincipal: string;
+  nombreClientsActifs: number;
+  portefeuilleCredit: string;
+  depotsCollectes: string;
+  
+  // Services offerts à Wanzo
+  servicesCredit: string[];
+  servicesInvestissement: string[];
+  servicesGarantie: string[];
+  servicesTransactionnels: string[];
+  servicesConseil: string[];
+  
+  // Partenariat Wanzo
+  motivationPrincipale: string;
+  servicesPrioritaires: string[];
+  segmentsClienteleCibles: string[];
+  volumeAffairesEnvisage: string;
+  
+  // Conditions commerciales
+  grillesTarifaires: string;
+  conditionsPreferentielles: string;
+  delaisTraitement: string;
+  criteresEligibilite: string;
+  
+  // Capacité d'engagement
+  montantMaximumDossier: string;
+  enveloppeGlobale: string;
+  secteursActivitePrivilegies: string[];
+  zonesGeographiquesPrioritaires: string[];
+  
+  // Documents
+  documentsLegaux: any[];
+  documentsFinanciers: any[];
+  documentsOperationnels: any[];
+  documentsCompliance: any[];
   
   // Métadonnées
-  isActive: boolean;
-  isVisible: boolean;
   createdAt: string;
   updatedAt: string;
 }
 ```
 
-### Types d'Institutions
+### Types d'Institutions (Conforme au Formulaire)
 
 ```typescript
-enum FinancialInstitutionType {
-  BANK = 'bank',                    // Banque commerciale
-  MICROFINANCE = 'microfinance',    // Institution de microfinance
-  COOPERATIVE = 'cooperative',      // Coopérative d'épargne et crédit
-  CREDIT_UNION = 'credit_union',    // Union de crédit
-  DEVELOPMENT_BANK = 'development_bank' // Banque de développement
-}
+// Types d'institutions utilisés dans le formulaire
+type FinancialInstitutionType = 
+  | 'BANQUE'                    // Banque commerciale
+  | 'MICROFINANCE'              // Institution de microfinance  
+  | 'COOPEC'                    // Coopérative d'épargne et de crédit
+  | 'FOND_GARANTIE'             // Fonds de garantie
+  | 'ENTREPRISE_FINANCIERE'     // Entreprise financière
+  | 'FOND_CAPITAL_INVESTISSEMENT' // Fonds de capital investissement
+  | 'FOND_IMPACT'               // Fonds d'impact
+  | 'AUTRE';                    // Autre institution spécialisée
 
-enum FinancialInstitutionCategory {
-  COMMERCIAL = 'commercial',        // Banque commerciale classique
-  DEVELOPMENT = 'development',      // Banque de développement
-  INVESTMENT = 'investment',        // Banque d'investissement
-  SPECIALIZED = 'specialized',      // Institution spécialisée
-  COMMUNITY = 'community'           // Institution communautaire
+// Sous-catégories par type d'institution
+const FINANCIAL_INSTITUTION_SUBTYPES = {
+  BANQUE: [
+    { value: 'deposit_credit_bank', label: 'Banque de dépôt et de crédit' },
+    { value: 'business_bank', label: 'Banque d\'affaires' },
+    { value: 'investment_bank', label: 'Banque d\'investissement' },
+  ],
+  MICROFINANCE: [
+    { value: 'microfinance_company', label: 'Société de microfinance' },
+    { value: 'microfinance_program', label: 'Programme de microfinance' },
+    { value: 'credit_union', label: 'Union de crédit' },
+  ],
+  COOPEC: [
+    { value: 'savings_credit_coop', label: 'Coopérative d\'épargne et de crédit' },
+    { value: 'rural_coop', label: 'Coopérative rurale' },
+    { value: 'urban_coop', label: 'Coopérative urbaine' },
+  ],
+  // ... autres sous-catégories
+};
+
+// Autorités de supervision
+const SUPERVISORY_AUTHORITIES = [
+  { value: 'bcc', label: 'Banque Centrale du Congo (BCC)' },
+  { value: 'arca', label: 'Autorité de Régulation et de Contrôle des Assurances (ARCA)' },
+  { value: 'asmf', label: 'Autorité des Services et Marchés Financiers (ASMF)' },
+  { value: 'other', label: 'Autre autorité' },
+];
+
+// Devises supportées
+type Currency = 'USD' | 'CDF' | 'EUR';
+```
+
+### Exemples de Données Réelles (Conformes au Formulaire)
+
+#### 1. Banque Commerciale
+
+```json
+{
+  "id": "inst-001",
+  "userId": "user-fi-001",
+  "denominationSociale": "Banque Congolaise du Commerce",
+  "sigle": "BCC",
+  "typeInstitution": "BANQUE",
+  "sousCategorie": "deposit_credit_bank",
+  "numeroAgrement": "BCC/2010/001",
+  "autoritéSupervision": "bcc",
+  "siegeSocial": "123 Boulevard du 30 Juin, Kinshasa",
+  "nombreAgences": 15,
+  "capitalSocialActuel": "25000000",
+  "devise": "USD",
+  "segmentClientelePrincipal": "sme",
+  "nombreClientsActifs": 15000
+}
+```
+
+#### 2. Institution de Microfinance
+
+```json
+{
+  "id": "inst-002",
+  "userId": "user-fi-002",
+  "denominationSociale": "Microfinance du Kasaï",
+  "sigle": "MFK",
+  "typeInstitution": "MICROFINANCE",
+  "sousCategorie": "microfinance_company",
+  "numeroAgrement": "MF/2015/045",
+  "autoritéSupervision": "bcc",
+  "siegeSocial": "456 Avenue Lumumba, Kananga",
+  "nombreAgences": 8,
+  "capitalSocialActuel": "2500000",
+  "devise": "USD",
+  "segmentClientelePrincipal": "individuals",
+  "nombreClientsActifs": 5000
+}
+```
+
+#### 3. Coopérative d'Épargne et de Crédit
+
+```json
+{
+  "id": "inst-003",
+  "userId": "user-fi-003",
+  "denominationSociale": "COOPEC Solidarité",
+  "sigle": "COOSOL",
+  "typeInstitution": "COOPEC",
+  "sousCategorie": "savings_credit_coop",
+  "numeroAgrement": "COOPEC/2018/012",
+  "autoritéSupervision": "bcc",
+  "siegeSocial": "789 Rue de la Paix, Bukavu",
+  "nombreAgences": 5,
+  "capitalSocialActuel": "800000",
+  "devise": "USD",
+  "segmentClientelePrincipal": "individuals",
+  "nombreClientsActifs": 1200
 }
 ```
 
@@ -625,54 +771,129 @@ institutionId: "fin-123"
 POST /land/api/v1/financial-institutions
 ```
 
-#### Corps de la requête
+#### Corps de la requête (Structure conforme au formulaire)
 
 ```json
 {
-  "name": "Banque Congolaise du Commerce",
-  "type": "bank",
-  "category": "commercial",
-  "licenseNumber": "BCC/2015/123",
-  "establishedDate": "2015-03-12",
-  "address": {
-    "headquarters": {
-      "street": "789, Boulevard du 30 Juin",
-      "commune": "Gombe",
-      "city": "Kinshasa",
-      "province": "Kinshasa",
-      "country": "République Démocratique du Congo"
-    }
-  },
-  "contacts": {
-    "general": {
-      "email": "info@bcc-bank.cd",
-      "phone": "+243 850 123 456"
-    }
-  },
-  "leadership": {
-    "ceo": {
-      "name": "Pierre Mukendi",
-      "gender": "male",
-      "title": "Directeur Général",
-      "email": "p.mukendi@bcc-bank.cd"
-    }
-  }
+  "userId": "user-fi-001",
+  
+  // Identification institutionnelle
+  "denominationSociale": "Banque Congolaise du Commerce",
+  "sigle": "BCC",
+  "typeInstitution": "BANQUE",
+  "sousCategorie": "deposit_credit_bank",
+  "dateCreation": "2010-03-15",
+  "paysOrigine": "RDC",
+  "statutJuridique": "sa",
+  
+  // Informations réglementaires
+  "autoritéSupervision": "bcc",
+  "numeroAgrement": "BCC/2010/001",
+  "dateAgrement": "2010-02-28",
+  "validiteAgrement": "2030-02-28",
+  "numeroRCCM": "CD/RCCM/23/B/001",
+  "numeroNIF": "A1234567890",
+  
+  // Activités autorisées
+  "activitesAutorisees": ["deposit_collection", "credit_granting", "payment_services"],
+  
+  // Informations opérationnelles
+  "siegeSocial": "123 Boulevard du 30 Juin, Kinshasa",
+  "nombreAgences": 15,
+  "villesProvincesCouvertes": ["Kinshasa", "Lubumbashi", "Bukavu"],
+  "presenceInternationale": false,
+  
+  // Capacités financières
+  "capitalSocialMinimum": "10000000",
+  "capitalSocialActuel": "25000000",
+  "fondsPropresMontant": "50000000",
+  "totalBilan": "200000000",
+  "chiffreAffairesAnnuel": "15000000",
+  "devise": "USD",
+  
+  // Clientèle et marché
+  "segmentClientelePrincipal": "sme",
+  "nombreClientsActifs": 15000,
+  "portefeuilleCredit": "80000000",
+  "depotsCollectes": "150000000",
+  
+  // Services offerts à Wanzo
+  "servicesCredit": ["sme_credit", "startup_credit"],
+  "servicesInvestissement": ["venture_capital"],
+  "servicesGarantie": ["bank_guarantees"],
+  "servicesTransactionnels": ["bank_accounts", "transfers"],
+  "servicesConseil": ["financial_management"],
+  
+  // Partenariat Wanzo
+  "motivationPrincipale": "new_clients",
+  "servicesPrioritaires": ["sme_credit"],
+  "segmentsClienteleCibles": ["sme", "individuals"],
+  "volumeAffairesEnvisage": "5000000",
+  
+  // Conditions commerciales
+  "grillesTarifaires": "Taux préférentiels pour partenaires Wanzo: 8-12%",
+  "conditionsPreferentielles": "Réduction de 1% sur les taux standards",
+  "delaisTraitement": "5",
+  "criteresEligibilite": "CA minimum 50k USD, 2 ans d'activité",
+  
+  // Capacité d'engagement
+  "montantMaximumDossier": "500000",
+  "enveloppeGlobale": "10000000",
+  "secteursActivitePrivilegies": ["commerce", "services"],
+  "zonesGeographiquesPrioritaires": ["Kinshasa", "Lubumbashi"],
+  
+  // Documents (peuvent être uploadés séparément)
+  "documentsLegaux": [],
+  "documentsFinanciers": [],
+  "documentsOperationnels": [],
+  "documentsCompliance": []
 }
 ```
 
-#### Exemple de réponse
+#### Exemple de réponse (Structure conforme au formulaire)
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "fin-123",
-    "name": "Banque Congolaise du Commerce",
-    "type": "bank",
-    "category": "commercial",
-    "licenseNumber": "BCC/2015/123",
-    "establishedDate": "2015-03-12",
-    "address": {
+    "id": "inst-001",
+    "userId": "user-fi-001",
+    
+    // Identification institutionnelle
+    "denominationSociale": "Banque Congolaise du Commerce",
+    "sigle": "BCC",
+    "typeInstitution": "BANQUE",
+    "sousCategorie": "deposit_credit_bank",
+    "dateCreation": "2010-03-15",
+    "paysOrigine": "RDC",
+    "statutJuridique": "sa",
+    
+    // Informations réglementaires
+    "autoritéSupervision": "bcc",
+    "numeroAgrement": "BCC/2010/001",
+    "dateAgrement": "2010-02-28",
+    "validiteAgrement": "2030-02-28",
+    "numeroRCCM": "CD/RCCM/23/B/001",
+    "numeroNIF": "A1234567890",
+    
+    // Informations opérationnelles
+    "siegeSocial": "123 Boulevard du 30 Juin, Kinshasa",
+    "nombreAgences": 15,
+    "villesProvincesCouvertes": ["Kinshasa", "Lubumbashi", "Bukavu"],
+    "presenceInternationale": false,
+    
+    // Capacités financières
+    "capitalSocialMinimum": "10000000",
+    "capitalSocialActuel": "25000000",
+    "devise": "USD",
+    
+    // Partenariat Wanzo
+    "motivationPrincipale": "new_clients",
+    "servicesPrioritaires": ["sme_credit", "venture_capital"],
+    
+    // Métadonnées
+    "createdAt": "2010-03-15T00:00:00Z",
+    "updatedAt": "2024-11-09T10:30:00Z"
       "headquarters": {
         "street": "789, Boulevard du 30 Juin",
         "commune": "Gombe",

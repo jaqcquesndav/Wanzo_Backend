@@ -302,6 +302,28 @@ export class DigitalPresenceDto {
   appLinks?: AppLinksDto;
 }
 
+export class BrandColorsDto {
+  @IsOptional()
+  @IsString()
+  primary?: string;
+
+  @IsOptional()
+  @IsString()
+  secondary?: string;
+
+  @IsOptional()
+  @IsString()
+  accent?: string;
+
+  @IsOptional()
+  @IsString()
+  background?: string;
+
+  @IsOptional()
+  @IsString()
+  text?: string;
+}
+
 export class CreateFinancialInstitutionDto {
   @IsString()
   name!: string;
@@ -323,6 +345,19 @@ export class CreateFinancialInstitutionDto {
   establishedDate?: string;
 
   @IsOptional()
+  @IsEnum(['active', 'suspended', 'pending'])
+  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+
+  @IsOptional()
+  @IsISO8601()
+  licenseExpiryDate?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BrandColorsDto)
+  brandColors?: BrandColorsDto;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => AddressDto)
   address?: AddressDto;
@@ -331,6 +366,63 @@ export class CreateFinancialInstitutionDto {
   @ValidateNested()
   @Type(() => ContactsDto)
   contacts?: ContactsDto;
+
+  // NOUVEAUX CHAMPS v2.1 - Conformité documentation
+  @IsOptional()
+  @IsString()
+  denominationSociale?: string;
+
+  @IsOptional()
+  @IsString()
+  sigleLegalAbrege?: string;
+
+  @IsOptional()
+  @IsString()
+  typeInstitution?: string;
+
+  @IsOptional()
+  @IsString()
+  autorisationExploitation?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  dateOctroi?: string;
+
+  @IsOptional()
+  @IsString()
+  autoriteSupervision?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  dateAgrement?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CoordinatesDto)
+  coordonneesGeographiques?: CoordinatesDto;
+
+  @IsOptional()
+  @IsObject()
+  capaciteFinanciere?: {
+    capitalSocial?: number;
+    fondsPropresDeclares?: number;
+    limitesOperationnelles?: string[];
+    monnaieReference?: 'USD' | 'CDF' | 'EUR';
+  };
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  zonesCouverture?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  typeOperation?: string[];
+
+  @IsOptional()
+  @IsEnum(['actif', 'suspendu', 'en_arret', 'liquidation'])
+  statutOperationnel?: 'actif' | 'suspendu' | 'en_arret' | 'liquidation';
 
   @IsOptional()
   @ValidateNested()
@@ -354,6 +446,19 @@ export class UpdateFinancialInstitutionDto {
   @IsOptional()
   @IsUrl()
   linkedinPage?: string;
+
+  @IsOptional()
+  @IsEnum(['active', 'suspended', 'pending'])
+  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+
+  @IsOptional()
+  @IsISO8601()
+  licenseExpiryDate?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BrandColorsDto)
+  brandColors?: BrandColorsDto;
 
   @IsOptional()
   @ValidateNested()
@@ -390,9 +495,31 @@ export class FinancialInstitutionResponseDto {
   category?: string;
   licenseNumber?: string;
   establishedDate?: Date;
+  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+  licenseExpiryDate?: Date;
+  brandColors?: BrandColorsDto;
   website?: string;
   facebookPage?: string;
   linkedinPage?: string;
+  
+  // NOUVEAUX CHAMPS v2.1 - Conformité documentation
+  denominationSociale?: string;
+  sigleLegalAbrege?: string;
+  typeInstitution?: string;
+  autorisationExploitation?: string;
+  dateOctroi?: Date;
+  autoriteSupervision?: string;
+  dateAgrement?: Date;
+  coordonneesGeographiques?: CoordinatesDto;
+  capaciteFinanciere?: {
+    capitalSocial?: number;
+    fondsPropresDeclares?: number;
+    limitesOperationnelles?: string[];
+    monnaieReference?: 'USD' | 'CDF' | 'EUR';
+  };
+  zonesCouverture?: string[];
+  typeOperation?: string[];
+  statutOperationnel?: 'actif' | 'suspendu' | 'en_arret' | 'liquidation';
   address?: AddressDto;
   branches?: BranchDto[];
   contacts?: ContactsDto;
@@ -406,7 +533,7 @@ export class FinancialInstitutionResponseDto {
       name?: string;
     };
     status?: string;
-    currentPeriodEnd?: Date;
+    endDate?: Date;
   };
   createdAt!: Date;
   updatedAt!: Date;

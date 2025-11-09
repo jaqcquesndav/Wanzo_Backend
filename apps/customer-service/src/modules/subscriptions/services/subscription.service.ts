@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Subscription, SubscriptionStatus, SubscriptionPlan, SubscriptionPlanType } from '../entities/subscription.entity';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
+import { AccessControlService } from './access-control.service';
 
 interface CreateSubscriptionDto {
   customerId: string;
@@ -33,6 +34,7 @@ export class SubscriptionService {
     @InjectRepository(SubscriptionPlan)
     private readonly planRepository: Repository<SubscriptionPlan>,
     private readonly customerEventsProducer: CustomerEventsProducer,
+    private readonly accessControlService: AccessControlService,
   ) {}
 
   /**
@@ -53,8 +55,38 @@ export class SubscriptionService {
 
     const savedSubscription = await this.subscriptionRepository.save(subscription);
 
-    // Publier événement
+    // Configurer automatiquement les limites d'accès basées sur le plan
+    try {
+      await this.accessControlService.updateCustomerFeatureLimits(
+        createDto.customerId,
+        savedSubscription.id,
+        createDto.planId
+      );
+    } catch (error) {
+      console.error('Erreur lors de la configuration des limites d\'accès:', error);
+      // Ne pas faire échouer la création de l'abonnement si la configuration des limites échoue
+    }
+
+    // Publier événement standard
     await this.customerEventsProducer.emitSubscriptionCreated(savedSubscription);
+
+    // Notifier l'Admin Service de la nouvelle souscription (communication bidirectionnelle)
+    try {
+      await this.customerEventsProducer.notifyAdminServiceSubscriptionCreated({
+        id: savedSubscription.id,
+        customerId: savedSubscription.customerId,
+        planId: savedSubscription.planId,
+        status: savedSubscription.status,
+        startDate: createDto.startDate,
+        endDate: createDto.endDate,
+        amount: createDto.amount,
+        currency: createDto.currency,
+        metadata: createDto.metadata,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la notification à l\'Admin Service:', error);
+      // Ne pas faire échouer la création de l'abonnement si la notification échoue
+    }
 
     return savedSubscription;
   }
@@ -357,6 +389,17 @@ export class SubscriptionService {
 
     // Mettre à jour l'abonnement actuel
     const updatedSubscription = await this.update(currentSubscription.id, { planId });
+
+    // Mettre à jour les limites d'accès pour le nouveau plan
+    try {
+      await this.accessControlService.updateCustomerFeatureLimits(
+        updatedSubscription.customerId,
+        updatedSubscription.id,
+        planId
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des limites d\'accès pour le nouveau plan:', error);
+    }
 
     // Publier un événement de changement de plan
     await this.customerEventsProducer.emitSubscriptionEvent({

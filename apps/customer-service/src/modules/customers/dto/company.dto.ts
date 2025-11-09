@@ -143,6 +143,28 @@ export class ActivitiesDto {
   secondary?: string[];
 }
 
+// NOUVEAU v2.1 - DTO pour secteurs d'activité étendus
+export class ActivitiesExtendedDto {
+  @IsString()
+  secteurActivitePrincipal!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  secteursActiviteSecondaires?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  secteursPersonalises?: string[];
+
+  // Compatibilité descendante
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActivitiesDto)
+  activities?: ActivitiesDto;
+}
+
 export class CapitalDto {
   @IsOptional()
   @IsBoolean()
@@ -201,6 +223,148 @@ export class AffiliationsDto {
   partners?: string[];
 }
 
+// NOUVEAU v2.1 - DTO pour actifs détaillés
+export class AssetDataDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  designation!: string;
+
+  @IsEnum(['immobilier', 'vehicule', 'equipement', 'autre'])
+  type!: 'immobilier' | 'vehicule' | 'equipement' | 'autre';
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  prixAchat?: number;
+
+  @IsOptional()
+  @IsNumber()
+  valeurActuelle?: number;
+
+  @IsOptional()
+  @IsEnum(['USD', 'CDF', 'EUR'])
+  devise?: 'USD' | 'CDF' | 'EUR';
+
+  @IsOptional()
+  @IsString()
+  dateAcquisition?: string;
+
+  @IsOptional()
+  @IsEnum(['neuf', 'excellent', 'bon', 'moyen', 'mauvais', 'deteriore'])
+  etatActuel?: 'neuf' | 'excellent' | 'bon' | 'moyen' | 'mauvais' | 'deteriore';
+
+  @IsOptional()
+  @IsString()
+  localisation?: string;
+
+  @IsOptional()
+  @IsString()
+  marque?: string;
+
+  @IsOptional()
+  @IsString()
+  modele?: string;
+
+  @IsOptional()
+  @IsNumber()
+  quantite?: number;
+
+  @IsOptional()
+  @IsString()
+  unite?: string;
+
+  @IsOptional()
+  @IsEnum(['propre', 'location', 'leasing', 'emprunt'])
+  proprietaire?: 'propre' | 'location' | 'leasing' | 'emprunt';
+
+  @IsOptional()
+  @IsString()
+  observations?: string;
+}
+
+// NOUVEAU v2.1 - DTO pour stocks et inventaires
+export class StockDataDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  designation!: string;
+
+  @IsEnum(['matiere_premiere', 'produit_semi_fini', 'produit_fini', 'fourniture', 'emballage', 'autre'])
+  categorie!: 'matiere_premiere' | 'produit_semi_fini' | 'produit_fini' | 'fourniture' | 'emballage' | 'autre';
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsNumber()
+  quantiteStock!: number;
+
+  @IsString()
+  unite!: string;
+
+  @IsOptional()
+  @IsNumber()
+  seuilMinimum?: number;
+
+  @IsOptional()
+  @IsNumber()
+  seuilMaximum?: number;
+
+  @IsNumber()
+  coutUnitaire!: number;
+
+  @IsNumber()
+  valeurTotaleStock!: number;
+
+  @IsEnum(['USD', 'CDF', 'EUR'])
+  devise!: 'USD' | 'CDF' | 'EUR';
+
+  @IsOptional()
+  @IsString()
+  dateDernierInventaire?: string;
+
+  @IsOptional()
+  @IsNumber()
+  dureeRotationMoyenne?: number;
+
+  @IsOptional()
+  @IsString()
+  datePeremption?: string;
+
+  @IsOptional()
+  @IsString()
+  emplacement?: string;
+
+  @IsOptional()
+  @IsString()
+  conditionsStockage?: string;
+
+  @IsOptional()
+  @IsString()
+  fournisseurPrincipal?: string;
+
+  @IsOptional()
+  @IsString()
+  numeroLot?: string;
+
+  @IsOptional()
+  @IsString()
+  codeArticle?: string;
+
+  @IsEnum(['excellent', 'bon', 'moyen', 'deteriore', 'perime'])
+  etatStock!: 'excellent' | 'bon' | 'moyen' | 'deteriore' | 'perime';
+
+  @IsOptional()
+  @IsString()
+  observations?: string;
+}
+
 export class CreateCompanyDto {
   @IsString()
   name!: string;
@@ -236,6 +400,32 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsString()
   natId?: string;
+
+  // Nouveaux champs v2.1
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActivitiesExtendedDto)
+  activitiesExtended?: ActivitiesExtendedDto;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  secteursPersnnalises?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CapitalDto)
+  capital?: CapitalDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FinancialsDto)
+  financials?: FinancialsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AffiliationsDto)
+  affiliations?: AffiliationsDto;
 
   @IsOptional()
   @ValidateNested()
@@ -306,6 +496,30 @@ export class UpdateCompanyDto {
   @Type(() => AffiliationsDto)
   affiliations?: AffiliationsDto;
 
+  // NOUVEAU v2.1 - Actifs détaillés et stocks
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssetDataDto)
+  equipment?: AssetDataDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssetDataDto)
+  vehicles?: AssetDataDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockDataDto)
+  stocks?: StockDataDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActivitiesExtendedDto)
+  activitiesExtended?: ActivitiesExtendedDto;
+
   // Nouveau: Mise à jour du formulaire d'identification étendu
   @IsOptional()
   @ValidateNested()
@@ -335,6 +549,15 @@ export class CompanyResponseDto {
   capital?: CapitalDto;
   financials?: FinancialsDto;
   affiliations?: AffiliationsDto;
+
+  // NOUVEAU v2.1 - Secteurs d'activité étendus
+  activitiesExtended?: ActivitiesExtendedDto;
+  secteursPersnnalises?: string[];
+
+  // NOUVEAU v2.1 - Actifs détaillés et stocks
+  equipment?: AssetDataDto[];
+  vehicles?: AssetDataDto[];
+  stocks?: StockDataDto[];
   
   // Nouveau: Exposition du formulaire d'identification étendu
   extendedIdentification?: ExtendedCompanyResponseDto;
