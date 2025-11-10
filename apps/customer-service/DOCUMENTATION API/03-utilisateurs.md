@@ -9,95 +9,235 @@ Le module de gestion des utilisateurs gère l'authentification Auth0, les profil
 http://localhost:8000/land/api/v1
 ```
 
-## 🏗️ Structure des Données Modernisée
+## 🏗️ Structure des Données Réelles
 
-### Interface Utilisateur Principale
+> ⚠️ **IMPORTANT** : Cette documentation reflète la structure **réelle** de l'entité User telle qu'implémentée dans le code source, et non une interface théorique.
+
+### Entité User (Réelle)
 
 ```typescript
 interface User {
-  // Identifiants Auth0
-  id: string;                           // Sub Auth0
-  email: string;
-  emailVerified?: boolean;
+  // === IDENTIFIANTS ===
+  id: string;                    // UUID généré automatiquement
+  auth0Id: string;              // ID unique Auth0 (ex: "auth0|60f123...")
+  customerId?: string;          // Lien vers l'entité Customer si applicable
   
-  // Informations personnelles
-  name?: string;
-  givenName?: string;
-  familyName?: string;
-  picture?: string;
-  phone?: string;
-  phoneVerified?: boolean;
-  birthdate?: string;
-  bio?: string;
+  // === INFORMATIONS DE BASE ===
+  name: string;                 // Nom complet ou nom d'affichage
+  givenName?: string;           // Prénom (depuis Auth0)
+  familyName?: string;          // Nom de famille (depuis Auth0)
+  email: string;                // Email principal (unique)
+  emailVerified: boolean;       // Statut de vérification email (depuis Auth0)
+  picture?: string;             // URL de la photo de profil
   
-  // Adresse et localisation
-  address?: UserAddress;
+  // === CONTACT ===
+  phone?: string;               // Numéro de téléphone
+  phoneVerified: boolean;       // Statut de vérification téléphone (défaut: false)
+  address?: string;             // Adresse simple (texte libre, pas d'objet complexe)
   
-  // Documents d'identité
-  identityDocument?: IdentityDocument;
+  // === DOCUMENTS D'IDENTITÉ ===
+  idNumber?: string;            // Numéro du document d'identité
+  idType?: 'passport' | 'id_card' | 'driver_license' | 'other';
+  idStatus?: 'pending' | 'verified' | 'rejected'; // Statut de vérification
   
-  // Type et rôle
-  userType: UserType;
-  role: UserRole;
+  // === RÔLES ET TYPE ===
+  role: UserRole;               // Rôle système (ADMIN, USER, etc.)
+  userType: UserType;           // Type d'utilisateur (SME, FINANCIAL_INSTITUTION)
   
-  // Associations d'entreprise
-  companyId?: string;
-  financialInstitutionId?: string;
-  isCompanyOwner?: boolean;
+  // === INFORMATIONS PERSONNELLES ===
+  birthdate?: Date;             // Date de naissance
+  bio?: string;                 // Biographie/description personnelle
   
-  // Préférences et paramètres
-  settings: UserSettings;
-  language: 'fr' | 'en' | 'ln';
-  timezone?: string;
+  // === RELATIONS ORGANISATIONNELLES ===
+  companyId?: string;           // ID de l'entreprise associée
+  financialInstitutionId?: string; // ID de l'institution financière
+  isCompanyOwner: boolean;      // Propriétaire de l'entreprise (défaut: false)
   
-  // Permissions et sécurité
-  permissions: Permission[];
-  lastLoginAt?: string;
-  isActive: boolean;
+  // === PARAMÈTRES UTILISATEUR ===
+  settings: any;                // Paramètres stockés en JSONB (structure flexible)
+  language: string;             // Langue préférée (défaut: "fr")
+  permissions: string[];        // Array de permissions (peut être vide)
   
-  // Métadonnées
-  createdAt: string;
-  updatedAt?: string;
+  // === ABONNEMENT ET TOKENS ===
+  plan?: string;                // Plan d'abonnement actuel
+  tokenBalance?: number;        // Solde de tokens (peut être null)
+  tokenTotal?: number;          // Total de tokens obtenus
+  
+  // === AUDIT ===
+  lastLoginAt?: Date;           // Dernière connexion
+  createdAt: Date;              // Date de création (auto)
+  updatedAt: Date;              // Dernière modification (auto)
 }
 ```
 
-### Types d'Utilisateurs
+### Enums Réels
 
 ```typescript
 enum UserType {
-  SME = 'sme',                          // Petite et moyenne entreprise
-  FINANCIAL_INSTITUTION = 'financial_institution', // Institution financière
-  INDIVIDUAL = 'individual',            // Particulier
-  ADMIN = 'admin'                       // Administrateur système
+  SME = 'sme',                          // Small and Medium Enterprise
+  FINANCIAL_INSTITUTION = 'financial'   // Institution Financière
 }
 
 enum UserRole {
-  OWNER = 'owner',                      // Propriétaire d'entreprise
   ADMIN = 'admin',                      // Administrateur
-  MANAGER = 'manager',                  // Gestionnaire
-  EMPLOYEE = 'employee',                // Employé
-  VIEWER = 'viewer',                    // Consultation uniquement
-  SUPER_ADMIN = 'super_admin'           // Super administrateur système
+  USER = 'user',                        // Utilisateur standard
+  MODERATOR = 'moderator'               // Modérateur
 }
 ```
 
-### Adresse Utilisateur
+### Structure de Settings (JSONB flexible)
+
+Contrairement à une interface rigide, les `settings` sont stockés en JSONB PostgreSQL pour une flexibilité maximale :
 
 ```typescript
-interface UserAddress {
-  street?: string;
-  city?: string;
-  province?: string;
-  country?: string;
-  postalCode?: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
+// Exemple de structure de settings (non contraignante)
+interface UserSettingsExample {
+  notifications?: {
+    email?: boolean;
+    sms?: boolean;
+    push?: boolean;
   };
+  ui?: {
+    theme?: 'light' | 'dark';
+    language?: string;
+    dateFormat?: string;
+  };
+  business?: {
+    currency?: string;
+    timezone?: string;
+    fiscalYear?: string;
+  };
+  // Toute autre configuration peut être ajoutée dynamiquement
+  [key: string]: any;
 }
 ```
 
-### Document d'Identité
+### DTOs Réels Utilisés
+
+#### CreateUserDto
+```typescript
+class CreateUserDto {
+  name: string;                    // Obligatoire
+  givenName?: string;             // Optionnel
+  familyName?: string;            // Optionnel
+  email: string;                  // Obligatoire (validé email)
+  emailVerified?: boolean;        // Optionnel
+  phone?: string;                 // Optionnel
+  phoneVerified?: boolean;        // Optionnel
+  role?: UserRole;                // Optionnel (défaut: USER)
+  userType?: UserType;            // Optionnel (défaut: SME)
+  customerId?: string;            // UUID optionnel
+  companyId?: string;             // UUID optionnel
+  financialInstitutionId?: string; // UUID optionnel
+  isCompanyOwner?: boolean;       // Optionnel (défaut: false)
+  picture?: string;               // URL optionnelle
+  address?: string;               // Adresse texte optionnelle
+  idType?: IdType;                // Type de document optionnel
+  idNumber?: string;              // Numéro de document optionnel
+  birthdate?: string;             // Date ISO8601 optionnelle
+  bio?: string;                   // Bio optionnelle
+  language?: string;              // Langue optionnelle
+  plan?: string;                  // Plan optionnel
+  tokenBalance?: number;          // Solde tokens optionnel
+  tokenTotal?: number;            // Total tokens optionnel
+}
+```
+
+#### UpdateUserDto
+```typescript
+class UpdateUserDto {
+  name?: string;
+  givenName?: string;
+  familyName?: string;
+  phone?: string;
+  picture?: string;
+  address?: string;
+  idType?: IdType;
+  idNumber?: string;
+  birthdate?: string;
+  bio?: string;
+  language?: string;
+  companyId?: string;
+  financialInstitutionId?: string;
+  isCompanyOwner?: boolean;
+  // Tous les champs sont optionnels pour la mise à jour
+}
+```
+
+#### UserResponseDto
+```typescript
+class UserResponseDto {
+  id: string;
+  name: string;
+  givenName?: string;
+  familyName?: string;
+  email: string;
+  emailVerified: boolean;
+  picture?: string;
+  phone?: string;
+  phoneVerified: boolean;
+  address?: string;
+  idNumber?: string;
+  idType?: IdType;
+  idStatus?: IdStatus;
+  role: UserRole;
+  birthdate?: string;             // Format YYYY-MM-DD
+  bio?: string;
+  userType: UserType;
+  companyId?: string;
+  financialInstitutionId?: string;
+  isCompanyOwner: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  settings?: any;                 // Paramètres JSONB
+  language: string;
+  permissions?: string[];         // Array de permissions
+  plan?: string;
+  tokenBalance?: number;
+  tokenTotal?: number;
+}
+```
+
+#### DTOs Spécialisés
+```typescript
+// Pour la vérification de téléphone
+class VerifyPhoneDto {
+  phone: string;
+  code: string;                   // Code de vérification
+}
+
+// Pour l'upload de documents d'identité
+class UploadIdentityDocumentDto {
+  idType: IdType;                 // Type de document
+}
+
+// Pour les préférences utilisateur
+class UserPreferencesDto {
+  notifications?: {
+    email?: boolean;
+    sms?: boolean;
+    push?: boolean;
+  };
+  ui?: {
+    theme?: 'light' | 'dark';
+    language?: string;
+  };
+  // Structure flexible pour autres préférences
+  [key: string]: any;
+}
+
+// Pour la synchronisation Auth0
+class SyncUserDto {
+  auth0Id: string;               // Obligatoire
+  email?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  picture?: string;
+  userType?: string;
+  metadata?: Record<string, any>;
+}
+```
 
 ```typescript
 interface IdentityDocument {
