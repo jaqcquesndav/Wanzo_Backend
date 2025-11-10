@@ -6,6 +6,7 @@ import { TraditionalDashboardService } from './services/traditional-dashboard.se
 import { OHADAMetricsService } from './services/ohada-metrics.service';
 import { OHADAOrchestrationService } from './services/ohada-orchestration.service';
 import { OHADACalculatorService } from './calculators/ohada-calculator.service';
+import { OHADAMappingService } from './services/ohada-mapping.service';
 import { DashboardPreferencesService } from './services/dashboard-preferences.service';
 import { DashboardController } from './controllers/dashboard.controller';
 import { InstitutionModule } from '../institution/institution.module';
@@ -43,6 +44,7 @@ import { OHADAMetric, OHADASnapshot } from './entities/ohada-metric.entity';
     OHADAMetricsService,
     OHADAOrchestrationService,
     OHADACalculatorService,
+    OHADAMappingService,
     DashboardPreferencesService
   ],
   controllers: [DashboardController],

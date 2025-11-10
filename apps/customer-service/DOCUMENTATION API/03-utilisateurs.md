@@ -9,18 +9,20 @@ Le module de gestion des utilisateurs gère l'authentification Auth0, les profil
 http://localhost:8000/land/api/v1
 ```
 
+**ℹ️ Architecture** : L'API Gateway route les requêtes `/land/api/v1/*` vers le Customer Service en retirant le préfixe `/land/api/v1`. Le contrôleur UserController utilise `/users` comme base interne.
+
 ## 🏗️ Structure des Données Réelles
 
 > ⚠️ **IMPORTANT** : Cette documentation reflète la structure **réelle** de l'entité User telle qu'implémentée dans le code source, et non une interface théorique.
 
-### Entité User (Réelle)
+### Entité User (Structure Réelle du Code)
 
 ```typescript
 interface User {
   // === IDENTIFIANTS ===
   id: string;                    // UUID généré automatiquement
-  auth0Id: string;              // ID unique Auth0 (ex: "auth0|60f123...")
-  customerId?: string;          // Lien vers l'entité Customer si applicable
+  auth0Id?: string;              // ID unique Auth0 (ex: "auth0|60f123...")
+  customerId?: string;           // Lien vers l'entité Customer si applicable
   
   // === INFORMATIONS DE BASE ===
   name: string;                 // Nom complet ou nom d'affichage
@@ -33,20 +35,81 @@ interface User {
   // === CONTACT ===
   phone?: string;               // Numéro de téléphone
   phoneVerified: boolean;       // Statut de vérification téléphone (défaut: false)
-  address?: string;             // Adresse simple (texte libre, pas d'objet complexe)
+  address?: string;             // Adresse simple (texte libre)
+  
+  // === RÔLES ET ORGANISATION ===
+  role: UserRole;               // Rôle système (ADMIN, SUPERADMIN, MANAGER, etc.)
+  userType: UserType;           // Type d'utilisateur (SYSTEM, CUSTOMER, SME, FINANCIAL_INSTITUTION)
+  status: UserStatus;           // Statut utilisateur (ACTIVE, PENDING, SUSPENDED, INACTIVE)
+  accountType?: AccountType;     // Type de compte (OWNER, MANAGER, EMPLOYEE, etc.)
+  
+  // === ASSOCIATIONS ORGANISATIONNELLES ===
+  companyId?: string;           // ID de l'entreprise associée
+  financialInstitutionId?: string; // ID de l'institution financière
+  isCompanyOwner: boolean;      // Propriétaire de l'entreprise (défaut: false)
+  department?: string;          // Département dans l'organisation
+  position?: string;            // Poste occupé
   
   // === DOCUMENTS D'IDENTITÉ ===
   idNumber?: string;            // Numéro du document d'identité
-  idType?: 'passport' | 'id_card' | 'driver_license' | 'other';
-  idStatus?: 'pending' | 'verified' | 'rejected'; // Statut de vérification
-  
-  // === RÔLES ET TYPE ===
-  role: UserRole;               // Rôle système (ADMIN, USER, etc.)
-  userType: UserType;           // Type d'utilisateur (SME, FINANCIAL_INSTITUTION)
+  idType?: IdType;              // Type de document (NATIONAL_ID, PASSPORT, etc.)
+  idStatus?: IdStatus;          // Statut de vérification (PENDING, VERIFIED, REJECTED)
+  identityDocumentType?: string; // Type de document d'identité
+  identityDocumentUrl?: string;  // URL du document scanné
+  identityDocumentStatus?: IdStatus; // Statut du document
+  identityDocumentUpdatedAt?: Date;  // Date de mise à jour du document
   
   // === INFORMATIONS PERSONNELLES ===
   birthdate?: Date;             // Date de naissance
   bio?: string;                 // Biographie/description personnelle
+  language?: string;            // Langue préférée
+  timezone?: string;            // Fuseau horaire
+  
+  // === TOKENS ET PLAN ===
+  plan?: string;                // Plan d'abonnement actuel
+  tokenBalance: number;         // Solde de tokens (défaut: 0)
+  tokenTotal: number;           // Total de tokens obtenus (défaut: 0)
+  
+  // === PARAMÈTRES ET PRÉFÉRENCES ===
+  settings?: {                  // Paramètres stockés en JSONB
+    notifications?: {
+      email?: boolean;
+      sms?: boolean;
+      push?: boolean;
+    };
+    security?: {
+      twoFactorEnabled?: boolean;
+      twoFactorMethod?: string;
+      lastPasswordChange?: Date;
+    };
+    preferences?: {
+      theme?: string;
+      language?: string;
+      currency?: string;
+    };
+  };
+  
+  // === PERMISSIONS ET SÉCURITÉ ===
+  permissions?: string[] | {    // Permissions simples ou par application
+    applicationId: string;
+    permissions: string[];
+  }[];
+  devices?: {                   // Appareils connectés
+    deviceId: string;
+    lastLogin: Date;
+    deviceInfo: Record<string, any>;
+  }[];
+  
+  // === CHAMPS SÉCURISÉS (select: false) ===
+  password?: string;            // Mot de passe (non sélectionné par défaut)
+  twoFactorSecret?: string;     // Secret 2FA (non sélectionné)
+  resetPasswordToken?: string;  // Token de reset (non sélectionné)
+  resetPasswordExpires?: Date;  // Expiration du token (non sélectionné)
+  
+  // === AUDIT ===
+  lastLogin?: Date;             // Dernière connexion
+  createdAt: Date;              // Date de création (auto)
+  updatedAt: Date;              // Dernière modification (auto)
   
   // === RELATIONS ORGANISATIONNELLES ===
   companyId?: string;           // ID de l'entreprise associée
@@ -70,18 +133,54 @@ interface User {
 }
 ```
 
-### Enums Réels
+### Enums Réels (Selon le Code Source)
 
 ```typescript
-enum UserType {
-  SME = 'sme',                          // Small and Medium Enterprise
-  FINANCIAL_INSTITUTION = 'financial'   // Institution Financière
+enum UserRole {
+  ADMIN = 'admin',
+  SUPERADMIN = 'superadmin',
+  MANAGER = 'manager',
+  ACCOUNTANT = 'accountant',
+  ANALYST = 'analyst',
+  CUSTOMER_ADMIN = 'customer_admin',
+  CUSTOMER_USER = 'customer_user',
+  VIEWER = 'viewer',
+  USER = 'user'
 }
 
-enum UserRole {
-  ADMIN = 'admin',                      // Administrateur
-  USER = 'user',                        // Utilisateur standard
-  MODERATOR = 'moderator'               // Modérateur
+enum UserStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  SUSPENDED = 'suspended',
+  INACTIVE = 'inactive'
+}
+
+enum UserType {
+  SYSTEM = 'system',
+  CUSTOMER = 'customer',
+  SME = 'sme',
+  FINANCIAL_INSTITUTION = 'financial_institution'
+}
+
+enum AccountType {
+  OWNER = 'OWNER',
+  MANAGER = 'MANAGER',
+  EMPLOYEE = 'EMPLOYEE',
+  CONSULTANT = 'CONSULTANT',
+  OTHER = 'OTHER'
+}
+
+enum IdType {
+  NATIONAL_ID = 'national_id',
+  PASSPORT = 'passport',
+  DRIVING_LICENSE = 'driver_license',
+  OTHER = 'other'
+}
+
+enum IdStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected'
 }
 ```
 
@@ -112,55 +211,192 @@ interface UserSettingsExample {
 }
 ```
 
-### DTOs Réels Utilisés
+## 📋 DTOs Réels Utilisés dans le Code
 
-#### CreateUserDto
+### CreateUserDto
 ```typescript
 class CreateUserDto {
-  name: string;                    // Obligatoire
-  givenName?: string;             // Optionnel
-  familyName?: string;            // Optionnel
-  email: string;                  // Obligatoire (validé email)
-  emailVerified?: boolean;        // Optionnel
-  phone?: string;                 // Optionnel
-  phoneVerified?: boolean;        // Optionnel
-  role?: UserRole;                // Optionnel (défaut: USER)
-  userType?: UserType;            // Optionnel (défaut: SME)
-  customerId?: string;            // UUID optionnel
-  companyId?: string;             // UUID optionnel
-  financialInstitutionId?: string; // UUID optionnel
-  isCompanyOwner?: boolean;       // Optionnel (défaut: false)
-  picture?: string;               // URL optionnelle
-  address?: string;               // Adresse texte optionnelle
-  idType?: IdType;                // Type de document optionnel
-  idNumber?: string;              // Numéro de document optionnel
-  birthdate?: string;             // Date ISO8601 optionnelle
-  bio?: string;                   // Bio optionnelle
-  language?: string;              // Langue optionnelle
-  plan?: string;                  // Plan optionnel
-  tokenBalance?: number;          // Solde tokens optionnel
-  tokenTotal?: number;            // Total tokens optionnel
+  @IsString()
+  name!: string;                    // Obligatoire
+
+  @IsOptional()
+  @IsString()
+  givenName?: string;
+
+  @IsOptional()
+  @IsString()
+  familyName?: string;
+
+  @IsEmail()
+  email!: string;                   // Obligatoire (validé email)
+
+  @IsOptional()
+  @IsBoolean()
+  emailVerified?: boolean;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  phoneVerified?: boolean;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;                  // Optionnel (défaut: CUSTOMER_USER)
+
+  @IsOptional()
+  @IsEnum(UserType)
+  userType?: UserType;              // Optionnel (défaut: CUSTOMER)
+
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  financialInstitutionId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isCompanyOwner?: boolean;         // Optionnel (défaut: false)
+
+  @IsOptional()
+  @IsString()
+  picture?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsEnum(IdType)
+  idType?: IdType;
+
+  @IsOptional()
+  @IsString()
+  idNumber?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  birthdate?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsArray()
+  permissions?: string[];
+
+  @IsOptional()
+  @IsString()
+  plan?: string;
+
+  @IsOptional()
+  @IsInt()
+  tokenBalance?: number;
+
+  @IsOptional()
+  @IsInt()
+  tokenTotal?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstTimeUser?: boolean;
 }
 ```
 
-#### UpdateUserDto
+### UpdateUserDto
 ```typescript
 class UpdateUserDto {
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   givenName?: string;
+
+  @IsOptional()
+  @IsString()
   familyName?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
-  picture?: string;
+
+  @IsOptional()
+  @IsEnum(UserType)
+  userType?: UserType;
+
+  @IsOptional()
+  @IsString()
   address?: string;
-  idType?: IdType;
-  idNumber?: string;
-  birthdate?: string;
-  bio?: string;
+
+  @IsOptional()
+  @IsObject()
+  settings?: {
+    notifications?: {
+      email?: boolean;
+      sms?: boolean;
+      push?: boolean;
+    };
+    preferences?: {
+      theme?: string;
+      language?: string;
+      currency?: string;
+    };
+  };
+
+  @IsOptional()
+  @IsString()
   language?: string;
-  companyId?: string;
-  financialInstitutionId?: string;
-  isCompanyOwner?: boolean;
-  // Tous les champs sont optionnels pour la mise à jour
+}
+```
+
+### SyncUserDto (Inter-Services)
+```typescript
+class SyncUserDto {
+  @IsString()
+  auth0Id!: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  picture?: string;
+
+  @IsOptional()
+  @IsString()
+  userType?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }
 ```
 
@@ -332,10 +568,17 @@ Authorization: Bearer <access_token>
 
 ### 1. Profil Utilisateur
 
-#### Récupérer le Profil Actuel
+### 🔗 Endpoints API Réels
+
+Tous les endpoints nécessitent un token Auth0 Bearer dans le header :
+```http
+Authorization: Bearer <access_token>
+```
+
+#### 1. Récupérer le Profil Utilisateur Actuel
 
 ```http
-GET /users/me
+GET /land/api/v1/users/me
 ```
 
 **Implémentation** : Hybride Auth0 + Base de données locale
@@ -439,10 +682,48 @@ GET /users/me
 }
 ```
 
-#### Mettre à Jour le Profil
+#### 2. Synchroniser l'Utilisateur depuis Auth0
 
 ```http
-PATCH /users/me
+POST /land/api/v1/users/sync
+Content-Type: application/json
+```
+
+**Description** : Synchronise automatiquement l'utilisateur depuis Auth0 lors de la première connexion.
+
+**Corps de la requête** :
+```json
+{
+  "auth0Id": "auth0|507f1f77bcf86cd799439011",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "picture": "https://s.gravatar.com/avatar/...",
+  "userType": "sme"
+}
+```
+
+#### 3. Récupérer le Profil avec Association
+
+```http
+GET /land/api/v1/users/me/profile
+```
+
+**Description** : Récupère le profil utilisateur avec les informations de l'entreprise ou institution associée.
+
+#### 4. Associer à une Entreprise
+
+```http
+POST /land/api/v1/users/me/associate-company/{companyId}
+```
+
+**Description** : Associe l'utilisateur connecté à une entreprise spécifique.
+
+#### 5. Mettre à Jour le Profil
+
+```http
+PATCH /land/api/v1/users/me
 Content-Type: application/json
 ```
 
@@ -771,19 +1052,141 @@ DELETE /users/me/sessions/{sessionId}
 }
 ```
 
-### Changer le type d'utilisateur
+#### 6. Changer le Type d'Utilisateur
 
-```
+```http
 PATCH /land/api/v1/users/me/type
+Content-Type: application/json
 ```
 
-#### Corps de la requête
-
+**Corps de la requête** :
 ```json
 {
   "userType": "financial_institution"
 }
 ```
+
+#### 7. Vérifier un Numéro de Téléphone
+
+```http
+POST /land/api/v1/users/verify-phone
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "phone": "+243820123456",
+  "code": "123456"
+}
+```
+
+#### 8. Télécharger une Pièce d'Identité
+
+```http
+POST /land/api/v1/users/me/identity-document
+Content-Type: multipart/form-data
+```
+
+**Corps de la requête** :
+```
+document: [FILE] (PDF, JPG, PNG - max 10MB)
+idType: "national_id"
+```
+
+#### 9. Télécharger une Photo de Profil
+
+```http
+POST /land/api/v1/users/me/avatar
+Content-Type: multipart/form-data
+```
+
+**Corps de la requête** :
+```
+photo: [FILE] (JPG, PNG - max 5MB)
+```
+
+#### 10. Mettre à Jour les Préférences
+
+```http
+PATCH /land/api/v1/users/me/preferences
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "notifications": {
+    "email": true,
+    "sms": false,
+    "push": true
+  },
+  "theme": "dark",
+  "language": "fr"
+}
+```
+
+#### 11. Récupérer les Entreprises de l'Utilisateur
+
+```http
+GET /land/api/v1/users/me/companies
+```
+
+**Description** : Récupère toutes les entreprises associées à l'utilisateur connecté.
+
+#### 12. Supprimer le Compte Utilisateur
+
+```http
+DELETE /land/api/v1/users/me
+```
+
+**Description** : Supprime définitivement le compte de l'utilisateur connecté.
+
+#### 13. Créer un Utilisateur (Premier Signup)
+
+```http
+POST /land/api/v1/users
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "name": "Jean Mutombo",
+  "email": "jean@example.com",
+  "userType": "sme",
+  "isFirstTimeUser": true
+}
+```
+
+#### 14. Récupérer un Utilisateur par ID
+
+```http
+GET /land/api/v1/users/{id}
+```
+
+### 🔧 Endpoints de Synchronisation Inter-Services
+
+#### Synchronisation Cross-Service
+
+```http
+POST /land/api/v1/users/sync/cross-service
+Content-Type: application/json
+Headers:
+  x-service-name: "accounting-service"
+  x-sync-source: "cross-service-login"
+```
+
+**Description** : Utilisé par les autres microservices pour synchroniser les données utilisateur.
+
+#### Test de Synchronisation (Développement)
+
+```http
+POST /land/api/v1/users/sync-test
+Content-Type: application/json
+```
+
+**Description** : Endpoint de test pour la synchronisation utilisateur sans authentification.
 
 #### Exemple de réponse
 
@@ -840,6 +1243,89 @@ idDocument: [FILE]
 ```
 
 ```
+
+## ⚡ Workflows Inter-Services (Kafka)
+
+### Événements Utilisateur Publiés
+
+Le service customer publie automatiquement des événements Kafka lors des actions utilisateur :
+
+#### Événements de Connexion
+```typescript
+// Publié lors de user.login
+{
+  topic: 'wanzo.user.login',
+  data: {
+    userId: string;
+    auth0Id: string;
+    customerId?: string;
+    companyId?: string;
+    financialInstitutionId?: string;
+    email: string;
+    role: UserRole;
+    userType: UserType;
+    loginTime: string;
+    isFirstLogin: boolean;
+    accessibleApps: string[];        // Apps auxquelles l'utilisateur a accès
+    ipAddress?: string;
+    userAgent?: string;
+  }
+}
+```
+
+#### Applications Accessibles par Type
+Le système détermine automatiquement les applications accessibles :
+
+**UserType.SME** :
+- `customer-service`
+- `gestion_commerciale_service` 
+- `analytics-service` (si CUSTOMER_ADMIN)
+- `adha-ai-service`
+
+**UserType.FINANCIAL_INSTITUTION** :
+- `customer-service`
+- `portfolio-institution-service`
+- `analytics-service`
+- `accounting-service`
+- `admin-service` (si ADMIN)
+- `adha-ai-service`
+
+**SUPERADMIN/ADMIN** :
+- Accès à tous les services
+
+#### Événements de Modification
+```typescript
+// user.updated
+{
+  topic: 'wanzo.user.updated',
+  data: {
+    userId: string;
+    customerId?: string;
+    email: string;
+    role: UserRole;
+    changes?: Partial<User>;
+    updatedAt: string;
+  }
+}
+
+// user.status.changed
+{
+  topic: 'wanzo.user.status.changed',
+  data: {
+    userId: string;
+    customerId?: string;
+    email: string;
+    status: UserStatus;
+    updatedAt: string;
+  }
+}
+```
+
+### Communication Cross-Service
+
+Les autres services peuvent déclencher la synchronisation utilisateur :
+- **Headers requis** : `x-service-name`, `x-sync-source`
+- **Services autorisés** : `accounting-service`, `gestion-commerciale-service`, `portfolio-institution-service`
 
 ## 🔐 Permissions et Contrôle d'Accès
 

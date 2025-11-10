@@ -1,5 +1,15 @@
 # User Management API Documentation
 
+⚠️ **IMPORTANT: Documentation vs Implementation Status**
+
+Cette documentation décrit l'API complète prévue pour la gestion des utilisateurs. Cependant, l'implémentation actuelle ne contient que les endpoints de base pour le profil utilisateur. La plupart des endpoints administratifs sont **EN COURS DE DÉVELOPPEMENT**.
+
+## État actuel de l'implémentation :
+- ✅ **Implémenté** : Endpoints de gestion du profil utilisateur (`/users/profile`, `/users/change-password`)
+- ❌ **En développement** : Endpoints administratifs (`/admin/users/*`), statistiques, sessions, activités
+
+---
+
 This document outlines the API endpoints for managing users, including CRUD operations, roles, permissions, user activity, and sessions.
 
 ## Standard Response Types
@@ -92,7 +102,7 @@ Represents a user in the system.
 *   `auth0Id`: Added. Auth0 user identifier for authentication integration.
 *   Removed `company` and `companyId` as `customerAccountId` serves a similar and more structured purpose for external users.
 
-## 2. List Users
+## 2. List Users ❌ **EN DÉVELOPPEMENT**
 
 ### `GET /users` or `GET /admin/users`
 
@@ -149,7 +159,7 @@ Super Admins can see all users. Company Admins can see users within their own co
     }
     ```
 
-## 3. Create User
+## 3. Create User ❌ **EN DÉVELOPPEMENT**
 
 ### `POST /users/create` or `POST /admin/users`
 
@@ -220,7 +230,7 @@ Creates a new user.
     ```
 *   **500 Internal Server Error:** Unexpected server error.
 
-## 4. Get User by ID
+## 4. Get User by ID ❌ **EN DÉVELOPPEMENT**
 
 ### `GET /users/{id}` or `GET /admin/users/{id}`
 
@@ -304,9 +314,9 @@ Deletes a user.
 *   **401 Unauthorized:** Authentication token is missing or invalid.
 *   **500 Internal Server Error:** Unexpected server error.
 
-## 7. User Profile (Current User)
+## 7. User Profile (Current User) ✅ **IMPLÉMENTÉ**
 
-### `GET /users/profile` (Typically same as `/auth/me`)
+### `GET /users/profile`
 
 Retrieves the profile of the currently authenticated user.
 
@@ -322,7 +332,7 @@ Retrieves the profile of the currently authenticated user.
 *   **404 Not Found:** If the authenticated user's profile cannot be found (should not typically happen if authenticated).
 *   **500 Internal Server Error:** Unexpected server error.
 
-### `PUT /users/update` (or `/users/profile`)
+### `PUT /users/profile` ✅ **IMPLÉMENTÉ**
 
 Updates the profile of the currently authenticated user.
 
@@ -356,19 +366,18 @@ Updates the profile of the currently authenticated user.
 *   **422 Unprocessable Entity:** If validation fails for specific fields (e.g., email format if email is updatable here).
 *   **500 Internal Server Error:** Unexpected server error.
 
-## 8. Change User Password (Authenticated User)
+## 8. Change User Password (Authenticated User) ✅ **IMPLÉMENTÉ**
 
 ### `POST /users/change-password`
 
-Allows an authenticated user to change their own password. (Also documented in `auth.md`)
+Allows an authenticated user to change their own password.
 
 **Request Body:**
 
 ```json
 {
   "currentPassword": "oldPassword123",
-  "newPassword": "newSecurePassword456",
-  "confirmPassword": "newSecurePassword456"
+  "newPassword": "newSecurePassword456"
 }
 ```
 
@@ -376,7 +385,6 @@ Allows an authenticated user to change their own password. (Also documented in `
 
 ```json
 {
-  "success": true,
   "message": "Password changed successfully."
 }
 ```

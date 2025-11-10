@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Company, CompanyStatus, CompanySize, FinancialMetrics, ESGMetrics } from '../entities/company.entity';
-import { CreateCompanyDto, CompanyFiltersDto } from '../dtos/company.dto';
+import { CompanyFiltersDto } from '../dtos/company.dto';
 import { AccountingIntegrationService, SMEProspectData } from '../../integration/accounting-integration.service';
 
 @Injectable()
@@ -15,15 +15,7 @@ export class CompanyService {
     private readonly accountingIntegrationService: AccountingIntegrationService,
   ) {}
 
-  async create(createCompanyDto: CreateCompanyDto, institutionId: string, userId: string): Promise<Company> {
-    const company = this.companyRepository.create({
-      ...createCompanyDto,
-      institution_id: institutionId,
-      created_by: userId,
-    });
 
-    return await this.companyRepository.save(company);
-  }
 
   async findAll(filters: CompanyFiltersDto, institutionId: string) {
     const queryBuilder = this.companyRepository.createQueryBuilder('company');
@@ -81,17 +73,7 @@ export class CompanyService {
     return company;
   }
 
-  async update(id: string, updateData: Partial<CreateCompanyDto>, institutionId: string): Promise<Company> {
-    const company = await this.findOne(id, institutionId);
-    
-    Object.assign(company, updateData);
-    return await this.companyRepository.save(company);
-  }
 
-  async remove(id: string, institutionId: string): Promise<void> {
-    const company = await this.findOne(id, institutionId);
-    await this.companyRepository.remove(company);
-  }
 
   async updateLastContact(id: string, institutionId: string): Promise<Company> {
     const company = await this.findOne(id, institutionId);

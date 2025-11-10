@@ -5,6 +5,8 @@ import { SmeService } from '../services/sme.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CreateCompanyDto, UpdateCompanyDto, CompanyResponseDto, ApiResponseDto, ApiErrorResponseDto, PaginationDto, LocationDto, AssociateDto } from '../dto/company.dto';
 import { CreateExtendedIdentificationDto, UpdateExtendedIdentificationDto, ExtendedCompanyResponseDto, ValidationResultDto, CompletionStatusDto } from '../dto/extended-company.dto';
+import { AssetDataDto, UpdateAssetDataDto, AssetResponseDto } from '../dto/asset-data.dto';
+import { StockDataDto, UpdateStockDataDto, StockResponseDto } from '../dto/stock-data.dto';
 
 // Define the custom MulterFile interface
 interface MulterFile {
@@ -570,9 +572,9 @@ export class CompanyController {
   @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
   async addAsset(
     @Param('id') id: string,
-    @Body() assetDto: any, // TODO: Créer AssetDataDto
+    @Body() assetDto: AssetDataDto,
     @Req() req: any
-  ): Promise<ApiResponseDto<any>> {
+  ): Promise<ApiResponseDto<AssetResponseDto>> {
     await this.checkCompanyOwnership(id, req.user?.sub);
     
     const asset = await this.smeService.addCompanyAsset(id, assetDto);
@@ -590,9 +592,9 @@ export class CompanyController {
   async updateAsset(
     @Param('id') id: string,
     @Param('assetId') assetId: string,
-    @Body() assetDto: any, // TODO: Créer UpdateAssetDataDto
+    @Body() assetDto: UpdateAssetDataDto,
     @Req() req: any
-  ): Promise<ApiResponseDto<any>> {
+  ): Promise<ApiResponseDto<AssetResponseDto>> {
     await this.checkCompanyOwnership(id, req.user?.sub);
     
     const asset = await this.smeService.updateCompanyAsset(id, assetId, assetDto);
@@ -628,9 +630,9 @@ export class CompanyController {
   @ApiResponse({ status: 400, description: 'Données invalides', type: ApiErrorResponseDto })
   async addStock(
     @Param('id') id: string,
-    @Body() stockDto: any, // TODO: Créer StockDataDto
+    @Body() stockDto: StockDataDto,
     @Req() req: any
-  ): Promise<ApiResponseDto<any>> {
+  ): Promise<ApiResponseDto<StockResponseDto>> {
     await this.checkCompanyOwnership(id, req.user?.sub);
     
     const stock = await this.smeService.addCompanyStock(id, stockDto);
@@ -648,9 +650,9 @@ export class CompanyController {
   async updateStock(
     @Param('id') id: string,
     @Param('stockId') stockId: string,
-    @Body() stockDto: any, // TODO: Créer UpdateStockDataDto
+    @Body() stockDto: UpdateStockDataDto,
     @Req() req: any
-  ): Promise<ApiResponseDto<any>> {
+  ): Promise<ApiResponseDto<StockResponseDto>> {
     await this.checkCompanyOwnership(id, req.user?.sub);
     
     const stock = await this.smeService.updateCompanyStock(id, stockId, stockDto);

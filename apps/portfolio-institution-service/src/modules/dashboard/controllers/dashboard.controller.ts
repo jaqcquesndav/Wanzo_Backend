@@ -102,7 +102,7 @@ export class DashboardController {
     type: OHADAMetricsResponseDto
   })
   async getOHADAMetrics(@Req() req: any): Promise<OHADAMetricsResponseDto> {
-    return await this.ohadaMetricsService.getOHADAMetrics(req.user.institutionId);
+    return await this.dashboardService.getOHADAMetrics(req.user.institutionId);
   }
 
   @Get('metrics/portfolio/:portfolioId')
@@ -117,9 +117,10 @@ export class DashboardController {
     type: SingleOHADAMetricsResponseDto
   })
   async getPortfolioOHADAMetrics(
-    @Param('portfolioId') portfolioId: string
+    @Param('portfolioId') portfolioId: string,
+    @Req() req: any
   ): Promise<SingleOHADAMetricsResponseDto> {
-    const data = await this.ohadaMetricsService.getPortfolioOHADAMetrics(portfolioId);
+    const data = await this.dashboardService.getOHADAMetricsForPortfolio(portfolioId, req.user.institutionId);
     return {
       success: true,
       data

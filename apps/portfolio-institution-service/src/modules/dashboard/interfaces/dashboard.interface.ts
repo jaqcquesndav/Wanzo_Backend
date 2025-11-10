@@ -1,10 +1,6 @@
 // ======= TYPES OHADA CONFORMES À LA DOCUMENTATION =======
 
-export enum RiskLevel {
-  FAIBLE = 'Faible',
-  MOYEN = 'Moyen',
-  ELEVE = 'Élevé'
-}
+import { RiskLevel } from '@wanzobe/shared';
 
 export enum RiskRating {
   AAA = 'AAA',

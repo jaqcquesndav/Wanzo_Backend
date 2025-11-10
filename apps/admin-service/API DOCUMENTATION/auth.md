@@ -42,7 +42,7 @@ Le token JWT fourni par Auth0 contient les informations suivantes :
 
 ### 1. Validation du Token et Enrichissement du Profil
 
-#### `POST /auth/validate-token`
+#### `GET /auth/verify`
 
 Valide le token JWT fourni par Auth0 et enrichit le profil utilisateur avec des informations supplémentaires stockées dans le backend.
 
@@ -56,28 +56,37 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ```json
 {
-  "isValid": true,
-  "user": {
-    "id": "google-oauth2|113531686121267070489",
-    "name": "Jacques Ndavaro",
-    "email": "jacquesndav@gmail.com",
-    "role": "super_admin",
-    "userType": "internal",
-    "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
-    "customerAccountId": null,
-    "phoneNumber": "+243123456789",
-    "idAgent": "IKH12345",
-    "validityEnd": "2026-06-17T00:00:00.000Z",
-    "kyc": {
-      "status": "verified",
-      "verifiedAt": "2025-01-15T10:30:00Z",
-      "documents": [
-        {
-          "type": "id_card",
-          "verified": true,
-          "uploadedAt": "2025-01-10T14:20:00Z"
-        }
-      ]
+  "success": true,
+  "data": {
+    "user": {
+      "id": "google-oauth2|113531686121267070489",
+      "name": "Jacques Ndavaro",
+      "email": "jacquesndav@gmail.com",
+      "role": "super_admin",
+      "userType": "internal",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
+      "customerAccountId": null,
+      "organizationId": "org-123456",
+      "phoneNumber": "+243123456789",
+      "idAgent": "IKH12345",
+      "validityEnd": "2026-06-17T00:00:00.000Z",
+      "createdAt": "2024-01-10T10:00:00Z",
+      "updatedAt": "2025-06-15T14:30:00Z",
+      "lastLogin": "2025-06-17T14:29:09.437Z",
+      "permissions": ["users:read", "users:write", "settings:read", "settings:write"],
+      "language": "fr",
+      "timezone": "Africa/Kinshasa",
+      "kyc": {
+        "status": "verified",
+        "verifiedAt": "2025-01-15T10:30:00Z",
+        "documents": [
+          {
+            "type": "id_card",
+            "verified": true,
+            "uploadedAt": "2025-01-10T14:20:00Z"
+          }
+        ]
+      }
     }
   }
 }
@@ -87,8 +96,7 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ```json
 {
-  "isValid": false,
-  "error": "Token invalide ou expiré"
+  "error": "Jeton manquant ou format invalide"
 }
 ```
 
@@ -108,30 +116,35 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ```json
 {
-  "id": "google-oauth2|113531686121267070489",
-  "name": "Jacques Ndavaro",
-  "email": "jacquesndav@gmail.com",
-  "role": "super_admin",
-  "userType": "internal",
-  "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
-  "customerAccountId": null,
-  "phoneNumber": "+243123456789",
-  "idAgent": "IKH12345",
-  "validityEnd": "2026-06-17T00:00:00.000Z",
-  "createdAt": "2024-01-10T10:00:00Z",
-  "updatedAt": "2025-06-15T14:30:00Z",
-  "lastLogin": "2025-06-17T14:29:09.437Z",
-  "permissions": ["users:read", "users:write", "settings:read", "settings:write"],
-  "kyc": {
-    "status": "verified",
-    "verifiedAt": "2025-01-15T10:30:00Z",
-    "documents": [
-      {
-        "type": "id_card",
-        "verified": true,
-        "uploadedAt": "2025-01-10T14:20:00Z"
+  "success": true,
+  "data": {
+    "user": {
+      "id": "google-oauth2|113531686121267070489",
+      "name": "Jacques Ndavaro",
+      "email": "jacquesndav@gmail.com",
+      "role": "super_admin",
+      "userType": "internal",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
+      "customerAccountId": null,
+      "phoneNumber": "+243123456789",
+      "idAgent": "IKH12345",
+      "validityEnd": "2026-06-17T00:00:00.000Z",
+      "createdAt": "2024-01-10T10:00:00Z",
+      "updatedAt": "2025-06-15T14:30:00Z",
+      "lastLogin": "2025-06-17T14:29:09.437Z",
+      "permissions": ["users:read", "users:write", "settings:read", "settings:write"],
+      "kyc": {
+        "status": "verified",
+        "verifiedAt": "2025-01-15T10:30:00Z",
+        "documents": [
+          {
+            "type": "id_card",
+            "verified": true,
+            "uploadedAt": "2025-01-10T14:20:00Z"
+          }
+        ]
       }
-    ]
+    }
   }
 }
 ```
@@ -170,19 +183,24 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ```json
 {
-  "id": "google-oauth2|113531686121267070489",
-  "name": "Jacques Ndavaro",
-  "email": "jacquesndav@gmail.com",
-  "role": "super_admin",
-  "userType": "internal",
-  "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
-  "customerAccountId": null,
-  "phoneNumber": "+243987654321",
-  "idAgent": "IKH12345",
-  "validityEnd": "2026-06-17T00:00:00.000Z",
-  "language": "fr",
-  "timezone": "Africa/Kinshasa",
-  "updatedAt": "2025-06-17T15:45:00Z"
+  "success": true,
+  "data": {
+    "user": {
+      "id": "google-oauth2|113531686121267070489",
+      "name": "Jacques Ndavaro",
+      "email": "jacquesndav@gmail.com",
+      "role": "super_admin",
+      "userType": "internal",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocIL0yfuobxXVunH5BCpbWnpdLSHUsVuD7jtucw_o7UFsafLpyCj=s96-c",
+      "customerAccountId": null,
+      "phoneNumber": "+243987654321",
+      "idAgent": "IKH12345",
+      "validityEnd": "2026-06-17T00:00:00.000Z",
+      "language": "fr",
+      "timezone": "Africa/Kinshasa",
+      "updatedAt": "2025-06-17T15:45:00Z"
+    }
+  }
 }
 ```
 
@@ -214,88 +232,16 @@ Authorization: Bearer {token.jwt.from.auth0}
 }
 ```
 
-## Endpoints d'Admin pour la Gestion des Utilisateurs
+## Note sur les Endpoints d'Administration
 
-### 1. Créer un Utilisateur
+Les endpoints d'administration pour la gestion des utilisateurs (création, modification des rôles, etc.) sont disponibles dans le module Users. Voir la documentation `users.md` pour les détails complets de ces endpoints :
 
-#### `POST /admin/users`
+- `POST /admin/users` - Créer un utilisateur
+- `PUT /admin/users/{userId}/roles` - Modifier les rôles
+- `GET /admin/users` - Lister les utilisateurs
+- `DELETE /admin/users/{userId}` - Supprimer un utilisateur
 
-Crée un nouvel utilisateur dans le système. Cela peut également créer un utilisateur dans Auth0 si l'option `createInAuth0` est définie à `true`.
-
-**Request Headers:**
-
-```
-Authorization: Bearer {token.jwt.from.auth0}
-```
-
-**Request Body:**
-
-```json
-{
-  "name": "Nouvel Utilisateur",
-  "email": "nouvel.utilisateur@example.com",
-  "role": "customer_support",
-  "userType": "internal",
-  "phoneNumber": "+243123456789",
-  "createInAuth0": true,
-  "sendInvitation": true
-}
-```
-
-**Response (Success 201 Created):**
-
-```json
-{
-  "id": "new-user-id",
-  "name": "Nouvel Utilisateur",
-  "email": "nouvel.utilisateur@example.com",
-  "role": "customer_support",
-  "userType": "internal",
-  "createdAt": "2025-06-17T16:00:00Z"
-}
-```
-
-**Response (Error 400 Bad Request):**
-
-```json
-{
-  "error": "Email déjà utilisé"
-}
-```
-
-### 2. Modifier les Rôles d'un Utilisateur
-
-#### `PUT /admin/users/{userId}/roles`
-
-Modifie les rôles d'un utilisateur existant.
-
-**Request Headers:**
-
-```
-Authorization: Bearer {token.jwt.from.auth0}
-```
-
-**Request Body:**
-
-```json
-{
-  "role": "content_manager",
-  "updateInAuth0": true
-}
-```
-
-**Response (Success 200 OK):**
-
-```json
-{
-  "id": "user-id",
-  "name": "Utilisateur Modifié",
-  "email": "utilisateur@example.com",
-  "role": "content_manager",
-  "userType": "internal",
-  "updatedAt": "2025-06-17T16:15:00Z"
-}
-```
+Le module Auth se concentre uniquement sur l'authentification et la gestion du profil de l'utilisateur connecté.
 
 ## Flux Frontend avec Auth0
 

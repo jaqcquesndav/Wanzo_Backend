@@ -20,10 +20,16 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
 **Endpoint** : `GET /portfolios/traditional`
 
 **Paramètres de requête** :
-- `status` (optionnel) : Filtre par statut (active, inactive, pending, archived)
-- `riskProfile` (optionnel) : Filtre par profil de risque (conservative, moderate, aggressive)
-- `minAmount` (optionnel) : Filtre par montant minimum cible
-- `sector` (optionnel) : Filtre par secteur cible
+- `page` (optionnel, défaut: 1) : Numéro de page
+- `limit` (optionnel, défaut: 10) : Nombre d'éléments par page
+- `status` (optionnel) : Filtre par statut (active, closed, suspended)
+- `manager` (optionnel) : Filtre par gestionnaire
+- `client` (optionnel) : Filtre par client
+- `dateFrom` (optionnel) : Date de début (format: YYYY-MM-DD)
+- `dateTo` (optionnel) : Date de fin (format: YYYY-MM-DD)
+- `search` (optionnel) : Recherche textuelle
+- `sortBy` (optionnel) : Tri par champ (createdAt, name, totalAmount)
+- `sortOrder` (optionnel) : Ordre de tri (asc, desc)
 
 **Réponse réussie** (200 OK) :
 
@@ -199,6 +205,41 @@ Récupère les détails complets d'un portefeuille traditionnel spécifique.
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du portefeuille
+
+## Récupérer un portefeuille avec ses produits financiers
+
+Récupère un portefeuille traditionnel incluant tous ses produits financiers associés.
+
+**Endpoint** : `GET /portfolios/traditional/{id}/products`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du portefeuille
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "portfolio": {
+      "id": "trad-1",
+      "name": "Portefeuille PME Nord-Kivu",
+      "status": "active",
+      "target_amount": 500000000
+    },
+    "products": [
+      {
+        "id": "prod-1",
+        "name": "Crédit PME Standard",
+        "type": "credit_professionnel",
+        "minAmount": 1000000,
+        "maxAmount": 50000000,
+        "interestRate": 12.5,
+        "status": "active"
+      }
+    ]
+  }
+}
 
 **Réponse réussie** (200 OK) :
 
@@ -378,6 +419,45 @@ Change le statut d'un portefeuille traditionnel.
   "name": "Portefeuille PME Nord-Kivu",
   "status": "inactive",
   "updated_at": "2025-08-03T16:00:00.000Z"
+}
+```
+
+## Fermeture d'un portefeuille traditionnel
+
+Ferme définitivement un portefeuille traditionnel avec possibilité d'ajouter une raison.
+
+**Endpoint** : `POST /portfolios/traditional/{id}/close`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du portefeuille
+
+**Corps de la requête** :
+
+```json
+{
+  "closureReason": "Fin de mandat",
+  "closureNotes": "Tous les crédits ont été soldés, fermeture programmée"
+}
+```
+
+**Paramètres optionnels** :
+- `closureReason` (optionnel) : Raison de la fermeture
+- `closureNotes` (optionnel) : Notes complémentaires
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "trad-1",
+    "name": "Portefeuille PME Nord-Kivu",
+    "status": "closed",
+    "closureReason": "Fin de mandat",
+    "closureNotes": "Tous les crédits ont été soldés, fermeture programmée",
+    "closedAt": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
 }
 ```
 

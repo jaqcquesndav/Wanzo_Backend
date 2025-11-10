@@ -1,14 +1,14 @@
-# API des Contrats de Crédit - Portefeuille Traditionnel
+# API des Contrats de Crédit
 
-Cette API permet de gérer les contrats de crédit dans le cadre des portefeuilles traditionnels, y compris la création, la consultation, la mise à jour, la restructuration et la gestion des contrats.
+Cette API permet de gérer les contrats de crédit, y compris la création, la consultation, la mise à jour, la restructuration et la gestion complète du cycle de vie des contrats basée sur le ContractController réellement implémenté.
 
 ## Points d'accès
 
 ### Liste des contrats de crédit
 
-Récupère la liste des contrats de crédit pour un portefeuille traditionnel spécifique.
+Récupère la liste des contrats de crédit avec pagination et filtrage.
 
-**Endpoint** : `GET /api/portfolio/traditional/credit-contracts`
+**Endpoint** : `GET /contracts`
 
 **Paramètres de requête** :
 - `portfolioId` (optionnel) : Identifiant unique du portefeuille traditionnel
@@ -152,62 +152,24 @@ Récupère les détails complets d'un contrat de crédit spécifique.
   "updated_at": "2025-01-15T10:30:00.000Z"
 }
 ```
-### Création d'un contrat de crédit
+### Création d'un contrat de crédit à partir d'une demande approuvée
 
-Crée un nouveau contrat de crédit dans un portefeuille traditionnel.
+Crée un nouveau contrat de crédit à partir d'une demande de financement approuvée.
 
-**Endpoint** : `POST /api/portfolio/traditional/credit-contracts`
+**Endpoint** : `POST /contracts/from-request`
 
 **Corps de la requête** :
 
 ```json
 {
-  "portfolioId": "TP-00001",
-  "clientId": "CL-00001",
-  "company_name": "Entreprise ABC",
-  "product_type": "Crédit PME",
-  "contract_number": "CONT-2025-003",
-  "amount": 50000.00,
-  "interest_rate": 12.5,
-  "start_date": "2025-08-01",
-  "end_date": "2026-08-01",
-  "status": "active",
-  "terms": "Ce contrat est soumis aux conditions générales de crédit de l'institution...",
-  "funding_request_id": "FR-00003",
-  "amortization_method": "linear",
-  "payment_schedule": [
-    {
-      "id": "PAY-00003",
-      "due_date": "2025-09-01",
-      "principal_amount": 3750.00,
-      "interest_amount": 833.33,
-      "total_amount": 4583.33,
-      "status": "pending",
-      "installment_number": 1,
-      "remaining_amount": 46250.00,
-      "remaining_percentage": 92.5
-    },
-    {
-      "id": "PAY-00004",
-      "due_date": "2025-10-01",
-      "principal_amount": 3750.00,
-      "interest_amount": 781.25,
-      "total_amount": 4531.25,
-      "status": "pending",
-      "installment_number": 2,
-      "remaining_amount": 42500.00,
-      "remaining_percentage": 85.0
-    }
-  ],
-  "guarantees": [
-    {
-      "id": "GUAR-00002",
-      "type": "real_estate",
-      "description": "Terrain situé à Cocody, parcelle 123",
-      "value": 80000.00,
-      "currency": "XOF"
-    }
-  ]
+  "fundingRequestId": "FR-00003",
+  "contractTerms": {
+    "interestRate": 12.5,
+    "duration": 12,
+    "startDate": "2025-08-01",
+    "amortizationMethod": "linear"
+  },
+  "additionalConditions": "Conditions spécifiques supplémentaires..."
 }
 ```
 
@@ -237,7 +199,7 @@ Crée un nouveau contrat de crédit dans un portefeuille traditionnel.
 
 Met à jour les informations d'un contrat de crédit existant.
 
-**Endpoint** : `PUT /portfolios/traditional/credit-contracts/{id}`
+**Endpoint** : `PUT /contracts/{id}`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique du contrat de crédit
@@ -442,22 +404,44 @@ Récupère l'échéancier de paiement d'un contrat de crédit.
 }
 ```
 
-### Clôture d'un contrat
+### Activation d'un contrat
 
-Marque un contrat de crédit comme terminé après remboursement complet.
+Active un contrat de crédit en statut brouillon (draft).
 
-**Endpoint** : `POST /portfolios/traditional/{portfolioId}/credit-contracts/{contractId}/complete`
+**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/activate`
 
 **Paramètres de chemin** :
-- `portfolioId` : Identifiant unique du portefeuille traditionnel
-- `contractId` : Identifiant unique du contrat de crédit
+- `id` : Identifiant unique du contrat de crédit
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "CC-00001",
+    "contract_number": "CONT-2025-001",
+    "status": "active",
+    "activated_at": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
+}
+```
+
+### Suspension d'un contrat
+
+Suspend temporairement un contrat de crédit actif.
+
+**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/suspend`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du contrat de crédit
 
 **Corps de la requête** :
 
 ```json
 {
-  "completion_date": "2025-07-25",
-  "notes": "Remboursement anticipé complet"
+  "reason": "Défaut de paiement temporaire"
 }
 ```
 
@@ -467,12 +451,160 @@ Marque un contrat de crédit comme terminé après remboursement complet.
 {
   "success": true,
   "data": {
-    "id": "contract123",
-    "portfolio_id": "portfolio456",
+    "id": "CC-00001",
+    "contract_number": "CONT-2025-001",
+    "status": "suspended",
+    "suspension_reason": "Défaut de paiement temporaire",
+    "suspended_at": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
+}
+```
+
+### Mise en contentieux
+
+Met un contrat de crédit en procédure de contentieux.
+
+**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/litigation`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du contrat de crédit
+
+**Corps de la requête** :
+
+```json
+{
+  "reason": "Défaut de paiement persistant malgré relances"
+}
+```
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "CC-00001",
+    "contract_number": "CONT-2025-001",
+    "status": "litigation",
+    "litigation_reason": "Défaut de paiement persistant malgré relances",
+    "litigation_date": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
+}
+```
+
+### Finalisation d'un contrat
+
+Marque un contrat de crédit comme terminé après remboursement complet.
+
+**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/complete`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du contrat de crédit
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "CC-00001",
     "contract_number": "CONT-2025-001",
     "status": "completed",
-    "completion_date": "2025-07-25",
-    "updated_at": "2025-07-25"
+    "completion_date": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
+}
+```
+
+### Annulation d'un contrat
+
+Annule un contrat de crédit en statut brouillon.
+
+**Endpoint** : `POST /portfolios/traditional/credit-contracts/{id}/cancel`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du contrat de crédit
+
+**Corps de la requête** :
+
+```json
+{
+  "reason": "Client a retiré sa demande"
+}
+```
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "CC-00001",
+    "contract_number": "CONT-2025-001",
+    "status": "canceled",
+    "cancellation_reason": "Client a retiré sa demande",
+    "canceled_at": "2025-11-10T16:00:00.000Z",
+    "updated_at": "2025-11-10T16:00:00.000Z"
+  }
+}
+```
+
+### Récupération de l'échéancier de paiement
+
+Récupère l'échéancier de paiement d'un contrat de crédit.
+
+**Endpoint** : `GET /portfolios/traditional/credit-contracts/{id}/schedule`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique du contrat de crédit
+
+**Réponse réussie** (200 OK) :
+
+```json
+{
+  "success": true,
+  "data": {
+    "contract_id": "CC-00001",
+    "contract_number": "CONT-2025-001",
+    "total_amount": 50000.00,
+    "interest_rate": 11.5,
+    "schedule": [
+      {
+        "id": "payment1",
+        "due_date": "2025-02-15",
+        "principal_amount": 3750.00,
+        "interest_amount": 833.33,
+        "total_amount": 4583.33,
+        "status": "paid",
+        "payment_date": "2025-02-14",
+        "payment_amount": 4583.33,
+        "payment_reference": "PAY-12345678"
+      },
+      {
+        "id": "payment2",
+        "due_date": "2025-03-15",
+        "principal_amount": 3750.00,
+        "interest_amount": 781.25,
+        "total_amount": 4531.25,
+        "status": "pending"
+      }
+    ],
+    "summary": {
+      "total_principal": 50000.00,
+      "total_interest": 8020.83,
+      "total_amount": 58020.83,
+      "paid_principal": 3750.00,
+      "paid_interest": 833.33,
+      "paid_total": 4583.33,
+      "remaining_principal": 46250.00,
+      "remaining_interest": 7187.50,
+      "remaining_total": 53437.50,
+      "payment_count": 12,
+      "payments_made": 1,
+      "payments_remaining": 11
+    }
   }
 }
 ```

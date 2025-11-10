@@ -1197,6 +1197,130 @@ DELETE /land/api/v1/financial-institutions/{institutionId}/leadership/executives
 }
 ```
 
+### Ajouter un membre du conseil d'administration
+
+```
+POST /land/api/v1/financial-institutions/{institutionId}/leadership/board
+```
+
+#### Corps de la requête
+
+```json
+{
+  "name": "Emmanuel Tshisekedi", 
+  "position": "Président du Conseil",
+  "organization": "Groupe Financier International"
+}
+```
+
+#### Exemple de réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "brd_67890abcde",
+    "name": "Emmanuel Tshisekedi", 
+    "position": "Président du Conseil",
+    "organization": "Groupe Financier International"
+  }
+}
+```
+
+### Supprimer un membre du conseil d'administration
+
+```
+DELETE /land/api/v1/financial-institutions/{institutionId}/leadership/board/{boardMemberId}
+```
+
+#### Exemple de réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Membre du conseil d'administration supprimé avec succès"
+  }
+}
+```
+
+### Valider une institution financière (Admin uniquement)
+
+```
+PATCH /land/api/v1/financial-institutions/{institutionId}/validate
+```
+
+#### Corps de la requête
+
+```json
+{
+  "validatedBy": "admin-user-123"
+}
+```
+
+#### Exemple de réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière validée avec succès"
+  }
+}
+```
+
+### Suspendre une institution financière (Admin uniquement)
+
+```
+PATCH /land/api/v1/financial-institutions/{institutionId}/suspend
+```
+
+#### Corps de la requête
+
+```json
+{
+  "suspendedBy": "admin-user-123",
+  "reason": "Non-conformité réglementaire"
+}
+```
+
+#### Exemple de réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière suspendue avec succès"
+  }
+}
+```
+
+### Rejeter une institution financière (Admin uniquement)
+
+```
+PATCH /land/api/v1/financial-institutions/{institutionId}/reject
+```
+
+#### Corps de la requête
+
+```json
+{
+  "rejectedBy": "admin-user-123",
+  "reason": "Dossier incomplet"
+}
+```
+
+#### Exemple de réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Institution financière rejetée avec succès"
+  }
+}
+```
+
 ### Lister les institutions financières (pour les admins)
 
 ```
@@ -1229,6 +1353,145 @@ GET /land/api/v1/financial-institutions?page=1&limit=10
 }
 ```
 
+## 🔄 Workflows Kafka - Communication Inter-Services
+
+Le module des institutions financières publique des événements Kafka pour synchroniser les données avec les autres services de l'écosystème Wanzo.
+
+### Événements publiés
+
+#### 1. Création d'institution (`institution.created`)
+
+```typescript
+await this.customerEventsProducer.emitInstitutionCreated({
+  customer: savedCustomer,
+  institution: {
+    customerId: savedFinancialData.id,
+    institutionType: savedFinancialData.type
+  }
+});
+```
+
+**Structure de l'événement** :
+```json
+{
+  "eventType": "institution.created",
+  "eventId": "uuid-event-123",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "source": "customer-service",
+  "version": "1.0",
+  "data": {
+    "customer": {
+      "id": "cust-inst-123",
+      "name": "Banque Congolaise du Commerce",
+      "type": "FINANCIAL",
+      "status": "PENDING",
+      "email": "info@bcc-bank.cd",
+      "phone": "+243 850 123 456"
+    },
+    "institution": {
+      "customerId": "fin-data-456",
+      "institutionType": "BANQUE"
+    }
+  }
+}
+```
+
+#### 2. Mise à jour d'institution (`institution.updated`)
+
+```typescript
+await this.customerEventsProducer.emitInstitutionUpdated({
+  customer: savedCustomer,
+  institution: {
+    customerId: customer.financialData?.id,
+    institutionType: customer.financialData?.type
+  }
+});
+```
+
+#### 3. Partage de profil complet (`institution.profile.shared`)
+
+```typescript
+await this.customerEventsProducer.emitInstitutionProfileShare({
+  customer: savedCustomer,
+  financialData: savedFinancialData,
+  regulatoryData: {
+    complianceStatus: 'pending',
+    lastAuditDate: null,
+    reportingRequirements: [],
+    riskAssessment: 'not_assessed'
+  },
+  performanceMetrics: {
+    totalCustomers: 0,
+    totalAssets: 0,
+    monthlyGrowth: 0,
+    complianceScore: 0
+  }
+});
+```
+
+**Structure de l'événement** :
+```json
+{
+  "eventType": "institution.profile.shared",
+  "eventId": "uuid-event-456",
+  "timestamp": "2025-01-15T10:35:00Z",
+  "source": "customer-service",
+  "version": "1.0",
+  "data": {
+    "customer": {
+      "id": "cust-inst-123",
+      "name": "Banque Congolaise du Commerce",
+      "type": "FINANCIAL",
+      "status": "ACTIVE"
+    },
+    "financialData": {
+      "type": "BANQUE",
+      "category": "COMMERCIAL",
+      "licenseNumber": "BCC/2010/001",
+      "leadership": {...},
+      "services": {...},
+      "financialInfo": {...}
+    },
+    "regulatoryData": {
+      "complianceStatus": "active",
+      "lastAuditDate": "2024-12-01T00:00:00Z",
+      "reportingRequirements": [...],
+      "riskAssessment": "low_risk"
+    },
+    "performanceMetrics": {
+      "totalCustomers": 15000,
+      "totalAssets": 200000000,
+      "monthlyGrowth": 3.5,
+      "complianceScore": 95
+    }
+  }
+}
+```
+
+#### 4. Mise à jour de profil (`customer.profile.updated`)
+
+```typescript
+await this.customerEventsProducer.emitCustomerProfileUpdated({
+  customerId: savedCustomer.id,
+  customerType: 'FINANCIAL_INSTITUTION',
+  updatedFields: ['institution_created', 'basic_profile'],
+  updateContext: {
+    updatedBy: auth0Id,
+    updateSource: 'form_submission',
+    formType: 'institution_creation'
+  }
+});
+```
+
+### Services consommateurs
+
+Ces événements sont consommés par :
+
+1. **admin-service** : Gestion administrative des institutions
+2. **portfolio-institution-service** : Suivi des portefeuilles institutionnels
+3. **analytics-service** : Analyses et métriques financières
+4. **accounting-service** : Intégration comptable et facturation
+
 ---
 
-*Documentation mise à jour le 5 novembre 2025 pour refléter l'architecture moderne avec gestion complète des institutions financières, structures de données étendues et endpoints API conformes à la base URL standardisée.*
+*Documentation mise à jour le 5 novembre 2025 pour refléter l'architecture moderne avec gestion complète des institutions financières, structures de données étendues, workflows Kafka complets et endpoints API conformes à la base URL standardisée.*

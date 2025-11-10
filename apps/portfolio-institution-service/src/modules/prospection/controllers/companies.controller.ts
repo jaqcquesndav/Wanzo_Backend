@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam }
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { CreateCompanyDto, CompanyFiltersDto } from '../dtos/company.dto';
+import { CompanyFiltersDto } from '../dtos/company.dto';
 import { CompanyService } from '../services/company.service';
 
 @ApiTags('companies')
@@ -35,14 +35,7 @@ export class CompaniesController {
     return await this.companyService.findOne(id, req.user.institutionId);
   }
 
-  @Post()
-  @Roles('admin', 'portfolio_manager')
-  @ApiOperation({ summary: 'Create a new company' })
-  @ApiResponse({ status: 201, description: 'Company created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input' })
-  async create(@Body() createCompanyDto: CreateCompanyDto, @Req() req: any) {
-    return await this.companyService.create(createCompanyDto, req.user.institutionId, req.user.id);
-  }
+
 
   @Post('sync-authorized-smes')
   @Roles('admin', 'portfolio_manager')

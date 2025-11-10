@@ -6,10 +6,10 @@ Ce document décrit la configuration de base de l'API Wanzo Portfolio Institutio
 
 Toutes les requêtes API doivent être préfixées par l'URL de base correspondant à l'environnement utilisé :
 
-- **Développement** : `http://localhost:8000/api`
-- **Production** : `https://api.wanzo-portfolio.com/api`
+- **Développement** : `http://localhost:8000/portfolio/api/v1`
+- **Production** : `https://api.wanzo-portfolio.com/portfolio/api/v1`
 
-**IMPORTANT** : Ne pas inclure `api/v1/` dans les chemins d'accès. L'API Gateway s'occupe de la gestion des versions.
+**IMPORTANT** : Les URLs complètes incluent le préfixe `/portfolio/api/v1/` comme configuré dans l'API Gateway pour le service portfolio-institution.
 
 ## Headers
 

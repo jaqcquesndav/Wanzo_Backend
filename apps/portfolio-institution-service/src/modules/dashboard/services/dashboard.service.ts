@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { InstitutionService } from '../../institution/services/institution.service';
-import { ProspectionService } from '../../prospection/services/prospection.service';
+import { CompanyService } from '../../prospection/services/company.service';
 import { PortfolioService } from '../../portfolios/services/portfolio.service';
-import { DashboardData, TraditionalDashboardMetrics, BasePerformanceMetrics, TraditionalAssetMetrics, TraditionalRiskMetrics, BaseClientMetrics } from '../interfaces/dashboard.interface';
+import { OHADAMappingService } from './ohada-mapping.service';
+import { DashboardData, TraditionalDashboardMetrics, BasePerformanceMetrics, TraditionalAssetMetrics, TraditionalRiskMetrics, BaseClientMetrics, OHADAMetrics, OHADAMetricsResponse } from '../interfaces/dashboard.interface';
 import { Portfolio } from '../../portfolios/entities/portfolio.entity';
 import { FinancialProduct, ProductStatus, ProductType } from '../../portfolios/entities/financial-product.entity';
 import { FundingRequest } from '../../portfolios/entities/funding-request.entity';
@@ -15,8 +16,9 @@ import { Repayment, RepaymentStatus } from '../../portfolios/entities/repayment.
 export class DashboardService {
   constructor(
     private institutionService: InstitutionService,
-    private prospectionService: ProspectionService,
+    private companyService: CompanyService,
     private portfolioService: PortfolioService,
+    private ohadaMappingService: OHADAMappingService,
     @InjectRepository(Portfolio)
     private portfolioRepository: Repository<Portfolio>,
     @InjectRepository(FinancialProduct)
@@ -101,7 +103,7 @@ export class DashboardService {
   }
 
   private async getProspectStatistics(institutionId: string) {
-    const prospects = await this.prospectionService.getOpportunities({}, institutionId);
+    const prospects = await this.companyService.findAll({}, institutionId);
     
     return {
       totalProspects: prospects.meta.total,
@@ -113,7 +115,7 @@ export class DashboardService {
   
   private async getRecentActivity(institutionId: string) {
     // Only get prospect activities
-    const recentProspects = await this.prospectionService.getOpportunities({}, institutionId);
+    const recentProspects = await this.companyService.findAll({}, institutionId);
 
     return this.formatProspectActivities(recentProspects.data);
   }
@@ -177,9 +179,9 @@ export class DashboardService {
     return prospects.map(prospect => ({
       type: 'prospect',
       id: prospect.id,
-      title: prospect.companyName,
-      description: `Prospect ${prospect.status}`,
-      timestamp: new Date(prospect.updated_at),
+      title: prospect.name,
+      description: `Company ${prospect.status}`,
+      timestamp: new Date(prospect.updated_at || prospect.created_at),
       metadata: {
         status: prospect.status,
         sector: prospect.sector,
@@ -343,5 +345,83 @@ export class DashboardService {
       newCount: newClients,
       retentionRate: 0.85 // Mock 85% retention
     };
+  }
+
+  /**
+   * Récupère les métriques OHADA pour tous les portfolios
+   */
+  async getOHADAMetrics(institutionId: string): Promise<OHADAMetricsResponse> {
+    const portfolioMetrics = await this.ohadaMappingService.mapMultiplePortfolios(institutionId);
+    
+    // Calculer les benchmarks
+    const benchmarks = this.calculateOHADABenchmarks(portfolioMetrics);
+    
+    // Déterminer le statut de conformité global
+    const complianceStatus = this.determineGlobalComplianceStatus(portfolioMetrics);
+    
+    return {
+      success: true,
+      data: portfolioMetrics,
+      metadata: {
+        totalPortfolios: portfolioMetrics.length,
+        calculationDate: new Date().toISOString(),
+        regulatoryFramework: 'OHADA' as any,
+        complianceStatus
+      },
+      benchmarks
+    };
+  }
+
+  /**
+   * Récupère les métriques OHADA pour un portfolio spécifique
+   */
+  async getOHADAMetricsForPortfolio(portfolioId: string, institutionId: string): Promise<OHADAMetrics> {
+    return await this.ohadaMappingService.mapToOHADAMetrics(portfolioId, institutionId);
+  }
+
+  /**
+   * Calcule les benchmarks OHADA
+   */
+  private calculateOHADABenchmarks(metrics: OHADAMetrics[]) {
+    if (metrics.length === 0) {
+      return {
+        avgNplRatio: 5.0,
+        avgProvisionRate: 3.5,
+        avgROA: 3.2,
+        avgYield: 14.5,
+        collectionEfficiency: 90.0
+      };
+    }
+
+    const avgNplRatio = metrics.reduce((sum, m) => sum + m.nplRatio, 0) / metrics.length;
+    const avgProvisionRate = metrics.reduce((sum, m) => sum + m.provisionRate, 0) / metrics.length;
+    const avgROA = metrics.reduce((sum, m) => sum + m.roa, 0) / metrics.length;
+    const avgYield = metrics.reduce((sum, m) => sum + m.portfolioYield, 0) / metrics.length;
+    const avgCollection = metrics.reduce((sum, m) => sum + m.collectionEfficiency, 0) / metrics.length;
+
+    return {
+      avgNplRatio: Math.round(avgNplRatio * 100) / 100,
+      avgProvisionRate: Math.round(avgProvisionRate * 100) / 100,
+      avgROA: Math.round(avgROA * 100) / 100,
+      avgYield: Math.round(avgYield * 100) / 100,
+      collectionEfficiency: Math.round(avgCollection * 100) / 100
+    };
+  }
+
+  /**
+   * Détermine le statut de conformité global
+   */
+  private determineGlobalComplianceStatus(metrics: OHADAMetrics[]): any {
+    if (metrics.length === 0) return 'WARNING';
+
+    const compliantCount = metrics.filter(m => 
+      m.regulatoryCompliance?.bceaoCompliant && m.regulatoryCompliance?.ohadaProvisionCompliant
+    ).length;
+
+    const complianceRate = compliantCount / metrics.length;
+
+    if (complianceRate >= 0.9) return 'COMPLIANT';
+    if (complianceRate >= 0.7) return 'WARNING';
+    return 'NON_COMPLIANT';
   }
 }

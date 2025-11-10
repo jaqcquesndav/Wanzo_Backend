@@ -125,14 +125,14 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolios/traditional` | Récupère tous les portefeuilles traditionnels |
-| GET | `/portfolios/traditional/${id}` | Récupère un portefeuille traditionnel par son ID |
-| POST | `/portfolios/traditional` | Crée un nouveau portefeuille traditionnel |
-| PUT | `/portfolios/traditional/${id}` | Met à jour un portefeuille traditionnel |
-| DELETE | `/portfolios/traditional/${id}` | Supprime un portefeuille traditionnel |
-| POST | `/portfolios/traditional/${id}/status` | Change le statut d'un portefeuille traditionnel |
-| GET | `/portfolios/traditional/${id}/performance` | Récupère les performances d'un portefeuille traditionnel |
-| GET | `/portfolios/traditional/${id}/activities` | Récupère l'historique des activités d'un portefeuille traditionnel |
+| GET | `/portfolios` | Récupère tous les portefeuilles (avec pagination et filtres) |
+| GET | `/portfolios/${id}` | Récupère un portefeuille par son ID |
+| POST | `/portfolios` | Crée un nouveau portefeuille |
+| PUT | `/portfolios/${id}` | Met à jour un portefeuille |
+| DELETE | `/portfolios/${id}` | Supprime un portefeuille |
+| PUT | `/portfolios/${id}/status` | Change le statut d'un portefeuille |
+| POST | `/portfolios/${id}/close` | Ferme définitivement un portefeuille |
+| GET | `/portfolios/${id}/products` | Récupère tous les produits financiers d'un portefeuille |
 
 #### Produits financiers (associés à un portefeuille)
 
@@ -154,16 +154,28 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 ### 2. Contrats de crédit
 
+#### Gestion des contrats
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolios/traditional/credit-contracts` | Récupère tous les contrats de crédit |
-| GET | `/portfolios/traditional/credit-contracts/${id}` | Récupère un contrat de crédit par son ID |
-| POST | `/portfolios/traditional/credit-contracts/from-request` | Crée un nouveau contrat de crédit à partir d'une demande |
-| POST | `/portfolios/traditional/credit-contracts/${id}/generate-document` | Génère le document du contrat de crédit |
-| POST | `/portfolios/traditional/credit-contracts/${id}/default` | Marque un contrat comme défaillant |
-| POST | `/portfolios/traditional/credit-contracts/${id}/restructure` | Restructure un contrat de crédit |
-| PUT | `/portfolios/traditional/credit-contracts/${id}` | Met à jour un contrat de crédit |
-| GET | `/portfolios/traditional/credit-contracts/${contractId}/payment-schedule` | Récupère l'échéancier de paiement d'un contrat |
+| GET | `/contracts` | Récupère tous les contrats de crédit (avec filtres) |
+| GET | `/contracts/${id}` | Récupère un contrat de crédit par son ID |
+| POST | `/contracts/from-request` | Crée un nouveau contrat de crédit à partir d'une demande |
+| PUT | `/contracts/${id}` | Met à jour un contrat de crédit |
+| DELETE | `/contracts/${id}` | Supprime un contrat de crédit |
+| GET | `/contracts/${contractId}/schedule` | Récupère l'échéancier de paiement d'un contrat |
+
+#### Actions sur le cycle de vie des contrats
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/contracts/${id}/activate` | Active un contrat (DRAFT → ACTIVE) |
+| POST | `/contracts/${id}/suspend` | Suspend un contrat (ACTIVE → SUSPENDED) |
+| POST | `/contracts/${id}/mark-default` | Marque un contrat en défaut (ACTIVE → DEFAULTED) |
+| POST | `/contracts/${id}/litigation` | Met un contrat en litige (DEFAULTED → LITIGATION) |
+| POST | `/contracts/${id}/restructure` | Restructure un contrat |
+| POST | `/contracts/${id}/complete` | Termine un contrat (ACTIVE → COMPLETED) |
+| POST | `/contracts/${id}/cancel` | Annule un contrat (DRAFT/ACTIVE → CANCELLED) |
 
 ### 3. Demandes de crédit
 
@@ -222,22 +234,36 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 ### 7. Utilisateurs
 
+#### Gestion des utilisateurs
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/users` | Récupère tous les utilisateurs |
+| GET | `/users` | Récupère tous les utilisateurs (avec pagination et filtres) |
 | GET | `/users/${id}` | Récupère un utilisateur par son ID |
 | POST | `/users` | Crée un nouvel utilisateur |
 | PUT | `/users/${id}` | Met à jour un utilisateur |
 | DELETE | `/users/${id}` | Supprime un utilisateur |
-| GET | `/users/me` | Récupère le profil de l'utilisateur courant |
-| GET | `/users/me/preferences` | Récupère les préférences utilisateur |
-| PUT | `/users/me/preferences` | Met à jour les préférences utilisateur |
-| POST | `/users/${id}/reset-password` | Réinitialise le mot de passe d'un utilisateur |
-| POST | `/users/${userId}/portfolios` | Assigne un portefeuille à un utilisateur |
-| DELETE | `/users/${userId}/portfolios/${portfolioId}` | Retire l'assignation d'un portefeuille |
-| GET | `/users/roles` | Récupère la liste des rôles disponibles |
-| GET | `/users/permissions` | Récupère la liste des permissions |
-| GET | `/users/activity` | Récupère l'historique d'activité des utilisateurs |
+
+#### Activités et historique
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/users/${id}/activities` | Récupère l'historique des activités d'un utilisateur |
+
+#### Préférences utilisateur
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/users/${id}/preferences` | Récupère toutes les préférences d'un utilisateur |
+| GET | `/users/${id}/preferences/${category}` | Récupère les préférences par catégorie |
+| PUT | `/users/${id}/preferences` | Met à jour une préférence spécifique |
+
+#### Sessions utilisateur
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/users/${id}/sessions` | Récupère toutes les sessions actives d'un utilisateur |
+| DELETE | `/users/${id}/sessions/${sessionId}` | Termine une session spécifique |
 
 ### 8. Entreprises
 
@@ -254,17 +280,28 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 ### 9. Gestion des risques
 
+#### Évaluations de risque
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/risk` | Récupère toutes les évaluations de risque |
+| POST | `/risk` | Crée une nouvelle évaluation de risque |
+| PUT | `/risk/${id}` | Met à jour une évaluation de risque |
+
+#### Évaluations spécialisées par secteur
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/risk/credit/${companyId}` | Récupère l'évaluation de risque crédit d'une entreprise |
+| GET | `/risk/leasing/${companyId}` | Récupère l'évaluation de risque leasing d'une entreprise |
+
+#### Centrale des risques
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/risk/central/company/${companyId}` | Récupère les informations de risque de la centrale des risques |
 | POST | `/risk/central` | Crée une nouvelle entrée de risque central |
 | PUT | `/risk/central/entries/${id}` | Met à jour une entrée de risque central |
-| GET | `/risk/credit/${companyId}` | Récupère l'évaluation de risque crédit d'une entreprise |
-| GET | `/risk/leasing/${companyId}` | Récupère l'évaluation de risque leasing d'une entreprise |
-| GET | `/risk/investment/${companyId}` | Récupère l'évaluation de risque investissement d'une entreprise |
-| POST | `/risk/${type}` | Crée une nouvelle évaluation de risque (type: credit, leasing, investment) |
-| PUT | `/risk/${type}/${id}` | Met à jour une évaluation de risque |
-| GET | `/risk/portfolios/${portfolioId}` | Récupère l'analyse de risque d'un portefeuille |
 
 ### 10. Paiements
 
@@ -341,20 +378,48 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 
 ### 14. Dashboard et métriques
 
+#### Dashboard principal
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/dashboard` | Récupère les données du tableau de bord principal |
-| GET | `/dashboard/metrics/global` | Récupère les métriques globales |
-| GET | `/dashboard/metrics/portfolio/${portfolioId}` | Récupère les métriques d'un portefeuille |
-| GET | `/dashboard/metrics/ohada` | Récupère les métriques de conformité OHADA |
-| GET | `/dashboard/compliance/summary` | Récupère le résumé de conformité |
-| GET | `/dashboard/risk/central-bank` | Récupère les données de risque de la banque centrale |
-| GET | `/dashboard/risk/portfolios/${id}` | Récupère l'analyse de risque d'un portefeuille |
-| GET | `/dashboard/preferences/${userId}` | Récupère les préférences du tableau de bord |
-| PUT | `/dashboard/preferences/${userId}/widget/${widgetId}` | Met à jour un widget du tableau de bord |
-| POST | `/dashboard/preferences/${userId}/reset` | Réinitialise les préférences du tableau de bord |
+| GET | `/dashboard/traditional` | Récupère le tableau de bord traditionnel |
 
-### 15. Synchronisation
+#### Métriques OHADA
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/dashboard/ohada` | Récupère les métriques de conformité OHADA globales |
+| GET | `/dashboard/ohada/portfolio/${portfolioId}` | Récupère les métriques OHADA d'un portefeuille spécifique |
+
+#### Préférences et widgets
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/dashboard/preferences` | Récupère les préférences du tableau de bord |
+| PUT | `/dashboard/preferences/widget` | Met à jour les préférences d'un widget |
+
+### 15. Notifications
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/notifications` | Récupère toutes les notifications |
+| POST | `/notifications` | Crée une nouvelle notification |
+| GET | `/notifications/unread-count` | Récupère le nombre de notifications non lues |
+| POST | `/notifications/${id}/read` | Marque une notification comme lue |
+| DELETE | `/notifications/${id}` | Supprime une notification |
+
+### 16. Chat Portfolio
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/portfolio-chat` | Récupère toutes les conversations de chat |
+| POST | `/portfolio-chat` | Crée une nouvelle conversation |
+| GET | `/portfolio-chat/${id}` | Récupère une conversation par son ID |
+| PUT | `/portfolio-chat/${id}` | Met à jour une conversation |
+| DELETE | `/portfolio-chat/${id}` | Supprime une conversation |
+
+### 17. Synchronisation
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
@@ -363,13 +428,18 @@ Le système suit une hiérarchie stricte pour organiser les entités et leurs re
 | POST | `/sync/push` | Envoie les changements locaux |
 | POST | `/sync/reset` | Réinitialise l'état de synchronisation |
 
-### 16. Autres endpoints généraux
+### 18. Autres endpoints généraux
+
+#### Santé du service
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/portfolios` | Récupère tous les portefeuilles (tous types) |
-| GET | `/portfolios/${id}` | Récupère un portefeuille par son ID |
-| DELETE | `/portfolios/${id}` | Supprime un portefeuille |
+| GET | `/health` | Vérification de la santé du service (sans authentification) |
+
+#### Gestion d'institution
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
 | GET | `/institution/managers` | Récupère tous les gestionnaires d'institution |
 | POST | `/institution/managers` | Crée un nouveau gestionnaire |
 | PUT | `/institution/managers/${id}` | Met à jour un gestionnaire d'institution |
@@ -549,3 +619,55 @@ const completeWorkflow = async () => {
   }
 };
 ```
+
+## ✨ Nouvelles fonctionnalités découvertes (Mise à jour du 10 novembre 2025)
+
+Cette section documente les nouvelles fonctionnalités ajoutées au service portfolio-institution qui n'étaient pas documentées précédemment :
+
+### 🔄 Workflow avancé des contrats
+- **États étendus** : Support complet des états DRAFT, ACTIVE, SUSPENDED, DEFAULTED, LITIGATION, COMPLETED, CANCELLED
+- **Transitions contrôlées** : Actions spécialisées pour chaque changement d'état avec validation
+- **Traçabilité complète** : Historique détaillé de tous les changements d'état
+
+### 👥 Gestion avancée des utilisateurs
+- **Préférences granulaires** : Système de préférences par catégorie (UI, notifications, sécurité, etc.)
+- **Suivi d'activité** : Historique complet des actions utilisateur avec horodatage
+- **Gestion de sessions** : Contrôle des sessions actives et déconnexion sélective
+
+### 📊 Dashboard OHADA et métriques
+- **Conformité OHADA** : Métriques spécialisées pour la conformité aux normes OHADA
+- **Widgets personnalisables** : Interface de tableau de bord configurable par utilisateur
+- **Métriques par portefeuille** : Analyses détaillées par type de financement
+
+### 🔍 Système d'évaluation des risques
+- **Évaluations multicritères** : Support pour crédit, leasing et investissement
+- **Centrale des risques** : Interface avec les organismes de régulation financière
+- **Scoring automatisé** : Calculs de risque en temps réel avec historique
+
+### 💳 Ordres de paiement génériques
+- **Multi-financement** : Support pour tous types de financement (crédit, leasing, investissement)
+- **Workflow d'approbation** : Processus de validation avec états (PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED)
+- **Traçabilité bancaire** : Suivi complet jusqu'à confirmation bancaire
+
+### 🔔 Notifications et chat intégrés
+- **Système de notifications** : Gestion complète des notifications avec compteur de non-lus
+- **Chat portfolio** : Conversations contextuelles liées aux portfolios et opérations
+
+### 🚀 Améliorations techniques
+
+#### Structure d'URL simplifiée
+- **URLs consolidées** : Simplification de `/portfolios/traditional/` vers `/portfolios/` et `/contracts/`
+- **Cohérence API** : Standardisation des patterns d'URL sur l'ensemble du service
+
+#### Filtrage et pagination avancés
+- **Filtres uniformes** : Support cohérent des filtres par statut, type, dates sur tous les endpoints
+- **Pagination optimisée** : Métadonnées complètes (total, pages, limites) sur toutes les listes
+
+#### Sécurité renforcée
+- **Authentification JWT** : Intégration complète avec Auth0
+- **Contrôle d'accès** : Vérification des permissions par rôle sur tous les endpoints
+- **Audit trail** : Traçabilité complète des actions utilisateur
+
+---
+
+*Documentation mise à jour le 10 novembre 2025 suite à l'analyse complète du code source du portfolio-institution-service.*

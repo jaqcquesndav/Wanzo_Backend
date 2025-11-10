@@ -30,6 +30,8 @@ Le module de gestion des entreprises a été complètement refondu pour supporte
 http://localhost:8000/land/api/v1/companies
 ```
 
+**ℹ️ Architecture** : L'API Gateway route les requêtes `/land/api/v1/companies/*` vers le Customer Service en retirant le préfixe `/land/api/v1`. Le contrôleur CompanyController utilise `/companies` comme base interne.
+
 ### Structure des Données Étendues
 
 #### Interface Company Principale
@@ -1535,6 +1537,172 @@ DELETE /companies/{id}
 }
 ```
 
+### 🏭 Endpoints Patrimoine v2.1 (Nouveaux)
+
+#### Récupérer le Patrimoine Complet
+
+```http
+GET /land/api/v1/companies/{id}/patrimoine
+```
+
+**Description** : Récupère le patrimoine complet d'une entreprise (actifs et stocks).
+
+**Réponse** :
+```json
+{
+  "data": {
+    "assets": [
+      {
+        "id": "asset-001",
+        "designation": "Bureau principal",
+        "type": "immobilier",
+        "prixAchat": 50000,
+        "valeurActuelle": 45000,
+        "devise": "USD",
+        "dateAcquisition": "2023-01-15",
+        "etatActuel": "bon"
+      }
+    ],
+    "stocks": [
+      {
+        "id": "stock-001", 
+        "designation": "Matériel informatique",
+        "categorie": "equipement",
+        "quantiteStock": 50,
+        "unite": "pièces",
+        "coutUnitaire": 500,
+        "valeurTotaleStock": 25000
+      }
+    ],
+    "valorisation": {
+      "totalActifs": 45000,
+      "totalStocks": 25000,
+      "patrimoineTotal": 70000
+    }
+  }
+}
+```
+
+#### Ajouter un Actif
+
+```http
+POST /land/api/v1/companies/{id}/patrimoine/assets
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "designation": "Véhicule de service",
+  "type": "vehicule",
+  "description": "Toyota Hilux 2023",
+  "prixAchat": 35000,
+  "valeurActuelle": 35000,
+  "devise": "USD",
+  "dateAcquisition": "2023-11-01",
+  "etatActuel": "neuf",
+  "marque": "Toyota",
+  "modele": "Hilux",
+  "proprietaire": "propre"
+}
+```
+
+#### Modifier un Actif
+
+```http
+PUT /land/api/v1/companies/{id}/patrimoine/assets/{assetId}
+Content-Type: application/json
+```
+
+#### Supprimer un Actif
+
+```http
+DELETE /land/api/v1/companies/{id}/patrimoine/assets/{assetId}
+```
+
+#### Ajouter un Stock
+
+```http
+POST /land/api/v1/companies/{id}/patrimoine/stocks
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "designation": "Ordinateurs portables",
+  "categorie": "equipement",
+  "quantiteStock": 20,
+  "unite": "pièces",
+  "seuilMinimum": 5,
+  "coutUnitaire": 800,
+  "devise": "USD",
+  "emplacement": "Bureau principal",
+  "etatStock": "excellent",
+  "fournisseurPrincipal": "Dell Congo"
+}
+```
+
+#### Modifier un Stock
+
+```http
+PUT /land/api/v1/companies/{id}/patrimoine/stocks/{stockId}
+Content-Type: application/json
+```
+
+#### Supprimer un Stock
+
+```http
+DELETE /land/api/v1/companies/{id}/patrimoine/stocks/{stockId}
+```
+
+#### Calculer la Valorisation
+
+```http
+GET /land/api/v1/companies/{id}/patrimoine/valorisation
+```
+
+**Réponse** :
+```json
+{
+  "data": {
+    "totalActifsImmobilises": 80000,
+    "totalActifsCirculants": 45000,
+    "depreciationTotale": 5000,
+    "valeurNetteComptable": 120000,
+    "derniereMiseAJour": "2025-11-10T14:30:00Z"
+  }
+}
+```
+
+### 🧪 Endpoint de Test (Développement)
+
+```http
+POST /land/api/v1/companies/test
+Content-Type: application/json
+```
+
+**Description** : Endpoint de test sans authentification pour valider la connectivité.
+
+**Corps de la requête** :
+```json
+{
+  "message": "Test connection"
+}
+```
+
+**Réponse** :
+```json
+{
+  "success": true,
+  "message": "Company endpoint is working!",
+  "data": {
+    "message": "Test connection"
+  },
+  "timestamp": "2025-11-10T14:30:00Z"
+}
+```
+
 ## ⚙️ Logique Métier Moderne
 
 ### Processus de Création Étendu
@@ -1614,6 +1782,128 @@ Le système calcule automatiquement :
 - **Échéances Légales** : Rappels renouvellement licences
 - **Mise à Jour Données** : Suggestions de mise à jour périodique
 - **Opportunités** : Alertes financement/partenariats
+
+## ⚡ Workflows Inter-Services (Kafka)
+
+### Événements Entreprise Publiés
+
+Le service customer publie automatiquement des événements Kafka lors des actions sur les entreprises :
+
+#### Événements CRUD de Base
+```typescript
+// company.created
+{
+  topic: 'wanzo.customer.sme.created',
+  data: {
+    customerId: string;
+    smeId: string;
+    type: 'SME';
+    name: string;
+    email: string;
+    registrationNumber?: string;
+    createdAt: string;
+  }
+}
+
+// company.updated
+{
+  topic: 'wanzo.customer.sme.updated', 
+  data: {
+    customerId: string;
+    smeId: string;
+    updatedAt: string;
+    changedFields: string[];
+  }
+}
+
+// company.deleted
+{
+  topic: 'wanzo.customer.sme.deleted',
+  data: {
+    customerId: string;
+    smeId: string;
+    deletedAt: string;
+  }
+}
+```
+
+#### Événements de Validation
+```typescript
+// company.validated
+{
+  topic: 'wanzo.customer.sme.validated',
+  data: {
+    customerId: string;
+    smeId: string;
+    previousStatus: 'pending';
+    newStatus: 'active';
+    validatedAt: string;
+    validatedBy: string;
+  }
+}
+
+// company.suspended
+{
+  topic: 'wanzo.customer.sme.suspended',
+  data: {
+    customerId: string;
+    smeId: string;
+    previousStatus: 'active';
+    newStatus: 'suspended';
+    suspendedAt: string;
+    suspendedBy: string;
+    reason: string;
+  }
+}
+```
+
+#### Partage de Profil avec Admin-Service
+```typescript
+// admin.customer.company.profile.shared
+{
+  topic: 'admin.customer.company.profile.shared',
+  data: {
+    customerId: string;
+    customerType: 'COMPANY';
+    name: string;
+    email: string;
+    logo?: string;
+    companyProfile: {
+      legalForm: string;
+      industry: string;
+      rccm?: string;
+      taxId?: string;
+      activities: string[];
+      // ... autres données entreprise
+    };
+    extendedProfile?: {
+      generalInfo: object;
+      legalInfo: object;
+      patrimonyAndMeans: object;
+      // ... formulaire étendu
+    };
+    patrimoine: {
+      assets: object[];
+      stocks: object[];
+      totalAssetsValue: number;
+    };
+    profileCompleteness: {
+      percentage: number;
+      missingFields: string[];
+      completedSections: string[];
+    };
+    lastProfileUpdate: string;
+  }
+}
+```
+
+### Communication avec Autres Services
+
+Les événements entreprise sont consommés par :
+- **Admin Service** : Gestion et monitoring des profils
+- **Analytics Service** : Analyses sectorielles et benchmarking
+- **Accounting Service** : Facturation et comptabilité
+- **Portfolio Institution Service** : Évaluation de crédit
 
 ## 🔒 Sécurité et Permissions
 
