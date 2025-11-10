@@ -128,6 +128,10 @@ export class Customer {
   @Column({ nullable: true })
   taxId?: string;
 
+  // === STRIPE INTEGRATION ===
+  @Column({ nullable: true })
+  stripeCustomerId?: string;
+
   @Column({ nullable: true })
   natId?: string;
 

@@ -34,8 +34,8 @@ export interface PaymentServiceResponse {
 }
 
 @Injectable()
-export class SubscriptionPaymentService {
-  private readonly logger = new Logger(SubscriptionPaymentService.name);
+export class SubscriptionMobilePaymentService {
+  private readonly logger = new Logger(SubscriptionMobilePaymentService.name);
 
   constructor(
     @InjectRepository(SubscriptionPlan)

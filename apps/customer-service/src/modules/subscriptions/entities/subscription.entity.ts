@@ -206,6 +206,10 @@ export class Subscription {
   @Column({ nullable: true })
   paymentReference!: string;
 
+  // === STRIPE INTEGRATION ===
+  @Column({ nullable: true })
+  stripeSubscriptionId?: string;
+
   @Column('boolean', { default: false })
   autoRenew!: boolean;
 

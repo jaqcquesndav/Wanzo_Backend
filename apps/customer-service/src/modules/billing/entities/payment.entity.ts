@@ -69,6 +69,10 @@ export class Payment {
   @Column({ nullable: true })
   paymentGateway!: string;
 
+  // === STRIPE INTEGRATION ===
+  @Column({ nullable: true })
+  stripePaymentIntentId?: string;
+
   @Column({ nullable: true })
   paymentDate!: Date;
 

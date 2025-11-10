@@ -11,8 +11,16 @@ import { SubscriptionService } from './services/subscription.service';
 import { FeatureAccessService } from './services/feature-access.service';
 import { DatabaseFeatureAccessService } from './services/database-feature-access.service';
 import { PricingDataSyncService } from './services/pricing-data-sync.service';
-import { SubscriptionPaymentService } from './services/subscription-payment.service';
+import { SubscriptionMobilePaymentService } from './services/subscription-payment.service';
 import { PaymentEventListenerService } from './services/payment-event-listener.service';
+import { StripePaymentService } from './services/stripe-payment.service';
+import { PaymentServiceIntegration } from './services/payment-service-integration.service';
+import { PaymentOrchestratorService } from './services/payment-orchestrator.service';
+import { SubscriptionKafkaService } from './services/subscription-kafka.service';
+import { StripePaymentKafkaProducer } from './services/stripe-payment-kafka-producer.service';
+import { TokenManagementService } from './services/token-management.service';
+import { PromoCodeService } from './services/promo-code.service';
+import { AccessControlService } from './services/access-control.service';
 import { SubscriptionController } from './controllers/subscription.controller';
 import { PricingController } from './controllers/pricing.controller';
 import { AdminPricingController } from './controllers/admin-pricing.controller';
@@ -20,6 +28,7 @@ import { AdminSubscriptionController } from './controllers/admin-subscription.co
 import { CommercialController } from './controllers/commercial.controller';
 import { FinancialInstitutionController } from './controllers/financial-institution.controller';
 import { SubscriptionPaymentController } from './controllers/subscription-payment.controller';
+import { StripeSubscriptionPaymentController } from './controllers/stripe-subscription-payment.controller';
 import { FeatureAccessGuard } from './guards/feature-access.guard';
 import { CustomerExtractorMiddleware } from './middleware/customer-extractor.middleware';
 import { KafkaModule } from '../kafka/kafka.module';
@@ -62,23 +71,40 @@ import {
     CommercialController,
     FinancialInstitutionController,
     SubscriptionPaymentController,
+    StripeSubscriptionPaymentController,
   ],
   providers: [
     SubscriptionService,
+    // NOUVEAUX SERVICES UNIFIÉS
+    PaymentOrchestratorService,
+    SubscriptionKafkaService,
+    // SERVICES EXISTANTS CONSERVÉS
     FeatureAccessService,
     DatabaseFeatureAccessService,
+    AccessControlService,
+    TokenManagementService,
+    PromoCodeService,
     PricingDataSyncService,
-    SubscriptionPaymentService,
+    SubscriptionMobilePaymentService,
     PaymentEventListenerService,
+    StripePaymentService,
+    StripePaymentKafkaProducer,
+    PaymentServiceIntegration,
     FeatureAccessGuard,
     CustomerExtractorMiddleware,
   ],
   exports: [
     SubscriptionService,
+    // NOUVEAUX SERVICES PRINCIPAUX
+    PaymentOrchestratorService,
+    SubscriptionKafkaService,
+    // SERVICES EXISTANTS
     FeatureAccessService,
     PricingDataSyncService,
-    SubscriptionPaymentService,
+    SubscriptionMobilePaymentService,
     PaymentEventListenerService,
+    StripePaymentService,
+    PaymentServiceIntegration,
     FeatureAccessGuard,
     CustomerExtractorMiddleware,
   ],

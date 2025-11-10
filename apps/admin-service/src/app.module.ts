@@ -16,6 +16,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { SystemModule } from './modules/system/system.module';
 import { TokensModule } from './modules/tokens/tokens.module';
 import { KafkaModule } from './modules/kafka/kafka.module'; // Added KafkaModule import
+import { SubscriptionPaymentAnalyticsModule } from './modules/subscription-payment-analytics/subscription-payment-analytics.module';
 
 // --- Import du module de monitoring ---
 import { MonitoringModule } from './monitoring/monitoring.module'; // Corrected path
@@ -64,6 +65,7 @@ import { DatabaseCheckService } from './database-check.service';
     SystemModule,    TokensModule,
     DashboardModule,
     KafkaModule, // Added KafkaModule
+    SubscriptionPaymentAnalyticsModule, // Analytics des paiements d'abonnement
   ],  controllers: [HealthController],
   providers: [
     {
