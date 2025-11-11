@@ -59,20 +59,31 @@ Common HTTP status codes:
 
 The API is organized into the following modules:
 
+### Core Accounting Modules
 1. [Accounts](./accounts.md) - Manage chart of accounts, account structures, and financial operations
-2. [Audit](./audit.md) - Audit trails for fiscal years by certified auditors
-3. [Auth](./auth.md) - Authentication, authorization, and user management
-4. [Chat](./chat.md) - AI assistant and messaging capabilities
-5. [Dashboard](./dashboard.md) - Dashboard data and business intelligence widgets
-6. [Declarations](./declarations.md) - Tax and social declarations management
-7. [Fiscal Years](./fiscal-years.md) - Fiscal year management and closing procedures
-8. [Journals](./journals.md) - Journal entries and accounting transactions
-9. [Ledger](./ledger.md) - General ledger, trial balance, and account movements
-10. [Notifications](./notifications.md) - System notifications and alerts
-11. [Organization](./organization.md) - Enterprise (organization) management
-12. [Reporting](./reporting.md) - Financial reports, statements, and analytics
-13. [Settings](./settings.md) - Application settings and configuration
-14. [Users](./users.md) - User management and access control
+2. [Journals](./journals.md) - Journal entries and accounting transactions
+3. [Ledger](./ledger.md) - General ledger, trial balance, and account movements
+4. [Fiscal Years](./fiscal-years.md) - Fiscal year management and closing procedures
+5. [Reporting](./reporting.md) - Financial reports, statements, and analytics
+
+### Business Intelligence & Analytics
+6. [Dashboard](./dashboard.md) - Dashboard data and business intelligence widgets
+7. [Credit Score & AI Integration](./credit-score-ai-integration.md) - Credit scoring and AI-powered accounting features
+
+### System & Integration Modules
+8. [Auth](./auth.md) - Authentication, authorization, and user management
+9. [Users](./users.md) - User management and access control
+10. [Organization](./organization.md) - Enterprise (organization) management
+11. [Settings](./settings.md) - Application settings and configuration
+
+### Compliance & Communication
+12. [Audit](./audit.md) - Audit trails for fiscal years by certified auditors
+13. [Declarations](./declarations.md) - Tax and social declarations management
+14. [Notifications](./notifications.md) - System notifications and alerts
+15. [Chat](./chat.md) - AI assistant and messaging capabilities
+
+### Integration & Workflows
+16. [Workflows Inter-Services](./workflows.md) - Kafka integration and inter-service communication patterns
 
 ## Data Types
 

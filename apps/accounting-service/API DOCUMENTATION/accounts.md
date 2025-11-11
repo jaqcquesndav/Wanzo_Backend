@@ -121,7 +121,50 @@ Authorization: Bearer <token>
     "name": "Clients",
     "type": "asset",
     "standard": "SYSCOHADA",
-    "isAnalytic": false
+    "class": "4",
+    "isAnalytic": false,
+    "active": true,
+    "fiscalYearId": "fy-2024",
+    "companyId": "comp-123",
+    "description": "Comptes clients généraux",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Account by Code
+
+Retrieves a specific account by its accounting code.
+
+**URL:** `/accounts/code/:code`
+
+**Method:** `GET`
+
+**Authentication Required:** Yes
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**URL Parameters:**
+- `code` - Account code to retrieve (e.g., "411000")
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "acc-411",
+    "code": "411000",
+    "name": "Clients",
+    "type": "asset",
+    "standard": "SYSCOHADA",
+    "class": "4",
+    "isAnalytic": false,
+    "active": true
   }
 }
 ```
@@ -275,8 +318,18 @@ interface Account {
   code: string;
   name: string;
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
-  standard?: 'SYSCOHADA' | 'IFRS';
-  isAnalytic?: boolean;
+  standard: 'SYSCOHADA' | 'IFRS';
+  class: string; // Single character based on account code first digit
+  isAnalytic: boolean;
+  active: boolean;
+  parentId?: string;
+  fiscalYearId: string;
+  companyId: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  createdBy?: string;
+  createdAt: string; // ISO date format
+  updatedAt: string; // ISO date format
 }
 ```
 
@@ -344,20 +397,23 @@ Content-Type: application/json
 }
 ```
 
-### Search Accounts
+### Get Account Hierarchy
 
-Search accounts by query string with optional filters.
+Retrieves the hierarchical structure of accounts.
 
-**URL:** `/accounts/search`
+**URL:** `/accounts/hierarchy/:rootId?`
 
 **Method:** `GET`
 
 **Authentication Required:** Yes
 
-**Query Parameters:**
-- `query` (required) - Search term for code or name
-- `limit` (optional) - Maximum number of results (default: 10, max: 50)
-- `types` (optional) - Array of account types to filter by
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**URL Parameters:**
+- `rootId` (optional) - ID of the root account to start hierarchy from
 
 **Response:** `200 OK`
 
@@ -366,14 +422,116 @@ Search accounts by query string with optional filters.
   "success": true,
   "data": [
     {
-      "id": "acc-411",
-      "code": "411000",
-      "name": "Clients",
+      "id": "acc-4",
+      "code": "4XXXXX",
+      "name": "Comptes de Tiers",
       "type": "asset",
-      "standard": "SYSCOHADA",
-      "isAnalytic": false
+      "children": [
+        {
+          "id": "acc-41",
+          "code": "41XXXX",
+          "name": "Clients et comptes rattachés",
+          "type": "asset",
+          "children": [
+            {
+              "id": "acc-411",
+              "code": "411000",
+              "name": "Clients",
+              "type": "asset",
+              "children": []
+            }
+          ]
+        }
+      ]
     }
   ]
+}
+```
+
+### Batch Operations (Import/Export)
+
+Import or export accounts using files or create multiple accounts.
+
+**URL:** `/accounts/batch`
+
+**Method:** `POST`
+
+**Authentication Required:** Yes
+
+**Query Parameters:**
+- `action` (required) - The action to perform: `import` or `export`
+- `format` (required for export) - Export format: `csv` or `excel`
+
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data (for import)
+```
+
+**Request Body (Import):**
+- `file` - The file to import (CSV or Excel format)
+
+**Response (Import):** `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "imported": 125,
+    "errors": []
+  }
+}
+```
+
+**Response (Export):** File download with appropriate content-type header.
+
+### Create Multiple Accounts
+
+Creates multiple accounts in a single batch operation.
+
+**URL:** `/accounts/batch/create`
+
+**Method:** `POST`
+
+**Authentication Required:** Yes
+
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+[
+  {
+    "code": "602100",
+    "name": "Achats stockés - Matières premières",
+    "type" :"expense",
+    "standard": "SYSCOHADA",
+    "isAnalytic": false,
+    "companyId": "comp-123",
+    "fiscalYearId": "fy-2024"
+  },
+  {
+    "code": "602200", 
+    "name": "Achats stockés - Fournitures",
+    "type": "expense",
+    "standard": "SYSCOHADA",
+    "isAnalytic": false,
+    "companyId": "comp-123",
+    "fiscalYearId": "fy-2024"
+  }
+]
+```
+
+**Response:** `201 Created`
+```json
+{
+  "success": true,
+  "data": {
+    "created": 2,
+    "errors": []
+  }
 }
 ```
 

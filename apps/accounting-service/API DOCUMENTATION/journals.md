@@ -26,19 +26,28 @@ Content-Type: application/json
 ```typescript
 interface JournalEntry {
   id: string;
+  kiotaId?: string; // External reference ID for integration
   date: string; // ISO date format
   journalType: 'sales' | 'purchases' | 'bank' | 'cash' | 'general';
   description: string;
-  reference: string;
+  reference?: string;
   totalDebit: number;
   totalCredit: number;
   totalVat: number;
-  status: 'draft' | 'pending' | 'approved' | 'posted';
-  source?: 'manual' | 'agent'; // Source de l'entrée
+  status: 'draft' | 'pending' | 'approved' | 'posted' | 'rejected' | 'cancelled';
+  source: 'manual' | 'agent' | 'import'; // Source de l'entrée
   agentId?: string; // ID de l'agent comptable qui a généré cette entrée
   validationStatus?: 'pending' | 'validated' | 'rejected'; // Statut de validation pour les entrées provenant de l'agent
   validatedBy?: string; // Utilisateur qui a validé l'entrée
   validatedAt?: string; // Date de validation (ISO format)
+  postedBy?: string; // Utilisateur qui a comptabilisé l'entrée
+  postedAt?: string; // Date de comptabilisation (ISO format)
+  rejectionReason?: string; // Raison du rejet si status = 'rejected'
+  fiscalYearId: string; // ID de l'exercice fiscal
+  companyId?: string; // ID de l'entreprise
+  createdBy?: string; // Utilisateur créateur
+  createdAt: string; // Date de création (ISO format)
+  updatedAt: string; // Date de mise à jour (ISO format)
   lines: JournalLine[];
   attachments?: JournalAttachment[];
 }
@@ -554,7 +563,8 @@ Validates or rejects a journal entry created by the accounting agent.
 **Request Body:**
 ```json
 {
-  "validationStatus": "validated" // or "rejected"
+  "validationStatus": "validated", // or "rejected"
+  "rejectionReason": "Reason for rejection (required if status is rejected)"
 }
 ```
 
@@ -565,10 +575,43 @@ Validates or rejects a journal entry created by the accounting agent.
   "success": true,
   "data": {
     "id": "je-124",
-    "status": "pending", // Status might change to 'pending' or stay 'draft'
+    "status": "pending",
     "validationStatus": "validated",
     "validatedBy": "user-abc",
-    "validatedAt": "2025-06-19T10:00:00Z"
+    "validatedAt": "2025-06-19T10:00:00Z",
+    "rejectionReason": null
+  }
+}
+```
+
+### Update Journal Entry Status
+
+Updates the status of a journal entry (draft, pending, approved, posted, etc.).
+
+**URL:** `/journal-entries/:id/status`
+
+**Method:** `PATCH`
+
+**Authentication Required:** Yes
+
+**Request Body:**
+```json
+{
+  "status": "posted", // 'draft' | 'pending' | 'approved' | 'posted' | 'rejected' | 'cancelled'
+  "rejectionReason": "Optional rejection reason if status is rejected"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "je-124",
+    "status": "posted",
+    "postedBy": "user-abc",
+    "postedAt": "2025-06-19T10:30:00Z"
   }
 }
 ```
@@ -610,14 +653,19 @@ interface JournalEntry {
 interface JournalLine {
   id: string;
   accountId: string;
-  accountCode: string;
-  accountName: string;
-  debit: number;
-  credit: number;
+  accountCode?: string; // Generated from account relationship
+  accountName?: string; // Generated from account relationship
+  debit: number; // Amount in default currency (CDF)
+  credit: number; // Amount in default currency (CDF)
+  originalDebit?: number; // Original amount in transaction currency
+  originalCredit?: number; // Original amount in transaction currency
+  currency?: string; // Transaction currency (default: CDF)
+  exchangeRate?: number; // Exchange rate to CDF
   description: string;
   vatCode?: string;
   vatAmount?: number;
   analyticCode?: string;
+  metadata?: Record<string, any>; // Additional metadata
 }
 ```
 
