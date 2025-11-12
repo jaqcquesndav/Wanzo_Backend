@@ -1,563 +1,557 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsEnum, IsArray, IsNumber, IsBoolean, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PartialType, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { 
-  AddressDto, 
-  ApiResponseDto, 
-  ApiErrorResponseDto, 
-  PaginationDto,
-  InstitutionType, 
-  InstitutionCategory,
-  CurrencyType,
-  RegulatoryStatus
-} from '../../shared';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
- * DTO pour l'adresse du siège social - spécialisé pour les institutions financières
+ * DTOs basés sur la documentation 05-institutions-financieres.md
+ * Source de vérité : Documentation officielle v2.0
  */
-export class HeadquartersAddressDto extends AddressDto {
-  @ApiPropertyOptional({ description: 'Région administrative' })
-  @IsOptional()
-  @IsString()
-  region?: string;
 
-  @ApiPropertyOptional({ description: 'Zone économique' })
-  @IsOptional()
-  @IsString()
-  economicZone?: string;
+// Types d'institutions (Conforme au formulaire documenté)
+export enum FinancialInstitutionType {
+  BANQUE = 'BANQUE',
+  MICROFINANCE = 'MICROFINANCE',
+  COOPEC = 'COOPEC',
+  FOND_GARANTIE = 'FOND_GARANTIE',
+  ENTREPRISE_FINANCIERE = 'ENTREPRISE_FINANCIERE',
+  FOND_CAPITAL_INVESTISSEMENT = 'FOND_CAPITAL_INVESTISSEMENT',
+  FOND_IMPACT = 'FOND_IMPACT',
+  AUTRE = 'AUTRE'
+}
+
+export enum Currency {
+  USD = 'USD',
+  CDF = 'CDF',
+  EUR = 'EUR'
+}
+
+export enum SupervisoryAuthority {
+  BCC = 'bcc',
+  ARCA = 'arca',
+  ASMF = 'asmf',
+  OTHER = 'other'
 }
 
 /**
- * DTO pour les contacts généraux
- */
-export class GeneralContactDto {
-  @ApiProperty({ description: 'Email principal' })
-  @IsEmail()
-  email!: string;
-
-  @ApiProperty({ description: 'Téléphone principal' })
-  @IsString()
-  phone!: string;
-
-  @ApiPropertyOptional({ description: 'Téléphone alternatif' })
-  @IsOptional()
-  @IsString()
-  alternativePhone?: string;
-}
-
-/**
- * DTO pour les contacts du service client
- */
-export class CustomerServiceContactDto {
-  @ApiProperty({ description: 'Email service client' })
-  @IsEmail()
-  email!: string;
-
-  @ApiProperty({ description: 'Téléphone service client' })
-  @IsString()
-  phone!: string;
-
-  @ApiPropertyOptional({ description: 'Horaires d\'ouverture' })
-  @IsOptional()
-  @IsString()
-  hours?: string;
-}
-
-/**
- * DTO pour les contacts relations investisseurs
- */
-export class InvestorRelationsContactDto {
-  @ApiProperty({ description: 'Email relations investisseurs' })
-  @IsEmail()
-  email!: string;
-
-  @ApiPropertyOptional({ description: 'Téléphone relations investisseurs' })
-  @IsOptional()
-  @IsString()
-  phone?: string;
-}
-
-/**
- * DTO pour tous les contacts
- */
-export class ContactsDto {
-  @ApiProperty({ description: 'Contacts généraux' })
-  @ValidateNested()
-  @Type(() => GeneralContactDto)
-  general!: GeneralContactDto;
-
-  @ApiPropertyOptional({ description: 'Contacts service client' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CustomerServiceContactDto)
-  customerService?: CustomerServiceContactDto;
-
-  @ApiPropertyOptional({ description: 'Contacts relations investisseurs' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => InvestorRelationsContactDto)
-  investorRelations?: InvestorRelationsContactDto;
-}
-
-/**
- * DTO pour les informations du CEO
- */
-export class CeoDto {
-  @ApiProperty({ description: 'Nom complet du CEO' })
-  @IsString()
-  name!: string;
-
-  @ApiProperty({ description: 'Genre' })
-  @IsEnum(['male', 'female', 'other'])
-  gender!: 'male' | 'female' | 'other';
-
-  @ApiPropertyOptional({ description: 'Biographie' })
-  @IsOptional()
-  @IsString()
-  bio?: string;
-
-  @ApiPropertyOptional({ description: 'Éducation' })
-  @IsOptional()
-  @IsString()
-  education?: string;
-
-  @ApiPropertyOptional({ description: 'Expérience professionnelle' })
-  @IsOptional()
-  @IsString()
-  experience?: string;
-
-  @ApiPropertyOptional({ description: 'Spécialisations' })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  specializations?: string[];
-
-  @ApiPropertyOptional({ description: 'URL de la photo' })
-  @IsOptional()
-  @IsString()
-  photo?: string;
-
-  @ApiPropertyOptional({ description: 'Email de contact' })
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @ApiPropertyOptional({ description: 'LinkedIn profile' })
-  @IsOptional()
-  @IsString()
-  linkedinProfile?: string;
-}
-
-/**
- * DTO pour les services offerts
- */
-export class ServicesDto {
-  @ApiPropertyOptional({ description: 'Services bancaires particuliers' })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  personalBanking?: string[];
-
-  @ApiPropertyOptional({ description: 'Services bancaires entreprises' })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  businessBanking?: string[];
-
-  @ApiPropertyOptional({ description: 'Services spécialisés' })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  specializedServices?: string[];
-}
-
-/**
- * DTO pour la conformité réglementaire
- */
-export class RegulatoryComplianceDto {
-  @ApiProperty({ description: 'Conformité BCC' })
-  @IsBoolean()
-  bcc!: boolean;
-
-  @ApiPropertyOptional({ description: 'Conformité internationale' })
-  @IsOptional()
-  @IsBoolean()
-  international?: boolean;
-
-  @ApiPropertyOptional({ description: 'Conformité anti-blanchiment' })
-  @IsOptional()
-  @IsBoolean()
-  aml?: boolean;
-}
-
-/**
- * DTO pour les informations financières
- */
-export class FinancialInfoDto {
-  @ApiProperty({ description: 'Total des actifs' })
-  @IsNumber()
-  assets!: number;
-
-  @ApiProperty({ description: 'Capital social' })
-  @IsNumber()
-  capital!: number;
-
-  @ApiProperty({ description: 'Devise' })
-  @IsEnum(CurrencyType)
-  currency!: CurrencyType;
-
-  @ApiProperty({ description: 'Année de fondation' })
-  @IsNumber()
-  yearFounded!: number;
-
-  @ApiProperty({ description: 'Conformité réglementaire' })
-  @ValidateNested()
-  @Type(() => RegulatoryComplianceDto)
-  regulatoryCompliance!: RegulatoryComplianceDto;
-}
-
-/**
- * DTO pour la notation de crédit
- */
-export class CreditRatingDto {
-  @ApiProperty({ description: 'Agence de notation' })
-  @IsString()
-  agency!: string;
-
-  @ApiProperty({ description: 'Note attribuée' })
-  @IsString()
-  rating!: string;
-
-  @ApiProperty({ description: 'Perspective' })
-  @IsEnum(['positive', 'stable', 'negative'])
-  outlook!: 'positive' | 'stable' | 'negative';
-
-  @ApiProperty({ description: 'Dernière mise à jour' })
-  @IsDateString()
-  lastUpdated!: string;
-}
-
-/**
- * DTO pour les liens d'applications
- */
-export class AppLinksDto {
-  @ApiPropertyOptional({ description: 'Lien Google Play Store' })
-  @IsOptional()
-  @IsString()
-  android?: string;
-
-  @ApiPropertyOptional({ description: 'Lien Apple App Store' })
-  @IsOptional()
-  @IsString()
-  ios?: string;
-}
-
-/**
- * DTO pour la présence digitale
- */
-export class DigitalPresenceDto {
-  @ApiPropertyOptional({ description: 'Banking mobile disponible' })
-  @IsOptional()
-  @IsBoolean()
-  hasMobileBanking?: boolean;
-
-  @ApiPropertyOptional({ description: 'Internet banking disponible' })
-  @IsOptional()
-  @IsBoolean()
-  hasInternetBanking?: boolean;
-
-  @ApiPropertyOptional({ description: 'Liens des applications' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => AppLinksDto)
-  appLinks?: AppLinksDto;
-}
-
-/**
- * DTO pour les couleurs de marque
- */
-export class BrandColorsDto {
-  @ApiPropertyOptional({ description: 'Couleur primaire' })
-  @IsOptional()
-  @IsString()
-  primary?: string;
-
-  @ApiPropertyOptional({ description: 'Couleur secondaire' })
-  @IsOptional()
-  @IsString()
-  secondary?: string;
-
-  @ApiPropertyOptional({ description: 'Couleur d\'accent' })
-  @IsOptional()
-  @IsString()
-  accent?: string;
-}
-
-/**
- * DTO principal pour créer une institution financière
- */
-export class CreateFinancialInstitutionDto {
-  @ApiProperty({ description: 'Nom de l\'institution' })
-  @IsString()
-  name!: string;
-
-  @ApiProperty({ description: 'Type d\'institution', enum: InstitutionType })
-  @IsOptional()
-  @IsEnum(InstitutionType)
-  type?: InstitutionType;
-
-  @ApiProperty({ description: 'Catégorie d\'institution', enum: InstitutionCategory })
-  @IsOptional()
-  @IsEnum(InstitutionCategory)
-  category?: InstitutionCategory;
-
-  @ApiPropertyOptional({ description: 'Description' })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional({ description: 'Numéro d\'agrément' })
-  @IsOptional()
-  @IsString()
-  licenseNumber?: string;
-
-  @ApiPropertyOptional({ description: 'Date d\'établissement' })
-  @IsOptional()
-  @IsDateString()
-  establishedDate?: string;
-
-  @ApiPropertyOptional({ description: 'Statut réglementaire', enum: RegulatoryStatus })
-  @IsOptional()
-  @IsEnum(RegulatoryStatus)
-  regulatoryStatus?: RegulatoryStatus;
-
-  @ApiPropertyOptional({ description: 'Date d\'expiration de licence' })
-  @IsOptional()
-  @IsDateString()
-  licenseExpiryDate?: string;
-
-  @ApiPropertyOptional({ description: 'Adresse du siège social' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => HeadquartersAddressDto)
-  address?: HeadquartersAddressDto;
-
-  @ApiProperty({ description: 'Contacts' })
-  @ValidateNested()
-  @Type(() => ContactsDto)
-  contacts!: ContactsDto;
-
-  @ApiPropertyOptional({ description: 'Informations CEO' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CeoDto)
-  leadership?: CeoDto;
-
-  @ApiPropertyOptional({ description: 'Services offerts' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ServicesDto)
-  services?: ServicesDto;
-
-  @ApiPropertyOptional({ description: 'Informations financières' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => FinancialInfoDto)
-  financialInfo?: FinancialInfoDto;
-
-  @ApiPropertyOptional({ description: 'Notation de crédit' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CreditRatingDto)
-  creditRating?: CreditRatingDto;
-
-  @ApiPropertyOptional({ description: 'Présence digitale' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => DigitalPresenceDto)
-  digitalPresence?: DigitalPresenceDto;
-
-  @ApiPropertyOptional({ description: 'Couleurs de marque' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => BrandColorsDto)
-  brandColors?: BrandColorsDto;
-
-  @ApiPropertyOptional({ description: 'URL du logo' })
-  @IsOptional()
-  @IsString()
-  logo?: string;
-
-  @ApiPropertyOptional({ description: 'Site web' })
-  @IsOptional()
-  @IsString()
-  website?: string;
-}
-
-/**
- * DTO pour mettre à jour une institution financière
- */
-export class UpdateFinancialInstitutionDto extends PartialType(CreateFinancialInstitutionDto) {}
-
-/**
- * DTO de réponse pour une institution financière
+ * DTO principal Financial Institution (100% conforme à la documentation)
  */
 export class FinancialInstitutionResponseDto {
   @ApiProperty({ description: 'Identifiant unique' })
   @IsString()
   id!: string;
 
-  @ApiProperty({ description: 'Nom de l\'institution' })
+  @ApiProperty({ description: 'ID utilisateur propriétaire' })
   @IsString()
-  name!: string;
+  userId!: string;
 
-  @ApiProperty({ description: 'Type d\'institution', enum: InstitutionType })
-  @IsEnum(InstitutionType)
-  type!: InstitutionType;
-
-  @ApiProperty({ description: 'Catégorie d\'institution', enum: InstitutionCategory })
-  @IsEnum(InstitutionCategory)
-  category!: InstitutionCategory;
-
-  @ApiPropertyOptional({ description: 'Description' })
-  @IsOptional()
+  // === IDENTIFICATION INSTITUTIONNELLE (exactement comme dans le formulaire) ===
+  @ApiProperty({ description: 'Dénomination sociale' })
   @IsString()
-  description?: string;
+  denominationSociale!: string;
 
-  @ApiPropertyOptional({ description: 'Numéro d\'agrément' })
-  @IsOptional()
+  @ApiProperty({ description: 'Sigle/Acronyme' })
   @IsString()
-  licenseNumber?: string;
+  sigle!: string;
 
-  @ApiPropertyOptional({ description: 'Date d\'établissement' })
-  @IsOptional()
+  @ApiProperty({ description: 'Type d\'institution', enum: FinancialInstitutionType })
+  @IsEnum(FinancialInstitutionType)
+  typeInstitution!: FinancialInstitutionType;
+
+  @ApiProperty({ description: 'Sous-catégorie' })
+  @IsString()
+  sousCategorie!: string;
+
+  @ApiProperty({ description: 'Date de création' })
   @IsDateString()
-  establishedDate?: string;
+  dateCreation!: string;
 
-  @ApiProperty({ description: 'Statut réglementaire', enum: RegulatoryStatus })
-  @IsEnum(RegulatoryStatus)
-  regulatoryStatus!: RegulatoryStatus;
+  @ApiProperty({ description: 'Pays d\'origine' })
+  @IsString()
+  paysOrigine!: string;
 
-  @ApiPropertyOptional({ description: 'Date d\'expiration de licence' })
-  @IsOptional()
+  @ApiProperty({ description: 'Statut juridique' })
+  @IsString()
+  statutJuridique!: string;
+
+  // === INFORMATIONS RÉGLEMENTAIRES ===
+  @ApiProperty({ description: 'Autorité de supervision', enum: SupervisoryAuthority })
+  @IsEnum(SupervisoryAuthority)
+  autoritéSupervision!: SupervisoryAuthority;
+
+  @ApiProperty({ description: 'Numéro d\'agrément' })
+  @IsString()
+  numeroAgrement!: string;
+
+  @ApiProperty({ description: 'Date d\'agrément' })
   @IsDateString()
-  licenseExpiryDate?: string;
+  dateAgrement!: string;
 
-  @ApiPropertyOptional({ description: 'Adresse du siège social' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => HeadquartersAddressDto)
-  address?: HeadquartersAddressDto;
+  @ApiProperty({ description: 'Validité agrément' })
+  @IsDateString()
+  validiteAgrement!: string;
 
-  @ApiProperty({ description: 'Contacts' })
-  @ValidateNested()
-  @Type(() => ContactsDto)
-  contacts!: ContactsDto;
-
-  @ApiPropertyOptional({ description: 'Informations CEO' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CeoDto)
-  leadership?: CeoDto;
-
-  @ApiPropertyOptional({ description: 'Services offerts' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ServicesDto)
-  services?: ServicesDto;
-
-  @ApiPropertyOptional({ description: 'Informations financières' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => FinancialInfoDto)
-  financialInfo?: FinancialInfoDto;
-
-  @ApiPropertyOptional({ description: 'Notation de crédit' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CreditRatingDto)
-  creditRating?: CreditRatingDto;
-
-  @ApiPropertyOptional({ description: 'Capacité financière' })
-  @IsOptional()
-  capaciteFinanciere?: {
-    capitalSocial?: number;
-    fondsPropresDeclares?: number;
-    limitesOperationnelles?: string[];
-    monnaieReference?: CurrencyType;
-  };
-
-  @ApiPropertyOptional({ description: 'Présence digitale' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => DigitalPresenceDto)
-  digitalPresence?: DigitalPresenceDto;
-
-  @ApiPropertyOptional({ description: 'Couleurs de marque' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => BrandColorsDto)
-  brandColors?: BrandColorsDto;
-
-  @ApiPropertyOptional({ description: 'URL du logo' })
-  @IsOptional()
+  @ApiProperty({ description: 'Numéro RCCM' })
   @IsString()
-  logo?: string;
+  numeroRCCM!: string;
 
-  @ApiPropertyOptional({ description: 'Site web' })
-  @IsOptional()
+  @ApiProperty({ description: 'Numéro NIF' })
   @IsString()
-  website?: string;
+  numeroNIF!: string;
 
+  // === ACTIVITÉS AUTORISÉES ===
+  @ApiProperty({ description: 'Activités autorisées', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  activitesAutorisees!: string[];
+
+  // === INFORMATIONS OPÉRATIONNELLES ===
+  @ApiProperty({ description: 'Adresse du siège social' })
+  @IsString()
+  siegeSocial!: string;
+
+  @ApiProperty({ description: 'Nombre d\'agences' })
+  @IsNumber()
+  nombreAgences!: number;
+
+  @ApiProperty({ description: 'Villes/provinces couvertes', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  villesProvincesCouvertes!: string[];
+
+  @ApiProperty({ description: 'Présence internationale' })
+  @IsBoolean()
+  presenceInternationale!: boolean;
+
+  // === CAPACITÉS FINANCIÈRES ===
+  @ApiProperty({ description: 'Capital social minimum' })
+  @IsString()
+  capitalSocialMinimum!: string;
+
+  @ApiProperty({ description: 'Capital social actuel' })
+  @IsString()
+  capitalSocialActuel!: string;
+
+  @ApiProperty({ description: 'Montant fonds propres' })
+  @IsString()
+  fondsPropresMontant!: string;
+
+  @ApiProperty({ description: 'Total bilan' })
+  @IsString()
+  totalBilan!: string;
+
+  @ApiProperty({ description: 'Chiffre d\'affaires annuel' })
+  @IsString()
+  chiffreAffairesAnnuel!: string;
+
+  @ApiProperty({ description: 'Devise de référence', enum: Currency })
+  @IsEnum(Currency)
+  devise!: Currency;
+
+  // === CLIENTÈLE ET MARCHÉ ===
+  @ApiProperty({ description: 'Segment clientèle principal' })
+  @IsString()
+  segmentClientelePrincipal!: string;
+
+  @ApiProperty({ description: 'Nombre de clients actifs' })
+  @IsNumber()
+  nombreClientsActifs!: number;
+
+  @ApiProperty({ description: 'Portefeuille crédit' })
+  @IsString()
+  portefeuilleCredit!: string;
+
+  @ApiProperty({ description: 'Dépôts collectés' })
+  @IsString()
+  depotsCollectes!: string;
+
+  // === SERVICES OFFERTS À WANZO ===
+  @ApiProperty({ description: 'Services de crédit', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesCredit!: string[];
+
+  @ApiProperty({ description: 'Services d\'investissement', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesInvestissement!: string[];
+
+  @ApiProperty({ description: 'Services de garantie', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesGarantie!: string[];
+
+  @ApiProperty({ description: 'Services transactionnels', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesTransactionnels!: string[];
+
+  @ApiProperty({ description: 'Services de conseil', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesConseil!: string[];
+
+  // === PARTENARIAT WANZO ===
+  @ApiProperty({ description: 'Motivation principale' })
+  @IsString()
+  motivationPrincipale!: string;
+
+  @ApiProperty({ description: 'Services prioritaires', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  servicesPrioritaires!: string[];
+
+  @ApiProperty({ description: 'Segments clientèle cibles', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  segmentsClienteleCibles!: string[];
+
+  @ApiProperty({ description: 'Volume d\'affaires envisagé' })
+  @IsString()
+  volumeAffairesEnvisage!: string;
+
+  // === CONDITIONS COMMERCIALES ===
+  @ApiProperty({ description: 'Grilles tarifaires' })
+  @IsString()
+  grillesTarifaires!: string;
+
+  @ApiProperty({ description: 'Conditions préférentielles' })
+  @IsString()
+  conditionsPreferentielles!: string;
+
+  @ApiProperty({ description: 'Délais de traitement' })
+  @IsString()
+  delaisTraitement!: string;
+
+  @ApiProperty({ description: 'Critères d\'éligibilité' })
+  @IsString()
+  criteresEligibilite!: string;
+
+  // === CAPACITÉ D'ENGAGEMENT ===
+  @ApiProperty({ description: 'Montant maximum par dossier' })
+  @IsString()
+  montantMaximumDossier!: string;
+
+  @ApiProperty({ description: 'Enveloppe globale' })
+  @IsString()
+  enveloppeGlobale!: string;
+
+  @ApiProperty({ description: 'Secteurs d\'activité privilégiés', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  secteursActivitePrivilegies!: string[];
+
+  @ApiProperty({ description: 'Zones géographiques prioritaires', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  zonesGeographiquesPrioritaires!: string[];
+
+  // === DOCUMENTS ===
+  @ApiProperty({ description: 'Documents légaux' })
+  documentsLegaux!: any[];
+
+  @ApiProperty({ description: 'Documents financiers' })
+  documentsFinanciers!: any[];
+
+  @ApiProperty({ description: 'Documents opérationnels' })
+  documentsOperationnels!: any[];
+
+  @ApiProperty({ description: 'Documents compliance' })
+  documentsCompliance!: any[];
+
+  // === MÉTADONNÉES ===
   @ApiProperty({ description: 'Date de création' })
   @IsDateString()
   createdAt!: string;
 
-  @ApiProperty({ description: 'Date de mise à jour' })
+  @ApiProperty({ description: 'Date de dernière mise à jour' })
   @IsDateString()
   updatedAt!: string;
+}
 
-  @ApiPropertyOptional({ description: 'Créé par' })
+/**
+ * DTO pour créer une institution financière (Conforme à la documentation)
+ */
+export class CreateFinancialInstitutionDto {
+  @ApiProperty({ description: 'ID utilisateur propriétaire' })
+  @IsString()
+  userId!: string;
+
+  // === IDENTIFICATION INSTITUTIONNELLE (Requis) ===
+  @ApiProperty({ description: 'Dénomination sociale' })
+  @IsString()
+  denominationSociale!: string;
+
+  @ApiProperty({ description: 'Sigle/Acronyme' })
+  @IsString()
+  sigle!: string;
+
+  @ApiProperty({ description: 'Type d\'institution', enum: FinancialInstitutionType })
+  @IsEnum(FinancialInstitutionType)
+  typeInstitution!: FinancialInstitutionType;
+
+  @ApiProperty({ description: 'Sous-catégorie' })
+  @IsString()
+  sousCategorie!: string;
+
+  @ApiProperty({ description: 'Date de création' })
+  @IsDateString()
+  dateCreation!: string;
+
+  @ApiProperty({ description: 'Pays d\'origine' })
+  @IsString()
+  paysOrigine!: string;
+
+  @ApiProperty({ description: 'Statut juridique' })
+  @IsString()
+  statutJuridique!: string;
+
+  // === INFORMATIONS RÉGLEMENTAIRES (Optionnelles à la création) ===
+  @ApiPropertyOptional({ description: 'Autorité de supervision', enum: SupervisoryAuthority })
+  @IsOptional()
+  @IsEnum(SupervisoryAuthority)
+  autoritéSupervision?: SupervisoryAuthority;
+
+  @ApiPropertyOptional({ description: 'Numéro d\'agrément' })
   @IsOptional()
   @IsString()
-  createdBy?: string;
+  numeroAgrement?: string;
+
+  @ApiPropertyOptional({ description: 'Date d\'agrément' })
+  @IsOptional()
+  @IsDateString()
+  dateAgrement?: string;
+
+  @ApiPropertyOptional({ description: 'Validité agrément' })
+  @IsOptional()
+  @IsDateString()
+  validiteAgrement?: string;
+
+  @ApiPropertyOptional({ description: 'Numéro RCCM' })
+  @IsOptional()
+  @IsString()
+  numeroRCCM?: string;
+
+  @ApiPropertyOptional({ description: 'Numéro NIF' })
+  @IsOptional()
+  @IsString()
+  numeroNIF?: string;
+
+  // === INFORMATIONS OPÉRATIONNELLES (Optionnelles) ===
+  @ApiPropertyOptional({ description: 'Adresse du siège social' })
+  @IsOptional()
+  @IsString()
+  siegeSocial?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre d\'agences' })
+  @IsOptional()
+  @IsNumber()
+  nombreAgences?: number;
+
+  @ApiPropertyOptional({ description: 'Villes/provinces couvertes', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  villesProvincesCouvertes?: string[];
+
+  @ApiPropertyOptional({ description: 'Présence internationale' })
+  @IsOptional()
+  @IsBoolean()
+  presenceInternationale?: boolean;
+
+  // Autres champs optionnels...
+  @ApiPropertyOptional({ description: 'Capital social actuel' })
+  @IsOptional()
+  @IsString()
+  capitalSocialActuel?: string;
+
+  @ApiPropertyOptional({ description: 'Devise de référence', enum: Currency })
+  @IsOptional()
+  @IsEnum(Currency)
+  devise?: Currency;
+
+  @ApiPropertyOptional({ description: 'Segment clientèle principal' })
+  @IsOptional()
+  @IsString()
+  segmentClientelePrincipal?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre de clients actifs' })
+  @IsOptional()
+  @IsNumber()
+  nombreClientsActifs?: number;
 }
 
-// ===== ALIAS POUR COMPATIBILITÉ CONTRÔLEUR =====
-
 /**
- * Alias pour les DTOs requis par le contrôleur
+ * DTO pour mettre à jour une institution financière
  */
-export type InstitutionCoreDataDto = CreateFinancialInstitutionDto;
-export type CreateInstitutionCoreDto = CreateFinancialInstitutionDto;
-export type UpdateInstitutionCoreDto = UpdateFinancialInstitutionDto;
-export type InstitutionCoreResponseDto = FinancialInstitutionResponseDto;
+export class UpdateFinancialInstitutionDto {
+  @ApiPropertyOptional({ description: 'Dénomination sociale' })
+  @IsOptional()
+  @IsString()
+  denominationSociale?: string;
 
-/**
- * Enum pour le statut de l'institution
- */
-export enum InstitutionStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-  PENDING = 'pending',
-  REVOKED = 'revoked'
+  @ApiPropertyOptional({ description: 'Sigle/Acronyme' })
+  @IsOptional()
+  @IsString()
+  sigle?: string;
+
+  @ApiPropertyOptional({ description: 'Type d\'institution', enum: FinancialInstitutionType })
+  @IsOptional()
+  @IsEnum(FinancialInstitutionType)
+  typeInstitution?: FinancialInstitutionType;
+
+  @ApiPropertyOptional({ description: 'Sous-catégorie' })
+  @IsOptional()
+  @IsString()
+  sousCategorie?: string;
+
+  @ApiPropertyOptional({ description: 'Adresse du siège social' })
+  @IsOptional()
+  @IsString()
+  siegeSocial?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre d\'agences' })
+  @IsOptional()
+  @IsNumber()
+  nombreAgences?: number;
+
+  @ApiPropertyOptional({ description: 'Capital social actuel' })
+  @IsOptional()
+  @IsString()
+  capitalSocialActuel?: string;
+
+  @ApiPropertyOptional({ description: 'Devise de référence', enum: Currency })
+  @IsOptional()
+  @IsEnum(Currency)
+  devise?: Currency;
+
+  @ApiPropertyOptional({ description: 'Segment clientèle principal' })
+  @IsOptional()
+  @IsString()
+  segmentClientelePrincipal?: string;
+
+  @ApiPropertyOptional({ description: 'Nombre de clients actifs' })
+  @IsOptional()
+  @IsNumber()
+  nombreClientsActifs?: number;
+
+  // Tous les autres champs sont optionnels...
 }
 
 /**
- * Enum pour les types de licences
+ * DTOs pour les endpoints spécialisés (Conforme à ENDPOINTS_EXACT.md)
  */
-export enum LicenseType {
-  BANKING = 'banking',
-  MICROFINANCE = 'microfinance',
-  INSURANCE = 'insurance',
-  PAYMENT = 'payment',
-  FOREX = 'forex',
-  INVESTMENT = 'investment',
-  OTHER = 'other'
+
+// Branch/Agence
+export class InstitutionBranchDto {
+  @ApiProperty({ description: 'Nom de l\'agence' })
+  @IsString()
+  name!: string;
+
+  @ApiProperty({ description: 'Adresse de l\'agence' })
+  @IsString()
+  address!: string;
+
+  @ApiPropertyOptional({ description: 'Téléphone de l\'agence' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: 'Email de l\'agence' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'Heures d\'ouverture' })
+  @IsOptional()
+  @IsString()
+  openingHours?: string;
+
+  @ApiPropertyOptional({ description: 'Services disponibles', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  services?: string[];
+}
+
+// Team Member
+export class InstitutionTeamMemberDto {
+  @ApiProperty({ description: 'Nom complet' })
+  @IsString()
+  name!: string;
+
+  @ApiProperty({ description: 'Poste/Titre' })
+  @IsString()
+  position!: string;
+
+  @ApiPropertyOptional({ description: 'Email professionnel' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'Téléphone professionnel' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: 'Département' })
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @ApiPropertyOptional({ description: 'Biographie' })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }
 
 /**
- * Export du InstitutionType depuis shared pour réexportation
+ * DTOs pour la liste et filtres
  */
-export { InstitutionType } from '../../shared';
+export class FinancialInstitutionListQueryDto {
+  @ApiPropertyOptional({ description: 'Numéro de page', default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  page?: number = 1;
+
+  @ApiPropertyOptional({ description: 'Éléments par page', default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  limit?: number = 10;
+
+  @ApiPropertyOptional({ description: 'Recherche par nom' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrer par type', enum: FinancialInstitutionType })
+  @IsOptional()
+  @IsEnum(FinancialInstitutionType)
+  typeInstitution?: FinancialInstitutionType;
+
+  @ApiPropertyOptional({ description: 'Filtrer par autorité de supervision', enum: SupervisoryAuthority })
+  @IsOptional()
+  @IsEnum(SupervisoryAuthority)
+  autoritéSupervision?: SupervisoryAuthority;
+
+  @ApiPropertyOptional({ description: 'Tri (denominationSociale:asc, createdAt:desc, etc.)' })
+  @IsOptional()
+  @IsString()
+  sort?: string;
+}
+
+export class FinancialInstitutionListResponseDto {
+  @ApiProperty({ description: 'Liste des institutions', type: [FinancialInstitutionResponseDto] })
+  data!: FinancialInstitutionResponseDto[];
+
+  @ApiProperty({ description: 'Métadonnées de pagination' })
+  meta!: {
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  };
+}

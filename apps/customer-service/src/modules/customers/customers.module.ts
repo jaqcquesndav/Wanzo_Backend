@@ -2,56 +2,94 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
+// Modules spécialisés
+import { SharedCustomerModule } from './shared/shared-customer.module';
+import { CompanyModule } from './company/company.module';
+import { FinancialInstitutionModule } from './financial-institution/financial-institution.module';
+
+// Controllers principaux
 import { CustomerController } from './controllers/customer.controller';
-import { FinancialInstitutionController } from './controllers/financial-institution.controller';
-import { CompanyController } from './controllers/company.controller';
-import { OwnershipValidationController } from './controllers/ownership-validation.controller';
 
+// Services principaux (orchestrateurs)
 import { CustomerService } from './services/customer.service';
-import { InstitutionService } from './services/institution.service';
-import { SmeService } from './services/sme.service';
-import { CustomerEventsDistributor } from './services/customer-events-distributor.service';
-import { OwnershipValidatorService } from './services/ownership-validator.service';
 
+// Services legacy (migration terminée)
+
+// Entities principales
 import { Customer } from './entities/customer.entity';
-import { Institution } from './entities/institution.entity';
-import { Sme } from './entities/sme.entity';
+import { CustomerUser } from './entities/customer-user.entity';
 import { CustomerDocument } from './entities/customer-document.entity';
-import { FinancialInstitutionSpecificData } from './entities/financial-institution-specific-data.entity';
-import { SmeSpecificData } from './entities/sme-specific-data.entity';
-import { AssetData } from './entities/asset-data.entity';
-import { StockData } from './entities/stock-data.entity';
-import { EnterpriseIdentificationForm } from './entities/enterprise-identification-form.entity';
+
+// Les entities Sme et Institution sont maintenant dans leurs sous-modules respectifs
+// CompanyCoreEntity dans /company/entities/
+// InstitutionCoreEntity dans /financial-institution/entities/
+
+// External dependencies
 import { User } from '../system-users/entities/user.entity';
 import { KafkaModule } from '../kafka/kafka.module';
-// Import the CloudinaryModule
 import { CloudinaryModule } from '../cloudinary';
 
+/**
+ * Module principal des clients avec architecture modulaire
+ * 
+ * Structure:
+ * - SharedCustomerModule: Services partagés (lifecycle, registry, ownership, events)
+ * - CompanyModule: Gestion spécialisée des entreprises (SME)  
+ * - FinancialInstitutionModule: Gestion spécialisée des institutions financières
+ * - CustomerService: Orchestrateur principal qui délègue aux modules spécialisés
+ */
 @Module({
   imports: [
+    // ===== MODULES SPÉCIALISÉS (Architecture modulaire) =====
+    SharedCustomerModule,        // Services partagés pour tous types de clients
+    CompanyModule,              // Module spécialisé pour les entreprises 
+    FinancialInstitutionModule, // Module spécialisé pour les institutions financières
+
+    // ===== ENTITIES PRINCIPALES ET LEGACY =====
     TypeOrmModule.forFeature([
-      Customer, 
-      Institution, 
-      Sme, 
-      CustomerDocument, 
-      FinancialInstitutionSpecificData,
-      SmeSpecificData,
-      EnterpriseIdentificationForm,
-      AssetData,
-      StockData,
-      User
+      // Entities principales (communes à tous les types de clients)
+      Customer,
+      CustomerUser,
+      CustomerDocument,
+      
+      // External entities
+      User,
+      
+      // Note: Sme et Institution sont maintenant dans leurs sous-modules:
+      // - CompanyCoreEntity dans CompanyModule
+      // - InstitutionCoreEntity dans FinancialInstitutionModule
     ]),
+    
+    // ===== MODULES EXTERNES =====
     forwardRef(() => KafkaModule),
     CloudinaryModule,
     EventEmitterModule.forRoot(),
   ],
+  
   controllers: [
-    CustomerController, 
-    FinancialInstitutionController,
-    CompanyController,
-    OwnershipValidationController
+    // Controllers principaux (orchestrateurs)
+    CustomerController,
+    // Note: CompanyController et FinancialInstitutionController sont dans leurs modules respectifs
   ],
-  providers: [CustomerService, InstitutionService, SmeService, CustomerEventsDistributor, OwnershipValidatorService],
-  exports: [CustomerService, InstitutionService, SmeService, CustomerEventsDistributor, OwnershipValidatorService],
+  
+  providers: [
+    // Service principal (orchestrateur)
+    CustomerService,
+  ],
+  
+  exports: [
+    // Services principaux
+    CustomerService,
+    
+    // Modules spécialisés
+    SharedCustomerModule,
+    CompanyModule,
+    FinancialInstitutionModule,
+    
+    // Services legacy - tous migrés vers architecture modulaire
+    
+    // TypeORM pour autres modules
+    TypeOrmModule,
+  ],
 })
 export class CustomersModule {}

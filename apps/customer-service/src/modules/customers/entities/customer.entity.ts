@@ -1,15 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { CustomerDocument } from './customer-document.entity';
 import { CustomerActivity } from './customer-activity.entity';
 import { ValidationProcess } from './validation-process.entity';
-import { SmeSpecificData } from './sme-specific-data.entity';
-import { FinancialInstitutionSpecificData } from './financial-institution-specific-data.entity';
-import { EnterpriseIdentificationForm } from './enterprise-identification-form.entity';
 import { User } from '../../system-users/entities/user.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { TokenUsage } from '../../tokens/entities/token-usage.entity';
-import { AssetData } from './asset-data.entity';
-import { StockData } from './stock-data.entity';
 import { EncryptedColumnTransformer, EncryptedJsonTransformer } from '../../../security/encrypted-transformers';
 
 export enum CustomerType {
@@ -276,18 +271,6 @@ export class Customer {
   @OneToMany(() => ValidationProcess, process => process.customer)
   validationProcesses!: ValidationProcess[];
 
-  @OneToOne(() => SmeSpecificData, { cascade: true, nullable: true })
-  @JoinColumn()
-  smeData!: SmeSpecificData;
-
-  @OneToOne(() => FinancialInstitutionSpecificData, { cascade: true, nullable: true })
-  @JoinColumn()
-  financialData!: FinancialInstitutionSpecificData;
-
-  @OneToOne(() => EnterpriseIdentificationForm, { cascade: true, nullable: true })
-  @JoinColumn()
-  extendedIdentification?: EnterpriseIdentificationForm;
-
   @OneToMany(() => User, user => user.customer)
   users!: User[];
 
@@ -296,13 +279,6 @@ export class Customer {
 
   @OneToMany(() => TokenUsage, tokenUsage => tokenUsage.customer)
   tokenUsages!: TokenUsage[];
-
-  // Relations patrimoine v2.1
-  @OneToMany(() => AssetData, asset => asset.customer)
-  assets!: AssetData[];
-
-  @OneToMany(() => StockData, stock => stock.customer)
-  stocks!: StockData[];
 
   @Column({ nullable: true })
   createdBy?: string;

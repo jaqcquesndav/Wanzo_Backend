@@ -5,8 +5,7 @@
   "references": [
     { "path": "./packages/types" },
     { "path": "./packages/customer-sync" },
-    { "path": "./packages/shared" },
-    { "path": "./packages/tsconfig" }
+    { "path": "./packages/shared" }
   ],
   "compilerOptions": {
     "strict": false,

@@ -6,9 +6,11 @@ import {
   UpdateDateColumn,
   Index,
   OneToMany,
+  OneToOne,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Customer } from '../../entities/customer.entity';
 
 /**
  * Entité pour les informations de base des entreprises
@@ -24,6 +26,14 @@ import {
 export class CompanyCoreEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  // === RELATION AVEC CUSTOMER ===
+  @Column({ type: 'varchar', nullable: true })
+  customerId?: string;
+
+  @OneToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer;
 
   // === INFORMATIONS DE BASE ===
   @Column({ type: 'varchar', length: 255, nullable: false })
@@ -66,6 +76,12 @@ export class CompanyCoreEntity {
 
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  logoUrl?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  facebookPage?: string;
 
   // === ADRESSE SIÈGE SOCIAL ===
   @Column({ type: 'text', nullable: false })
@@ -220,6 +236,52 @@ export class CompanyCoreEntity {
 
   @Column({ type: 'date', nullable: true })
   lastFinancialYear?: Date;
+
+  // === LOCATIONS ET EMPLACEMENTS (JSON) ===
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Emplacements et localisations de l\'entreprise'
+  })
+  locations?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    address?: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  }>;
+
+  // === AFFILIATIONS INSTITUTIONNELLES (JSON) ===
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Affiliations avec institutions (CNSS, INPP, ONEM, etc.)'
+  })
+  affiliations?: {
+    cnss?: string;
+    inpp?: string;
+    onem?: string;
+    intraCoop?: string;
+    interCoop?: string;
+    partners?: string[];
+  };
+
+  // === INFORMATIONS SUBSCRIPTION (JSON) ===
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Informations d\'abonnement et plan'
+  })
+  subscription?: {
+    plan?: {
+      name?: string;
+    };
+    status?: string;
+    currentPeriodEnd?: Date;
+  };
 
   // === MÉTADONNÉES ===
   @Column({

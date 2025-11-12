@@ -6,12 +6,56 @@ import {
   UpdateDateColumn,
   Index,
   OneToMany,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Customer } from '../../entities/customer.entity';
 // Commented out to avoid circular dependencies during development
 // import { InstitutionBranchEntity } from './institution-branch.entity';
 import { InstitutionLeadershipEntity } from './institution-leadership.entity';
 // import { InstitutionServicesEntity } from './institution-services.entity';
 // import { InstitutionRegulatoryEntity } from './institution-regulatory.entity';
+
+/**
+ * Types d'institutions financières étendus (alignés avec legacy Institution entity)
+ */
+export enum InstitutionType {
+  // Types principaux des nouvelles entities
+  COMMERCIAL_BANK = 'COMMERCIAL_BANK',
+  INVESTMENT_BANK = 'INVESTMENT_BANK', 
+  SAVINGS_BANK = 'SAVINGS_BANK',
+  COOPERATIVE_BANK = 'COOPERATIVE_BANK',
+  MICROFINANCE_INSTITUTION = 'MICROFINANCE_INSTITUTION',
+  CREDIT_UNION = 'CREDIT_UNION',
+  INSURANCE_COMPANY = 'INSURANCE_COMPANY',
+  ASSET_MANAGEMENT = 'ASSET_MANAGEMENT',
+  BROKERAGE_FIRM = 'BROKERAGE_FIRM',
+  PAYMENT_PROCESSOR = 'PAYMENT_PROCESSOR',
+  FINTECH_COMPANY = 'FINTECH_COMPANY',
+  CENTRAL_BANK = 'CENTRAL_BANK',
+  DEVELOPMENT_BANK = 'DEVELOPMENT_BANK',
+  ISLAMIC_BANK = 'ISLAMIC_BANK',
+  PENSION_FUND = 'PENSION_FUND',
+
+  // Types legacy pour compatibility
+  BANQUE = 'BANQUE',
+  MICROFINANCE = 'MICROFINANCE', 
+  COOPEC = 'COOPEC',
+  FOND_GARANTIE = 'FOND_GARANTIE',
+  ENTREPRISE_FINANCIERE = 'ENTREPRISE_FINANCIERE',
+  FOND_CAPITAL_INVESTISSEMENT = 'FOND_CAPITAL_INVESTISSEMENT',
+  FOND_IMPACT = 'FOND_IMPACT',
+  AUTRE = 'AUTRE',
+}
+
+/**
+ * Types de secteurs alignés avec legacy entities
+ */
+export enum SectorType {
+  PRIVE = 'PRIVE',
+  PUBLIC = 'PUBLIC',
+  PUBLIC_PRIVE = 'PUBLIC_PRIVE',
+}
 
 /**
  * Entité pour les informations de base des institutions financières
@@ -28,6 +72,14 @@ import { InstitutionLeadershipEntity } from './institution-leadership.entity';
 export class InstitutionCoreEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  // === RELATION AVEC CUSTOMER ===
+  @Column({ type: 'varchar', nullable: true })
+  customerId?: string;
+
+  @OneToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer;
 
   // === IDENTIFICATION PRINCIPALE ===
   @Column({ type: 'varchar', length: 255, unique: true })
@@ -46,26 +98,18 @@ export class InstitutionCoreEntity {
   // === CLASSIFICATION ===
   @Column({
     type: 'enum',
-    enum: [
-      'COMMERCIAL_BANK',
-      'INVESTMENT_BANK',
-      'SAVINGS_BANK',
-      'COOPERATIVE_BANK',
-      'MICROFINANCE_INSTITUTION',
-      'CREDIT_UNION',
-      'INSURANCE_COMPANY',
-      'ASSET_MANAGEMENT',
-      'BROKERAGE_FIRM',
-      'PAYMENT_PROCESSOR',
-      'FINTECH_COMPANY',
-      'CENTRAL_BANK',
-      'DEVELOPMENT_BANK',
-      'ISLAMIC_BANK',
-      'PENSION_FUND',
-    ],
+    enum: InstitutionType,
+    default: InstitutionType.AUTRE
   })
   @Index()
-  institutionType!: string;
+  institutionType!: InstitutionType;
+
+  @Column({
+    type: 'enum', 
+    enum: SectorType,
+    nullable: true
+  })
+  sector?: SectorType;
 
   @Column({
     type: 'enum',
@@ -193,6 +237,61 @@ export class InstitutionCoreEntity {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   updatedBy?: string;
+
+  // === LOCATIONS ET BRANCHES (JSON) ===
+  @Column({
+    type: 'json', 
+    nullable: true,
+    comment: 'Emplacements et succursales avec coordonnées'
+  })
+  locations?: Array<{
+    id: string;
+    name: string;
+    type: 'headquarters' | 'branch' | 'store' | 'warehouse' | 'factory' | 'other';
+    address?: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  }>;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Liste des succursales avec adresses détaillées'
+  })
+  branches?: Array<{
+    street?: string;
+    city?: string;
+    province?: string; 
+    country?: string;
+    postalCode?: string;
+  }>;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Adresse du siège social détaillée'
+  })
+  headquartersAddress?: {
+    street?: string;
+    city?: string;
+    province?: string;
+    country?: string;
+    postalCode?: string;
+  };
+
+  @Column({
+    type: 'json',
+    nullable: true,
+    comment: 'Personne de contact principale'
+  })
+  contactPerson?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    position?: string;
+  };
 
   // === INFORMATIONS COMPLÉMENTAIRES ===
   @Column({ type: 'text', nullable: true })

@@ -7,9 +7,9 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto/user.dto';
 import { SyncUserDto } from '../dto/sync-user.dto';
 import { CustomerEventsProducer } from '../../kafka/producers/customer-events.producer';
 import { Customer, CustomerStatus, CustomerType } from '../../customers/entities/customer.entity';
-import { Sme } from '../../customers/entities/sme.entity';
+// Note: Sme functionality moved to CompanyModule with CompanyCoreEntity
 import { CloudinaryService, MulterFile } from '../../cloudinary/cloudinary.service';
-import { SmeSpecificData } from '../../customers/entities/sme-specific-data.entity';
+
 
 // Define a UserActivityDto interface for internal use
 interface UserActivityDto {
@@ -49,10 +49,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
-    @InjectRepository(Sme)
-    private readonly smeRepository: Repository<Sme>,
-    @InjectRepository(SmeSpecificData)
-    private readonly smeDataRepository: Repository<SmeSpecificData>,
+    // Note: smeRepository removed - use CompanyModule services instead
     @InjectRepository(UserActivity)
     private readonly userActivityRepository: Repository<UserActivity>,
     private readonly connection: Connection,
@@ -211,27 +208,20 @@ export class UserService {
 
     // Si l'utilisateur a un customerId et que c'est un SME
     if (user.customerId && user.userType === UserType.SME) {
-      const sme = await this.smeRepository.findOne({
-        where: { customerId: user.customerId },
-        relations: ['customer']
-      });
+      // TODO: Integration with CompanyModule for SME data
+      // The SME logic is now handled by CompanyModule with CompanyCoreEntity
+      // Need to inject CompanyService or create a dedicated method
       
-      if (sme) {
-        const smeData = await this.smeDataRepository.findOne({
-          where: { id: user.customerId }
-        });
-        
-        company = {
-          id: sme.customerId,
-          name: sme.name,
-          logo: sme.logoUrl,
-          industry: smeData?.industry || 'Other',
-          legalForm: smeData?.legalForm || 'Not specified',
-          yearFounded: smeData?.yearFounded || null,
-          registrationNumber: sme.rccm,
-          status: sme.customer?.status || 'active',
-        };
-      }
+      company = {
+        id: user.customerId,
+        name: 'Company Name', // TODO: Get from CompanyModule
+        logo: null,
+        industry: 'Other',
+        legalForm: 'Not specified', 
+        yearFounded: null,
+        registrationNumber: null,
+        status: 'active',
+      };
     }
     // Si c'est une institution financière
     else if (user.financialInstitutionId && user.userType === UserType.FINANCIAL_INSTITUTION) {
