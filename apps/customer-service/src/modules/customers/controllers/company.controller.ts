@@ -3,24 +3,24 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { SmeService } from '../services/sme.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { CreateCompanyDto, UpdateCompanyDto, CompanyResponseDto, ApiResponseDto, ApiErrorResponseDto, PaginationDto, LocationDto, AssociateDto } from '../dto/company.dto';
+import { CreateCompanyDto, UpdateCompanyDto, CompanyResponseDto, AssociateDto, AssetDataDto, StockDataDto, UpdateAssetDataDto, AssetResponseDto, UpdateStockDataDto, StockResponseDto } from '../dto/company.dto';
 import { CreateExtendedIdentificationDto, UpdateExtendedIdentificationDto, ExtendedCompanyResponseDto, ValidationResultDto, CompletionStatusDto } from '../dto/extended-company.dto';
-import { AssetDataDto, UpdateAssetDataDto, AssetResponseDto } from '../dto/asset-data.dto';
-import { StockDataDto, UpdateStockDataDto, StockResponseDto } from '../dto/stock-data.dto';
-
-// Define the custom MulterFile interface
-interface MulterFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size: number;
-}
+import { 
+  BaseCustomerController, 
+  ApiResponseDto, 
+  ApiErrorResponseDto,
+  LocationDto, 
+  PaginationDto,
+  MulterFile
+} from '../shared';
 
 @ApiTags('companies')
 @ApiBearerAuth()
 @Controller('companies')
-export class CompanyController {
-  constructor(private readonly smeService: SmeService) {}
+export class CompanyController extends BaseCustomerController<CompanyResponseDto> {
+  constructor(private readonly smeService: SmeService) {
+    super(smeService);
+  }
 
   @Post('test')
   @ApiOperation({ summary: 'Test endpoint without auth' })
@@ -270,81 +270,6 @@ export class CompanyController {
     if (!isOwner) {
       throw new UnauthorizedException('Vous n\'êtes pas autorisé à modifier cette entreprise');
     }
-  }
-
-  @Patch(':companyId/validate')
-  @ApiOperation({ summary: 'Valider une entreprise' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Entreprise validée avec succès',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Entreprise non trouvée',
-    type: ApiErrorResponseDto
-  })
-  async validateCompany(
-    @Param('companyId') companyId: string,
-    @Body() data: { validatedBy: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    const result = await this.smeService.validate(companyId, data.validatedBy);
-    return {
-      success: true,
-      data: {
-        message: 'Entreprise validée avec succès'
-      }
-    };
-  }
-
-  @Patch(':companyId/suspend')
-  @ApiOperation({ summary: 'Suspendre une entreprise' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Entreprise suspendue avec succès',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Entreprise non trouvée',
-    type: ApiErrorResponseDto
-  })
-  async suspendCompany(
-    @Param('companyId') companyId: string,
-    @Body() data: { suspendedBy: string; reason: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    const result = await this.smeService.suspend(companyId, data.suspendedBy, data.reason);
-    return {
-      success: true,
-      data: {
-        message: 'Entreprise suspendue avec succès'
-      }
-    };
-  }
-
-  @Patch(':companyId/reject')
-  @ApiOperation({ summary: 'Rejeter une entreprise' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Entreprise rejetée avec succès',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Entreprise non trouvée',
-    type: ApiErrorResponseDto
-  })
-  async rejectCompany(
-    @Param('companyId') companyId: string,
-    @Body() data: { rejectedBy: string; reason: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    const result = await this.smeService.reject(companyId, data.rejectedBy, data.reason);
-    return {
-      success: true,
-      data: {
-        message: 'Entreprise rejetée avec succès'
-      }
-    };
   }
 
   // =====================================================

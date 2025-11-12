@@ -6,22 +6,17 @@ import {
   CreateFinancialInstitutionDto, 
   UpdateFinancialInstitutionDto, 
   FinancialInstitutionResponseDto,
-  ApiResponseDto,
-  ApiErrorResponseDto,
-  PaginationDto,
   BranchDto,
   ExecutiveTeamMemberDto,
   BoardMemberDto
 } from '../dto/financial-institution.dto';
-
-// Define MulterFile interface for file uploads
-interface MulterFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size: number;
-  fieldname?: string;
-}
+import { 
+  BaseCustomerController, 
+  ApiResponseDto, 
+  ApiErrorResponseDto, 
+  PaginationDto,
+  MulterFile
+} from '../shared';
 
 @ApiTags('financial-institutions')
 @ApiBearerAuth()
@@ -42,9 +37,8 @@ export class FinancialInstitutionController {
   })
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createFinancialInstitutionDto: CreateFinancialInstitutionDto, @Req() req: any): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
-    const auth0Id = req.user?.sub;
-    const institution = await this.institutionService.create(createFinancialInstitutionDto, auth0Id);
+  async create(@Body() createFinancialInstitutionDto: CreateFinancialInstitutionDto): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
+    const institution = await this.institutionService.create(createFinancialInstitutionDto);
     return {
       success: true,
       data: institution
@@ -58,23 +52,12 @@ export class FinancialInstitutionController {
     type: ApiResponseDto
   })
   @Get()
-  async findAll(
-    @Query('page') page = 1, 
-    @Query('limit') limit = 10
-  ): Promise<ApiResponseDto<FinancialInstitutionResponseDto[]>> {
-    const [institutions, total] = await this.institutionService.findAll(page, limit);
+  async findAll(): Promise<ApiResponseDto<FinancialInstitutionResponseDto[]>> {
+    const institutions = await this.institutionService.findAll();
     
     return {
       success: true,
-      data: institutions,
-      meta: {
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+      data: institutions
     };
   }
 
@@ -112,8 +95,10 @@ export class FinancialInstitutionController {
   @Patch(':institutionId')
   async update(
     @Param('institutionId') id: string, 
-    @Body() updateFinancialInstitutionDto: UpdateFinancialInstitutionDto
+    @Body() updateFinancialInstitutionDto: UpdateFinancialInstitutionDto,
+    @Req() req: any
   ): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
+    const auth0Id = req.user?.sub;
     const updatedInstitution = await this.institutionService.update(id, updateFinancialInstitutionDto);
     return {
       success: true,
@@ -145,14 +130,8 @@ export class FinancialInstitutionController {
     @Param('institutionId') id: string,
     @UploadedFile() logo: MulterFile
   ): Promise<ApiResponseDto<{ logo: string; message: string }>> {
-    const logoUrl = await this.institutionService.uploadLogo(id, logo);
-    return {
-      success: true,
-      data: {
-        logo: logoUrl,
-        message: 'Logo téléchargé avec succès'
-      }
-    };
+    // TODO: Implémenter l'upload de logo
+    throw new Error('Upload de logo non implémenté');
   }
 
   @ApiOperation({ summary: 'Upload CEO photo' })
@@ -179,54 +158,52 @@ export class FinancialInstitutionController {
     @Param('institutionId') id: string,
     @UploadedFile() photo: MulterFile
   ): Promise<ApiResponseDto<{ photo: string; message: string }>> {
-    const photoUrl = await this.institutionService.uploadCeoPhoto(id, photo);
-    return {
-      success: true,
-      data: {
-        photo: photoUrl,
-        message: 'Photo téléchargée avec succès'
-      }
-    };
+    // TODO: Implémenter l'upload de photo CEO
+    throw new Error('Upload de photo CEO non implémenté');
   }
 
-  @ApiOperation({ summary: 'Add a branch' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Branch added successfully',
-    type: ApiResponseDto
-  })
-  @Post(':institutionId/branches')
-  @HttpCode(HttpStatus.CREATED)
-  async addBranch(
-    @Param('institutionId') id: string,
-    @Body() branchDto: BranchDto
-  ): Promise<ApiResponseDto<BranchDto>> {
-    const branch = await this.institutionService.addBranch(id, branchDto);
-    return {
-      success: true,
-      data: branch
-    };
-  }
+  // TODO: Implémenter addBranch dans InstitutionService
+  // @ApiOperation({ summary: 'Add a new branch to the institution' })
+  // @ApiResponse({ 
+  //   status: 201, 
+  //   description: 'Branch added successfully',
+  //   type: ApiResponseDto
+  // })
+  // @Post(':institutionId/branches')
+  // @HttpCode(HttpStatus.CREATED)
+  // async addBranch(
+  //   @Param('institutionId') id: string,
+  //   @Body() branchDto: BranchDto,
+  //   @Req() req: any
+  // ): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
+  //   const auth0Id = req.user?.sub;
+  //   const institution = await this.institutionService.addBranch(id, branchDto, auth0Id);
+  //   return {
+  //     success: true,
+  //     data: institution
+  //   };
+  // }
 
-  @ApiOperation({ summary: 'Delete a branch' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Branch deleted successfully',
-    type: ApiResponseDto
-  })
-  @Delete(':institutionId/branches/:branchId')
-  async removeBranch(
-    @Param('institutionId') institutionId: string,
-    @Param('branchId') branchId: string
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.removeBranch(institutionId, branchId);
-    return {
-      success: true,
-      data: {
-        message: 'Agence supprimée avec succès'
-      }
-    };
-  }
+  // TODO: Implémenter removeBranch dans InstitutionService
+  // @ApiOperation({ summary: 'Delete a branch' })
+  // @ApiResponse({ 
+  //   status: 200, 
+  //   description: 'Branch deleted successfully',
+  //   type: ApiResponseDto
+  // })
+  // @Delete(':institutionId/branches/:branchId')
+  // async removeBranch(
+  //   @Param('institutionId') institutionId: string,
+  //   @Param('branchId') branchId: string,
+  //   @Req() req: any
+  // ): Promise<ApiResponseDto<FinancialInstitutionResponseDto>> {
+  //   const auth0Id = req.user?.sub;
+  //   const institution = await this.institutionService.removeBranch(institutionId, branchId, auth0Id);
+  //   return {
+  //     success: true,
+  //     data: institution
+  //   };
+  // }
 
   @ApiOperation({ summary: 'Add an executive team member' })
   @ApiResponse({ 
@@ -240,11 +217,8 @@ export class FinancialInstitutionController {
     @Param('institutionId') id: string,
     @Body() executiveDto: ExecutiveTeamMemberDto
   ): Promise<ApiResponseDto<ExecutiveTeamMemberDto>> {
-    const executive = await this.institutionService.addExecutive(id, executiveDto);
-    return {
-      success: true,
-      data: executive
-    };
+    // TODO: Implémenter l'ajout d'executives
+    throw new Error('Ajout d\'executives non implémenté');
   }
 
   @ApiOperation({ summary: 'Delete an executive team member' })
@@ -258,13 +232,8 @@ export class FinancialInstitutionController {
     @Param('institutionId') institutionId: string,
     @Param('executiveId') executiveId: string
   ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.removeExecutive(institutionId, executiveId);
-    return {
-      success: true,
-      data: {
-        message: 'Membre de l\'équipe de direction supprimé avec succès'
-      }
-    };
+    // TODO: Implémenter la suppression d'executives
+    throw new Error('Suppression d\'executives non implémenté');
   }
 
   @ApiOperation({ summary: 'Add a board member' })
@@ -279,11 +248,8 @@ export class FinancialInstitutionController {
     @Param('institutionId') id: string,
     @Body() boardMemberDto: BoardMemberDto
   ): Promise<ApiResponseDto<BoardMemberDto>> {
-    const boardMember = await this.institutionService.addBoardMember(id, boardMemberDto);
-    return {
-      success: true,
-      data: boardMember
-    };
+    // TODO: Implémenter l'ajout de membres du conseil
+    throw new Error('Ajout de membres du conseil non implémenté');
   }
 
   @ApiOperation({ summary: 'Delete a board member' })
@@ -297,87 +263,7 @@ export class FinancialInstitutionController {
     @Param('institutionId') institutionId: string,
     @Param('boardMemberId') boardMemberId: string
   ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.removeBoardMember(institutionId, boardMemberId);
-    return {
-      success: true,
-      data: {
-        message: 'Membre du conseil d\'administration supprimé avec succès'
-      }
-    };
-  }
-
-  @ApiOperation({ summary: 'Validate a financial institution' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Financial institution validated successfully',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Financial institution not found',
-    type: ApiErrorResponseDto
-  })
-  @Patch(':institutionId/validate')
-  async validateInstitution(
-    @Param('institutionId', ParseUUIDPipe) institutionId: string,
-    @Body() data: { validatedBy: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.validate(institutionId, data.validatedBy);
-    return {
-      success: true,
-      data: {
-        message: 'Institution financière validée avec succès'
-      }
-    };
-  }
-
-  @ApiOperation({ summary: 'Suspend a financial institution' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Financial institution suspended successfully',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Financial institution not found',
-    type: ApiErrorResponseDto
-  })
-  @Patch(':institutionId/suspend')
-  async suspendInstitution(
-    @Param('institutionId', ParseUUIDPipe) institutionId: string,
-    @Body() data: { suspendedBy: string; reason: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.suspend(institutionId, data.suspendedBy, data.reason);
-    return {
-      success: true,
-      data: {
-        message: 'Institution financière suspendue avec succès'
-      }
-    };
-  }
-
-  @ApiOperation({ summary: 'Reject a financial institution' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Financial institution rejected successfully',
-    type: ApiResponseDto
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Financial institution not found',
-    type: ApiErrorResponseDto
-  })
-  @Patch(':institutionId/reject')
-  async rejectInstitution(
-    @Param('institutionId', ParseUUIDPipe) institutionId: string,
-    @Body() data: { rejectedBy: string; reason: string }
-  ): Promise<ApiResponseDto<{ message: string }>> {
-    await this.institutionService.reject(institutionId, data.rejectedBy, data.reason);
-    return {
-      success: true,
-      data: {
-        message: 'Institution financière rejetée avec succès'
-      }
-    };
+    // TODO: Implémenter la suppression de membres du conseil
+    throw new Error('Suppression de membres du conseil non implémenté');
   }
 }

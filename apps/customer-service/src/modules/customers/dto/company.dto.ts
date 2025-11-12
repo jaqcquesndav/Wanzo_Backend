@@ -1,6 +1,19 @@
 import { IsString, IsEmail, IsEnum, IsOptional, IsUUID, IsBoolean, IsArray, IsObject, IsUrl, IsNumber, ValidateNested, IsDate, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CustomerType, CustomerStatus, AccountType } from '../entities/customer.entity';
+import { PartialType } from '@nestjs/swagger';
+import { 
+  AddressDto, 
+  CoordinatesDto, 
+  LocationDto, 
+  BaseContactDto, 
+  ApiResponseDto, 
+  ApiErrorResponseDto, 
+  PaginationDto,
+  CustomerType, 
+  CustomerStatus, 
+  AccountType,
+  CurrencyType
+} from '../shared';
 import { 
   CreateExtendedIdentificationDto, 
   UpdateExtendedIdentificationDto,
@@ -9,41 +22,9 @@ import {
   CompletionStatusDto
 } from './extended-company.dto';
 
-export class AddressDto {
-  @IsOptional()
-  @IsString()
-  street?: string;
-
-  @IsOptional()
-  @IsString()
-  commune?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  province?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-}
-
-export class ContactsDto {
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsString()
-  altPhone?: string;
-}
+// AddressDto maintenant importé de shared
+// ContactsDto renommé vers BaseContactDto (importé de shared)
+export class ContactsDto extends BaseContactDto {}
 
 export class OwnerDto {
   @IsOptional()
@@ -109,29 +90,7 @@ export class AssociateDto {
   phone?: string;
 }
 
-export class CoordinatesDto {
-  @IsNumber()
-  lat!: number;
-
-  @IsNumber()
-  lng!: number;
-}
-
-export class LocationDto {
-  @IsString()
-  name!: string;
-
-  @IsString()
-  type!: string;
-
-  @IsString()
-  address!: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CoordinatesDto)
-  coordinates?: CoordinatesDto;
-}
+// CoordinatesDto et LocationDto maintenant importés de shared
 
 export class ActivitiesDto {
   @IsOptional()
@@ -247,8 +206,8 @@ export class AssetDataDto {
   valeurActuelle?: number;
 
   @IsOptional()
-  @IsEnum(['USD', 'CDF', 'EUR'])
-  devise?: 'USD' | 'CDF' | 'EUR';
+  @IsEnum(CurrencyType)
+  devise?: CurrencyType;
 
   @IsOptional()
   @IsString()
@@ -322,8 +281,8 @@ export class StockDataDto {
   @IsNumber()
   valeurTotaleStock!: number;
 
-  @IsEnum(['USD', 'CDF', 'EUR'])
-  devise!: 'USD' | 'CDF' | 'EUR';
+  @IsEnum(CurrencyType)
+  devise!: CurrencyType;
 
   @IsOptional()
   @IsString()
@@ -574,24 +533,46 @@ export class CompanyResponseDto {
   createdBy?: string;
 }
 
-export class ApiResponseDto<T> {
-  success!: boolean;
-  data!: T;
-  meta?: Record<string, any>;
+// DTOs pour la mise à jour des assets
+export class UpdateAssetDataDto extends PartialType(AssetDataDto) {}
+
+// DTO de réponse pour les assets
+export class AssetResponseDto extends AssetDataDto {
+  @IsString()
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  createdAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  updatedAt?: string;
 }
 
-export class ApiErrorResponseDto {
-  success!: boolean;
-  error!: {
-    code: string;
-    message: string;
-    details?: Record<string, any>;
-  };
+// DTOs pour la mise à jour des stocks
+export class UpdateStockDataDto extends PartialType(StockDataDto) {}
+
+// DTO de réponse pour les stocks
+export class StockResponseDto extends StockDataDto {
+  @IsString()
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  createdAt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  updatedAt?: string;
 }
 
-export class PaginationDto {
-  page!: number;
-  limit!: number;
-  total!: number;
-  pages!: number;
-}
+// ApiResponseDto, ApiErrorResponseDto et PaginationDto maintenant importés de shared

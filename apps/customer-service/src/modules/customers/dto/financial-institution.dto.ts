@@ -1,43 +1,23 @@
 import { IsString, IsEmail, IsEnum, IsOptional, IsUUID, IsBoolean, IsArray, IsObject, IsUrl, IsNumber, ValidateNested, IsDate, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { InstitutionType, InstitutionCategory } from '../entities/financial-institution-specific-data.entity';
+import { 
+  AddressDto, 
+  CoordinatesDto, 
+  LocationDto, 
+  BaseContactDto, 
+  ApiResponseDto, 
+  ApiErrorResponseDto, 
+  PaginationDto,
+  InstitutionType, 
+  InstitutionCategory,
+  CurrencyType,
+  RegulatoryStatus
+} from '../shared';
 
-export class HeadquartersAddressDto {
-  @IsOptional()
-  @IsString()
-  street?: string;
+// HeadquartersAddressDto - spécialisé pour les institutions financières
+export class HeadquartersAddressDto extends AddressDto {}
 
-  @IsOptional()
-  @IsString()
-  commune?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  province?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-}
-
-export class AddressDto {
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => HeadquartersAddressDto)
-  headquarters?: HeadquartersAddressDto;
-}
-
-export class CoordinatesDto {
-  @IsNumber()
-  lat!: number;
-
-  @IsNumber()
-  lng!: number;
-}
+// AddressDto et CoordinatesDto maintenant importés de shared
 
 export class BranchDto {
   @IsString()
@@ -345,8 +325,8 @@ export class CreateFinancialInstitutionDto {
   establishedDate?: string;
 
   @IsOptional()
-  @IsEnum(['active', 'suspended', 'pending'])
-  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+  @IsEnum(RegulatoryStatus)
+  regulatoryStatus?: RegulatoryStatus;
 
   @IsOptional()
   @IsISO8601()
@@ -407,7 +387,7 @@ export class CreateFinancialInstitutionDto {
     capitalSocial?: number;
     fondsPropresDeclares?: number;
     limitesOperationnelles?: string[];
-    monnaieReference?: 'USD' | 'CDF' | 'EUR';
+    monnaieReference?: CurrencyType;
   };
 
   @IsOptional()
@@ -448,8 +428,8 @@ export class UpdateFinancialInstitutionDto {
   linkedinPage?: string;
 
   @IsOptional()
-  @IsEnum(['active', 'suspended', 'pending'])
-  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+  @IsEnum(RegulatoryStatus)
+  regulatoryStatus?: RegulatoryStatus;
 
   @IsOptional()
   @IsISO8601()
@@ -495,7 +475,7 @@ export class FinancialInstitutionResponseDto {
   category?: string;
   licenseNumber?: string;
   establishedDate?: Date;
-  regulatoryStatus?: 'active' | 'suspended' | 'pending';
+  regulatoryStatus?: RegulatoryStatus;
   licenseExpiryDate?: Date;
   brandColors?: BrandColorsDto;
   website?: string;
@@ -515,7 +495,7 @@ export class FinancialInstitutionResponseDto {
     capitalSocial?: number;
     fondsPropresDeclares?: number;
     limitesOperationnelles?: string[];
-    monnaieReference?: 'USD' | 'CDF' | 'EUR';
+    monnaieReference?: CurrencyType;
   };
   zonesCouverture?: string[];
   typeOperation?: string[];
@@ -540,24 +520,4 @@ export class FinancialInstitutionResponseDto {
   createdBy?: string;
 }
 
-export class ApiResponseDto<T> {
-  success!: boolean;
-  data!: T;
-  meta?: Record<string, any>;
-}
-
-export class ApiErrorResponseDto {
-  success!: boolean;
-  error!: {
-    code: string;
-    message: string;
-    details?: Record<string, any>;
-  };
-}
-
-export class PaginationDto {
-  page!: number;
-  limit!: number;
-  total!: number;
-  pages!: number;
-}
+// ApiResponseDto, ApiErrorResponseDto et PaginationDto maintenant importés de shared

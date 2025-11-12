@@ -1,15 +1,12 @@
 import { IsString, IsEmail, IsEnum, IsOptional, IsBoolean, IsNumber, IsDateString, ValidateNested, IsArray, IsDecimal } from 'class-validator';
 import { Type } from 'class-transformer';
+import { 
+  CoordinatesDto, 
+  CurrencyType 
+} from '../shared';
 import { LegalFormOHADA, CompanyType } from '../entities/enterprise-identification-form.entity';
 
-// DTOs pour coordonnées
-export class CoordinatesDto {
-  @IsNumber()
-  lat!: number;
-
-  @IsNumber()
-  lng!: number;
-}
+// CoordinatesDto maintenant importé de shared
 
 // DTOs pour GeneralInfo
 export class HeadquartersDto {
@@ -238,8 +235,8 @@ export class ShareCapitalDto {
   @IsNumber()
   paidUpCapital!: number;
 
-  @IsEnum(['USD', 'CDF', 'EUR'])
-  currency!: 'USD' | 'CDF' | 'EUR';
+  @IsEnum(CurrencyType)
+  currency!: CurrencyType;
 
   @IsArray()
   @ValidateNested({ each: true })

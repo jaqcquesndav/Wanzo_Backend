@@ -11,9 +11,9 @@ import {
   CreateCompanyDto, 
   UpdateCompanyDto, 
   CompanyResponseDto, 
-  LocationDto, 
   AssociateDto 
 } from '../dto/company.dto';
+import { LocationDto } from '../shared';
 import { 
   CreateExtendedIdentificationDto, 
   UpdateExtendedIdentificationDto, 
@@ -24,6 +24,7 @@ import {
 import { EnterpriseIdentificationForm } from '../entities/enterprise-identification-form.entity';
 import { AssetData } from '../entities/asset-data.entity';
 import { StockData } from '../entities/stock-data.entity';
+import { BaseCustomerService, MulterFile, FileUploadResponseDto } from '../shared';
 
 // Helper function to generate UUID-like ID
 const generateId = () => {
@@ -31,10 +32,10 @@ const generateId = () => {
 };
 
 @Injectable()
-export class SmeService {
+export class SmeService extends BaseCustomerService<CompanyResponseDto> {
   constructor(
     @InjectRepository(Customer)
-    private readonly customerRepository: Repository<Customer>,
+    customerRepository: Repository<Customer>,
     @InjectRepository(Sme)
     private readonly smeRepository: Repository<Sme>,
     @InjectRepository(SmeSpecificData)
@@ -47,9 +48,11 @@ export class SmeService {
     private readonly assetRepository: Repository<AssetData>,
     @InjectRepository(StockData)
     private readonly stockRepository: Repository<StockData>,
-    private readonly customerEventsProducer: CustomerEventsProducer,
-    private readonly cloudinaryService: CloudinaryService,
-  ) {}
+    customerEventsProducer: CustomerEventsProducer,
+    cloudinaryService: CloudinaryService,
+  ) {
+    super(customerRepository, customerEventsProducer, cloudinaryService);
+  }
 
   async findAll(
     page = 1, 
@@ -291,7 +294,7 @@ export class SmeService {
     return this.mapSmeToCompanyResponse(updatedSme);
   }
 
-  async updateLogo(id: string, file: any): Promise<string> {
+  async updateLogo(id: string, file: MulterFile): Promise<string> {
     const smeEntity = await this.smeRepository.findOne({
       where: { customerId: id },
     });
@@ -300,11 +303,8 @@ export class SmeService {
       throw new NotFoundException(`Company with ID ${id} not found`);
     }
     
-    // Upload logo to Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadImage(
-      file,
-      `companies/${id}/logo`
-    );
+    // Upload logo using inherited method
+    const uploadResult = await this.uploadImage(id, file, 'companies/logos');
     
     // Update logo URL in the database
     smeEntity.logoUrl = uploadResult.url;
@@ -318,7 +318,7 @@ export class SmeService {
     return uploadResult.url;
   }
   
-  async updateOwnerCV(id: string, file: any): Promise<string> {
+  async updateOwnerCV(id: string, file: MulterFile): Promise<string> {
     const smeEntity = await this.smeRepository.findOne({
       where: { customerId: id },
       relations: ['customer', 'customer.smeData'],
@@ -328,11 +328,8 @@ export class SmeService {
       throw new NotFoundException(`Company with ID ${id} not found or missing data`);
     }
     
-    // Upload CV to Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadImage(
-      file,
-      `companies/${id}/owner`
-    );
+    // Upload CV using inherited document upload method
+    const uploadResult = await this.uploadDocument(id, file, 'companies/owner-cv');
     
     // Update owner CV URL in the database
     const smeData = smeEntity.customer.smeData;
@@ -368,6 +365,7 @@ export class SmeService {
     const newLocation = {
       ...locationDto,
       id: generateId(), // Generate a unique ID for the location
+      address: locationDto.address || '', // Ensure address is defined
     };
     
     // Add the new location
@@ -474,28 +472,8 @@ export class SmeService {
   }
 
   async isCompanyOwner(companyId: string, auth0Id: string): Promise<boolean> {
-    const smeEntity = await this.smeRepository.findOne({
-      where: { customerId: companyId },
-      relations: ['customer', 'customer.users'],
-    });
-    
-    if (!smeEntity) {
-      throw new NotFoundException(`Company with ID ${companyId} not found`);
-    }
-    
-    // Check if the auth0Id matches the company's creator or is an owner user
-    const isCreator = smeEntity.customer.createdBy === auth0Id;
-    
-    if (isCreator) {
-      return true;
-    }
-    
-    // Check if the user is in the company's users list and is an owner
-    const isOwnerUser = smeEntity.customer.users?.some(
-      user => user.auth0Id === auth0Id && user.accountType === 'OWNER'
-    );
-    
-    return !!isOwnerUser;
+    // Use inherited method from BaseCustomerService
+    return this.isCustomerOwner(companyId, auth0Id);
   }
   
   // Helper method to map Sme entity to CompanyResponseDto
@@ -524,7 +502,13 @@ export class SmeService {
     // Add SME specific data if available
     if (smeData) {
       response.address = smeData.address;
-      response.locations = smeData.locations;
+      response.locations = smeData.locations?.map(loc => ({
+        id: loc.id || '',
+        name: loc.name,
+        type: loc.type,
+        address: loc.address,
+        coordinates: loc.coordinates
+      }));
       response.contacts = smeData.contacts;
       response.owner = smeData.owner;
       response.associates = smeData.associates;
@@ -577,95 +561,9 @@ export class SmeService {
     return { success: true, message: 'SME deleted successfully' };
   }
 
-  async validate(id: string, validatedBy: string): Promise<{ success: boolean; message: string }> {
-    const sme = await this.smeRepository.findOne({
-      where: { customerId: id },
-      relations: ['customer'],
-    });
-    
-    if (!sme) {
-      throw new NotFoundException(`SME with ID ${id} not found`);
-    }
-    
-    if (sme.customer) {
-      sme.customer.status = CustomerStatus.ACTIVE;
-      sme.customer.validatedAt = new Date();
-      sme.customer.validatedBy = validatedBy;
-      await this.customerRepository.save(sme.customer);
-    }
-    
-    // Publish event to Kafka
-    await this.customerEventsProducer.emitSmeUpdated({
-      sme: {
-        customerId: id,
-        updatedAt: new Date()
-      },
-      customer: sme.customer
-    });
-    
-    return { success: true, message: 'SME validated successfully' };
-  }
+  // Méthode validate héritée de BaseCustomerService
 
-  async suspend(id: string, suspendedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
-    const sme = await this.smeRepository.findOne({
-      where: { customerId: id },
-      relations: ['customer'],
-    });
-    
-    if (!sme) {
-      throw new NotFoundException(`SME with ID ${id} not found`);
-    }
-    
-    if (sme.customer) {
-      sme.customer.status = CustomerStatus.SUSPENDED;
-      sme.customer.suspensionReason = reason;
-      sme.customer.suspendedAt = new Date();
-      sme.customer.suspendedBy = suspendedBy;
-      await this.customerRepository.save(sme.customer);
-    }
-    
-    // Publish event to Kafka
-    await this.customerEventsProducer.emitSmeUpdated({
-      sme: {
-        customerId: id,
-        updatedAt: new Date()
-      },
-      customer: sme.customer
-    });
-    
-    return { success: true, message: 'SME suspended successfully' };
-  }
-
-  async reject(id: string, rejectedBy: string, reason: string): Promise<{ success: boolean; message: string }> {
-    const sme = await this.smeRepository.findOne({
-      where: { customerId: id },
-      relations: ['customer'],
-    });
-    
-    if (!sme) {
-      throw new NotFoundException(`SME with ID ${id} not found`);
-    }
-    
-    if (sme.customer) {
-      sme.customer.status = CustomerStatus.INACTIVE;
-      sme.customer.suspensionReason = reason;
-      sme.customer.rejectedAt = new Date();
-      sme.customer.rejectedBy = rejectedBy;
-      await this.customerRepository.save(sme.customer);
-    }
-    
-    // Publish event to Kafka
-    await this.customerEventsProducer.emitSmeUpdated({
-      sme: {
-        customerId: id,
-        updatedAt: new Date(),
-        status: CustomerStatus.INACTIVE
-      },
-      customer: sme.customer
-    });
-    
-    return { success: true, message: 'SME rejected successfully' };
-  }
+  // Méthodes suspend et reject héritées de BaseCustomerService
 
   async getBusinessData(id: string): Promise<any> {
     const sme = await this.smeRepository.findOne({
