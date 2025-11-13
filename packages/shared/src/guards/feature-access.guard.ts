@@ -26,6 +26,7 @@ import {
  * Interface pour l'utilisateur authentifié
  */
 interface AuthenticatedUser {
+  id: string;
   sub: string;
   organizationId: string;
   email: string;

@@ -44,6 +44,10 @@ export class FinancialInstitutionResponseDto {
   @IsString()
   userId!: string;
 
+  @ApiProperty({ description: 'Customer associé', required: false })
+  @IsOptional()
+  customer?: any;
+
   // === IDENTIFICATION INSTITUTIONNELLE (exactement comme dans le formulaire) ===
   @ApiProperty({ description: 'Dénomination sociale' })
   @IsString()
@@ -434,6 +438,32 @@ export class UpdateFinancialInstitutionDto {
   @IsNumber()
   nombreClientsActifs?: number;
 
+  // === ADDITIONAL OPTIONAL FIELDS FOR UPDATES ===
+  @ApiPropertyOptional({ description: 'Statut de l\'institution' })
+  @IsOptional()
+  @IsString()
+  status?: any;
+
+  @ApiPropertyOptional({ description: 'Raison du changement de statut' })
+  @IsOptional()
+  @IsString()
+  statusChangeReason?: string;
+
+  @ApiPropertyOptional({ description: 'Licences' })
+  @IsOptional()
+  @IsArray()
+  licenses?: any[];
+
+  @ApiPropertyOptional({ description: 'ID utilisateur' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional({ description: 'Statut juridique' })
+  @IsOptional()
+  @IsString()
+  statutJuridique?: string;
+
   // Tous les autres champs sont optionnels...
 }
 
@@ -555,3 +585,8 @@ export class FinancialInstitutionListResponseDto {
     };
   };
 }
+
+// === TYPE ALIASES FOR BACKWARD COMPATIBILITY ===
+export { FinancialInstitutionType as InstitutionType };
+export type InstitutionStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
+export type LicenseType = 'BANKING' | 'MICROFINANCE' | 'INVESTMENT' | 'OTHER';

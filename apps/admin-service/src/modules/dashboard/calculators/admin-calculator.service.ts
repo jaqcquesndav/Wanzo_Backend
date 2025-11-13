@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Customer, CustomerType, CustomerStatus } from '../../customers/entities/customer.entity';
+import { CustomerDetailedProfile, AdminStatus } from '../../customers/entities/customer-detailed-profile.entity';
 
 // Interfaces pour les métriques calculées
 export interface UserMetrics {
@@ -80,8 +80,8 @@ export class AdminCalculatorService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Customer)
-    private customerRepository: Repository<Customer>,
+    @InjectRepository(CustomerDetailedProfile)
+    private customerRepository: Repository<CustomerDetailedProfile>,
   ) {}
 
   /**
@@ -184,9 +184,9 @@ export class AdminCalculatorService {
     // Total des clients
     const totalCustomers = await this.customerRepository.count();
 
-    // Clients actifs
+    // Clients actifs (validated status in CustomerDetailedProfile)
     const activeCustomers = await this.customerRepository.count({
-      where: { status: CustomerStatus.ACTIVE },
+      where: { adminStatus: AdminStatus.VALIDATED },
     });
 
     // Répartition par type
@@ -541,7 +541,7 @@ export class AdminCalculatorService {
     limit: number = 10,
     orderBy: 'revenue' | 'activity' | 'tokens' = 'revenue',
     companyId?: string
-  ): Promise<Array<{ customer: Customer; value: number; rank: number }>> {
+  ): Promise<Array<{ customer: CustomerDetailedProfile; value: number; rank: number }>> {
     const customers = await this.customerRepository.find({
       take: limit,
       order: { createdAt: 'DESC' },

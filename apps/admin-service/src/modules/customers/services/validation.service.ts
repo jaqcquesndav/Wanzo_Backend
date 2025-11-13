@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer, CustomerStatus } from '../entities/customer.entity';
+import { CustomerDetailedProfile, AdminStatus } from '../entities/customer-detailed-profile.entity';
 import { ValidationProcess, ValidationStep, ValidationStepStatus } from '../entities/validation.entity';
 import { DocumentType } from '../entities/document.entity';
 import { User } from '@/modules/users/entities/user.entity';
@@ -11,14 +12,17 @@ export class ValidationService {
   constructor(
     @InjectRepository(Customer)
     private customersRepository: Repository<Customer>,
+    @InjectRepository(CustomerDetailedProfile)
+    private detailedProfilesRepository: Repository<CustomerDetailedProfile>,
     @InjectRepository(ValidationProcess)
     private validationProcessRepository: Repository<ValidationProcess>,
   ) {}
 
   async getValidationProcess(customerId: string) {
-    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
-    if (!customer) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    // Vérifier que le profil existe dans CustomerDetailedProfile
+    const profile = await this.detailedProfilesRepository.findOne({ where: { customerId } });
+    if (!profile) {
+      throw new NotFoundException(`Customer profile with ID ${customerId} not found`);
     }
 
     // Find active validation process or return empty state
@@ -35,9 +39,10 @@ export class ValidationService {
   }
 
   async initiateValidationProcess(customerId: string, user: User) {
-    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
-    if (!customer) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    // Récupérer le profil complet
+    const profile = await this.detailedProfilesRepository.findOne({ where: { customerId } });
+    if (!profile) {
+      throw new NotFoundException(`Customer profile with ID ${customerId} not found`);
     }
 
     // Check if there's already an active validation process
@@ -67,8 +72,16 @@ export class ValidationService {
       notes: [`Validation process initiated by ${user.name} (${user.email})`]
     });
 
-    // Update customer status
-    customer.status = CustomerStatus.VALIDATION_IN_PROGRESS;
+    // Mettre à jour le statut admin dans CustomerDetailedProfile
+    profile.adminStatus = AdminStatus.UNDER_REVIEW;
+    profile.status = 'validation_in_progress';
+    await this.detailedProfilesRepository.save(profile);
+
+    // Créer ou mettre à jour Customer pour tracking validation
+    let customer = await this.customersRepository.findOne({ where: { customerId } });
+    if (!customer) {
+      customer = this.customersRepository.create({ customerId });
+    }
     await this.customersRepository.save(customer);
 
     // Save validation process
@@ -114,10 +127,19 @@ export class ValidationService {
       validationProcess.status = CustomerStatus.ACTIVE;
       validationProcess.completedAt = new Date();
 
-      // Update customer status
-      const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+      // Mettre à jour le profil détaillé
+      const profile = await this.detailedProfilesRepository.findOne({ where: { customerId } });
+      if (profile) {
+        profile.adminStatus = AdminStatus.VALIDATED;
+        profile.status = 'active';
+        profile.lastReviewedAt = new Date();
+        profile.reviewedBy = user.id;
+        await this.detailedProfilesRepository.save(profile);
+      }
+
+      // Mettre à jour Customer pour historique
+      const customer = await this.customersRepository.findOne({ where: { customerId } });
       if (customer) {
-        customer.status = CustomerStatus.ACTIVE;
         customer.validatedAt = new Date();
         customer.validatedBy = user.id;
         await this.customersRepository.save(customer);
@@ -128,24 +150,26 @@ export class ValidationService {
   }
 
   async getExtendedCustomerInfo(customerId: string) {
-    const customer = await this.customersRepository.findOne({
-      where: { id: customerId },
-      relations: ['documents']
-    });
+    // Récupérer le profil complet depuis CustomerDetailedProfile
+    const profile = await this.detailedProfilesRepository.findOne({ where: { customerId } });
 
-    if (!customer) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    if (!profile) {
+      throw new NotFoundException(`Customer profile with ID ${customerId} not found`);
     }
 
+    // Récupérer les relations Customer pour documents et activités
+    const customer = await this.customersRepository.findOne({
+      where: { customerId },
+      relations: ['documents', 'activities']
+    });
+
     // Get additional information as needed
-    // This is a placeholder for any additional customer information
-    // that might be needed for validation
-    
     return {
+      profile,
       customer,
-      documents: customer.documents || [],
+      documents: customer?.documents || [],
+      activities: customer?.activities || [],
       validationProcess: await this.getValidationProcess(customerId),
-      // Add any other relevant information
     };
   }
 

@@ -70,8 +70,6 @@ export class CustomerLifecycleService {
       adminId,
       timestamp: savedCustomer.validatedAt!.toISOString(),
       targetService: requestingService,
-      validationLevel: details?.validationLevel || 'basic',
-      previousStatus,
     });
 
     this.logger.log(`Customer ${customerId} validated successfully`);
@@ -116,8 +114,6 @@ export class CustomerLifecycleService {
       reason,
       timestamp: savedCustomer.suspendedAt!.toISOString(),
       targetService: requestingService,
-      previousStatus,
-      metadata,
     });
 
     this.logger.log(`Customer ${customerId} suspended successfully`);
@@ -163,7 +159,6 @@ export class CustomerLifecycleService {
       adminId,
       timestamp: savedCustomer.reactivatedAt!.toISOString(),
       targetService: requestingService,
-      previousStatus,
     });
 
     this.logger.log(`Customer ${customerId} reactivated successfully`);
@@ -241,10 +236,9 @@ export class CustomerLifecycleService {
     // Publication d'événement générique
     await this.customerEventsProducer.emitCustomerUpdated({
       customerId,
-      name: customer.name,
-      type: customer.type,
-      updatedBy,
-      updatedAt: customer.updatedAt.toISOString(),
+      // type: customer.type, // Propriété non autorisée dans le DTO
+      // updatedBy, // Propriété non autorisée
+      // updatedAt: customer.updatedAt.toISOString(), // Propriété non autorisée
       changedFields: ['status'],
       statusChange: statusUpdate,
     });

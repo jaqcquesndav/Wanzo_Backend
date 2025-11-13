@@ -9,14 +9,14 @@ import { AdminCalculatorService } from './calculators/admin-calculator.service';
 import { AuthModule } from '../auth/auth.module';
 import { HttpModule } from '@nestjs/axios';
 import { User } from '../users/entities/user.entity';
-import { Customer } from '../customers/entities/customer.entity';
+import { CustomerDetailedProfile } from '../customers/entities/customer-detailed-profile.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       ...Object.values(entities),
       User,
-      Customer,
+      CustomerDetailedProfile,
     ]),
     ScheduleModule.forRoot(),
     AuthModule, // Import AuthModule to get access to JwtBlacklistGuard

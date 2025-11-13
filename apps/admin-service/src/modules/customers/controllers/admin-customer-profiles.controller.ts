@@ -130,35 +130,8 @@ export class AdminCustomerProfilesController {
     @Param('customerId', ParseUUIDPipe) customerId: string,
     @CurrentUser() user: User
   ): Promise<AdminCustomerProfileDetailsDto> {
-    const result = await this.customersService.findOne(customerId);
-    
-    return {
-      profile: this.transformToAdminDto(result.customer),
-      statistics: {
-        documentsCount: result.statistics?.documentsCount,
-        activitiesCount: result.statistics?.activitiesCount,
-        lastActivity: result.statistics?.lastActivity?.toISOString(),
-        // Ajouter plans et abonnements quand disponibles
-      },
-      recentActivities: result.activities?.map(activity => ({
-        id: activity.id,
-        type: activity.type,
-        action: activity.action,
-        description: activity.description,
-        performedAt: activity.performedAt,
-        performedBy: activity.performedBy
-      })),
-      // Documents uniquement admin-relevant
-      documents: result.customer.documents?.filter(doc => 
-        ['kyc', 'compliance', 'admin'].includes(doc.type)
-      ).map(doc => ({
-        id: doc.id,
-        type: doc.type,
-        fileName: doc.fileName,
-        status: doc.status,
-        uploadedAt: doc.uploadedAt
-      }))
-    };
+    // Le service retourne déjà le format AdminCustomerProfileDetailsDto correct
+    return await this.customersService.findOne(customerId);
   }
 
   // ================================================================

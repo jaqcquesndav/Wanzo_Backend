@@ -104,7 +104,7 @@ export class UnifiedTransactionService {
     private readonly complianceService: FinancialComplianceService,
     private readonly amlService: AMLComplianceService,
     private readonly standardsService: FinancialStandardsService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: typeof EventEmitter2
   ) {}
 
   /**

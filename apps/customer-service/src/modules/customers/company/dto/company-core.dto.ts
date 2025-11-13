@@ -333,6 +333,9 @@ export class CompanyResponseDto {
   @IsEnum(CustomerStatus)
   status!: CustomerStatus;
 
+  @IsOptional()
+  customer?: any;
+
   @ValidateNested()
   @Type(() => ContactsDto)
   contacts!: ContactsDto;

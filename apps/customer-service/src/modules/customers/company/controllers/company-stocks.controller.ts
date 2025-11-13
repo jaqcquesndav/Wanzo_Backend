@@ -76,11 +76,10 @@ export class CompanyStocksController {
     @Body() stock: StockDataDto,
   ): Promise<StockResponseDto> {
     try {
-      const createStockDto: CreateStockDto = {
-        companyId,
+      const createStockDto = {
         stock,
       };
-      return await this.companyStocksService.addStock(createStockDto);
+      return await this.companyStocksService.addStock(companyId, createStockDto);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'ajout du stock';
       const status = errorMessage.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
@@ -112,7 +111,8 @@ export class CompanyStocksController {
   })
   async getCompanyStocks(@Param('companyId') companyId: string): Promise<StockResponseDto[]> {
     try {
-      return await this.companyStocksService.getCompanyStocks(companyId);
+      const result = await this.companyStocksService.getStocks(companyId, 1, 100);
+      return result.stocks;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des stocks';
       const status = errorMessage.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -202,7 +202,7 @@ export class CompanyStocksController {
         stockId,
         stock: stockData,
       };
-      return await this.companyStocksService.updateStock(updateStockDto);
+      return await this.companyStocksService.updateStock(companyId, updateStockDto);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour du stock';
       const status = errorMessage.includes('non trouvé') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
@@ -274,7 +274,7 @@ export class CompanyStocksController {
   })
   async getLowStockItems(@Param('companyId') companyId: string): Promise<StockResponseDto[]> {
     try {
-      return await this.companyStocksService.getLowStockItems(companyId);
+      return await this.companyStocksService.getLowStocks(companyId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des stocks faibles';
       const status = errorMessage.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -346,7 +346,7 @@ export class CompanyStocksController {
         typeMouvement: 'entree' as const,
         dateMouvement: movementData.dateMouvement || new Date().toISOString(),
       };
-      return await this.companyStocksService.stockIn(companyId, stockId, movement);
+      return await this.companyStocksService.recordMovement(companyId, stockId, { ...movement, type: 'in' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'entrée de stock';
       const status = errorMessage.includes('non trouvé') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
@@ -418,7 +418,7 @@ export class CompanyStocksController {
         typeMouvement: 'sortie' as const,
         dateMouvement: movementData.dateMouvement || new Date().toISOString(),
       };
-      return await this.companyStocksService.stockOut(companyId, stockId, movement);
+      return await this.companyStocksService.recordMovement(companyId, stockId, { ...movement, type: 'out' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la sortie de stock';
       const status = errorMessage.includes('non trouvé') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
@@ -473,11 +473,10 @@ export class CompanyStocksController {
     @Body() adjustmentData: { newQuantity: number; reason: string },
   ): Promise<StockResponseDto> {
     try {
-      return await this.companyStocksService.adjustStock(
+      return await this.companyStocksService.recordMovement(
         companyId,
         stockId,
-        adjustmentData.newQuantity,
-        adjustmentData.reason,
+        { type: 'adjustment', quantity: adjustmentData.newQuantity, reason: adjustmentData.reason }
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'ajustement de stock';
@@ -519,7 +518,10 @@ export class CompanyStocksController {
   ): Promise<{ totalValue: number; currency: string }> {
     try {
       const totalValue = await this.companyStocksService.calculateTotalStockValue(companyId);
-      return { totalValue, currency: 'CDF' }; // Default currency
+      return { 
+        totalValue, 
+        currency: 'CDF' 
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors du calcul de la valeur totale';
       const status = errorMessage.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -568,7 +570,7 @@ export class CompanyStocksController {
     stockByState: Record<StockState, number>;
   }> {
     try {
-      return await this.companyStocksService.getStockStatistics(companyId);
+      return await this.companyStocksService.generateStockStatistics(companyId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des statistiques';
       const status = errorMessage.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;

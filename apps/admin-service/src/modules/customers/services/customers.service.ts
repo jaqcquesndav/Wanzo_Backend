@@ -17,19 +17,18 @@ import { ValidationProcess, ValidationStep, ValidationStepStatus } from '../enti
 import { CustomerDetailedProfile, ProfileType, AdminStatus, ComplianceRating } from '../entities/customer-detailed-profile.entity';
 import {
   AdminCustomerProfileDto,
-  CustomerQueryParamsDto,
-  CustomerListResponseDto,
-  CustomerDetailsResponseDto,
-  CustomerDocumentDto,
-  CustomerActivityDto,
-  CustomerStatisticsDto,
-  ValidationProcessDto,
+  AdminCustomerProfileListDto,
+  AdminCustomerProfileDetailsDto,
+  AdminDashboardStatsDto,
+  CustomerDetailedProfileDto,
   CustomerDetailedProfileListDto,
   ProfileQueryParamsDto,
   UpdateProfileStatusDto,
   ProfileStatisticsDto,
-  CustomerDto,
-  CustomerDetailedProfileDto
+  CustomerDocumentDto,
+  CustomerActivityDto,
+  CustomerStatisticsDto,
+  CustomerDto
 } from '../dtos';
 import { EventsService } from '../../events/events.service';
 import { documentMethods } from './customers-document.methods';
@@ -64,9 +63,9 @@ export class CustomersService implements CustomerDocumentMethods {
 
   /**
    * Get all customers with pagination and filtering
-   * OPTIMISÉ : Utilise CustomerDetailedProfile au lieu de l'ancienne entité Customer
+   * OPTIMISÉ : Utilise CustomerDetailedProfile comme source unique de vérité
    */
-  async findAll(queryParams: CustomerQueryParamsDto): Promise<CustomerListResponseDto> {
+  async findAll(queryParams: any): Promise<AdminCustomerProfileListDto> {
     const {
       page = 1,
       limit = 10,
@@ -107,7 +106,6 @@ export class CustomersService implements CustomerDocumentMethods {
 
     return {
       items: profiles.map(profile => this.mapDetailedProfileToAdminDto(profile)),
-      totalCount,
       total: totalCount,
       page,
       limit,
@@ -117,9 +115,9 @@ export class CustomersService implements CustomerDocumentMethods {
 
   /**
    * Get a single customer by ID with details
-   * OPTIMISÉ : Utilise CustomerDetailedProfile comme source principale
+   * OPTIMISÉ : Utilise CustomerDetailedProfile comme source unique de données
    */
-  async findOne(id: string): Promise<CustomerDetailsResponseDto> {
+  async findOne(id: string): Promise<AdminCustomerProfileDetailsDto> {
     // D'abord essayer de récupérer depuis CustomerDetailedProfile
     const detailedProfile = await this.detailedProfilesRepository.findOne({
       where: { customerId: id }
@@ -132,17 +130,29 @@ export class CustomersService implements CustomerDocumentMethods {
         this.activitiesRepository.find({ where: { customerId: id } })
       ]);
 
-      // Get customer statistics
-      const statistics = await this.getCustomerStatistics(id);
-
       return {
-        customer: {
-          ...this.mapDetailedProfileToCustomerDto(detailedProfile),
-          documents: documents?.map(doc => this.mapDocumentToDto(doc)),
-          validationHistory: [] // TODO: Implement validation history tracking in CustomerDetailedProfile
+        profile: this.mapDetailedProfileToAdminDto(detailedProfile),
+        statistics: {
+          documentsCount: documents?.length || 0,
+          activitiesCount: activities?.length || 0,
+          lastActivity: activities?.[0]?.timestamp?.toISOString(),
+          subscriptionsCount: 0
         },
-        statistics,
-        activities: activities?.map(activity => this.mapActivityToDto(activity))
+        recentActivities: (activities || []).slice(0, 10).map(activity => ({
+          id: activity.id,
+          type: activity.type,
+          action: activity.action || '',
+          description: activity.description || '',
+          performedAt: activity.timestamp,
+          performedBy: activity.performedBy
+        })),
+        documents: (documents || []).map(doc => ({
+          id: doc.id,
+          type: doc.type,
+          fileName: doc.fileName,
+          status: doc.status,
+          uploadedAt: doc.uploadedAt
+        }))
       };
     }
 
@@ -1539,10 +1549,22 @@ export class CustomersService implements CustomerDocumentMethods {
       profile.patrimoine = {
         assets: assetData.assets,
         stocks: profile.patrimoine?.stocks || [],
-        totalAssetsValue: profile.patrimoine?.totalAssetsValue || 0,
-        lastValuationDate: profile.patrimoine?.lastValuationDate,
-        assetsSummary: assetData.summary,
-        lastAssetsUpdate: assetData.receivedAt,
+        assetsSummary: {
+          ...assetData.summary,
+          lastAssetsUpdate: assetData.receivedAt,
+        },
+        stocksSummary: profile.patrimoine?.stocksSummary || {
+          totalValue: 0,
+          currency: 'CDF',
+          totalItems: 0,
+          lowStockItemsCount: 0,
+          outOfStockItemsCount: 0,
+          lastStockUpdate: new Date().toISOString(),
+        },
+        totalAssetsValue: assetData.summary.totalValue,
+        totalStocksValue: profile.patrimoine?.totalStocksValue || 0,
+        totalPatrimoineValue: assetData.summary.totalValue + (profile.patrimoine?.totalStocksValue || 0),
+        lastValuationDate: new Date().toISOString(),
       };
       
       await this.detailedProfilesRepository.save(profile);
@@ -1592,10 +1614,22 @@ export class CustomersService implements CustomerDocumentMethods {
       profile.patrimoine = {
         assets: profile.patrimoine?.assets || [],
         stocks: stockData.stocks,
+        assetsSummary: profile.patrimoine?.assetsSummary || {
+          totalValue: 0,
+          currency: 'CDF',
+          count: 0,
+          byCategory: {},
+          depreciationRate: 0,
+          lastAssetsUpdate: new Date().toISOString(),
+        },
+        stocksSummary: {
+          ...stockData.summary,
+          lastStockUpdate: stockData.receivedAt,
+        },
         totalAssetsValue: profile.patrimoine?.totalAssetsValue || 0,
-        lastValuationDate: profile.patrimoine?.lastValuationDate,
-        stocksSummary: stockData.summary,
-        lastStocksUpdate: stockData.receivedAt,
+        totalStocksValue: stockData.summary.totalValue,
+        totalPatrimoineValue: (profile.patrimoine?.totalAssetsValue || 0) + stockData.summary.totalValue,
+        lastValuationDate: new Date().toISOString(),
       };
       
       await this.detailedProfilesRepository.save(profile);

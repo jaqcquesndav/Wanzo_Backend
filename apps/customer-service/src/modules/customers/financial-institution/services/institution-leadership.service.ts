@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InstitutionLeadership } from '../entities/institution-leadership.entity';
+import { InstitutionLeadershipEntity } from '../entities/institution-leadership.entity';
 import { 
   CreateLeadershipDto, 
   UpdateLeadershipDto, 
   LeadershipResponseDto,
-  LeaderProfileDto,
-  LeaderEducationDto,
-  LeaderExperienceDto,
-  LeaderSkillDto,
-  LeaderResponsibilityDto
+  EducationDto,
+  ProfessionalExperienceDto,
+  SkillDto,
+  ResponsibilityDto
 } from '../dto/institution-leadership.dto';
 import * as crypto from 'crypto';
 
@@ -21,8 +20,8 @@ import * as crypto from 'crypto';
 @Injectable()
 export class InstitutionLeadershipService {
   constructor(
-    @InjectRepository(InstitutionLeadership)
-    private readonly leadershipRepository: Repository<InstitutionLeadership>,
+    @InjectRepository(InstitutionLeadershipEntity)
+    private readonly leadershipRepository: Repository<InstitutionLeadershipEntity>,
   ) {}
 
   /**
@@ -30,8 +29,12 @@ export class InstitutionLeadershipService {
    */
   async addLeader(institutionId: string, createLeadershipDto: CreateLeadershipDto): Promise<LeadershipResponseDto> {
     try {
+      const leaderData = createLeadershipDto.leadership;
+      
       // Vérification de l'unicité de l'email
-      await this.checkLeaderEmailUniqueness(institutionId, createLeadershipDto.leader.email);
+      if (leaderData.contact?.email) {
+        await this.checkLeaderEmailUniqueness(institutionId, leaderData.contact.email);
+      }
 
       // Création du nouveau dirigeant avec ID unique
       const leaderId = crypto.randomUUID();
@@ -40,26 +43,26 @@ export class InstitutionLeadershipService {
       const newLeader = this.leadershipRepository.create({
         id: leaderId,
         institutionId,
-        firstName: createLeadershipDto.leader.firstName,
-        lastName: createLeadershipDto.leader.lastName,
-        fullName: `${createLeadershipDto.leader.firstName} ${createLeadershipDto.leader.lastName}`,
-        position: createLeadershipDto.leader.position,
-        department: createLeadershipDto.leader.department,
-        email: createLeadershipDto.leader.email,
-        phone: createLeadershipDto.leader.phone,
-        profileImageUrl: createLeadershipDto.leader.profileImageUrl,
-        bio: createLeadershipDto.leader.bio,
-        startDate: createLeadershipDto.leader.startDate ? new Date(createLeadershipDto.leader.startDate) : new Date(),
-        isActive: true,
-        yearsOfExperience: createLeadershipDto.leader.yearsOfExperience || 0,
-        education: createLeadershipDto.leader.education || [],
-        experience: createLeadershipDto.leader.experience || [],
-        skills: createLeadershipDto.leader.skills || [],
-        responsibilities: createLeadershipDto.leader.responsibilities || [],
-        achievements: createLeadershipDto.leader.achievements || [],
-        certifications: createLeadershipDto.leader.certifications || [],
-        languages: createLeadershipDto.leader.languages || [],
-        socialLinks: createLeadershipDto.leader.socialLinks || {},
+        firstName: leaderData.firstName,
+        lastName: leaderData.lastName,
+        fullName: `${leaderData.firstName} ${leaderData.lastName}`,
+        position: leaderData.title,
+        department: '',
+        email: leaderData.contact?.email || '',
+        phone: leaderData.contact?.phone || '',
+        profileImageUrl: leaderData.profilePhotoUrl,
+        bio: leaderData.biography,
+        startDate: leaderData.appointmentDate ? new Date(leaderData.appointmentDate) : new Date(),
+        isActive: leaderData.status === 'active',
+        yearsOfExperience: 0,
+        education: leaderData.education || [],
+        experience: leaderData.experience || [],
+        skills: leaderData.skills || [],
+        responsibilities: leaderData.responsibilities || [],
+        achievements: [],
+        certifications: [],
+        languages: leaderData.languages || [],
+        socialLinks: {},
         createdAt: new Date(currentDate),
         updatedAt: new Date(currentDate),
       });
@@ -84,19 +87,37 @@ export class InstitutionLeadershipService {
         throw new Error('Dirigeant non trouvé');
       }
 
+      const leaderData = updateLeadershipDto.leadership;
+
       // Vérification de l'unicité de l'email si modifié
-      if (updateLeadershipDto.leader?.email && updateLeadershipDto.leader.email !== leader.email) {
-        await this.checkLeaderEmailUniqueness(leader.institutionId, updateLeadershipDto.leader.email, leaderId);
+      if (leaderData?.contact?.email && leaderData.contact.email !== leader.email) {
+        await this.checkLeaderEmailUniqueness(leader.institutionId, leaderData.contact.email, leaderId);
       }
 
       // Mise à jour des données
-      const updatedLeader = this.leadershipRepository.merge(leader, {
-        ...updateLeadershipDto.leader,
-        fullName: updateLeadershipDto.leader?.firstName && updateLeadershipDto.leader?.lastName 
-          ? `${updateLeadershipDto.leader.firstName} ${updateLeadershipDto.leader.lastName}`
-          : leader.fullName,
-        updatedAt: new Date(),
-      });
+      const updateData: any = {};
+      if (leaderData?.firstName) updateData.firstName = leaderData.firstName;
+      if (leaderData?.lastName) updateData.lastName = leaderData.lastName;
+      if (leaderData?.title) updateData.position = leaderData.title;
+      if (leaderData?.contact?.email) updateData.email = leaderData.contact.email;
+      if (leaderData?.contact?.phone) updateData.phone = leaderData.contact.phone;
+      if (leaderData?.profilePhotoUrl) updateData.profileImageUrl = leaderData.profilePhotoUrl;
+      if (leaderData?.biography) updateData.bio = leaderData.biography;
+      if (leaderData?.appointmentDate) updateData.startDate = new Date(leaderData.appointmentDate);
+      if (leaderData?.status) updateData.isActive = leaderData.status === 'active';
+      if (leaderData?.education) updateData.education = leaderData.education;
+      if (leaderData?.experience) updateData.experience = leaderData.experience;
+      if (leaderData?.skills) updateData.skills = leaderData.skills;
+      if (leaderData?.responsibilities) updateData.responsibilities = leaderData.responsibilities;
+      if (leaderData?.languages) updateData.languages = leaderData.languages;
+      
+      if (leaderData?.firstName && leaderData?.lastName) {
+        updateData.fullName = `${leaderData.firstName} ${leaderData.lastName}`;
+      }
+      
+      updateData.updatedAt = new Date();
+
+      const updatedLeader = this.leadershipRepository.merge(leader, updateData);
 
       const savedLeader = await this.leadershipRepository.save(updatedLeader);
       
@@ -412,18 +433,18 @@ export class InstitutionLeadershipService {
 
       // Statistiques par années d'expérience
       const experienceStats = {
-        junior: leaders.filter(l => l.yearsOfExperience < 5).length,
-        intermediate: leaders.filter(l => l.yearsOfExperience >= 5 && l.yearsOfExperience < 10).length,
-        senior: leaders.filter(l => l.yearsOfExperience >= 10 && l.yearsOfExperience < 20).length,
-        expert: leaders.filter(l => l.yearsOfExperience >= 20).length,
+        junior: leaders.filter(l => (l.totalExperienceYears || 0) < 5).length,
+        mid: leaders.filter(l => (l.totalExperienceYears || 0) >= 5 && (l.totalExperienceYears || 0) < 10).length,
+        senior: leaders.filter(l => (l.totalExperienceYears || 0) >= 10 && (l.totalExperienceYears || 0) < 20).length,
+        expert: leaders.filter(l => (l.totalExperienceYears || 0) >= 20).length,
       };
 
       // Compétences les plus communes
       const allSkills = leaders.flatMap(leader => leader.skills || []);
       const skillsCount: { [key: string]: number } = {};
       for (const skill of allSkills) {
-        if (skill.name) {
-          skillsCount[skill.name] = (skillsCount[skill.name] || 0) + 1;
+        if (skill.category) {
+          skillsCount[skill.category] = (skillsCount[skill.category] || 0) + 1;
         }
       }
 
@@ -437,7 +458,7 @@ export class InstitutionLeadershipService {
           totalLeaders: leaders.length,
           activeLeaders: activeLeaders.length,
           averageExperience: leaders.length > 0 ? 
-            leaders.reduce((sum, leader) => sum + leader.yearsOfExperience, 0) / leaders.length : 0,
+            leaders.reduce((sum, leader) => sum + (leader.totalExperienceYears || 0), 0) / leaders.length : 0,
         },
         departmentStats,
         experienceStats,
@@ -471,7 +492,7 @@ export class InstitutionLeadershipService {
   /**
    * Construire la hiérarchie des dirigeants
    */
-  private buildHierarchy(leaders: InstitutionLeadership[]): any {
+  private buildHierarchy(leaders: InstitutionLeadershipEntity[]): any {
     // Positions hiérarchiques typiques
     const positionRanks: { [key: string]: number } = {
       'PDG': 1,
@@ -497,41 +518,65 @@ export class InstitutionLeadershipService {
       .map(leader => ({
         id: leader.id,
         name: leader.fullName,
-        position: leader.position,
+        position: leader.role,
         department: leader.department,
-        rank: positionRanks[leader.position] || 10,
-        isActive: leader.isActive,
+        rank: positionRanks[leader.role] || 10,
+        isActive: leader.isCurrentPosition,
       }));
   }
 
   /**
    * Mapper l'entité Leadership vers LeadershipResponseDto
    */
-  private mapLeaderToResponseDto(leader: InstitutionLeadership): LeadershipResponseDto {
+  private mapLeaderToResponseDto(leader: InstitutionLeadershipEntity): LeadershipResponseDto {
     return {
       id: leader.id,
       institutionId: leader.institutionId,
-      firstName: leader.firstName,
-      lastName: leader.lastName,
-      fullName: leader.fullName,
-      position: leader.position,
-      department: leader.department,
-      email: leader.email,
-      phone: leader.phone,
-      profileImageUrl: leader.profileImageUrl,
-      bio: leader.bio,
-      startDate: leader.startDate?.toISOString(),
-      endDate: leader.endDate?.toISOString(),
-      isActive: leader.isActive,
-      yearsOfExperience: leader.yearsOfExperience,
-      education: leader.education || [],
-      experience: leader.experience || [],
-      skills: leader.skills || [],
-      responsibilities: leader.responsibilities || [],
-      achievements: leader.achievements || [],
+      firstName: leader.firstName || '',
+      lastName: leader.lastName || '',
+      role: leader.role as any,
+      title: leader.customRoleTitle || leader.role || '',
+      status: leader.status as any,
+      appointmentDate: leader.appointmentDate?.toISOString() || new Date().toISOString(),
+      endDate: leader.actualEndDate?.toISOString(),
+      contact: {
+        professionalEmail: leader.email || '',
+        professionalPhone: leader.phone || '',
+        professionalAddress: leader.address || ''
+      },
+      profilePhotoUrl: '',
+      biography: '',
+      education: (leader.education || []).map(e => ({
+        institution: e.institution,
+        level: 'bachelors' as any,
+        fieldOfStudy: e.field,
+        graduationYear: e.graduationYear
+      })),
+      experience: (leader.professionalExperience || []).map(exp => ({
+        company: exp.company,
+        position: exp.position,
+        startDate: exp.startDate,
+        endDate: exp.endDate,
+        description: exp.description,
+        isCurrent: !exp.endDate
+      })),
+      skills: (leader.skills || []).flatMap(s => 
+        s.skills.map(skill => ({
+          name: skill,
+          category: s.category,
+          level: s.level,
+          yearsOfExperience: 0
+        }))
+      ),
+      responsibilities: [],
+      achievements: [],
       certifications: leader.certifications || [],
-      languages: leader.languages || [],
-      socialLinks: leader.socialLinks || {},
+      languages: (leader.languages || []).map(l => ({
+        language: l.language,
+        proficiency: l.level,
+        certification: ''
+      })),
+      socialLinks: {},
       createdAt: leader.createdAt.toISOString(),
       updatedAt: leader.updatedAt.toISOString(),
     };

@@ -1,9 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { CustomerDocument } from '@/modules/customers/entities/document.entity';
 import { CustomerActivity } from '@/modules/customers/entities/activity.entity';
 import { ValidationProcess } from '@/modules/customers/entities/validation.entity';
-import { PmeSpecificData } from '@/modules/customers/entities/pme-specific-data.entity';
-import { FinancialInstitutionSpecificData } from '@/modules/customers/entities/financial-institution-specific-data.entity';
 
 export enum CustomerType {
   PME = 'pme',
@@ -31,57 +29,9 @@ export class Customer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  name: string;
-
-  @Column({
-    type: 'enum',
-    enum: CustomerType
-  })
-  type: CustomerType;
-
+  // Référence au profil complet dans CustomerDetailedProfile
   @Column({ unique: true })
-  email: string;
-
-  @Column()
-  phone: string;
-
-  @Column()
-  address: string;
-
-  @Column()
-  city: string;
-
-  @Column()
-  country: string;
-
-  @Column({
-    type: 'enum',
-    enum: CustomerStatus,
-    default: CustomerStatus.PENDING
-  })
-  status: CustomerStatus;
-
-  @Column()
-  billingContactName: string;
-
-  @Column()
-  billingContactEmail: string;
-
-  @Column({ default: 0 })
-  tokenAllocation: number;
-
-  @Column({
-    type: 'enum',
-    enum: AccountType
-  })
-  accountType: AccountType;
-
-  @Column({ nullable: true })
-  ownerId: string;
-
-  @Column({ nullable: true })
-  ownerEmail: string;
+  customerId: string;
 
   @Column({ nullable: true })
   validatedAt: Date;
@@ -120,12 +70,6 @@ export class Customer {
 
   @OneToMany(() => ValidationProcess, process => process.customer)
   validationProcesses: ValidationProcess[];
-
-  @OneToOne(() => PmeSpecificData, pmeData => pmeData.customer, { cascade: true, nullable: true })
-  pmeData: PmeSpecificData;
-
-  @OneToOne(() => FinancialInstitutionSpecificData, financialData => financialData.customer, { cascade: true, nullable: true })
-  financialInstitutionData: FinancialInstitutionSpecificData;
 
   @CreateDateColumn()
   createdAt: Date;

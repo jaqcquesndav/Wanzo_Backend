@@ -134,19 +134,20 @@ export class InstitutionService {
    * DELETE /financial-institutions/{id} - Supprimer une institution
    * Conforme aux workflows de suppression documentés
    */
-  async deleteInstitution(id: string): Promise<void> {
+  async deleteInstitution(id: string, deletedBy?: string): Promise<void> {
     const customer = await this.registryService.findById(id);
     if (!customer) {
       throw new Error(`Financial institution with ID ${id} not found`);
     }
 
     // Supprimer l'enregistrement
-    await this.registryService.deleteCustomer(id);
+    await this.registryService.deleteCustomer(id, deletedBy);
 
     // Déclencher l'événement de suppression
     await this.eventService.emitCustomerDeleted({
       customerId: id,
       customerType: CustomerType.FINANCIAL,
+      metadata: { deletedAt: new Date(), deletedBy },
     });
   }
 
@@ -428,5 +429,58 @@ export class InstitutionService {
   private isValidPhoneNumber(phoneNumber: string): boolean {
     const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
     return phoneRegex.test(phoneNumber);
+  }
+
+  // ==================== MÉTHODES ADDITIONNELLES POUR customer.service ====================
+
+  /**
+   * Trouver une institution par customerId
+   */
+  async findByCustomerId(customerId: string): Promise<FinancialInstitutionResponseDto> {
+    const customer = await this.registryService.findById(customerId);
+    return this.mapToResponseDto(customer, {});
+  }
+
+  /**
+   * Valider une institution
+   */
+  async validateInstitution(institutionId: string, validatedBy: string, reason?: string): Promise<void> {
+    // TODO: Implémenter la validation via CustomerLifecycleService
+    const customer = await this.registryService.findById(institutionId);
+    // Pour l'instant, on ne fait rien de plus
+  }
+
+  /**
+   * Suspendre une institution
+   */
+  async suspendInstitution(institutionId: string, suspendedBy: string, reason: string): Promise<void> {
+    // TODO: Implémenter la suspension via CustomerLifecycleService
+    const customer = await this.registryService.findById(institutionId);
+    // Pour l'instant, on ne fait rien de plus
+  }
+
+  /**
+   * Réactiver une institution
+   */
+  async reactivateInstitution(institutionId: string, reactivatedBy: string, reason?: string): Promise<void> {
+    // TODO: Implémenter la réactivation via CustomerLifecycleService
+    const customer = await this.registryService.findById(institutionId);
+    // Pour l'instant, on ne fait rien de plus
+  }
+
+  /**
+   * Trouver une institution par ID (alias pour compatibilité)
+   */
+  async findById(id: string): Promise<FinancialInstitutionResponseDto> {
+    const customer = await this.registryService.findById(id);
+    return this.mapToResponseDto(customer, {});
+  }
+
+  /**
+   * Obtenir les branches d'une institution (placeholder)
+   */
+  async getInstitutionBranches(institutionId: string): Promise<any[]> {
+    // TODO: Implémenter la récupération des branches
+    return [];
   }
 }

@@ -265,6 +265,118 @@ export class AuditDto {
   status!: string; // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
 }
 
+// DTOs supplémentaires pour les opérations spécifiques
+export class LicenseDto {
+  @ApiProperty({ description: 'ID de la licence' })
+  @IsString()
+  licenseId!: string;
+
+  @ApiProperty({ description: 'Type de licence' })
+  @IsString()
+  licenseType!: string;
+
+  @ApiProperty({ description: 'Nom de la licence' })
+  @IsString()
+  licenseName!: string;
+
+  @ApiProperty({ description: 'Numéro de licence' })
+  @IsString()
+  licenseNumber!: string;
+
+  @ApiProperty({ description: 'Émetteur' })
+  @IsString()
+  issuer!: string;
+
+  @ApiProperty({ description: 'Date d\'émission' })
+  @IsDateString()
+  issuedDate!: string;
+
+  @ApiPropertyOptional({ description: 'Date d\'expiration' })
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
+  @ApiProperty({ description: 'Statut' })
+  @IsString()
+  status!: string;
+}
+
+export class ComplianceReportDto {
+  @ApiProperty({ description: 'ID du rapport' })
+  @IsString()
+  reportId!: string;
+
+  @ApiProperty({ description: 'Nom du rapport' })
+  @IsString()
+  reportName!: string;
+
+  @ApiProperty({ description: 'Type de rapport' })
+  @IsString()
+  reportType!: string;
+
+  @ApiProperty({ description: 'Fréquence' })
+  @IsString()
+  frequency!: string;
+
+  @ApiProperty({ description: 'Date limite' })
+  @IsDateString()
+  dueDate!: string;
+
+  @ApiPropertyOptional({ description: 'Statut de soumission' })
+  @IsOptional()
+  @IsString()
+  submissionStatus?: string;
+}
+
+export class AuditDto {
+  @ApiProperty({ description: 'ID de l\'audit' })
+  @IsString()
+  auditId!: string;
+
+  @ApiProperty({ description: 'Type d\'audit' })
+  @IsString()
+  auditType!: string;
+
+  @ApiProperty({ description: 'Auditeur' })
+  @IsString()
+  auditor!: string;
+
+  @ApiProperty({ description: 'Date de début' })
+  @IsDateString()
+  startDate!: string;
+
+  @ApiPropertyOptional({ description: 'Date de fin' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiProperty({ description: 'Statut' })
+  @IsString()
+  status!: string;
+}
+
+export class RegulatoryObligationDto {
+  @ApiProperty({ description: 'ID de l\'obligation' })
+  @IsString()
+  id!: string;
+
+  @ApiProperty({ description: 'Type d\'obligation' })
+  @IsString()
+  type!: string;
+
+  @ApiProperty({ description: 'Description' })
+  @IsString()
+  description!: string;
+
+  @ApiProperty({ description: 'Date de création' })
+  @IsDateString()
+  createdDate!: string;
+
+  @ApiProperty({ description: 'Statut' })
+  @IsString()
+  status!: string;
+}
+
 // Aliases pour compatibilité avec les contrôleurs
 export { RegulatoryComplianceDto as InstitutionRegulatoryDataDto };
 export { CreateRegulatoryComplianceDto as CreateInstitutionRegulatoryDto };

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AdminCalculatorService } from '../calculators/admin-calculator.service';
 import { User } from '../../users/entities/user.entity';
-import { Customer, CustomerType, CustomerStatus } from '../../customers/entities/customer.entity';
+import { CustomerDetailedProfile } from '../../customers/entities/customer-detailed-profile.entity';
 import { DashboardQueryParamsDto } from '../dtos';
 
 export interface AdminMetrics {
@@ -84,8 +84,8 @@ export class AdminOrchestrationService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Customer)
-    private customerRepository: Repository<Customer>,
+    @InjectRepository(CustomerDetailedProfile)
+    private customerRepository: Repository<CustomerDetailedProfile>,
     private calculatorService: AdminCalculatorService,
   ) {}
 
@@ -350,7 +350,7 @@ export class AdminOrchestrationService {
     limit: number = 10,
     orderBy: 'revenue' | 'activity' | 'tokens' = 'revenue',
     companyId?: string
-  ): Promise<Array<{ customer: Customer; value: number; rank: number }>> {
+  ): Promise<Array<{ customer: CustomerDetailedProfile; value: number; rank: number }>> {
     return await this.calculatorService.getTopCustomers(limit, orderBy, companyId);
   }
 

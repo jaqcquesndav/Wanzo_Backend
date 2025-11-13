@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Req, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { SubscriptionPaymentService, InitiateSubscriptionPaymentDto } from '../services/subscription-payment.service';
+import { SubscriptionMobilePaymentService as SubscriptionPaymentService, InitiateSubscriptionPaymentDto } from '../services/subscription-payment.service';
 import { SubscriptionService } from '../services/subscription.service';
 
 class PurchaseSubscriptionDto {

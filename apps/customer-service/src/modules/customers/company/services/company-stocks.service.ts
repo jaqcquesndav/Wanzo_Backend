@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Company } from '../entities/company-core.entity';
+import { CompanyCoreEntity as Company } from '../entities/company-core.entity';
 import { 
-  CreateCompanyStockDto, 
-  UpdateCompanyStockDto, 
+  CreateStockDto as CreateCompanyStockDto, 
+  UpdateStockDto as UpdateCompanyStockDto, 
   StockResponseDto,
   StockDataDto,
   StockMovementDto,
-  StockStatisticsDto,
   StockCategory,
   StockState
 } from '../dto/company-stocks.dto';
@@ -61,9 +60,9 @@ export class CompanyStocksService {
           quantite: createStockDto.stock.quantiteStock,
           reference: 'STOCK_INITIAL',
           date: currentDate,
-          coutUnitaire: createStockDto.stock.prixUnitaire,
-          coutTotal: (createStockDto.stock.prixUnitaire || 0) * createStockDto.stock.quantiteStock,
-          monnaie: createStockDto.stock.monnaie,
+          coutUnitaire: createStockDto.stock.coutUnitaire,
+          coutTotal: (createStockDto.stock.coutUnitaire || 0) * createStockDto.stock.quantiteStock,
+          monnaie: createStockDto.stock.devise,
         };
         newStock.movements = [initialMovement];
       }
@@ -240,10 +239,11 @@ export class CompanyStocksService {
       stock.quantiteStock += movement.quantite;
 
       // Mise à jour du prix moyen pondéré si un nouveau coût unitaire est fourni
-      if (movement.coutUnitaire) {
-        const oldTotalValue = stock.quantiteStock * (stock.prixUnitaire || 0);
-        const newTotalValue = movement.quantite * movement.coutUnitaire;
-        stock.prixUnitaire = (oldTotalValue + newTotalValue) / stock.quantiteStock;
+      if (stock.quantiteStock > 0) {
+        // Recalcul automatique du coût unitaire moyen
+        const oldTotalValue = stock.quantiteStock * stock.coutUnitaire;
+        const newTotalValue = movement.quantite * stock.coutUnitaire;
+        stock.coutUnitaire = (oldTotalValue + newTotalValue) / (stock.quantiteStock + movement.quantite);
       }
 
       // Ajout du mouvement à l'historique
@@ -396,7 +396,16 @@ export class CompanyStocksService {
   /**
    * Générer des statistiques de stock
    */
-  async generateStockStatistics(companyId: string): Promise<StockStatisticsDto> {
+  async generateStockStatistics(companyId: string): Promise<{
+    totalItems: number;
+    totalValue: number;
+    currency: string;
+    categoryBreakdown: Record<string, number>;
+    stateBreakdown: Record<string, number>;
+    lowStockItems: number;
+    totalMovements: number;
+    averageValue: number;
+  }> {
     try {
       const company = await this.companyRepository.findOne({ where: { id: companyId } });
       
@@ -499,8 +508,8 @@ export class CompanyStocksService {
     if (stock.quantiteStock < 0) {
       throw new Error('La quantité ne peut pas être négative');
     }
-    if (stock.prixUnitaire && stock.prixUnitaire <= 0) {
-      throw new Error('Le prix unitaire doit être positif');
+    if (stock.coutUnitaire && stock.coutUnitaire <= 0) {
+      throw new Error('Le coût unitaire doit être positif');
     }
   }
 
@@ -514,11 +523,11 @@ export class CompanyStocksService {
       description: stock.description,
       categorie: stock.categorie,
       quantiteStock: stock.quantiteStock,
-      prixUnitaire: stock.prixUnitaire,
+      coutUnitaire: stock.coutUnitaire,
       seuilAlerte: stock.seuilAlerte,
       seuilOptimal: stock.seuilOptimal,
       unite: stock.unite,
-      monnaie: stock.monnaie,
+      devise: stock.devise,
       fournisseur: stock.fournisseur,
       emplacement: stock.emplacement,
       codeInterne: stock.codeInterne,
@@ -537,5 +546,29 @@ export class CompanyStocksService {
       createdAt: stock.createdAt,
       updatedAt: stock.updatedAt,
     };
+  }
+
+  /**
+   * Enregistrer un mouvement de stock (générique: entrée ou sortie)
+   */
+  async recordMovement(companyId: string, stockId: string, movement: Omit<StockMovementDto, 'id'> & { type: 'in' | 'out' | 'entree' | 'sortie' | 'adjustment' }): Promise<StockResponseDto> {
+    // Normaliser le type de mouvement
+    const normalizedType = movement.type === 'in' || movement.type === 'entree' ? 'entree' : 'sortie';
+    
+    // Créer un mouvement compatible avec StockMovementDto
+    const movementData: Omit<StockMovementDto, 'id' | 'typeMouvement'> = {
+      stockId: movement.stockId,
+      quantite: movement.quantite,
+      motif: movement.motif,
+      referenceDocument: movement.referenceDocument,
+      responsable: movement.responsable,
+      date: movement.date,
+    };
+
+    if (normalizedType === 'entree') {
+      return this.stockEntry(companyId, stockId, movementData as any);
+    } else {
+      return this.stockExit(companyId, stockId, movementData as any);
+    }
   }
 }

@@ -178,7 +178,7 @@ export class TokensService {
         const dtos = transactions.map(t => ({
             id: t.id,
             customerId: t.customerId,
-            customerName: t.customer?.name,
+            customerName: t.customerId, // Customer name not available in transaction entity
             subscriptionId: t.subscriptionId,
             packageId: t.packageId,
             type: t.type,

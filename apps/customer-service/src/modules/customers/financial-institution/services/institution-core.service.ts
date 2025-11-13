@@ -2,13 +2,12 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 // Import des entités depuis le nouveau fichier
-import { InstitutionCoreEntity } from '../entities/institution-core.entity.new';
+import { InstitutionCoreEntity, InstitutionType as EntityInstitutionType } from '../entities/institution-core.entity';
 import {
   CreateFinancialInstitutionDto,
   UpdateFinancialInstitutionDto,
   FinancialInstitutionResponseDto,
-  InstitutionType,
-  InstitutionStatus,
+  FinancialInstitutionType as DtoInstitutionType,
 } from '../dto/institution-core.dto';
 import * as crypto from 'crypto';
 
@@ -24,46 +23,78 @@ export class InstitutionCoreService {
   ) {}
 
   /**
+   * Mapper les types d'institutions du DTO français vers l'entity anglaise
+   */
+  private mapInstitutionType(dtoType: DtoInstitutionType): EntityInstitutionType {
+    const typeMapping: Record<DtoInstitutionType, EntityInstitutionType> = {
+      [DtoInstitutionType.BANQUE]: EntityInstitutionType.BANQUE,
+      [DtoInstitutionType.MICROFINANCE]: EntityInstitutionType.MICROFINANCE,
+      [DtoInstitutionType.COOPEC]: EntityInstitutionType.COOPEC,
+      [DtoInstitutionType.FOND_GARANTIE]: EntityInstitutionType.FOND_GARANTIE,
+      [DtoInstitutionType.ENTREPRISE_FINANCIERE]: EntityInstitutionType.ENTREPRISE_FINANCIERE,
+      [DtoInstitutionType.FOND_CAPITAL_INVESTISSEMENT]: EntityInstitutionType.FOND_CAPITAL_INVESTISSEMENT,
+      [DtoInstitutionType.FOND_IMPACT]: EntityInstitutionType.FOND_IMPACT,
+      [DtoInstitutionType.AUTRE]: EntityInstitutionType.AUTRE,
+    };
+    return typeMapping[dtoType] || EntityInstitutionType.AUTRE;
+  }
+
+  /**
+   * Mapper les types d'institutions de l'entity anglaise vers le DTO français
+   */
+  private mapEntityToDtoType(entityType: EntityInstitutionType): DtoInstitutionType {
+    // Les enums ont les mêmes valeurs, mapping direct
+    const validDtoTypes = Object.values(DtoInstitutionType);
+    if (validDtoTypes.includes(entityType as any)) {
+      return entityType as unknown as DtoInstitutionType;
+    }
+    return DtoInstitutionType.AUTRE;
+  }
+
+  /**
    * Créer une nouvelle institution financière
    */
   async createInstitution(createDto: CreateFinancialInstitutionDto): Promise<FinancialInstitutionResponseDto> {
     try {
       // Vérification de l'unicité du nom
-      await this.checkInstitutionNameUniqueness(createDto.institutionName);
+      await this.checkInstitutionNameUniqueness(createDto.denominationSociale);
       
       // Génération d'un ID unique
       const institutionId = crypto.randomUUID();
       const currentDate = new Date();
       
-      // Création de l'entité
+      // Mapping du DTO français vers l'entity anglaise
       const institution = this.institutionRepository.create({
         id: institutionId,
-        institutionName: createDto.institutionName,
-        legalName: createDto.legalName,
-        institutionType: createDto.institutionType,
-        ownership: createDto.ownership || 'PRIVATE',
-        status: createDto.status || 'ACTIVE',
-        licenseNumber: createDto.licenseNumber,
-        regulatoryAuthority: createDto.regulatoryAuthority,
-        establishmentDate: createDto.establishedDate ? new Date(createDto.establishedDate) : undefined,
-        headOfficeAddress: createDto.address?.street,
-        city: createDto.address?.city,
-        province: createDto.address?.province,
-        countryOfOperation: createDto.address?.country || 'DRC',
-        phoneNumber: createDto.contact?.phone,
-        emailAddress: createDto.contact?.email,
-        websiteUrl: createDto.contact?.website,
-        ceoName: createDto.ceoName,
-        description: createDto.description,
-        authorizedCapital: createDto.authorizedCapital,
-        paidUpCapital: createDto.paidUpCapital,
-        baseCurrency: createDto.baseCurrency || 'CDF',
-        totalBranches: createDto.totalBranches || 0,
-        totalEmployees: createDto.totalEmployees || 0,
-        logoUrl: createDto.logoUrl,
-        createdBy: createDto.createdBy || 'system',
+        institutionName: createDto.denominationSociale,
+        legalName: createDto.denominationSociale,
+        acronym: createDto.sigle,
+        institutionType: this.mapInstitutionType(createDto.typeInstitution),
+        sector: 'PRIVE' as any, // Défaut
+        status: 'ACTIVE',
+        licenseNumber: createDto.numeroAgrement,
+        regulatoryAuthority: createDto.autoritéSupervision as any,
+        establishmentDate: createDto.dateCreation ? new Date(createDto.dateCreation) : undefined,
+        headOfficeAddress: createDto.siegeSocial,
+        city: createDto.siegeSocial, // À améliorer avec parsing d'adresse
+        province: '', // À améliorer
+        countryOfOperation: createDto.paysOrigine || 'DRC',
+        phoneNumber: '',  // Pas dans le DTO de base
+        emailAddress: '', // Pas dans le DTO de base
+        websiteUrl: '',   // Pas dans le DTO de base
+        description: createDto.statutJuridique,
+        authorizedCapital: parseFloat(createDto.capitalSocialMinimum || '0'),
+        paidUpCapital: parseFloat(createDto.capitalSocialActuel || '0'),
+        baseCurrency: createDto.devise || 'CDF',
+        totalBranches: createDto.nombreAgences || 0,
+        totalEmployees: 0,
+        logoUrl: '',
+        createdBy: createDto.userId || 'system',
         createdAt: currentDate,
         updatedAt: currentDate,
+        customerId: createDto.userId,
+        businessRegistrationNumber: createDto.numeroRCCM,
+        taxIdentificationNumber: createDto.numeroNIF,
       });
 
       // Sauvegarde en base
@@ -94,25 +125,26 @@ export class InstitutionCoreService {
         throw new NotFoundException(`Institution avec l'ID ${institutionId} non trouvée`);
       }
 
-      // Mise à jour des champs fournis
-      if (updateDto.institutionName) {
-        institution.institutionName = updateDto.institutionName;
+      // Mise à jour des champs fournis (mapping DTO français → Entity anglaise)
+      if (updateDto.denominationSociale) {
+        institution.institutionName = updateDto.denominationSociale;
+        institution.legalName = updateDto.denominationSociale;
       }
-      if (updateDto.legalName) {
-        institution.legalName = updateDto.legalName;
+      if (updateDto.sigle) {
+        institution.acronym = updateDto.sigle;
       }
-      if (updateDto.institutionType) {
-        institution.institutionType = updateDto.institutionType;
+      if (updateDto.typeInstitution) {
+        institution.institutionType = this.mapInstitutionType(updateDto.typeInstitution);
       }
-      if (updateDto.status) {
-        institution.status = updateDto.status;
+      if (updateDto.statutJuridique) {
+        institution.description = updateDto.statutJuridique;
       }
-      if (updateDto.description) {
-        institution.description = updateDto.description;
+      if (updateDto.nombreAgences !== undefined) {
+        institution.totalBranches = updateDto.nombreAgences;
       }
 
       institution.updatedAt = new Date();
-      institution.updatedBy = updateDto.updatedBy || 'system';
+      institution.updatedBy = updateDto.userId || 'system';
 
       const updatedInstitution = await this.institutionRepository.save(institution);
       return this.mapToResponseDto(updatedInstitution);
@@ -291,34 +323,40 @@ export class InstitutionCoreService {
   private mapToResponseDto(institution: InstitutionCoreEntity): FinancialInstitutionResponseDto {
     return {
       id: institution.id,
-      institutionName: institution.institutionName,
-      legalName: institution.legalName,
-      institutionType: institution.institutionType as InstitutionType,
-      ownership: institution.ownership,
-      status: institution.status as InstitutionStatus,
-      licenseNumber: institution.licenseNumber,
-      regulatoryAuthority: institution.regulatoryAuthority,
-      establishedDate: institution.establishmentDate,
-      licenseExpiryDate: institution.licenseExpiryDate,
-      address: {
-        street: institution.headOfficeAddress || '',
-        city: institution.city || '',
-        province: institution.province || '',
-        country: institution.countryOfOperation,
-        postalCode: institution.postalCode,
-      },
-      contact: {
-        phone: institution.phoneNumber,
-        email: institution.emailAddress,
-        website: institution.websiteUrl,
-        fax: institution.faxNumber,
-      },
-      ceoName: institution.ceoName,
-      description: institution.description,
-      authorizedCapital: institution.authorizedCapital,
-      paidUpCapital: institution.paidUpCapital,
-      baseCurrency: institution.baseCurrency as any,
-      totalBranches: institution.totalBranches,
+      userId: institution.customerId || '',
+      // Mapping Entity anglaise → DTO français
+      denominationSociale: institution.institutionName || '',
+      sigle: institution.acronym || '',
+      typeInstitution: this.mapEntityToDtoType(institution.institutionType),
+      sousCategorie: '', // À compléter
+      dateCreation: institution.establishmentDate?.toISOString() || new Date().toISOString(),
+      paysOrigine: institution.countryOfOperation || 'DRC',
+      statutJuridique: institution.description || '',
+      autoritéSupervision: institution.regulatoryAuthority as any,
+      numeroAgrement: institution.licenseNumber || '',
+      dateAgrement: institution.licenseIssuedDate?.toISOString() || '',
+      validiteAgrement: institution.licenseExpiryDate?.toISOString() || '',
+      numeroRCCM: institution.businessRegistrationNumber || '',
+      numeroNIF: institution.taxIdentificationNumber || '',
+      activitesAutorisees: [], // À compléter depuis relation
+      siegeSocial: institution.headOfficeAddress || '',
+      nombreAgences: institution.totalBranches || 0,
+      villesProvincesCouvertes: [], // À compléter
+      presenceInternationale: false,
+      capitalSocialMinimum: institution.authorizedCapital?.toString() || '0',
+      capitalSocialActuel: institution.paidUpCapital?.toString() || '0',
+      fondsPropresMontant: '0', // À compléter
+      totalBilan: '0', // À compléter
+      chiffreAffairesAnnuel: '0', // À compléter
+      devise: institution.baseCurrency as any,
+      segmentClientelePrincipal: '',
+      nombreClientsActifs: 0,
+      portefeuilleCredit: '0',
+      depotsCollectes: '0',
+      servicesCredit: [],
+      servicesInvestissement: [],
+      servicesGarantie: [],
+      servicesTransactionnels: [],
       totalEmployees: institution.totalEmployees,
       totalCustomers: institution.totalCustomers,
       logoUrl: institution.logoUrl,
@@ -329,5 +367,43 @@ export class InstitutionCoreService {
       createdBy: institution.createdBy,
       updatedBy: institution.updatedBy,
     };
+  }
+
+  /**
+   * Obtenir les institutions par filtres (alias de searchInstitutions)
+   */
+  async getInstitutionsByFilters(filters: {
+    name?: string;
+    type?: any;
+    status?: any;
+    city?: string;
+  }): Promise<FinancialInstitutionResponseDto[]> {
+    return this.searchInstitutions(filters);
+  }
+
+  /**
+   * Rechercher les institutions par nom (alias simplifié)
+   */
+  async searchInstitutionsByName(name: string): Promise<FinancialInstitutionResponseDto[]> {
+    return this.searchInstitutions({ name });
+  }
+
+  /**
+   * Obtenir les institutions par type
+   */
+  async getInstitutionsByType(type: any): Promise<FinancialInstitutionResponseDto[]> {
+    return this.searchInstitutions({ type });
+  }
+
+  /**
+   * Obtenir les statistiques des institutions (alias)
+   */
+  async getInstitutionStats(): Promise<{
+    total: number;
+    byType: Record<string, number>;
+    byStatus: Record<string, number>;
+    active: number;
+  }> {
+    return this.getInstitutionStatistics();
   }
 }

@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InstitutionBranch } from '../entities/institution-branch.entity';
+import { InstitutionBranchEntity as InstitutionBranch } from '../entities/institution-branch.entity';
 import { 
   CreateBranchDto, 
   UpdateBranchDto, 
   BranchResponseDto,
-  BranchOperationalDataDto,
-  BranchPerformanceDto,
-  BranchStaffDto
+  BranchStatsDto
 } from '../dto/institution-branches.dto';
 import * as crypto from 'crypto';
 
@@ -38,22 +36,11 @@ export class InstitutionBranchService {
       const newBranch = this.branchRepository.create({
         id: branchId,
         institutionId,
-        code: createBranchDto.branch.code,
-        name: createBranchDto.branch.name,
-        address: createBranchDto.branch.address,
-        coordinates: createBranchDto.branch.coordinates,
-        manager: createBranchDto.branch.manager,
-        phone: createBranchDto.branch.phone,
-        email: createBranchDto.branch.email,
-        openingHours: createBranchDto.branch.openingHours,
-        services: createBranchDto.branch.services || [],
-        operationalData: createBranchDto.branch.operationalData,
-        performance: createBranchDto.branch.performance,
-        staff: createBranchDto.branch.staff || [],
+        ...createBranchDto.branch,
         isActive: true,
         createdAt: new Date(currentDate),
         updatedAt: new Date(currentDate),
-      });
+      } as any);
 
       const savedBranch = await this.branchRepository.save(newBranch);
       
@@ -413,17 +400,14 @@ export class InstitutionBranchService {
       name: branch.name,
       address: branch.address,
       coordinates: branch.coordinates,
+      contact: branch.contact,
       manager: branch.manager,
-      phone: branch.phone,
-      email: branch.email,
-      openingHours: branch.openingHours,
+      staffCount: branch.staffCount,
       services: branch.services || [],
-      operationalData: branch.operationalData,
-      performance: branch.performance,
-      staff: branch.staff || [],
+      operatingHours: branch.operatingHours,
       isActive: branch.isActive,
       createdAt: branch.createdAt.toISOString(),
       updatedAt: branch.updatedAt.toISOString(),
-    };
+    } as BranchResponseDto;
   }
 }

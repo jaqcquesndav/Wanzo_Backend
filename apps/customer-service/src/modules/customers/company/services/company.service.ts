@@ -111,20 +111,20 @@ export class CompanyService {
   /**
    * DELETE /companies/{id} - Supprimer une entreprise
    */
-  async deleteCompany(id: string): Promise<void> {
+  async deleteCompany(id: string, deletedBy?: string): Promise<void> {
     const company = await this.registryService.findById(id);
     if (!company) {
       throw new Error(`Company with ID ${id} not found`);
     }
 
     // Supprimer du registre
-    await this.registryService.deleteCustomer(id);
+    await this.registryService.deleteCustomer(id, deletedBy);
 
     // Déclencher l'événement de suppression
     await this.eventService.emitCustomerDeleted({
       customerId: id,
       customerType: CustomerType.SME,
-      metadata: { deletedAt: new Date() },
+      metadata: { deletedAt: new Date(), deletedBy },
     });
   }
 
@@ -254,5 +254,52 @@ export class CompanyService {
   private isValidPhoneNumber(phoneNumber: string): boolean {
     const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
     return phoneRegex.test(phoneNumber);
+  }
+
+  // ==================== MÉTHODES ADDITIONNELLES POUR customer.service ====================
+
+  /**
+   * Trouver une entreprise par customerId
+   */
+  async findByCustomerId(customerId: string): Promise<CompanyResponseDto> {
+    const company = await this.registryService.findById(customerId);
+    return this.mapToResponseDto(company);
+  }
+
+  /**
+   * Valider une entreprise
+   */
+  async validateCompany(companyId: string, validatedBy: string, reason?: string): Promise<void> {
+    await this.lifecycleService.validateCustomer(companyId, validatedBy, reason ? { notes: reason } : undefined, 'CompanyService');
+  }
+
+  /**
+   * Suspendre une entreprise
+   */
+  async suspendCompany(companyId: string, suspendedBy: string, reason: string): Promise<void> {
+    await this.lifecycleService.suspendCustomer(companyId, suspendedBy, reason, 'CompanyService');
+  }
+
+  /**
+   * Réactiver une entreprise
+   */
+  async reactivateCompany(companyId: string, reactivatedBy: string, reason?: string): Promise<void> {
+    await this.lifecycleService.reactivateCustomer(companyId, reactivatedBy, 'CompanyService');
+  }
+
+  /**
+   * Trouver une entreprise par ID (alias pour compatibilité)
+   */
+  async findById(id: string): Promise<CompanyResponseDto> {
+    const company = await this.registryService.findById(id);
+    return this.mapToResponseDto(company);
+  }
+
+  /**
+   * Obtenir les actifs d'une entreprise (placeholder)
+   */
+  async getCompanyAssets(companyId: string): Promise<any[]> {
+    // TODO: Implémenter la récupération des actifs
+    return [];
   }
 }

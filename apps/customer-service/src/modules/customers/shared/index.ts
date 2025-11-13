@@ -37,9 +37,10 @@ export type {
   CustomerRegistryEventData,
 } from './services/customer-events.service';
 
-export type {
-  ValidationResult,
-  ValidationContext,
-  SuspensionResult,
-  ReactivationResult,
-} from './services/customer-lifecycle.service';
+// NOTE: Types retirés - non définis dans customer-lifecycle.service
+// export type {
+//   ValidationResult,
+//   ValidationContext,
+//   SuspensionResult,
+//   ReactivationResult,
+// } from './services/customer-lifecycle.service';

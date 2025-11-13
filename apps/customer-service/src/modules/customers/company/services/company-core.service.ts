@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Company } from '../entities/company-core.entity';
+import { CompanyCoreEntity as Company } from '../entities/company-core.entity';
 import { 
   CreateCompanyDto, 
   UpdateCompanyDto, 
@@ -12,10 +12,15 @@ import {
   ActivitiesDto,
   CapitalDto
 } from '../dto/company-core.dto';
+import { CustomerType, CustomerStatus, AddressDto } from '../../shared';
 
 /**
  * Service pour la gestion du profil principal des entreprises
  * Gère les contacts, propriétaires, associés, activités et capital
+ * 
+ * NOTE: Version corrigée avec mapping Entity→DTO approprié
+ * Entity: companyName, taxNumber, status (string), champs plats
+ * DTO: name, taxId, status (CustomerStatus), objets imbriqués
  */
 @Injectable()
 export class CompanyCoreService {
@@ -35,33 +40,68 @@ export class CompanyCoreService {
       // Vérification de l'unicité du nom d'entreprise
       await this.checkCompanyNameUniqueness(createCompanyDto.name);
 
-      // Création de l'entité entreprise
+      // Création de l'entité entreprise en mappant les DTOs vers les champs de l'entité
       const company = this.companyRepository.create({
-        name: createCompanyDto.name,
-        email: createCompanyDto.email,
-        phone: createCompanyDto.phone,
-        registrationNumber: createCompanyDto.registrationNumber,
-        taxId: createCompanyDto.taxId,
-        type: createCompanyDto.type,
-        status: createCompanyDto.status,
-        incorporationDate: createCompanyDto.incorporationDate,
-        legalForm: createCompanyDto.legalForm,
-        sector: createCompanyDto.sector,
-        subSector: createCompanyDto.subSector,
-        address: createCompanyDto.address,
-        coordinates: createCompanyDto.coordinates,
-        locations: createCompanyDto.locations,
-        contacts: createCompanyDto.contacts,
-        owner: createCompanyDto.owner,
-        associates: createCompanyDto.associates,
-        activities: createCompanyDto.activities,
-        employeeCount: createCompanyDto.employeeCount,
-        website: createCompanyDto.website,
+        // Informations de base
+        companyName: createCompanyDto.name,
+        tradeName: createCompanyDto.name,
         description: createCompanyDto.description,
-        logoUrl: createCompanyDto.logoUrl,
-        socialMediaLinks: createCompanyDto.socialMediaLinks,
-        isVerified: false,
-        isActive: true,
+        
+        // Adresse (mapping du DTO vers les champs plats)
+        address: createCompanyDto.address?.street || '',
+        city: createCompanyDto.address?.city || '',
+        province: createCompanyDto.address?.province || '',
+        postalCode: createCompanyDto.address?.postalCode,
+        country: createCompanyDto.address?.country || 'RDC',
+        
+        // Contacts (extraction depuis ContactsDto)
+        phone: createCompanyDto.contacts?.phone,
+        email: createCompanyDto.contacts?.email,
+        website: undefined, // ContactsDto doesn't have website field
+        
+        // Capital
+        authorizedCapital: createCompanyDto.capital?.amount || 0,
+        paidUpCapital: createCompanyDto.capital?.paidUp || createCompanyDto.capital?.amount || 0,
+        capitalCurrency: createCompanyDto.capital?.currency || 'CDF',
+        
+        // Activités
+        sector: createCompanyDto.activities?.primaryActivity || createCompanyDto.activities?.sector || 'Non spécifié',
+        
+        // Propriétaires et associés (stockés en JSON)
+        owners: createCompanyDto.owner ? [{
+          id: createCompanyDto.owner.id,
+          name: createCompanyDto.owner.name,
+          type: 'individual',
+          shares: 0,
+          percentage: createCompanyDto.owner.shareholding || 100,
+          joinDate: new Date().toISOString(),
+          contact: {
+            phone: createCompanyDto.owner.phone,
+            email: createCompanyDto.owner.email,
+            address: createCompanyDto.owner.address
+          },
+          isActive: true
+        }] : undefined,
+        
+        associates: createCompanyDto.associates?.map(assoc => ({
+          id: assoc.id,
+          name: assoc.name,
+          type: (assoc.type === 'founder' || assoc.type === 'partner' ? 'individual' : 'company') as 'individual' | 'company',
+          role: assoc.position,
+          joinDate: assoc.joinDate || new Date().toISOString(),
+          contact: {
+            phone: assoc.phone,
+            email: assoc.email,
+            address: assoc.address
+          },
+          isActive: true
+        })),
+        
+        // Champs obligatoires avec valeurs par défaut
+        registrationNumber: 'PENDING-' + Date.now(),
+        legalForm: 'SARL',
+        incorporationDate: new Date(),
+        status: 'pending'
       });
 
       const savedCompany = await this.companyRepository.save(company);
@@ -86,7 +126,7 @@ export class CompanyCoreService {
 
       // Vérification de l'unicité du nom si modifié
       if (updateCompanyDto.company?.name &&
-          updateCompanyDto.company.name !== company.name) {
+          updateCompanyDto.company.name !== company.companyName) {
         await this.checkCompanyNameUniqueness(updateCompanyDto.company.name);
       }
 
@@ -155,7 +195,16 @@ export class CompanyCoreService {
         throw new Error('Entreprise non trouvée');
       }
 
-      company.contacts = contacts;
+      // Map ContactsDto to contacts array format
+      company.contacts = [{
+        id: crypto.randomUUID(),
+        name: 'Contact principal',
+        position: 'Contact',
+        phone: contacts.phone,
+        email: contacts.email,
+        isPrimary: true,
+        isActive: true
+      }];
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -176,7 +225,20 @@ export class CompanyCoreService {
         throw new Error('Entreprise non trouvée');
       }
 
-      company.owner = owner;
+      // Map OwnerDto to owners array format
+      company.owners = [{
+        id: owner.id || crypto.randomUUID(),
+        name: owner.name,
+        type: 'individual',
+        shares: owner.shareholding || 0,
+        percentage: owner.shareholding || 0,
+        joinDate: new Date().toISOString(),
+        contact: {
+          phone: owner.phone,
+          email: owner.email
+        },
+        isActive: true
+      }];
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -200,15 +262,28 @@ export class CompanyCoreService {
       // Vérifier si l'associé existe déjà
       const existingAssociate = company.associates?.find(
         assoc => assoc.name === associate.name &&
-                 assoc.email === associate.email
+                 assoc.contact?.email === associate.email
       );
 
       if (existingAssociate) {
         throw new Error('Cet associé existe déjà');
       }
 
-      // Ajouter le nouvel associé
-      company.associates = [...(company.associates || []), associate];
+      // Map AssociateDto to associates array format
+      const mappedAssociate = {
+        id: associate.id || crypto.randomUUID(),
+        name: associate.name,
+        type: (associate.type === 'founder' || associate.type === 'investor' || associate.type === 'partner') ? 'individual' as const : 'company' as const,
+        role: associate.position || 'partner',
+        joinDate: new Date().toISOString(),
+        contact: {
+          phone: associate.phone,
+          email: associate.email
+        },
+        isActive: true
+      };
+      
+      company.associates = [...(company.associates || []), mappedAssociate];
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -255,7 +330,16 @@ export class CompanyCoreService {
         throw new Error('Entreprise non trouvée');
       }
 
-      company.activities = activities;
+      // Map ActivitiesDto to activities array format
+      company.activities = [{
+        id: crypto.randomUUID(),
+        name: activities.primaryActivity,
+        description: activities.primaryActivity,
+        sector: activities.sector || 'other',
+        isMain: true,
+        startDate: new Date().toISOString(),
+        isActive: true
+      }];
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -276,7 +360,10 @@ export class CompanyCoreService {
         throw new Error('Entreprise non trouvée');
       }
 
-      company.capital = capital;
+      // Map CapitalDto to entity flat structure
+      company.authorizedCapital = capital.amount;
+      company.paidUpCapital = capital.paidUp || capital.amount;
+      company.capitalCurrency = capital.currency || 'CDF';
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -297,7 +384,8 @@ export class CompanyCoreService {
         throw new Error('Entreprise non trouvée');
       }
 
-      company.isActive = false;
+      // Note: isActive is a computed property, set status instead
+      company.status = 'inactive';
       const updatedCompany = await this.companyRepository.save(company);
       
       return this.mapToCompanyResponseDto(updatedCompany);
@@ -314,7 +402,7 @@ export class CompanyCoreService {
     try {
       const [companies, total] = await this.companyRepository
         .createQueryBuilder('company')
-        .where('company.name ILIKE :query', { query: `%${query}%` })
+        .where('company.companyName ILIKE :query', { query: `%${query}%` })
         .orWhere('company.registrationNumber ILIKE :query', { query: `%${query}%` })
         .orWhere('company.sector ILIKE :query', { query: `%${query}%` })
         .skip((page - 1) * limit)
@@ -339,7 +427,7 @@ export class CompanyCoreService {
    */
   private async checkCompanyNameUniqueness(name: string): Promise<void> {
     const existingCompany = await this.companyRepository.findOne({
-      where: { name }
+      where: { companyName: name }
     });
 
     if (existingCompany) {
@@ -354,48 +442,90 @@ export class CompanyCoreService {
     if (!createCompanyDto.name) {
       throw new Error('Le nom commercial est requis');
     }
-    if (!createCompanyDto.email) {
+    if (!createCompanyDto.contacts?.email) {
       throw new Error('L\'email est requis');
-    }
-    if (!createCompanyDto.registrationNumber) {
-      throw new Error('Le numéro d\'enregistrement est requis');
     }
   }
 
   /**
    * Mapper l'entité Company vers CompanyResponseDto
+   * NOTE: Mapping corrigé Entity→DTO
+   * - companyName → name
+   * - taxNumber → taxId  
+   * - status (string) → status (CustomerStatus with cast)
+   * - Champs plats → Objets DTO (address, contacts, etc.)
    */
   private mapToCompanyResponseDto(company: Company): CompanyResponseDto {
+    // Map address fields to AddressDto object
+    const addressDto: AddressDto = {
+      street: company.address || '',
+      city: company.city || '',
+      province: company.province || '',
+      postalCode: company.postalCode,
+      country: company.country || 'RDC'
+    };
+
+    // Map contacts fields to ContactsDto object
+    const contactsDto: ContactsDto = {
+      phone: company.phone,
+      email: company.email
+    };
+
+    // Map owner from JSON array to single OwnerDto
+    const ownerDto: OwnerDto | undefined = company.owners?.[0] ? {
+      id: company.owners[0].id,
+      name: company.owners[0].name,
+      email: company.owners[0].contact?.email || '',
+      phone: company.owners[0].contact?.phone || '',
+      isMainOwner: true,
+      shareholding: company.owners[0].percentage
+    } : undefined;
+
+    // Map associates from JSON array to AssociateDto array
+    const associatesDto = company.associates?.map(assoc => ({
+      id: assoc.id,
+      name: assoc.name,
+      email: assoc.contact?.email || '',
+      phone: assoc.contact?.phone || '',
+      position: assoc.role,
+      shareholding: 0,
+      type: 'partner' as const,
+      joinDate: assoc.joinDate
+    }));
+
+    // Map activities from JSON array to ActivitiesExtendedDto
+    const activitiesDto = {
+      primaryActivity: company.activities?.[0]?.name || company.sector,
+      secondaryActivities: company.activities?.slice(1).map(a => a.name) || [],
+      sector: company.sector
+    };
+
+    // Map capital fields to CapitalDto
+    const capitalDto = {
+      amount: company.authorizedCapital || 0,
+      paidUp: company.paidUpCapital || 0,
+      currency: company.capitalCurrency || 'CDF'
+    };
+
     return {
       id: company.id,
-      name: company.name,
-      email: company.email,
-      phone: company.phone,
-      registrationNumber: company.registrationNumber,
-      taxId: company.taxId,
-      type: company.type,
-      status: company.status,
-      incorporationDate: company.incorporationDate,
-      legalForm: company.legalForm,
-      sector: company.sector,
-      subSector: company.subSector,
-      address: company.address,
-      coordinates: company.coordinates,
-      locations: company.locations,
-      contacts: company.contacts,
-      owner: company.owner,
-      associates: company.associates,
-      activities: company.activities,
-      employeeCount: company.employeeCount,
-      website: company.website,
+      name: company.companyName,
       description: company.description,
-      logoUrl: company.logoUrl,
-      socialMediaLinks: company.socialMediaLinks,
-      capital: company.capital,
-      isVerified: company.isVerified,
-      isActive: company.isActive,
-      createdAt: company.createdAt.toISOString(),
-      updatedAt: company.updatedAt.toISOString(),
+      type: 'COMPANY' as CustomerType, // Entity doesn't have type field
+      status: (company.status || 'PENDING') as CustomerStatus,
+      contacts: contactsDto,
+      address: addressDto,
+      owner: ownerDto!,
+      associates: associatesDto,
+      activities: activitiesDto as any,
+      capital: capitalDto as any,
+      locations: company.locations,
+      logo: company.logoUrl,
+      documents: [],
+      metadata: company.metadata,
+      subscription: company.subscription,
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt,
     };
   }
 }

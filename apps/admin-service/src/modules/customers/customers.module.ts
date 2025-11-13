@@ -9,14 +9,13 @@ import { DocumentsController } from './controllers/documents.controller';
 import { CustomersService } from './services';
 import { ValidationService } from './services/validation.service';
 import { CustomerProfileWorkflowService } from './services/customer-profile-workflow.service';
+import { CustomersSyncService } from './services/customers-sync.service';
 import { 
   Customer, 
   CustomerDocument, 
   CustomerActivity, 
   ValidationProcess, 
   ValidationStep,
-  PmeSpecificData,
-  FinancialInstitutionSpecificData,
   CustomerDetailedProfile
 } from './entities';
 import { AuthModule } from '../auth/auth.module';
@@ -31,8 +30,6 @@ import { EventsModule } from '../events/events.module';
       CustomerActivity, 
       ValidationProcess, 
       ValidationStep,
-      PmeSpecificData,
-      FinancialInstitutionSpecificData,
       CustomerDetailedProfile
     ]),
     MulterModule.register({
@@ -62,12 +59,14 @@ import { EventsModule } from '../events/events.module';
   providers: [
     CustomersService, 
     ValidationService,
-    CustomerProfileWorkflowService
+    CustomerProfileWorkflowService,
+    CustomersSyncService
   ],
   exports: [
     CustomersService, 
     ValidationService,
-    CustomerProfileWorkflowService
+    CustomerProfileWorkflowService,
+    CustomersSyncService
   ]
 })
 export class CustomersModule {}

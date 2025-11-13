@@ -397,4 +397,7 @@ export class CompanyCoreEntity {
     if (this.country && this.country !== 'RDC') parts.push(this.country);
     return parts.filter(Boolean).join(', ');
   }
+
+  // === STOCK DATA (TEMPORARY STUB - TODO: Migrate to separate Stock entity) ===
+  stockData?: any[];
 }

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type, Transform } from 'class-transformer';
-import { IsString, IsOptional, IsEnum, IsDateString, IsUUID, IsBoolean, IsNumber, Min, Max, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString, IsUUID, IsBoolean, IsNumber, Min, Max, IsArray, IsNotEmpty } from 'class-validator';
 import { AdminStatus, ComplianceRating, ProfileType } from '../entities/customer-detailed-profile.entity';
 
 /**
@@ -413,6 +413,31 @@ export class AdminCustomerProfileListDto {
 
   @ApiProperty({ description: 'Total pages' })
   totalPages: number;
+}
+
+/**
+ * DTO pour approuver un document
+ */
+export class ApproveDocumentDto {
+  @ApiPropertyOptional({ description: 'Approval comments' })
+  @IsOptional()
+  @IsString()
+  comments?: string;
+}
+
+/**
+ * DTO pour rejeter un document
+ */
+export class RejectDocumentDto {
+  @ApiProperty({ description: 'Rejection reason' })
+  @IsNotEmpty()
+  @IsString()
+  reason: string;
+
+  @ApiPropertyOptional({ description: 'Additional comments' })
+  @IsOptional()
+  @IsString()
+  comments?: string;
 }
 
 /**
