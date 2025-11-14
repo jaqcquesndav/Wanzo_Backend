@@ -236,11 +236,8 @@ export class CustomerLifecycleService {
     // Publication d'événement générique
     await this.customerEventsProducer.emitCustomerUpdated({
       customerId,
-      // type: customer.type, // Propriété non autorisée dans le DTO
-      // updatedBy, // Propriété non autorisée
-      // updatedAt: customer.updatedAt.toISOString(), // Propriété non autorisée
-      changedFields: ['status'],
-      statusChange: statusUpdate,
+      updatedFields: ['status'],
+      timestamp: new Date().toISOString()
     });
 
     this.logger.log(`Customer ${customerId} status updated from ${previousStatus} to ${newStatus}`);

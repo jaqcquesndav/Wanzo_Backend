@@ -288,8 +288,8 @@ export class CompanyStocksService {
       const exitMovement = {
         type: 'sortie',
         ...movement,
-        coutUnitaire: movement.coutUnitaire || stock.prixUnitaire,
-        coutTotal: (movement.coutUnitaire || stock.prixUnitaire || 0) * movement.quantite,
+        coutUnitaire: (movement as any).coutUnitaire || stock.prixUnitaire,
+        coutTotal: ((movement as any).coutUnitaire || stock.prixUnitaire || 0) * movement.quantite,
       };
 
       // Mise à jour de la quantité
@@ -524,25 +524,16 @@ export class CompanyStocksService {
       categorie: stock.categorie,
       quantiteStock: stock.quantiteStock,
       coutUnitaire: stock.coutUnitaire,
-      seuilAlerte: stock.seuilAlerte,
-      seuilOptimal: stock.seuilOptimal,
+      // seuilAlerte non disponible
+      // seuilOptimal non disponible
       unite: stock.unite,
       devise: stock.devise,
-      fournisseur: stock.fournisseur,
-      emplacement: stock.emplacement,
-      codeInterne: stock.codeInterne,
-      codeBarre: stock.codeBarre,
-      dateExpiration: stock.dateExpiration,
-      numeroLot: stock.numeroLot,
-      etat: stock.etat,
-      poids: stock.poids,
-      dimensions: stock.dimensions,
-      couleur: stock.couleur,
-      marque: stock.marque,
-      modele: stock.modele,
-      garantie: stock.garantie,
-      observations: stock.observations,
-      movements: stock.movements || [],
+      // fournisseur non disponible
+      // emplacement non disponible
+      // codeInterne non disponible
+      // codeBarre non disponible
+      // dateExpiration, numeroLot, etat, poids, dimensions, couleur, marque, modele, garantie, observations, movements non disponibles
+      valeurTotaleStock: stock.quantiteStock * stock.coutUnitaire || 0,
       createdAt: stock.createdAt,
       updatedAt: stock.updatedAt,
     };
@@ -562,7 +553,7 @@ export class CompanyStocksService {
       motif: movement.motif,
       referenceDocument: movement.referenceDocument,
       responsable: movement.responsable,
-      date: movement.date,
+      // date moved to createdAt
     };
 
     if (normalizedType === 'entree') {

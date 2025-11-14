@@ -129,12 +129,16 @@ export class InstitutionRegulatoryService {
 
       const newLicense = {
         ...license,
-        id: crypto.randomUUID(),
-        issueDate: license.issueDate || new Date().toISOString(),
+        licenseId: license.licenseId || crypto.randomUUID(),
+        issuedDate: license.issuedDate || new Date().toISOString(),
         status: license.status || 'active',
-      };
+        scope: [],
+        restrictions: [],
+        conditions: [],
+        documents: []
+      } as any;
 
-      compliance.licenses = [...(compliance.licenses || []), newLicense];
+      compliance.licenses = [...(compliance.licenses || []), newLicense as any];
       compliance.updatedAt = new Date();
       
       const updatedCompliance = await this.regulatoryRepository.save(compliance);
@@ -167,7 +171,7 @@ export class InstitutionRegulatoryService {
       compliance.licenses![licenseIndex] = {
         ...compliance.licenses![licenseIndex],
         ...licenseUpdate,
-      };
+      } as any;
       
       compliance.updatedAt = new Date();
       
@@ -192,13 +196,20 @@ export class InstitutionRegulatoryService {
       }
 
       const newReport = {
-        ...report,
-        id: crypto.randomUUID(),
-        submissionDate: report.submissionDate || new Date().toISOString(),
-        status: report.status || 'pending',
+        reportId: report.reportId || crypto.randomUUID(),
+        reportName: report.reportName,
+        reportType: report.reportType,
+        frequency: report.frequency,
+        dueDate: report.dueDate,
+        submissionStatus: report.submissionStatus || 'not_submitted',
+        recipient: '',
+        format: 'pdf' as any,
+        submissionMethod: 'online' as any,
+        nextDueDate: report.dueDate,
+        isActive: true
       };
 
-      compliance.reportingRequirements = [...(compliance.reportingRequirements || []), newReport];
+      compliance.reportingRequirements = [...(compliance.reportingRequirements || []), newReport as any];
       compliance.updatedAt = new Date();
       
       const updatedCompliance = await this.regulatoryRepository.save(compliance);
@@ -224,7 +235,7 @@ export class InstitutionRegulatoryService {
       const newAudit = {
         ...audit,
         id: crypto.randomUUID(),
-        auditDate: audit.auditDate || new Date().toISOString(),
+        auditDate: audit.startDate || new Date().toISOString(),
         status: 'completed',
       };
 
@@ -340,7 +351,7 @@ export class InstitutionRegulatoryService {
 
       // Déduction pour les rapports en retard
       const overdueReports = compliance.reportingRequirements?.filter(report => {
-        if (!report.dueDate || report.status === 'submitted') return false;
+        if (!report.dueDate) return false;
         return new Date(report.dueDate) < now;
       }).length || 0;
 
@@ -348,17 +359,13 @@ export class InstitutionRegulatoryService {
 
       // Déduction pour les audits non conformes
       const failedAudits = compliance.auditsHistory?.filter(audit => 
-        audit.result === 'non-compliant'
+        audit.status !== 'completed'
       ).length || 0;
 
       score -= failedAudits * 15; // -15 points par audit non conforme
 
       // Déduction pour les obligations non respectées
-      const failedObligations: any[] = []; // TODO: implémenter obligations
-      const _temp = []; // compliance.regulatoryObligations?.filter(obligation => 
-        obligation.status === 'failed'
-      ).length || 0;
-
+      const failedObligations = 0; // TODO: implémenter obligations
       score -= failedObligations * 8; // -8 points par obligation non respectée
 
       return Math.max(0, Math.min(100, score));

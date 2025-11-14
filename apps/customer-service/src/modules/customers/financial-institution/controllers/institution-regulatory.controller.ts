@@ -144,7 +144,7 @@ export class InstitutionRegulatoryController {
     try {
       const filters = { framework, status, auditType, dueDate };
       const result = await this.institutionRegulatoryService.getRegulatoryCompliance(institutionId);
-      return result.regulatory as any;
+      return [result] as any;
     } catch (error) {
       const httpStatus = (error as Error).message.includes('non trouvée') ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
       throw new HttpException((error as Error).message, httpStatus);

@@ -224,9 +224,9 @@ export class RegulatoryComplianceResponseDto extends RegulatoryComplianceDto {
 }
 
 /**
- * DTO pour un audit
+ * DTO pour un audit (première version - à supprimer)
  */
-export class AuditDto {
+export class AuditDtoOld {
   @ApiProperty({ description: 'Type d\'audit', enum: AuditType })
   @IsEnum(AuditType)
   auditType!: AuditType;

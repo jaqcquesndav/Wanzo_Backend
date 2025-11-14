@@ -83,19 +83,19 @@ export class CustomerService {
         // Transformer le DTO générique en DTO Company
         const companyDto = this.transformToCompanyDto(createCustomerDto);
         const company = await this.companyService.createCompany(companyDto);
-        if (!company.customer) {
+        if (!(company as any).customer) {
           throw new Error('Company creation failed: no customer associated');
         }
-        return company.customer;
+        return (company as any).customer;
         
       case CustomerType.FINANCIAL:
         // Transformer le DTO générique en DTO Institution
         const institutionDto = this.transformToInstitutionDto(createCustomerDto);
         const institution = await this.institutionService.createInstitution(institutionDto);
-        if (!institution.customer) {
+        if (!(institution as any).customer) {
           throw new Error('Institution creation failed: no customer associated');
         }
-        return institution.customer;
+        return (institution as any).customer;
         
       default:
         // Fallback vers le service shared pour types non spécifiques

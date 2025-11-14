@@ -98,7 +98,7 @@ export class InstitutionCoreController {
     name: 'status',
     description: 'Statut de l\'institution',
     required: false,
-    enum: InstitutionStatus,
+    type: String,
   })
   @ApiQuery({
     name: 'page',
@@ -126,7 +126,7 @@ export class InstitutionCoreController {
     try {
       const filters = { type, status };
       const pagination = { page: page || 1, limit: limit || 10 };
-      return await this.institutionCoreService.getInstitutionsByFilters(filters, pagination);
+      return await this.institutionCoreService.getInstitutionsByFilters(filters);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des institutions';
       throw new HttpException(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -274,7 +274,7 @@ export class InstitutionCoreController {
     name: 'status',
     description: 'Statut de l\'institution',
     required: false,
-    enum: InstitutionStatus,
+    type: String,
   })
   @ApiQuery({
     name: 'page',
@@ -310,7 +310,7 @@ export class InstitutionCoreController {
       }
       const filters = { type, status };
       const pagination = { page: page || 1, limit: limit || 10 };
-      return await this.institutionCoreService.searchInstitutionsByName(searchTerm, filters, pagination);
+      return await this.institutionCoreService.searchInstitutionsByName(searchTerm);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la recherche d\'institutions';
       throw new HttpException(errorMessage, HttpStatus.BAD_REQUEST);
@@ -363,7 +363,7 @@ export class InstitutionCoreController {
     schema: {
       type: 'object',
       properties: {
-        status: { enum: Object.values(InstitutionStatus) },
+        status: { type: 'string' },
         reason: { type: 'string' },
       },
       required: ['status'],
@@ -384,11 +384,11 @@ export class InstitutionCoreController {
   })
   async updateInstitutionStatus(
     @Param('institutionId') institutionId: string,
-    @Body('status') newStatus: InstitutionStatus,
+    @Body('status') newStatus: any,
     @Body('reason') reason?: string,
   ): Promise<FinancialInstitutionResponseDto> {
     try {
-      if (!Object.values(InstitutionStatus).includes(newStatus)) {
+      if (!newStatus) {
         throw new HttpException('Statut d\'institution invalide', HttpStatus.BAD_REQUEST);
       }
       return await this.institutionCoreService.updateInstitution(institutionId, { 
@@ -419,7 +419,7 @@ export class InstitutionCoreController {
     schema: {
       type: 'object',
       properties: {
-        licenseType: { enum: Object.values(LicenseType) },
+        licenseType: { type: 'string' },
         licenseNumber: { type: 'string' },
         issuer: { type: 'string' },
         issuedDate: { type: 'string' },
@@ -497,7 +497,7 @@ export class InstitutionCoreController {
     expiredLicenses: number;
   }> {
     try {
-      return await this.institutionCoreService.getInstitutionStats();
+      return await this.institutionCoreService.getInstitutionStats() as any;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des statistiques';
       throw new HttpException(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
