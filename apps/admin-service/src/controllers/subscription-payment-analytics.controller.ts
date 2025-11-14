@@ -15,7 +15,7 @@ import { SubscriptionPaymentEventListener } from '../services/subscription-payme
  * Fournit les données pour le dashboard admin
  */
 @ApiTags('Subscription Payment Analytics')
-@Controller('admin/subscription-payments')
+@Controller('subscription-payments')
 export class SubscriptionPaymentAnalyticsController {
   private readonly logger = new Logger(SubscriptionPaymentAnalyticsController.name);
 

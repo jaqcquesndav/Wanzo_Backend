@@ -5,7 +5,7 @@ import { AdminRoleGuard } from '../../auth/guards/admin-role.guard';
 import { AdminCustomerActionDto } from '../dto/admin-customer.dto';
 
 @ApiTags('admin-customers')
-@Controller('admin/customers')
+@Controller('customers')
 @UseGuards(AdminRoleGuard)
 export class AdminCustomerController {
   constructor(private readonly adminCustomerService: AdminCustomerService) {}

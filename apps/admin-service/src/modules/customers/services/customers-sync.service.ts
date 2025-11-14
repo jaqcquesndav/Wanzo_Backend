@@ -154,11 +154,61 @@ export class CustomersSyncService {
     profile.ownerEmail = data.basicInfo.ownerEmail;
     profile.preferences = data.basicInfo.preferences;
 
-    // Profil institution structuré
+    // Profil institution structuré (v2.0 - 100% conforme)
     profile.institutionProfile = data.institutionProfile;
     profile.regulatoryProfile = data.regulatoryProfile;
     profile.profileCompletenessDetails = data.profileCompleteness;
     profile.profileCompleteness = data.profileCompleteness.percentage || 0;
+
+    // Extraction des métriques financières pour l'indexation admin
+    if (data.institutionProfile) {
+      profile.financialMetrics = {
+        capitalSocialMinimum: data.institutionProfile.capitalSocialMinimum || 0,
+        capitalSocialActuel: data.institutionProfile.capitalSocialActuel || 0,
+        fondsPropresMontant: data.institutionProfile.fondsPropresMontant || 0,
+        totalBilan: data.institutionProfile.totalBilan || 0,
+        chiffreAffairesAnnuel: data.institutionProfile.chiffreAffairesAnnuel || 0,
+        devise: data.institutionProfile.devise || 'USD',
+        nombreClientsActifs: data.institutionProfile.nombreClientsActifs || 0,
+        portefeuilleCredit: data.institutionProfile.portefeuilleCredit || 0,
+        depotsCollectes: data.institutionProfile.depotsCollectes || 0,
+      };
+
+      // Extraction des données de partenariat Wanzo (v2.0)
+      profile.partnershipData = {
+        motivationPrincipale: data.institutionProfile.motivationPrincipale,
+        servicesPrioritaires: data.institutionProfile.servicesPrioritaires || [],
+        segmentsClienteleCibles: data.institutionProfile.segmentsClienteleCibles || [],
+        volumeAffairesEnvisage: data.institutionProfile.volumeAffairesEnvisage,
+        servicesOfferts: {
+          credit: data.institutionProfile.servicesCredit || [],
+          investissement: data.institutionProfile.servicesInvestissement || [],
+          garantie: data.institutionProfile.servicesGarantie || [],
+          transactionnels: data.institutionProfile.servicesTransactionnels || [],
+          conseil: data.institutionProfile.servicesConseil || [],
+        },
+        conditionsCommerciales: {
+          grillesTarifaires: data.institutionProfile.grillesTarifaires,
+          conditionsPreferentielles: data.institutionProfile.conditionsPreferentielles,
+          delaisTraitement: data.institutionProfile.delaisTraitement,
+          criteresEligibilite: data.institutionProfile.criteresEligibilite,
+          montantMaximumDossier: data.institutionProfile.montantMaximumDossier,
+          enveloppeGlobale: data.institutionProfile.enveloppeGlobale,
+        },
+        ciblagePrioritaire: {
+          secteurs: data.institutionProfile.secteursActivitePrivilegies || [],
+          zones: data.institutionProfile.zonesGeographiquesPrioritaires || [],
+        },
+      };
+
+      // Extraction des données opérationnelles
+      profile.operationalData = {
+        nombreAgences: data.institutionProfile.nombreAgences || 0,
+        villesProvincesCouvertes: data.institutionProfile.villesProvincesCouvertes || [],
+        presenceInternationale: data.institutionProfile.presenceInternationale || false,
+        activitesAutorisees: data.institutionProfile.activitesAutorisees || [],
+      };
+    }
 
     // Métadonnées de sync enrichies
     profile.syncMetadata = {
@@ -166,6 +216,8 @@ export class CustomersSyncService {
       ...data.syncMetadata,
       dataChecksum: this.calculateChecksum(profile),
       lastChecksumValidation: new Date().toISOString(),
+      lastFullSyncVersion: '2.1.0',
+      institutionProfileVersion: 'v2.0-french',
     };
 
     profile.syncStatus = 'synced';
@@ -174,14 +226,23 @@ export class CustomersSyncService {
 
     // Ajouter événement dans historique
     this.addSyncEvent(profile, {
-      event: 'admin.customer.institution.core.full.sync',
-      fieldsUpdated: Object.keys(data.basicInfo).concat(Object.keys(data.institutionProfile)),
+      event: 'admin.customer.institution.core.full.sync.v2',
+      fieldsUpdated: Object.keys(data.basicInfo)
+        .concat(Object.keys(data.institutionProfile))
+        .concat([
+          'servicesCredit', 'servicesInvestissement', 'servicesGarantie',
+          'servicesTransactionnels', 'servicesConseil', 'motivationPrincipale',
+          'servicesPrioritaires', 'segmentsClienteleCibles', 'volumeAffairesEnvisage',
+          'grillesTarifaires', 'conditionsPreferentielles', 'delaisTraitement',
+          'criteresEligibilite', 'montantMaximumDossier', 'enveloppeGlobale',
+          'secteursActivitePrivilegies', 'zonesGeographiquesPrioritaires',
+        ]),
       status: 'success',
     });
 
     const saved = await this.detailedProfilesRepository.save(profile);
     
-    this.logger.log(`[v2.1] ${isNew ? 'Created' : 'Updated'} InstitutionCore for ${data.customerId}`);
+    this.logger.log(`[v2.1] ${isNew ? 'Created' : 'Updated'} InstitutionCore for ${data.customerId} (v2.0 compatible)`);
     
     return saved;
   }

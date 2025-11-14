@@ -16,7 +16,7 @@
 import { Injectable, Logger, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Between, In } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from 'eventemitter2';
 
 // Import des services de compliance
 import { FinancialComplianceService } from './financial-compliance.service';
@@ -104,7 +104,7 @@ export class UnifiedTransactionService {
     private readonly complianceService: FinancialComplianceService,
     private readonly amlService: AMLComplianceService,
     private readonly standardsService: FinancialStandardsService,
-    private readonly eventEmitter: typeof EventEmitter2
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   /**

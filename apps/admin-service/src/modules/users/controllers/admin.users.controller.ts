@@ -10,7 +10,7 @@ import { UserRole } from '../entities/enums';
 @ApiTags('Admin Users')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('admin/users')
+@Controller('users')
 export class AdminUsersController {
   constructor(private readonly usersService: UsersService) {}
 

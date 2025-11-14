@@ -8,7 +8,7 @@ import { Role } from '../../auth/enums/role.enum';
 
 @ApiTags('Admin - Accounting')
 @ApiBearerAuth()
-@Controller('admin/accounting')
+@Controller('accounting')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.Admin)
 export class AdminAccountingController {

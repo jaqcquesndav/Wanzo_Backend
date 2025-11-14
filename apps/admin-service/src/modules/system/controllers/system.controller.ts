@@ -27,7 +27,7 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('System')
 @ApiBearerAuth()
 // @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Controller('admin/system')
+@Controller('system')
 export class SystemController {
     constructor(private readonly systemService: SystemService) {}
 

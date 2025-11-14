@@ -325,22 +325,40 @@ export class AdminCustomerProfileDto {
   };
 
   // ===============================================
-  // MÉTRIQUES FINANCIÈRES (POUR KYC - PAS COMMERCIAL)
+  // MÉTRIQUES FINANCIÈRES INSTITUTIONS (v2.0)
   // ===============================================
   
-  @ApiPropertyOptional({ description: 'Financial metrics for KYC validation (not commercial data)' })
+  @ApiPropertyOptional({ description: 'Financial metrics for institutions (v2.0)' })
   @IsOptional()
   financialMetrics?: {
-    declaredCapital?: number; // Capital déclaré - pour KYC
-    totalAssetsValue?: number; // Valeur actifs - validation patrimoine
-    totalAssetsCount?: number;
+    capitalSocialMinimum?: number;
+    capitalSocialActuel?: number;
+    fondsPropresMontant?: number;
+    totalBilan?: number;
+    chiffreAffairesAnnuel?: number;
+    devise?: string;
+    nombreClientsActifs?: number;
+    portefeuilleCredit?: number;
+    depotsCollectes?: number;
+    lastUpdated?: string;
+  };
+
+  // ===============================================
+  // MÉTRIQUES D'INVENTAIRE (COMPANY - PATRIMOINE)
+  // ===============================================
+  
+  @ApiPropertyOptional({ description: 'Inventory metrics for company patrimoine (KYC validation)' })
+  @IsOptional()
+  inventoryMetrics?: {
+    totalAssetsValue?: number;
+    assetsCount?: number;
+    depreciationRate?: number;
     lastAssetsUpdate?: string;
-    totalStockValue?: number; // Valeur stocks - validation activité
-    totalStockItems?: number;
+    totalStockValue?: number;
+    totalItems?: number;
+    lowStockItemsCount?: number;
     lastStockUpdate?: string;
-    depreciationRate?: number; // Taux dépréciation
-    rotationMetrics?: any; // Métriques rotation - validation activité
-    // NOTE: Ces données sont pour VALIDATION KYC, pas pour analyse commerciale
+    rotationMetrics?: any;
   };
 
   @ApiPropertyOptional({ description: 'System alerts' })

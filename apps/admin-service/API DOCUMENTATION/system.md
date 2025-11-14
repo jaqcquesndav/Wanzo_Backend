@@ -4,7 +4,10 @@ This document outlines the API endpoints for system management, monitoring, and 
 
 ## Base URL
 
-All API endpoints are relative to the base URL: `/api`
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Routing Architecture**: API Gateway strips `admin/api/v1` prefix before routing to admin-service.
 
 ## Authentication
 
@@ -143,7 +146,7 @@ interface AiModelConfig {
 
 ### 1. Get System Health
 
-*   **Endpoint:** `GET /admin/system/health`
+*   **Endpoint:** `GET /admin/api/v1/system/health`
 *   **Description:** Retrieves the current health status of the system and its components.
 *   **Permissions Required:** `admin:system:read`
 *   **Successful Response (200 OK):**
@@ -194,7 +197,7 @@ interface AiModelConfig {
 
 ### 2. Get System Logs
 
-*   **Endpoint:** `GET /admin/system/logs`
+*   **Endpoint:** `GET /admin/api/v1/system/logs`
 *   **Description:** Retrieves system logs with optional filtering and pagination.
 *   **Permissions Required:** `admin:system:read`
 *   **Query Parameters:**
@@ -246,7 +249,7 @@ interface AiModelConfig {
 
 ### 3. Get System Alerts
 
-*   **Endpoint:** `GET /admin/system/alerts`
+*   **Endpoint:** `GET /admin/api/v1/system/alerts`
 *   **Description:** Retrieves active and/or resolved system alerts.
 *   **Permissions Required:** `admin:system:read`
 *   **Query Parameters:**
@@ -295,7 +298,7 @@ interface AiModelConfig {
 
 ### 4. Resolve System Alert
 
-*   **Endpoint:** `PUT /admin/system/alerts/{alertId}/resolve`
+*   **Endpoint:** `PUT /admin/api/v1/system/alerts/{alertId}/resolve`
 *   **Description:** Marks a system alert as resolved.
 *   **Parameters:**
     - `alertId` (path, required): The ID of the alert to resolve.
@@ -374,7 +377,7 @@ interface AiModelConfig {
 
 ### 6. Get Database Metrics
 
-*   **Endpoint:** `GET /admin/system/databases`
+*   **Endpoint:** `GET /admin/api/v1/system/databases`
 *   **Description:** Retrieves performance metrics for system databases.
 *   **Permissions Required:** `admin:system:read`
 *   **Successful Response (200 OK):**
@@ -408,7 +411,7 @@ interface AiModelConfig {
 
 ### 7. Get AI Model Configurations
 
-*   **Endpoint:** `GET /admin/system/ai/models`
+*   **Endpoint:** `GET /admin/api/v1/system/ai/models`
 *   **Description:** Retrieves the configuration for AI models used in the system.
 *   **Permissions Required:** `admin:system:read`
 *   **Successful Response (200 OK):**
@@ -448,7 +451,7 @@ interface AiModelConfig {
 
 ### 8. Update AI Model Configuration
 
-*   **Endpoint:** `PUT /admin/system/ai/models/{modelId}`
+*   **Endpoint:** `PUT /admin/api/v1/system/ai/models/{modelId}`
 *   **Description:** Updates the configuration for a specific AI model.
 *   **Parameters:**
     - `modelId` (path, required): The ID of the AI model to update.
@@ -534,7 +537,7 @@ interface AiModelConfig {
 
 ### 3. Set Maintenance Mode
 
-*   **Endpoint:** `PUT /admin/system/maintenance`
+*   **Endpoint:** `PUT /admin/api/v1/system/maintenance`
 *   **Description:** Enables or disables maintenance mode for the system.
 *   **Permissions Required:** `admin:system:write`
 *   **Request Body (application/json):**

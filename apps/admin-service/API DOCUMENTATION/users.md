@@ -12,6 +12,13 @@ Cette documentation décrit l'API complète prévue pour la gestion des utilisat
 
 This document outlines the API endpoints for managing users, including CRUD operations, roles, permissions, user activity, and sessions.
 
+## Base URL
+
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Routing Architecture**: API Gateway strips `admin/api/v1` prefix before routing to admin-service.
+
 ## Standard Response Types
 
 ### PaginatedResponse<T>
@@ -104,7 +111,7 @@ Represents a user in the system.
 
 ## 2. List Users ❌ **EN DÉVELOPPEMENT**
 
-### `GET /users` or `GET /admin/users`
+### `GET /admin/api/v1/users`
 
 Retrieves a list of users. Supports pagination and filtering.
 Super Admins can see all users. Company Admins can see users within their own company.
@@ -161,7 +168,7 @@ Super Admins can see all users. Company Admins can see users within their own co
 
 ## 3. Create User ❌ **EN DÉVELOPPEMENT**
 
-### `POST /users/create` or `POST /admin/users`
+### `POST /admin/api/v1/users`
 
 Creates a new user.
 
@@ -232,7 +239,7 @@ Creates a new user.
 
 ## 4. Get User by ID ❌ **EN DÉVELOPPEMENT**
 
-### `GET /users/{id}` or `GET /admin/users/{id}`
+### `GET /admin/api/v1/users/{id}`
 
 Retrieves a specific user by their ID.
 
@@ -252,7 +259,7 @@ Retrieves a specific user by their ID.
 
 ## 5. Update User
 
-### `PUT /users/{id}` or `PUT /admin/users/{id}`
+### `PUT /admin/api/v1/users/{id}`
 
 Updates an existing user's information. `userType` and `customerAccountId` (for external users) are generally not updatable after creation to maintain data integrity.
 
@@ -300,7 +307,7 @@ Updates an existing user's information. `userType` and `customerAccountId` (for 
 
 ## 6. Delete User
 
-### `DELETE /users/{id}` or `DELETE /admin/users/{id}`
+### `DELETE /admin/api/v1/users/{id}`
 
 Deletes a user.
 
@@ -316,7 +323,7 @@ Deletes a user.
 
 ## 7. User Profile (Current User) ✅ **IMPLÉMENTÉ**
 
-### `GET /users/profile`
+### `GET /admin/api/v1/users/profile`
 
 Retrieves the profile of the currently authenticated user.
 

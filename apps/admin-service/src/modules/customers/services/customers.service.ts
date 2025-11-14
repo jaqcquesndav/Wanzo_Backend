@@ -704,6 +704,7 @@ export class CustomersService implements CustomerDocumentMethods {
       users: profile.users,
       platformUsage: profile.platformUsage,
       financialMetrics: profile.financialMetrics,
+      inventoryMetrics: profile.inventoryMetrics,
       alerts: profile.alerts,
       validationStatus: profile.validationStatus,
       riskProfile: profile.riskProfile,
@@ -1585,8 +1586,8 @@ export class CustomersService implements CustomerDocumentMethods {
     });
 
     if (profile) {
-      profile.financialMetrics = {
-        ...profile.financialMetrics,
+      profile.inventoryMetrics = {
+        ...profile.inventoryMetrics,
         totalAssetsValue: metrics.totalAssetsValue,
         assetsCount: metrics.assetsCount,
         depreciationRate: metrics.depreciationRate,

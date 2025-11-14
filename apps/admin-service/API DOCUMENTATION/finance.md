@@ -1,6 +1,24 @@
 # API Documentation: Finance & Subscriptions
 
-This document outlines the API endpoints, request/response structures, and functionalities related to finance, billing, and subscription management. This includes **dynamic subscription plan management**, financial transactions, customer subscriptions, payment processing, invoicing, and revenue reporting.
+This document outlines the API endpoints, request/response structures, and functionalities related to finance, billing, and subscription management.
+
+## Base URLs
+
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+- **Version**: 2.0
+
+### Routing Architecture
+
+The API Gateway detects the `admin/api/v1` prefix and **strips it** before routing to admin-service.
+
+**Example:**
+- Client calls: `http://localhost:8000/admin/api/v1/finance/subscriptions`
+- Gateway strips: `/admin/api/v1`
+- Admin-service receives: `/finance/subscriptions`
+- Controller handles: `@Controller('finance')`
+
+All endpoints below use the full Base URL via API Gateway. This includes **dynamic subscription plan management**, financial transactions, customer subscriptions, payment processing, invoicing, and revenue reporting.
 
 ## 🆕 New Features (v2.0)
 
@@ -39,7 +57,7 @@ interface APIResponse<T> {
 
 ### 1.1. List Dynamic Plans (NEW)
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/plans`
+*   **URL:** `/admin/api/v1/finance/plans`
 *   **Description:** Retrieves a paginated list of subscription plans with advanced filtering and sorting capabilities.
 *   **Query Parameters:**
     *   `search` (optional, string): Search by plan name, description, or tags.
@@ -174,7 +192,7 @@ interface APIResponse<T> {
 
 ### 1.2. Get Plan Details (NEW)
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/plans/{planId}`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}`
 *   **Description:** Retrieves detailed information for a specific subscription plan.
 *   **Response:**
     *   `200 OK`: Same structure as plan object in list response above.
@@ -186,7 +204,7 @@ interface APIResponse<T> {
 
 ### 1.3. Create Plan (NEW)
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/plans`
+*   **URL:** `/admin/api/v1/finance/plans`
 *   **Description:** Creates a new subscription plan in DRAFT status.
 *   **Request Body:**
     ```json
@@ -279,7 +297,7 @@ interface APIResponse<T> {
 
 ### 1.4. Update Plan (NEW)
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/finance/plans/{planId}`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}`
 *   **Description:** Updates an existing plan. If the plan is DEPLOYED, creates a new version in DRAFT status.
 *   **Request Body:** Same structure as create, but all fields are optional.
 *   **Response:**
@@ -294,7 +312,7 @@ interface APIResponse<T> {
 
 ### 1.5. Deploy Plan (NEW)
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/plans/{planId}/deploy`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}/deploy`
 *   **Description:** Deploys a DRAFT plan to production, making it available to customers.
 *   **Request Body:**
     ```json
@@ -314,7 +332,7 @@ interface APIResponse<T> {
 
 ### 1.6. Archive Plan (NEW)
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/plans/{planId}/archive`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}/archive`
 *   **Description:** Archives a DEPLOYED plan, making it unavailable for new subscriptions.
 *   **Request Body:**
     ```json
@@ -334,7 +352,7 @@ interface APIResponse<T> {
 
 ### 1.7. Delete Plan (NEW)
 *   **HTTP Method:** `DELETE`
-*   **URL:** `/api/finance/plans/{planId}`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}`
 *   **Description:** Soft-deletes a plan (only DRAFT or ARCHIVED plans with no subscriptions).
 *   **Response:**
     *   `204 No Content`: Plan successfully deleted.
@@ -347,7 +365,7 @@ interface APIResponse<T> {
 
 ### 1.8. Duplicate Plan (NEW)
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/plans/{planId}/duplicate`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}/duplicate`
 *   **Description:** Creates a copy of an existing plan with a new name for A/B testing.
 *   **Request Body:**
     ```json
@@ -367,7 +385,7 @@ interface APIResponse<T> {
 
 ### 1.9. Get Plan Analytics (NEW)
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/plans/{planId}/analytics`
+*   **URL:** `/admin/api/v1/finance/plans/{planId}/analytics`
 *   **Description:** Retrieves detailed analytics and performance metrics for a specific plan.
 *   **Response:**
     *   `200 OK`:
@@ -405,8 +423,8 @@ interface APIResponse<T> {
 
 ### 1.10. List Legacy Plans (DEPRECATED)
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/subscriptions/plans`
-*   **Description:** ⚠️ **DEPRECATED** - Use `/api/finance/plans` instead. Retrieves a simplified list of active plans for backward compatibility.
+*   **URL:** `/admin/api/v1/finance/subscriptions/plans`
+*   **Description:** ⚠️ **DEPRECATED** - Use `/admin/api/v1/finance/plans` instead. Retrieves a simplified list of active plans for backward compatibility.
 *   **Response:**
     *   `200 OK`:
         ```json
@@ -434,7 +452,7 @@ interface APIResponse<T> {
 
 ### 1.2.1. Get Financial Transactions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/transactions`
+*   **URL:** `/admin/api/v1/finance/transactions`
 *   **Description:** Retrieves paginated financial transactions with filtering options.
 *   **Query Parameters:**
     - `page` (optional): Page number (default: 1)
@@ -447,28 +465,28 @@ interface APIResponse<T> {
 
 ### 1.2.2. Get Payments
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/payments`
+*   **URL:** `/admin/api/v1/finance/payments`
 *   **Description:** Retrieves paginated payments with filtering options.
 *   **Query Parameters:** Same as transactions
 *   **Response:** `PaginatedResponse<Payment>`
 
 ### 1.2.3. Get Invoices
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/invoices`
+*   **URL:** `/admin/api/v1/finance/invoices`
 *   **Description:** Retrieves paginated invoices with filtering options.
 *   **Query Parameters:** Same as transactions
 *   **Response:** `PaginatedResponse<Invoice>`
 
 ### 1.2.4. Get Subscriptions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/subscriptions`
+*   **URL:** `/admin/api/v1/finance/subscriptions`
 *   **Description:** Retrieves paginated subscriptions with filtering options.
 *   **Query Parameters:** Same as transactions
 *   **Response:** `PaginatedResponse<Subscription>`
 
 ### 1.2.5. Get Token Transactions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/tokens/transactions`
+*   **URL:** `/admin/api/v1/finance/tokens/transactions`
 *   **Description:** Retrieves paginated token transactions with filtering options.
 *   **Query Parameters:** Same as transactions
 *   **Response:** `PaginatedResponse<TokenTransaction>`
@@ -477,7 +495,7 @@ interface APIResponse<T> {
 
 ### 2.1. List Subscriptions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/subscriptions`
+*   **URL:** `/admin/api/v1/finance/subscriptions`
 *   **Description:** Retrieves a list of all subscriptions with pagination and filtering options.
 *   **Query Parameters:**
     *   `search` (optional, string): Search by customer name, plan name, etc.
@@ -526,7 +544,7 @@ interface APIResponse<T> {
 
 ### 2.2. Get Subscription by ID
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/subscriptions/{subscriptionId}`
+*   **URL:** `/admin/api/v1/finance/subscriptions/{subscriptionId}`
 *   **Description:** Retrieves details for a specific subscription.
 *   **Response:**
     *   `200 OK`:
@@ -566,7 +584,7 @@ interface APIResponse<T> {
 
 ### 2.3. Create Subscription
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/subscriptions`
+*   **URL:** `/admin/api/v1/finance/subscriptions`
 *   **Description:** Creates a new subscription for a customer.
 *   **Request Body:**
     ```json
@@ -620,7 +638,7 @@ interface APIResponse<T> {
 
 ### 2.4. Update Subscription
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/finance/subscriptions/{subscriptionId}`
+*   **URL:** `/admin/api/v1/finance/subscriptions/{subscriptionId}`
 *   **Description:** Updates an existing subscription.
 *   **Request Body:**
     ```json
@@ -668,7 +686,7 @@ interface APIResponse<T> {
 
 ### 2.5. Cancel Subscription
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/subscriptions/{subscriptionId}/cancel`
+*   **URL:** `/admin/api/v1/finance/subscriptions/{subscriptionId}/cancel`
 *   **Description:** Cancels an active subscription.
 *   **Request Body:**
     ```json
@@ -700,7 +718,7 @@ interface APIResponse<T> {
 
 ### 3.1. List Invoices
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/invoices`
+*   **URL:** `/admin/api/v1/finance/invoices`
 *   **Description:** Retrieves a list of invoices with pagination and filtering options.
 *   **Query Parameters:**
     *   `search` (optional, string): Search by invoice number, customer name, etc.
@@ -753,7 +771,7 @@ interface APIResponse<T> {
 
 ### 3.2. Get Invoice by ID
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **URL:** `/admin/api/v1/finance/invoices/{invoiceId}`
 *   **Description:** Retrieves details for a specific invoice.
 *   **Response:**
     *   `200 OK`:
@@ -795,7 +813,7 @@ interface APIResponse<T> {
 
 ### 3.3. Create Invoice
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/invoices`
+*   **URL:** `/admin/api/v1/finance/invoices`
 *   **Description:** Creates a new invoice.
 *   **Request Body:**
     ```json
@@ -865,7 +883,7 @@ interface APIResponse<T> {
 
 ### 3.4. Update Invoice
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **URL:** `/admin/api/v1/finance/invoices/{invoiceId}`
 *   **Description:** Updates an existing invoice.
 *   **Request Body:**
     ```json
@@ -901,7 +919,7 @@ interface APIResponse<T> {
 
 ### 3.5. Delete Invoice
 *   **HTTP Method:** `DELETE`
-*   **URL:** `/api/finance/invoices/{invoiceId}`
+*   **URL:** `/admin/api/v1/finance/invoices/{invoiceId}`
 *   **Description:** Deletes an invoice.
 *   **Response:**
     *   `204 No Content`: Invoice successfully deleted.
@@ -914,7 +932,7 @@ interface APIResponse<T> {
 
 ### 3.6. Send Invoice Reminder
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/invoices/{invoiceId}/send-reminder`
+*   **URL:** `/admin/api/v1/finance/invoices/{invoiceId}/send-reminder`
 *   **Description:** Sends a reminder email for an unpaid invoice.
 *   **Response:**
     *   `200 OK`:
@@ -934,7 +952,7 @@ interface APIResponse<T> {
 
 ### 4.1. List Payments
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/payments`
+*   **URL:** `/admin/api/v1/finance/payments`
 *   **Description:** Retrieves a list of payments with pagination and filtering options.
 *   **Query Parameters:**
     *   Similar to transaction filters: search, status, payment method, date range, etc.
@@ -978,7 +996,7 @@ interface APIResponse<T> {
 
 ### 4.2. Get Payment by ID
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/payments/{paymentId}`
+*   **URL:** `/admin/api/v1/finance/payments/{paymentId}`
 *   **Description:** Retrieves details for a specific payment.
 *   **Response:**
     *   `200 OK`:
@@ -1013,7 +1031,7 @@ interface APIResponse<T> {
 
 ### 4.3. Record Manual Payment
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/payments/manual`
+*   **URL:** `/admin/api/v1/finance/payments/manual`
 *   **Description:** Records a manual payment.
 *   **Request Body:**
     ```json
@@ -1057,7 +1075,7 @@ interface APIResponse<T> {
 
 ### 4.4. Verify Payment
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/payments/verify`
+*   **URL:** `/admin/api/v1/finance/payments/verify`
 *   **Description:** Verifies or rejects a pending payment.
 *   **Request Body:**
     ```json
@@ -1093,7 +1111,7 @@ interface APIResponse<T> {
 
 ### 5.1. List Transactions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/transactions`
+*   **URL:** `/admin/api/v1/finance/transactions`
 *   **Description:** Retrieves a list of financial transactions with pagination and filtering options.
 *   **Query Parameters:**
     *   `search` (optional, string): Search by reference, description, etc.
@@ -1137,7 +1155,7 @@ interface APIResponse<T> {
 
 ### 5.2. Get Transaction by ID
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/transactions/{transactionId}`
+*   **URL:** `/admin/api/v1/finance/transactions/{transactionId}`
 *   **Description:** Retrieves details for a specific transaction.
 *   **Response:**
     *   `200 OK`:
@@ -1169,7 +1187,7 @@ interface APIResponse<T> {
 
 ### 5.3. Create Transaction
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/finance/transactions`
+*   **URL:** `/admin/api/v1/finance/transactions`
 *   **Description:** Creates a new transaction record.
 *   **Request Body:**
     ```json
@@ -1219,7 +1237,7 @@ interface APIResponse<T> {
 
 ### 6.1. Get Token Packages
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/tokens/packages`
+*   **URL:** `/admin/api/v1/finance/tokens/packages`
 *   **Description:** Retrieves a list of available token packages.
 *   **Response:**
     *   `200 OK`:
@@ -1254,7 +1272,7 @@ interface APIResponse<T> {
 
 ### 6.2. Get Token Transactions
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/tokens/transactions`
+*   **URL:** `/admin/api/v1/finance/tokens/transactions`
 *   **Description:** Retrieves a list of token transactions with pagination and filtering options.
 *   **Query Parameters:**
     *   `search` (optional, string): Search by customer name, description, etc.
@@ -1306,7 +1324,7 @@ interface APIResponse<T> {
 
 ### 6.3. Get Customer Token Balance
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/tokens/balance/{customerId}`
+*   **URL:** `/admin/api/v1/finance/tokens/balance/{customerId}`
 *   **Description:** Retrieves token balance for a customer.
 *   **Query Parameters:**
     *   `tokenType` (optional, string): Filter by specific token type.
@@ -1347,7 +1365,7 @@ interface APIResponse<T> {
 
 ### 7.1. Get Financial Summary
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/finance/summary`
+*   **URL:** `/admin/api/v1/finance/summary`
 *   **Description:** Retrieves financial summary statistics.
 *   **Query Parameters:**
     *   `period` (optional, string): Time period for the summary (`daily`, `weekly`, `monthly`, `yearly`).

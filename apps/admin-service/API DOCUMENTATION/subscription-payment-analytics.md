@@ -2,9 +2,23 @@
 
 Ce document décrit les endpoints d'analytics pour les paiements d'abonnement, utilisés pour le monitoring temps réel des transactions et statistiques dans le dashboard admin.
 
-## Base URL
+## Base URLs
 
-Tous les endpoints sont relatifs à : `/admin/subscription-payments`
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1/subscription-payments`
+- **Direct (admin-service)**: `http://localhost:3001/admin/subscription-payments`
+- **Version**: 1.0
+
+### Architecture de Routing
+
+L'API Gateway détecte le prefix `admin/api/v1` et le **coupe automatiquement** avant de router vers admin-service.
+
+**Flux de requête:**
+1. Client appelle: `http://localhost:8000/admin/api/v1/subscription-payments/statistics`
+2. Gateway coupe: `/admin/api/v1`
+3. Admin-service reçoit: `/subscription-payments/statistics`
+4. Controller `@Controller('admin/subscription-payments')` traite la requête
+
+**Note**: Le controller dans admin-service garde le préfixe `admin/` car il est **après** le prefix coupé par l'API Gateway.
 
 ## Authentification
 

@@ -183,38 +183,106 @@ export interface CompanyProfileStructured {
 }
 
 /**
- * Interface pour InstitutionProfile structuré (100% compatible avec customer-service)
+ * Interface pour InstitutionProfile structuré (100% compatible avec customer-service v2.0)
+ * Alignée avec InstitutionCoreEntity - Nomenclature française
  */
 export interface InstitutionProfileStructured {
-  // Identification
+  // === IDENTIFICATION INSTITUTIONNELLE (Conforme v2.0) ===
   denominationSociale: string;
+  sigle: string;
+  typeInstitution: 'BANQUE' | 'MICROFINANCE' | 'COOPEC' | 'FOND_GARANTIE' | 'ENTREPRISE_FINANCIERE' | 'FOND_CAPITAL_INVESTISSEMENT' | 'FOND_IMPACT' | 'AUTRE';
+  sousCategorie: string;
+  dateCreation: string;
+  paysOrigine: string;
+  statutJuridique: string;
+  
+  // === INFORMATIONS RÉGLEMENTAIRES ===
+  autoritéSupervision: 'bcc' | 'arca' | 'asmf' | 'other';
+  numeroAgrement: string;
+  dateAgrement: string;
+  validiteAgrement: string;
+  numeroRCCM: string;
+  numeroNIF: string;
+  
+  // === ACTIVITÉS AUTORISÉES ===
+  activitesAutorisees: string[];
+  
+  // === INFORMATIONS OPÉRATIONNELLES ===
+  siegeSocial: string;
+  nombreAgences: number;
+  villesProvincesCouvertes: string[];
+  presenceInternationale: boolean;
+  
+  // === CAPACITÉS FINANCIÈRES ===
+  capitalSocialMinimum: number;
+  capitalSocialActuel: number;
+  fondsPropresMontant: number;
+  totalBilan: number;
+  chiffreAffairesAnnuel: number;
+  devise: 'USD' | 'CDF' | 'EUR';
+  
+  // === CLIENTÈLE ET MARCHÉ ===
+  segmentClientelePrincipal: string;
+  nombreClientsActifs: number;
+  portefeuilleCredit: number;
+  depotsCollectes: number;
+  
+  // === SERVICES OFFERTS À WANZO (Nouveau v2.0) ===
+  servicesCredit?: string[];
+  servicesInvestissement?: string[];
+  servicesGarantie?: string[];
+  servicesTransactionnels?: string[];
+  servicesConseil?: string[];
+  
+  // === PARTENARIAT WANZO (Nouveau v2.0) ===
+  motivationPrincipale?: string;
+  servicesPrioritaires?: string[];
+  segmentsClienteleCibles?: string[];
+  volumeAffairesEnvisage?: string;
+  
+  // === CONDITIONS COMMERCIALES (Nouveau v2.0) ===
+  grillesTarifaires?: string;
+  conditionsPreferentielles?: string;
+  delaisTraitement?: string;
+  criteresEligibilite?: string;
+  
+  // === CAPACITÉ D'ENGAGEMENT (Nouveau v2.0) ===
+  montantMaximumDossier?: number;
+  enveloppeGlobale?: number;
+  secteursActivitePrivilegies?: string[];
+  zonesGeographiquesPrioritaires?: string[];
+  
+  // === DOCUMENTS (Nouveau v2.0) ===
+  documentsLegaux?: string[];
+  documentsFinanciers?: string[];
+  documentsOperationnels?: string[];
+  documentsCompliance?: string[];
+  
+  // === CHAMPS LEGACY (Rétrocompatibilité) ===
   legalName?: string;
   sigleLegalAbrege?: string;
   brandName?: string;
-  
-  // Classification
-  type: string;
-  category: string;
-  institutionType: string;
+  type?: string;
+  category?: string;
   sector?: 'PRIVE' | 'PUBLIC' | 'PUBLIC_PRIVE';
-  ownership: 'PRIVATE' | 'PUBLIC' | 'GOVERNMENT' | 'COOPERATIVE' | 'MIXED';
-  
-  // Réglementaire
-  licenseNumber: string;
+  ownership?: 'PRIVATE' | 'PUBLIC' | 'GOVERNMENT' | 'COOPERATIVE' | 'MIXED';
+  licenseNumber?: string;
   autorisationExploitation?: string;
   dateOctroi?: string;
   licenseIssueDate?: string;
   licenseExpiryDate?: string;
-  autoriteSupervision: string;
-  dateAgrement?: string;
   taxIdentificationNumber?: string;
   businessRegistrationNumber?: string;
-  
-  // Dates importantes
-  establishedDate: string;
+  establishedDate?: string;
   operationsStartDate?: string;
+  authorizedCapital?: number;
+  paidUpCapital?: number;
+  baseCurrency?: string;
+  totalBranches?: number;
+  totalEmployees?: number;
+  totalCustomers?: number;
   
-  // Adresse complète
+  // === ADRESSE STRUCTURÉE ===
   address?: {
     headOffice: string;
     city: string;
@@ -223,23 +291,13 @@ export interface InstitutionProfileStructured {
     postalCode?: string;
   };
   
-  // Contact
+  // === CONTACT ===
   email?: string;
   phone?: string;
   fax?: string;
   website?: string;
   
-  // Capital
-  authorizedCapital?: number;
-  paidUpCapital?: number;
-  baseCurrency?: string;
-  
-  // Statistiques
-  totalBranches?: number;
-  totalEmployees?: number;
-  totalCustomers?: number;
-  
-  // Leadership
+  // === LEADERSHIP ===
   ceo?: {
     name: string;
     email?: string;
@@ -809,6 +867,66 @@ export class CustomerDetailedProfile {
   };
 
   /**
+   * Métriques financières extraites (pour indexation rapide)
+   */
+  @Column('jsonb', { nullable: true })
+  financialMetrics?: {
+    capitalSocialMinimum?: number;
+    capitalSocialActuel?: number;
+    fondsPropresMontant?: number;
+    totalBilan?: number;
+    chiffreAffairesAnnuel?: number;
+    devise?: string;
+    nombreClientsActifs?: number;
+    portefeuilleCredit?: number;
+    depotsCollectes?: number;
+    lastUpdated?: string;
+  };
+
+  /**
+   * Données de partenariat Wanzo (v2.0)
+   */
+  @Column('jsonb', { nullable: true })
+  partnershipData?: {
+    motivationPrincipale?: string;
+    servicesPrioritaires?: string[];
+    segmentsClienteleCibles?: string[];
+    volumeAffairesEnvisage?: string;
+    servicesOfferts?: {
+      credit?: string[];
+      investissement?: string[];
+      garantie?: string[];
+      transactionnels?: string[];
+      conseil?: string[];
+    };
+    conditionsCommerciales?: {
+      grillesTarifaires?: string;
+      conditionsPreferentielles?: string;
+      delaisTraitement?: string;
+      criteresEligibilite?: string;
+      montantMaximumDossier?: number;
+      enveloppeGlobale?: number;
+    };
+    ciblagePrioritaire?: {
+      secteurs?: string[];
+      zones?: string[];
+    };
+    lastUpdated?: string;
+  };
+
+  /**
+   * Données opérationnelles (v2.0)
+   */
+  @Column('jsonb', { nullable: true })
+  operationalData?: {
+    nombreAgences?: number;
+    villesProvincesCouvertes?: string[];
+    presenceInternationale?: boolean;
+    activitesAutorisees?: string[];
+    lastUpdated?: string;
+  };
+
+  /**
    * Métadonnées de synchronisation ENRICHIES
    */
   @Column('jsonb')
@@ -821,11 +939,16 @@ export class CustomerDetailedProfile {
     updatedFields?: string[];
     updateContext?: any;
     
+    // Version du profil institution (v2.0)
+    lastFullSyncVersion?: string;
+    institutionProfileVersion?: string;
+    
     // Historique de sync (10 derniers)
     syncHistory?: Array<{
       timestamp: string;
       event: string;
       fieldsUpdated: string[];
+      newFieldsV2?: string[];
       status: 'success' | 'failed' | 'partial';
       errorMessage?: string;
     }>;
@@ -892,10 +1015,10 @@ export class CustomerDetailedProfile {
   dataVersion?: string;
 
   /**
-   * Métriques financières
+   * Métriques d'inventaire (pour patrimoine company)
    */
   @Column('jsonb', { nullable: true })
-  financialMetrics?: {
+  inventoryMetrics?: {
     totalAssetsValue?: number;
     assetsCount?: number;
     depreciationRate?: number;
@@ -906,12 +1029,6 @@ export class CustomerDetailedProfile {
     lastStockUpdate?: string;
     rotationMetrics?: any;
   };
-
-  /**
-   * Métriques d'inventaire
-   */
-  @Column('jsonb', { nullable: true })
-  inventoryMetrics?: any;
 
   /**
    * Alertes système
@@ -1154,12 +1271,12 @@ export class CustomerDetailedProfile {
   }
 
   /**
-   * Met à jour les métriques financières depuis le patrimoine
+   * Met à jour les métriques d'inventaire depuis le patrimoine
    */
   updateFinancialMetricsFromPatrimoine(): void {
     if (!this.patrimoine) return;
     
-    this.financialMetrics = {
+    this.inventoryMetrics = {
       totalAssetsValue: this.patrimoine.totalAssetsValue,
       assetsCount: this.patrimoine.assetsSummary.count,
       depreciationRate: this.patrimoine.assetsSummary.depreciationRate,

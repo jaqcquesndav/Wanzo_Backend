@@ -7,7 +7,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/enums/user-role.enum';
 
 @ApiTags('Admin - Institutions')
-@Controller('admin/institutions')
+@Controller('institutions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class AdminInstitutionController {

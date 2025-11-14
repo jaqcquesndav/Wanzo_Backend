@@ -4,7 +4,10 @@ This document outlines the API endpoints for managing system and user settings w
 
 ## Base URL
 
-All API endpoints are relative to the base URL: `/api`
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Routing Architecture**: API Gateway strips `admin/api/v1` prefix before routing to admin-service.
 
 ## Authentication
 
@@ -155,7 +158,7 @@ interface LoginAttempt {
 
 ### 1. Get All Settings
 
-*   **Endpoint:** `GET /settings`
+*   **Endpoint:** `GET /admin/api/v1/settings`
 *   **Description:** Retrieves all system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -217,7 +220,7 @@ interface LoginAttempt {
 
 ### 2. Get General Settings
 
-*   **Endpoint:** `GET /settings/general`
+*   **Endpoint:** `GET /admin/api/v1/settings/general`
 *   **Description:** Retrieves general system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -236,7 +239,7 @@ interface LoginAttempt {
 
 ### 3. Get Security Settings
 
-*   **Endpoint:** `GET /settings/security`
+*   **Endpoint:** `GET /admin/api/v1/settings/security`
 *   **Description:** Retrieves security-related system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -259,7 +262,7 @@ interface LoginAttempt {
 
 ### 4. Get Notification Settings
 
-*   **Endpoint:** `GET /settings/notifications`
+*   **Endpoint:** `GET /admin/api/v1/settings/notifications`
 *   **Description:** Retrieves notification-related system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -282,7 +285,7 @@ interface LoginAttempt {
 
 ### 5. Get Billing Settings
 
-*   **Endpoint:** `GET /settings/billing`
+*   **Endpoint:** `GET /admin/api/v1/settings/billing`
 *   **Description:** Retrieves billing-related system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -300,7 +303,7 @@ interface LoginAttempt {
 
 ### 6. Get Appearance Settings
 
-*   **Endpoint:** `GET /settings/appearance`
+*   **Endpoint:** `GET /admin/api/v1/settings/appearance`
 *   **Description:** Retrieves appearance-related system settings.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -317,7 +320,7 @@ interface LoginAttempt {
 
 ### 7. Update Settings
 
-*   **Endpoint:** `PUT /settings/{section}`
+*   **Endpoint:** `PUT /admin/api/v1/settings/{section}`
 *   **Description:** Updates settings for a specific section.
 *   **Parameters:**
     - `section` (path, required): The settings section to update ('general', 'security', 'notifications', 'billing', 'appearance').
@@ -694,7 +697,7 @@ interface LoginAttempt {
 
 ### 1. Get Application Settings
 
-*   **Endpoint:** `GET /settings/app`
+*   **Endpoint:** `GET /admin/api/v1/settings/app`
 *   **Description:** Retrieves application settings that can be configured.
 *   **Permissions Required:** `admin:settings:read` or higher.
 *   **Successful Response (200 OK):**
@@ -729,7 +732,7 @@ interface LoginAttempt {
 
 ### 2. Update Application Setting
 
-*   **Endpoint:** `PUT /settings/{settingId}`
+*   **Endpoint:** `PUT /admin/api/v1/settings/{settingId}`
 *   **Description:** Updates a specific application setting.
 *   **Parameters:**
     - `settingId` (path, required): The ID of the setting to update.

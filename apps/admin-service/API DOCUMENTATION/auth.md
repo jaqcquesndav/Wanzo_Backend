@@ -2,6 +2,19 @@
 
 Ce document décrit les points d'API et le flux d'authentification pour l'application Wanzo Admin, qui utilise Auth0 comme fournisseur d'identité principal.
 
+## Base URL
+
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Architecture de Routing**: L'API Gateway détecte le prefix `admin/api/v1` et le coupe automatiquement avant de router vers admin-service.
+
+**Exemple de flux**:
+- Client → `http://localhost:8000/admin/api/v1/auth/verify`
+- Gateway coupe → `/admin/api/v1`
+- Admin-service reçoit → `http://localhost:3001/auth/verify`
+- Controller → `@Controller('auth')`
+
 ## Architecture d'authentification
 
 L'application Wanzo Admin utilise un flux d'authentification basé sur Auth0. Le frontend communique directement avec Auth0 pour l'authentification initiale, puis utilise le token JWT reçu pour authentifier les requêtes API vers le backend.
@@ -42,7 +55,7 @@ Le token JWT fourni par Auth0 contient les informations suivantes :
 
 ### 1. Validation du Token et Enrichissement du Profil
 
-#### `GET /auth/verify`
+#### `GET /admin/api/v1/auth/verify`
 
 Valide le token JWT fourni par Auth0 et enrichit le profil utilisateur avec des informations supplémentaires stockées dans le backend.
 
@@ -102,7 +115,7 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ### 2. Récupérer le Profil Utilisateur
 
-#### `GET /auth/me`
+#### `GET /admin/api/v1/auth/me`
 
 Récupère les informations complètes du profil utilisateur à partir du backend.
 
@@ -159,7 +172,7 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ### 3. Mettre à Jour le Profil Utilisateur
 
-#### `PUT /auth/me`
+#### `PUT /admin/api/v1/auth/me`
 
 Met à jour le profil utilisateur dans le backend.
 
@@ -214,7 +227,7 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 ### 4. Invalidation de Session
 
-#### `POST /auth/invalidate-session`
+#### `POST /admin/api/v1/auth/invalidate-session`
 
 Invalide la session actuelle côté backend (sans déconnecter l'utilisateur d'Auth0).
 
@@ -236,10 +249,10 @@ Authorization: Bearer {token.jwt.from.auth0}
 
 Les endpoints d'administration pour la gestion des utilisateurs (création, modification des rôles, etc.) sont disponibles dans le module Users. Voir la documentation `users.md` pour les détails complets de ces endpoints :
 
-- `POST /admin/users` - Créer un utilisateur
-- `PUT /admin/users/{userId}/roles` - Modifier les rôles
-- `GET /admin/users` - Lister les utilisateurs
-- `DELETE /admin/users/{userId}` - Supprimer un utilisateur
+- `POST /admin/api/v1/users` - Créer un utilisateur
+- `PUT /admin/api/v1/users/{userId}/roles` - Modifier les rôles
+- `GET /admin/api/v1/users` - Lister les utilisateurs
+- `DELETE /admin/api/v1/users/{userId}` - Supprimer un utilisateur
 
 Le module Auth se concentre uniquement sur l'authentification et la gestion du profil de l'utilisateur connecté.
 

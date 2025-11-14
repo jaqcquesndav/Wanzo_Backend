@@ -2,6 +2,19 @@
 
 This document outlines the API endpoints for the Chat module.
 
+## Base URL
+
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Routing Architecture**: API Gateway strips `admin/api/v1` prefix before routing to admin-service.
+
+**Example flow**:
+- Client → `http://localhost:8000/admin/api/v1/chat/sessions`
+- Gateway strips → `/admin/api/v1`
+- Admin-service receives → `http://localhost:3001/chat/sessions`
+- Controller → `@Controller('chat')`
+
 ## Standard Response Types
 
 ### PaginatedResponse<T>
@@ -29,8 +42,8 @@ interface APIResponse<T> {
 ### 1. Get All Chat Sessions
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/sessions`
-*   **Query Parameters:**
+*   **URL:** `/admin/api/v1/chat/sessions`
+*   **Query Parameters:
     *   `status` (optional): `active` | `closed` - Filter sessions by status.
     *   `page` (optional): `number` - For pagination.
     *   `limit` (optional): `number` - Number of sessions per page.
@@ -63,7 +76,7 @@ interface APIResponse<T> {
 ### 2. Get Chat Session by ID
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/sessions/{sessionId}`
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}`
 *   **Request Structure:** (None)
 *   **Response Structure (JSON):**
     ```json
@@ -88,7 +101,7 @@ interface APIResponse<T> {
 ### 3. Create New Chat Session
 
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/chat/sessions`
+*   **URL:** `/admin/api/v1/chat/sessions`
 *   **Request Structure (JSON):**
     ```json
     {
@@ -121,7 +134,7 @@ interface APIResponse<T> {
 ### 4. Close Chat Session
 
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/chat/sessions/{sessionId}/close`
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/close`
 *   **Request Structure:** (None)
 *   **Response Structure (JSON):**
     ```json
@@ -147,7 +160,7 @@ interface APIResponse<T> {
 ### 5. Assign Agent to Chat Session
 
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/chat/sessions/{sessionId}/assign`
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/assign`
 *   **Request Structure (JSON):**
     ```json
     {
@@ -181,8 +194,8 @@ interface APIResponse<T> {
 ### 1. Get Messages for a Session
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/sessions/{sessionId}/messages`
-*   **Query Parameters:**
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/messages`
+*   **Query Parameters:
     *   `before` (optional): `string` - ID of the message before which to fetch (for pagination).
     *   `limit` (optional): `number` - Number of messages to fetch.
 *   **Request Structure:** (None)
@@ -227,8 +240,8 @@ interface APIResponse<T> {
 ### 2. Send Message in a Session
 
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/chat/sessions/{sessionId}/messages`
-*   **Request Structure:** 
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/messages`
+*   **Request Structure: 
     * For text-only messages (JSON):
     ```json
     {
@@ -278,7 +291,7 @@ interface APIResponse<T> {
 ### 3. Download Attachment
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/attachments/{attachmentId}`
+*   **URL:** `/admin/api/v1/chat/attachments/{attachmentId}`
 *   **Request Structure:** (None)
 *   **Response:** The file content with appropriate Content-Type header
 *   **Error Responses:**
@@ -290,8 +303,8 @@ interface APIResponse<T> {
 ### 4. Mark Messages as Read
 
 *   **HTTP Method:** `PUT`
-*   **URL:** `/api/chat/sessions/{sessionId}/read`
-*   **Request Structure (JSON):**
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/read`
+*   **Request Structure (JSON):
     ```json
     {
       "messageIds": ["string"]
@@ -308,8 +321,8 @@ interface APIResponse<T> {
 ### 5. Send Typing Event
 
 *   **HTTP Method:** `POST`
-*   **URL:** `/api/chat/sessions/{sessionId}/typing`
-*   **Request Structure (JSON):**
+*   **URL:** `/admin/api/v1/chat/sessions/{sessionId}/typing`
+*   **Request Structure (JSON):
     ```json
     {
       "isTyping": "boolean"
@@ -328,7 +341,7 @@ interface APIResponse<T> {
 ### 1. Get Chat Statistics
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/api/chat/stats`
+*   **URL:** `/admin/api/v1/chat/stats`
 *   **Request Structure:** (None)
 *   **Response Structure (JSON):**
     ```json

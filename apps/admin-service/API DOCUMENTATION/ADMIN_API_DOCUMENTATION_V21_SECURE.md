@@ -31,10 +31,28 @@ Cette documentation décrit la **nouvelle architecture sécurisée** du microser
 ## 🌐 **INFORMATIONS GÉNÉRALES**
 
 - **Base URL (via API Gateway)**: `http://localhost:8000/admin/api/v1`
-- **Base URL (directe)**: `http://localhost:3001`
+- **Base URL (directe - admin-service)**: `http://localhost:3001`
 - **Version API**: v2.1 (sécurisée)
 - **Port API Gateway**: 8000
 - **Port Microservice Admin**: 3001 (interne)
+
+### 🔄 **Architecture de Routing**
+
+**Flux de requête complet:**
+
+1. **Client → API Gateway**  
+   `http://localhost:8000/admin/api/v1/customer-profiles`
+
+2. **API Gateway détecte le prefix**  
+   Prefix configuré: `admin/api/v1`
+
+3. **API Gateway coupe le prefix**  
+   Route vers admin-service: `http://localhost:3001/customer-profiles`
+
+4. **Admin-service reçoit**  
+   Controller `@Controller('customer-profiles')` traite la requête
+
+**⚠️ IMPORTANT**: Les routes documentées ci-dessous utilisent la **Base URL complète via API Gateway**. Le préfixe `/admin/api/v1` est automatiquement retiré par l'API Gateway avant d'atteindre admin-service.
 
 ### 🔑 **Authentification**
 
@@ -60,9 +78,30 @@ Content-Type: application/json
 
 ## 🚀 **ENDPOINTS ADMIN SÉCURISÉS**
 
+### 📋 **TABLE DE ROUTING COMPLÈTE**
+
+| URL Client (API Gateway) | Prefix Détecté | Prefix Coupé | URL Admin-Service | Controller |
+|--------------------------|----------------|--------------|-------------------|------------|
+| `http://localhost:8000/admin/api/v1/customer-profiles` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/customer-profiles` | `@Controller('customer-profiles')` |
+| `http://localhost:8000/admin/api/v1/institutions` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/institutions` | `@Controller('institutions')` |
+| `http://localhost:8000/admin/api/v1/companies` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/companies` | `@Controller('companies')` |
+| `http://localhost:8000/admin/api/v1/customers` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/customers` | `@Controller('customers')` |
+| `http://localhost:8000/admin/api/v1/users` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/users` | `@Controller('users')` |
+| `http://localhost:8000/admin/api/v1/system` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/system` | `@Controller('system')` |
+| `http://localhost:8000/admin/api/v1/accounting` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/accounting` | `@Controller('accounting')` |
+| `http://localhost:8000/admin/api/v1/subscription-payments` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/subscription-payments` | `@Controller('subscription-payments')` |
+| `http://localhost:8000/admin/api/v1/finance` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/finance` | `@Controller('finance')` |
+| `http://localhost:8000/admin/api/v1/dashboard` | `admin/api/v1` | ✂️ Oui | `http://localhost:3001/dashboard` | `@Controller('dashboard')` |
+
+**✅ ARCHITECTURE PROPRE**: Tous les controllers utilisent des routes simples sans préfixe `admin/` redondant. L'API Gateway gère la sécurité et le routing avec le préfixe `/admin/api/v1`.
+
+---
+
+## 🚀 **ENDPOINTS ADMIN SÉCURISÉS**
+
 ### 📊 **1. GESTION DES PROFILS CLIENTS (ADMIN-SAFE)**
 
-#### **GET** `/admin/customer-profiles`
+#### **GET** `/admin/api/v1/customer-profiles`
 **Liste les profils clients avec données admin autorisées**
 
 **Paramètres de requête** :
@@ -147,7 +186,7 @@ Content-Type: application/json
 }
 ```
 
-#### **GET** `/admin/customer-profiles/{customerId}`
+#### **GET** `/admin/api/v1/customer-profiles/{customerId}`
 **Détails d'un profil client spécifique**
 
 **Réponse** :
@@ -248,7 +287,7 @@ Content-Type: application/json
 
 ### ⚡ **2. ACTIONS ADMINISTRATIVES**
 
-#### **PUT** `/admin/customer-profiles/{customerId}/validate`
+#### **PUT** `/admin/api/v1/customer-profiles/{customerId}/validate`
 **Valide un profil client**
 
 **Corps de requête** : Aucun
@@ -263,7 +302,7 @@ Content-Type: application/json
 }
 ```
 
-#### **PUT** `/admin/customer-profiles/{customerId}/suspend`
+#### **PUT** `/admin/api/v1/customer-profiles/{customerId}/suspend`
 **Suspend un profil client**
 
 **Corps de requête** :
@@ -273,10 +312,10 @@ Content-Type: application/json
 }
 ```
 
-#### **PUT** `/admin/customer-profiles/{customerId}/reactivate`
+#### **PUT** `/admin/api/v1/customer-profiles/{customerId}/reactivate`
 **Réactive un profil suspendu**
 
-#### **PUT** `/admin/customer-profiles/{customerId}/admin-status`
+#### **PUT** `/admin/api/v1/customer-profiles/{customerId}/admin-status`
 **Met à jour le statut administratif**
 
 **Corps de requête** :
@@ -292,7 +331,7 @@ Content-Type: application/json
 
 ### 📈 **3. MONITORING ET STATISTIQUES**
 
-#### **GET** `/admin/customer-profiles/dashboard/statistics`
+#### **GET** `/admin/api/v1/customer-profiles/dashboard/statistics`
 **Tableau de bord admin avec métriques**
 
 **Réponse** :
@@ -338,25 +377,25 @@ Content-Type: application/json
 ### **ENDPOINTS INTERDITS POUR ADMIN (COMMERCIAL OPERATIONS)**
 
 ```typescript
-❌ GET /customers/{id}/sales-data      // Données ventes commerciales
-❌ GET /customers/{id}/revenue-analytics // Analytics revenus commerciaux
-❌ GET /customers/{id}/commercial-inventory // Inventaires commerciaux clients
-❌ GET /customers/{id}/business-transactions // Transactions commerciales
-❌ PUT /customers/{id}/commercial-data // Modification données commerciales
-❌ GET /customers/{id}/competitive-analysis // Analyses concurrentielles
+❌ GET /admin/api/v1/customers/{id}/sales-data      // Données ventes commerciales
+❌ GET /admin/api/v1/customers/{id}/revenue-analytics // Analytics revenus commerciaux
+❌ GET /admin/api/v1/customers/{id}/commercial-inventory // Inventaires commerciaux clients
+❌ GET /admin/api/v1/customers/{id}/business-transactions // Transactions commerciales
+❌ PUT /admin/api/v1/customers/{id}/commercial-data // Modification données commerciales
+❌ GET /admin/api/v1/customers/{id}/competitive-analysis // Analyses concurrentielles
 ```
 
 ### **ENDPOINTS AUTORISÉS POUR ADMIN (KYC & SYSTÈME)**
 
 ```typescript
-✅ GET /admin/customer-profiles        // Profils complets pour KYC
-✅ GET /customer/{id}/kyc-documents    // Documents validation identité
-✅ GET /customer/{id}/token-consumption // Consommation tokens système
-✅ GET /customer/{id}/subscription     // Abonnements plateforme
-✅ GET /customer/{id}/users           // Utilisateurs client
-✅ GET /customer/{id}/assets          // Patrimoine pour validation KYC
-✅ PUT /customer/{id}/admin-status    // Statuts administratifs
-✅ POST /customer/{id}/kyc-validation // Actions validation KYC
+✅ GET /admin/api/v1/customer-profiles           // Profils complets pour KYC
+✅ GET /admin/api/v1/customers/{id}/kyc-documents    // Documents validation identité
+✅ GET /admin/api/v1/customers/{id}/token-consumption // Consommation tokens système
+✅ GET /admin/api/v1/customers/{id}/subscription     // Abonnements plateforme
+✅ GET /admin/api/v1/customers/{id}/users           // Utilisateurs client
+✅ GET /admin/api/v1/customers/{id}/assets          // Patrimoine pour validation KYC
+✅ PUT /admin/api/v1/customers/{id}/admin-status    // Statuts administratifs
+✅ POST /admin/api/v1/customers/{id}/kyc-validation // Actions validation KYC
 ```
 
 ### **DONNÉES COMPLÈTES POUR KYC**
@@ -469,12 +508,12 @@ const handleFiltersChange = (filters: AdminProfileFilters) => {
 
 | Ancien Endpoint | Nouveau Endpoint | Status |
 |-----------------|------------------|---------|
-| `GET /customers` | `GET /admin/customer-profiles` | ✅ Migré |
-| `GET /customers/{id}` | `GET /admin/customer-profiles/{id}` | ✅ Migré |
+| `GET /customers` | `GET /admin/api/v1/customer-profiles` | ✅ Migré |
+| `GET /customers/{id}` | `GET /admin/api/v1/customer-profiles/{id}` | ✅ Migré |
 | `POST /customers` | ❌ **SUPPRIMÉ** | Utiliser customer-service |
 | `PUT /customers/{id}` | ❌ **SUPPRIMÉ** | Utiliser customer-service |
-| `PUT /customers/{id}/validate` | `PUT /admin/customer-profiles/{id}/validate` | ✅ Migré |
-| `PUT /customers/{id}/suspend` | `PUT /admin/customer-profiles/{id}/suspend` | ✅ Migré |
+| `PUT /customers/{id}/validate` | `PUT /admin/api/v1/customer-profiles/{id}/validate` | ✅ Migré |
+| `PUT /customers/{id}/suspend` | `PUT /admin/api/v1/customer-profiles/{id}/suspend` | ✅ Migré |
 
 ### **Mapping DTOs**
 

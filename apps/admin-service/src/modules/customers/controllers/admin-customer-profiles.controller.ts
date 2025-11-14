@@ -52,7 +52,7 @@ import {
 @ApiTags('Admin - Customer Profiles Management')
 @ApiBearerAuth()
 @UseGuards(JwtBlacklistGuard)
-@Controller('admin/customer-profiles')
+@Controller('customer-profiles')
 export class AdminCustomerProfilesController {
   constructor(private readonly customersService: CustomersService) {}
 
@@ -359,13 +359,11 @@ export class AdminCustomerProfilesController {
       lastReviewedAt: customerData.lastReviewedAt,
       reviewedBy: customerData.reviewedBy,
       
-      // Métriques autorisées (sans valeurs monétaires)
-      financialMetrics: customerData.financialMetrics ? {
-        totalAssetsCount: customerData.financialMetrics.assetsCount,
-        lastAssetsUpdate: customerData.financialMetrics.lastAssetsUpdate,
-        totalStockItems: customerData.financialMetrics.totalItems,
-        lastStockUpdate: customerData.financialMetrics.lastStockUpdate
-      } : undefined,
+      // Métriques institutions financières (v2.0)
+      financialMetrics: customerData.financialMetrics,
+      
+      // Métriques inventaire (patrimoine company)
+      inventoryMetrics: customerData.inventoryMetrics,
       
       alerts: customerData.alerts,
       validationStatus: customerData.validationStatus,

@@ -1,6 +1,24 @@
 # API Documentation: Dashboard
 
-This document outlines the **Admin Service Dashboard** API endpoints for retrieving aggregated data, analytics, metrics, and user-specific dashboard configurations. The dashboard provides comprehensive oversight for admin users managing the platform.
+This document outlines the **Admin Service Dashboard** API endpoints for retrieving aggregated data, analytics, metrics, and user-specific dashboard configurations.
+
+## Base URLs
+
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+- **Version**: 2.1
+
+### Routing Architecture
+
+The API Gateway detects the `admin/api/v1` prefix and **automatically strips it** before routing to admin-service.
+
+**Request Flow:**
+1. Client → `http://localhost:8000/admin/api/v1/dashboard`
+2. Gateway strips → `/admin/api/v1`
+3. Admin-service receives → `/dashboard`
+4. Controller `@Controller('dashboard')` handles the request
+
+All endpoints below use the complete Base URL via API Gateway. The dashboard provides comprehensive oversight for admin users managing the platform.
 
 ## 🏗️ **Architecture Overview**
 

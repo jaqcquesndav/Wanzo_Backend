@@ -4,7 +4,10 @@ This document outlines the API endpoints for managing documents within the Wanzo
 
 ## Base URL
 
-All API endpoints are relative to the base URL: `/api`
+- **Via API Gateway**: `http://localhost:8000/admin/api/v1`
+- **Direct (admin-service)**: `http://localhost:3001`
+
+**Routing Architecture**: API Gateway strips `admin/api/v1` prefix before routing to admin-service.
 
 ## Authentication
 
@@ -37,7 +40,7 @@ interface APIResponse<T> {
 ### 1. Get All Documents for a Company
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/companies/{companyId}/documents`
+*   **URL:** `/admin/api/v1/companies/{companyId}/documents`
 *   **Description:** Retrieves a list of all documents associated with a specific company.
 *   **Permissions Required:** `documents:read` (or equivalent)
 *   **Path Parameters:**
@@ -78,7 +81,7 @@ interface APIResponse<T> {
 ### 2. Get Document by ID
 
 *   **HTTP Method:** `GET`
-*   **URL:** `/documents/{documentId}`
+*   **URL:** `/admin/api/v1/documents/{documentId}`
 *   **Description:** Retrieves detailed information for a specific document.
 *   **Permissions Required:** `documents:read` (or equivalent for the specific document)
 *   **Path Parameters:**
@@ -106,7 +109,7 @@ interface APIResponse<T> {
 ### 3. Upload a New Document
 
 *   **HTTP Method:** `POST`
-*   **URL:** `/companies/{companyId}/documents/upload`
+*   **URL:** `/admin/api/v1/companies/{companyId}/documents/upload`
 *   **Description:** Uploads a new document for a specific company.
 *   **Permissions Required:** `documents:write` (or equivalent)
 *   **Path Parameters:**
@@ -138,7 +141,7 @@ interface APIResponse<T> {
 ### 4. Update Document Status
 
 *   **HTTP Method:** `PATCH`
-*   **URL:** `/documents/{documentId}/status`
+*   **URL:** `/admin/api/v1/documents/{documentId}/status`
 *   **Description:** Updates the status of an existing document.
 *   **Permissions Required:** `documents:manage` (or equivalent)
 *   **Path Parameters:**
@@ -173,7 +176,7 @@ interface APIResponse<T> {
 ### 5. Delete a Document
 
 *   **HTTP Method:** `DELETE`
-*   **URL:** `/documents/{documentId}`
+*   **URL:** `/admin/api/v1/documents/{documentId}`
 *   **Description:** Deletes a specific document.
 *   **Permissions Required:** `documents:delete` (or equivalent)
 *   **Path Parameters:**
