@@ -18,8 +18,12 @@ Le système d'abonnements a été complètement refondu pour une **approche mode
 
 ### Base URL
 ```
-http://localhost:8000/land/api/v1/subscriptions
+http://localhost:8000/land/api/v1
 ```
+
+> **📌 Note importante** : Distinguer les endpoints :
+> - **`/pricing/*`** : Consultation du catalogue de plans (AVANT abonnement)
+> - **`/subscription/*`** : Gestion des abonnements actifs (APRÈS abonnement)
 
 ### Types de Clients
 ```typescript
@@ -288,15 +292,24 @@ Tous les endpoints nécessitent un token Auth0 Bearer :
 Authorization: Bearer <access_token>
 ```
 
-### 1. Récupérer les Plans Disponibles
+### 1. Consulter le Catalogue de Plans
+
+> **📋 Pour afficher les plans disponibles AVANT de souscrire**
+
+#### Option A : Endpoint Recommandé (Pricing Controller)
 ```http
-GET /subscriptions/plans?customerType=sme&billingPeriod=monthly
+GET /pricing/plans?customerType=sme
+```
+
+#### Option B : Endpoint Alternatif (Subscription Controller)
+```http
+GET /subscription/plans
 ```
 
 **Paramètres de requête** :
 - `customerType` : `sme` | `financial` (optionnel)
-- `billingPeriod` : `monthly` | `annual` (optionnel)
-- `isVisible` : `true` | `false` (optionnel)
+
+**Note** : Le paramètre `billingPeriod` n'est PAS utilisé dans le code. Les prix mensuel ET annuel sont retournés pour chaque plan.
 
 **Réponse** :
 ```json
@@ -371,9 +384,15 @@ GET /subscriptions/plans?customerType=sme&billingPeriod=monthly
 }
 ```
 
-### 2. Créer un Abonnement
+---
+
+## 💳 GESTION DES ABONNEMENTS
+
+> **Pour créer et gérer l'abonnement actif d'un utilisateur APRÈS avoir choisi un plan**
+
+### 1. Créer un Abonnement
 ```http
-POST /subscriptions
+POST /subscription
 Content-Type: application/json
 ```
 
@@ -425,9 +444,9 @@ Content-Type: application/json
 }
 ```
 
-### 3. Récupérer l'Abonnement Actuel
+### 2. Récupérer Mon Abonnement Actuel
 ```http
-GET /subscriptions/current
+GET /subscription/current
 ```
 
 **Réponse** :
@@ -474,9 +493,9 @@ GET /subscriptions/current
 }
 ```
 
-### 4. Modifier un Abonnement
+### 3. Modifier un Abonnement
 ```http
-PUT /subscriptions/{id}
+PUT /subscription/{id}
 Content-Type: application/json
 ```
 
@@ -489,9 +508,16 @@ Content-Type: application/json
 }
 ```
 
-### 5. Annuler un Abonnement
+### 4. Annuler un Abonnement
+
+#### Option A : Annuler par ID
 ```http
-DELETE /subscriptions/{id}
+PUT /subscription/{id}/cancel
+```
+
+#### Option B : Annuler Mon Abonnement Actuel
+```http
+POST /subscription/cancel
 ```
 
 **Paramètres de requête** :

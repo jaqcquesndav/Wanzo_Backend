@@ -153,11 +153,18 @@ GET    /financial-institutions/{id} # Détails institution
 PUT    /financial-institutions/{id} # Mettre à jour
 ```
 
-### 💳 Abonnements Modernes
+### 📋 Catalogue des Plans
 ```
-GET    /subscriptions/plans        # Plans disponibles
-POST   /subscriptions             # Créer abonnement
-GET    /subscriptions/current     # Abonnement actuel
+GET    /pricing/plans             # Plans disponibles (recommandé)
+GET    /pricing/plans/:id         # Détails d'un plan
+GET    /pricing/comparison        # Comparer les plans
+```
+
+### 💳 Gestion des Abonnements
+```
+GET    /subscription/plans        # Plans disponibles (alternatif)
+POST   /subscription              # Créer abonnement
+GET    /subscription/current      # Mon abonnement actuel
 PUT    /subscriptions/{id}        # Modifier abonnement
 DELETE /subscriptions/{id}        # Annuler abonnement
 ```

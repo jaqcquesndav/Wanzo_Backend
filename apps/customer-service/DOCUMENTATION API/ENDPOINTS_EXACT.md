@@ -80,29 +80,14 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 | `POST` | `/financial-institutions/{id}/team/{memberId}/photo` | Upload photo membre |
 | `GET` | `/financial-institutions` | Liste avec filtres et pagination |
 
-### 4. Abonnements (`/subscription`) - subscription.controller.ts
+### 4. Catalogue des Plans (`/pricing`) - pricing.controller.ts
+
+> **📋 AFFICHAGE DU CATALOGUE** : Ces endpoints permettent de consulter les plans disponibles AVANT de souscrire.
+> Les plans sont créés dans Admin Service et synchronisés via Kafka.
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| `POST` | `/subscription` | Crée un abonnement |
-| `GET` | `/subscription/customer/{customerId}` | Abonnements d'un client |
-| `GET` | `/subscription/plans` | Plans disponibles (configurés par admin) |
-| `GET` | `/subscription/current` | Abonnement actuel utilisateur connecté |
-| `GET` | `/subscription/expiring/soon` | Abonnements bientôt expirés |
-| `GET` | `/subscription/expired` | Abonnements expirés |
-| `GET` | `/subscription/{id}` | Détails d'un abonnement |
-| `PUT` | `/subscription/{id}` | Mettre à jour un abonnement |
-| `PUT` | `/subscription/{id}/cancel` | Annuler un abonnement |
-| `PUT` | `/subscription/{id}/activate` | Activer un abonnement |  
-| `PUT` | `/subscription/{id}/renew` | Renouveler un abonnement |
-| `POST` | `/subscription/cancel` | Annuler abonnement actuel |
-| `POST` | `/subscriptions/change-plan` | Changer plan abonnement actuel |
-
-### 5. Pricing & Configuration (`/pricing`) - pricing.controller.ts
-
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `GET` | `/pricing/plans` | Plans disponibles (configurés par admin via Kafka) |
+| `GET` | `/pricing/plans` | Liste des plans disponibles (avec filtres) |
 | `GET` | `/pricing/plans/{planId}` | Détails d'un plan avec savings annuels |
 | `POST` | `/pricing/calculate` | Calculer prix avec réductions personnalisées |
 | `GET` | `/pricing/tokens/packages` | Packages de tokens disponibles |
@@ -111,7 +96,36 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 | `GET` | `/pricing/features/check/{featureCode}` | Vérifier accès à une fonctionnalité |
 | `GET` | `/pricing/comparison` | Comparer plans par type client |
 
-### 6. Plans Spécialisés
+### 5. Gestion des Abonnements (`/subscription`) - subscription.controller.ts
+
+> **💳 GESTION DES ABONNEMENTS** : Ces endpoints permettent de créer et gérer l'abonnement actif d'un utilisateur.
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `GET` | `/subscription/plans` | Plans disponibles (alternatif, voir /pricing/plans) |
+| `POST` | `/subscription` | Crée un abonnement |
+| `GET` | `/subscription/current` | Abonnement actuel utilisateur connecté |
+| `GET` | `/subscription/customer/{customerId}` | Abonnements d'un client |
+| `GET` | `/subscription/expiring/soon` | Abonnements bientôt expirés |
+| `GET` | `/subscription/expired` | Abonnements expirés |
+| `GET` | `/subscription/{id}` | Détails d'un abonnement |
+| `PUT` | `/subscription/{id}` | Mettre à jour un abonnement |
+| `PUT` | `/subscription/{id}/cancel` | Annuler un abonnement |
+| `PUT` | `/subscription/{id}/activate` | Activer un abonnement |
+| `PUT` | `/subscription/{id}/renew` | Renouveler un abonnement |
+| `POST` | `/subscription/cancel` | Annuler abonnement actuel |
+| `POST` | `/subscriptions/change-plan` | Changer plan abonnement actuel |
+
+### 6. Paiements d'Abonnements (`/subscriptions`) - subscription-payment.controller.ts
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `POST` | `/subscriptions/purchase` | Acheter un plan via mobile money |
+| `GET` | `/subscriptions/plans/available` | Plans disponibles pour l'utilisateur |
+| `GET` | `/subscriptions/payment-status/{transactionId}` | Statut d'un paiement |
+| `GET` | `/subscriptions/current/payment-history` | Historique paiements abonnement actuel |
+
+### 7. Plans Spécialisés
 
 #### Commercial (`/subscriptions/commercial`) - commercial.controller.ts
 | Méthode | Endpoint | Description |
@@ -123,7 +137,7 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 |---------|----------|-------------|
 | `GET` | `/subscriptions/financial/plans` | Plans institutions financières |
 
-### 7. Paiements Stripe (`/subscriptions/stripe`) - stripe-subscription-payment.controller.ts
+### 8. Paiements Stripe (`/subscriptions/stripe`) - stripe-subscription-payment.controller.ts
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
@@ -133,11 +147,11 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 | `POST` | `/subscriptions/stripe/webhook` | Traitement webhooks Stripe |
 | `GET` | `/subscriptions/stripe/payment-methods` | Méthodes de paiement client |
 
-### 8. Tokens (Gestion intégrée)
+### 9. Tokens (Gestion intégrée)
 
 **Note critique**: Les tokens sont maintenant **intégrés aux plans d'abonnement**. Plus d'endpoints dédiés tokens - tout se gère via les abonnements et le pricing.
 
-### 9. Chat Adha (`/chat`) - chatApiService.ts
+### 10. Chat Adha (`/chat`) - chatApiService.ts
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
@@ -149,7 +163,7 @@ Cette documentation contient UNIQUEMENT les endpoints basés sur l'analyse exact
 
 **Note**: Le service utilise `VITE_API_URL` (défaut: `http://localhost:8000/land/api/v1`) et inclut un mode dégradé avec réponses de fallback.
 
-### 10. Paiements (`/payments`) - subscription-payment.controller.ts
+### 11. Paiements (`/payments`) - subscription-payment.controller.ts
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
