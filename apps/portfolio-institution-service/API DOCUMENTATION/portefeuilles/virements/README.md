@@ -111,7 +111,6 @@ Crée un nouveau virement pour un contrat dans un portefeuille traditionnel.
   "company": "PME Agro Sarl",
   "product": "Crédit PME 12 mois",
   "amount": 15000000,
-  "status": "en attente",
   "date": "2025-07-05T11:00:00Z",
   "requestId": "REQ-TRAD-20250704-0004",
   "portfolioId": "qf3081zdd",
@@ -136,6 +135,8 @@ Crée un nouveau virement pour un contrat dans un portefeuille traditionnel.
 }
 ```
 
+> **Note**: Le statut initial est automatiquement défini à `draft` par le système. Les champs `debitAccount` et `beneficiary` sont requis selon le DTO actuel.
+
 **Réponse réussie** (201 Created) :
 
 ```json
@@ -159,16 +160,18 @@ Modifie un virement existant (uniquement possible à l'état "en attente").
 
 ```json
 {
-  "amount": 16000000,
+  "status": "pending",
+  "transactionReference": "TRXVIR0702250001",
+  "valueDate": "2025-07-03",
+  "executionDate": "2025-07-02",
   "paymentMethod": "virement",
-  "beneficiary": {
-    "accountNumber": "CI1010010100123456789012345",
-    "accountName": "PME Agro Sarl",
-    "bankName": "Banque Commerciale Africaine"
-  },
-  "description": "Financement Crédit PME 12 mois - Réf. Contrat CRDT-100001 (Montant révisé)"
+  "paymentReference": "VIR-PA-07020001",
+  "description": "Financement Crédit PME 12 mois - Réf. Contrat CRDT-100001 (Montant révisé)",
+  "supportingDocumentUrl": "https://example.com/docs/virement-proof.pdf"
 }
 ```
+
+> **Note**: Selon UpdateDisbursementDto, seuls les champs status, transactionReference, valueDate, executionDate, paymentMethod, paymentReference, description et supportingDocumentUrl sont modifiables.
 
 **Réponse réussie** (200 OK) :
 
@@ -234,46 +237,112 @@ Annule un virement en attente.
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| id | string | Identifiant unique du virement |
-| company | string | Nom de l'entreprise bénéficiaire |
-| product | string | Type de produit financier |
+| id | string (UUID) | Identifiant unique du virement |
+| reference | string | Référence unique du virement |
+| portfolio_id | string (UUID) | Identifiant du portefeuille |
+| contract_id | string (UUID) | Identifiant du contrat associé |
+| client_id | string (UUID) | Identifiant du client bénéficiaire |
 | amount | number | Montant du virement |
-| status | string | Statut du virement ('en attente', 'effectué') |
-| date | string | Date du virement (format ISO) |
-| requestId | string | Référence de la demande associée (optionnel) |
-| portfolioId | string | Identifiant du portefeuille |
-| contractReference | string | Référence du contrat associé |
-| transactionReference | string | Référence de la transaction bancaire (optionnel) |
-| valueDate | string | Date de valeur (optionnel) |
-| executionDate | string | Date d'exécution (optionnel) |
-| debitAccount | object | Informations du compte débité |
-| beneficiary | object | Informations du bénéficiaire |
-| paymentMethod | string | Méthode de paiement (virement, transfert, etc.) |
-| paymentReference | string | Référence du paiement (optionnel) |
-| description | string | Description ou motif du paiement (optionnel) |
+| currency | string | Code devise ISO 4217 (CDF, USD, XOF, EUR, XAF) |
+| status | enum | Statut: draft, pending, approved, rejected, processing, completed, failed, canceled |
+| disbursement_type | enum | Type: full, partial, installment |
+| installment_number | integer (optionnel) | Numéro de versement (pour type installment) |
+| payment_method | string (optionnel) | Méthode de paiement (bank_transfer, mobile_money, etc.) |
+| recipient_info | object (optionnel) | Informations du bénéficiaire (voir structure ci-dessous) |
+| transaction_id | string (optionnel) | Identifiant de transaction externe |
+| payment_transaction_id | string (optionnel) | ID de la transaction dans payment-service |
+| transaction_date | timestamp (optionnel) | Date de la transaction |
+| requested_date | timestamp (optionnel) | Date de la demande |
+| notes | string (optionnel) | Notes additionnelles |
+| approved_by | string (optionnel) | ID de l'utilisateur ayant approuvé |
+| approval_date | timestamp (optionnel) | Date d'approbation |
+| rejection_reason | string (optionnel) | Raison du rejet |
+| rejected_by | string (optionnel) | ID de l'utilisateur ayant rejeté |
+| rejection_date | timestamp (optionnel) | Date de rejet |
+| executed_by | string (optionnel) | ID de l'utilisateur ayant exécuté |
+| execution_date | timestamp (optionnel) | Date d'exécution |
+| prerequisites_verified | boolean (optionnel) | Prérequis vérifiés avant traitement |
+| documents | array (optionnel) | Documents joints (voir structure ci-dessous) |
+| callback_data | object (optionnel) | Données de callback du provider (voir structure ci-dessous) |
+| created_at | timestamp | Date de création |
+| updated_at | timestamp | Date de dernière modification |
 
-### Compte débité (DebitAccount)
+**Structure recipient_info (mobile money ou banque):**
+```json
+{
+  "account_number": "12345678",
+  "bank_name": "Bank of Africa",
+  "bank_code": "BOA-CI",
+  "mobile_wallet": "+22500000000",
+  "name": "Entreprise ABC"
+}
+```
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| accountNumber | string | Numéro de compte |
-| accountName | string | Nom du compte |
-| bankName | string | Nom de la banque |
-| bankCode | string | Code de la banque |
-| branchCode | string | Code de l'agence (optionnel) |
+**Structure documents:**
+```json
+[
+  {
+    "id": "doc123",
+    "name": "contrat.pdf",
+    "type": "contract",
+    "url": "https://...",
+    "upload_date": "2025-01-15T10:00:00Z"
+  }
+]
+```
 
-### Bénéficiaire (Beneficiary)
+**Structure callback_data (intégration payment-service):**
+```json
+{
+  "provider": "SerdiPay",
+  "response_code": "200",
+  "response_message": "Transaction successful",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "additional_info": {
+    "operator": "AM",
+    "transaction_ref": "SP-TXN-123456"
+  }
+}
+```
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| accountNumber | string | Numéro de compte |
-| accountName | string | Nom du titulaire du compte |
-| bankName | string | Nom de la banque |
-| bankCode | string | Code de la banque (optionnel) |
-| branchCode | string | Code de l'agence (optionnel) |
-| swiftCode | string | Code SWIFT (optionnel) |
-| companyName | string | Nom de l'entreprise |
-| address | string | Adresse (optionnel) |
+---
+
+## 💳 Support Mobile Money
+
+Les virements peuvent être effectués via mobile money pour une exécution rapide.
+
+**Opérateurs supportés:**
+- **AM** (Airtel Money): Min 100 XOF, Max 5M XOF
+- **OM** (Orange Money): Min 100 XOF, Max 3M XOF
+- **WAVE**: Min 100 XOF, Max 10M XOF
+- **MP** (M-Pesa): Min 100 XOF, Max 2M XOF
+- **AF** (Africell Money): Min 100 XOF, Max 2M XOF
+
+**Intégration avec payment-service:**
+
+Lorsqu'un virement est créé avec `payment_method: "mobile_money"`, le système:
+1. Crée une transaction dans payment-service via SerdiPay
+2. Stocke le `payment_transaction_id` dans le disbursement
+3. Attend le callback du provider
+4. Met à jour le statut avec `callback_data`
+
+**Exemple de recipient_info pour mobile money:**
+```json
+{
+  "mobile_wallet": "+243900000000",
+  "name": "Jean Dupont"
+}
+```
+
+**Exemple de recipient_info pour virement bancaire:**
+```json
+{
+  "account_number": "CI1010010100123456789012345",
+  "bank_name": "Bank of Africa",
+  "bank_code": "BOA-CI",
+  "name": "Entreprise ABC"
+}
+```
 
 **Paramètres de chemin** :
 - `portfolioId` : Identifiant unique du portefeuille traditionnel

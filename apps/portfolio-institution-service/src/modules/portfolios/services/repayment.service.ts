@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Repayment, RepaymentStatus, RepaymentType } from '../entities/repayment.entity';
@@ -33,6 +33,8 @@ export interface RepaymentFilterDto {
 
 @Injectable()
 export class RepaymentService {
+  private readonly logger = new Logger(RepaymentService.name);
+
   constructor(
     @InjectRepository(Repayment)
     private repaymentRepository: Repository<Repayment>,
@@ -45,6 +47,18 @@ export class RepaymentService {
   ) {}
 
   async create(createRepaymentDto: CreateRepaymentDto, userId: string): Promise<Repayment> {
+    // Vérification d'idempotence - si transaction_id existe déjà, retourner le remboursement existant
+    if (createRepaymentDto.transactionId) {
+      const existingRepayment = await this.repaymentRepository.findOne({
+        where: { transaction_id: createRepaymentDto.transactionId }
+      });
+      
+      if (existingRepayment) {
+        this.logger.log(`Repayment with transaction_id ${createRepaymentDto.transactionId} already exists. Returning existing record.`);
+        return existingRepayment;
+      }
+    }
+
     // Récupérer le contrat
     const contract = await this.contractRepository.findOne({
       where: { id: createRepaymentDto.contractId }
@@ -111,8 +125,12 @@ export class RepaymentService {
       // Mettre à jour le contrat avec les dernières informations de paiement
       await this.updateContractPaymentInfo(contract.id, createRepaymentDto.paymentDate, queryRunner);
       
-      // Si tous les paiements sont effectués, marquer le contrat comme complété
-      await this.checkAndUpdateContractStatus(contract.id, queryRunner);
+      // Vérifier si tous les paiements sont effectués et marquer le contrat comme complété
+      const contractCompleted = await this.checkAndUpdateContractStatus(contract.id, queryRunner);
+      
+      // TODO: Publier l'événement REPAYMENT_RECEIVED avec EventsService
+      // incluant metadata.contractCompleted pour notifier gestion-commerciale
+      this.logger.log(`Repayment ${savedRepayment.id} completed. Contract completed: ${contractCompleted}`);
       
       // Commit de la transaction
       await queryRunner.commitTransaction();
@@ -491,7 +509,7 @@ export class RepaymentService {
     );
   }
 
-  private async checkAndUpdateContractStatus(contractId: string, queryRunner: any): Promise<void> {
+  private async checkAndUpdateContractStatus(contractId: string, queryRunner: any): Promise<boolean> {
     // Vérifier s'il reste des échéances impayées
     const pendingCount = await queryRunner.manager.count(PaymentSchedule, {
       where: {
@@ -506,6 +524,8 @@ export class RepaymentService {
         { id: contractId },
         { status: ContractStatus.COMPLETED }
       );
+      return true;
     }
+    return false;
   }
 }

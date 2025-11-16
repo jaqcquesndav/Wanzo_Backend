@@ -83,6 +83,9 @@ export class Disbursement {
   transaction_id?: string;
 
   @Column({ nullable: true })
+  payment_transaction_id?: string;
+
+  @Column({ nullable: true })
   transaction_date?: Date;
 
   @Column({ nullable: true })
@@ -123,6 +126,15 @@ export class Disbursement {
     url: string;
     upload_date: Date;
   }[];
+
+  @Column('jsonb', { nullable: true })
+  callback_data?: {
+    provider: string;
+    response_code: string;
+    response_message: string;
+    timestamp: Date;
+    additional_info?: any;
+  };
 
   @CreateDateColumn()
   created_at!: Date;

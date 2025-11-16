@@ -1,14 +1,17 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CreditRequest, CreditRequestStatus } from '../entities/credit-request.entity';
 import { CreateCreditRequestDto, UpdateCreditRequestDto, CreditRequestFilterDto } from '../dtos/credit-request.dto';
+import { EventsService } from '../../events/events.service';
 
 @Injectable()
 export class CreditRequestService {
   constructor(
     @InjectRepository(CreditRequest)
     private creditRequestRepository: Repository<CreditRequest>,
+    private dataSource: DataSource,
+    private eventsService: EventsService,
   ) {}
 
   async create(createCreditRequestDto: CreateCreditRequestDto, userId: string): Promise<CreditRequest> {
@@ -108,28 +111,88 @@ export class CreditRequestService {
   }
 
   async approve(id: string, approvalData: { notes?: string }): Promise<CreditRequest> {
-    const creditRequest = await this.findById(id);
+    return await this.dataSource.transaction(async (manager) => {
+      const creditRequest = await manager.findOne(CreditRequest, {
+        where: { id },
+        relations: ['portfolio'],
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (creditRequest.status !== CreditRequestStatus.PENDING && creditRequest.status !== CreditRequestStatus.ANALYSIS) {
-      throw new ConflictException('Credit request cannot be approved in current status');
-    }
+      if (!creditRequest) {
+        throw new NotFoundException(`Credit request with ID ${id} not found`);
+      }
 
-    creditRequest.status = CreditRequestStatus.APPROVED;
-    creditRequest.updatedAt = new Date();
+      // Validate approval conditions
+      if (creditRequest.status !== CreditRequestStatus.PENDING && creditRequest.status !== CreditRequestStatus.ANALYSIS) {
+        throw new ConflictException(`Credit request cannot be approved in current status: ${creditRequest.status}`);
+      }
 
-    return await this.creditRequestRepository.save(creditRequest);
+      if (!creditRequest.creditManagerId) {
+        throw new BadRequestException('Credit request must have an assigned credit manager');
+      }
+
+      // Update status
+      creditRequest.status = CreditRequestStatus.APPROVED;
+      creditRequest.updatedAt = new Date();
+
+      const saved = await manager.save(creditRequest);
+
+      // Publish event outside transaction (async, don't await)
+      this.eventsService.publishFundingRequestStatusChanged({
+        requestId: saved.id,
+        portfolioId: saved.portfolioId || '',
+        oldStatus: CreditRequestStatus.PENDING,
+        newStatus: CreditRequestStatus.APPROVED,
+        timestamp: new Date().toISOString(),
+        changedBy: creditRequest.creditManagerId,
+        notes: approvalData.notes,
+      }).catch(error => {
+        console.error('Failed to publish credit approval event:', error);
+      });
+
+      return saved;
+    });
   }
 
   async reject(id: string, rejectionData: { reason: string; notes?: string }): Promise<CreditRequest> {
-    const creditRequest = await this.findById(id);
+    return await this.dataSource.transaction(async (manager) => {
+      const creditRequest = await manager.findOne(CreditRequest, {
+        where: { id },
+        relations: ['portfolio'],
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (creditRequest.status === CreditRequestStatus.APPROVED || creditRequest.status === CreditRequestStatus.DISBURSED) {
-      throw new ConflictException('Cannot reject approved or disbursed credit request');
-    }
+      if (!creditRequest) {
+        throw new NotFoundException(`Credit request with ID ${id} not found`);
+      }
 
-    creditRequest.status = CreditRequestStatus.REJECTED;
-    creditRequest.updatedAt = new Date();
+      // Validate rejection conditions
+      if (creditRequest.status === CreditRequestStatus.APPROVED || creditRequest.status === CreditRequestStatus.DISBURSED) {
+        throw new ConflictException(`Cannot reject credit request in status: ${creditRequest.status}`);
+      }
 
-    return await this.creditRequestRepository.save(creditRequest);
+      // Update status and add rejection reason
+      creditRequest.status = CreditRequestStatus.REJECTED;
+      creditRequest.rejectionReason = rejectionData.reason;
+      creditRequest.updatedAt = new Date();
+
+      const saved = await manager.save(creditRequest);
+
+      // Publish event outside transaction (async, don't await)
+      this.eventsService.publishFundingRequestStatusChanged({
+        requestId: saved.id,
+        portfolioId: saved.portfolioId || '',
+        oldStatus: creditRequest.status,
+        newStatus: CreditRequestStatus.REJECTED,
+        timestamp: new Date().toISOString(),
+        changedBy: creditRequest.creditManagerId,
+        reason: rejectionData.reason,
+        notes: rejectionData.notes,
+      }).catch(error => {
+        console.error('Failed to publish credit rejection event:', error);
+      });
+
+      return saved;
+    });
   }
 }

@@ -7,6 +7,7 @@ import { CreditScoreXGBoostController } from './controllers/xgboost-credit.contr
 import { FinancingRecord } from './entities/financing-record.entity';
 import { AuthModule } from '../auth/auth.module'; // Import AuthModule for JWTGuard and CurrentUser decorator dependencies
 import { CreditScoreEventConsumerService } from './services/credit-event-consumer.service';
+import { PortfolioEventsConsumerService } from './consumers/portfolio-events.consumer';
 import { CreditScoreApiService } from './services/credit-api.service';
 
 @Module({
@@ -16,6 +17,11 @@ import { CreditScoreApiService } from './services/credit-api.service';
     HttpModule, // For CreditScoreApiService HTTP calls
   ],
   controllers: [FinancingController, CreditScoreXGBoostController],
-  providers: [FinancingService, CreditScoreEventConsumerService, CreditScoreApiService],
+  providers: [
+    FinancingService, 
+    CreditScoreEventConsumerService, 
+    PortfolioEventsConsumerService,
+    CreditScoreApiService
+  ],
 })
 export class FinancingModule {}

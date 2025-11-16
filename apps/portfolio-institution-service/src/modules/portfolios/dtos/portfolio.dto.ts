@@ -50,6 +50,11 @@ export class CreatePortfolioDto {
   @IsUUID()
   institution_id!: string;
 
+  @ApiPropertyOptional({ description: 'Portfolio reference code (auto-generated if not provided)' })
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
   @ApiProperty({ description: 'Target amount' })
   @IsNumber()
   target_amount!: number;
@@ -111,6 +116,23 @@ export class UpdatePortfolioDto {
   @IsOptional()
   @IsNumber()
   target_amount?: number;
+
+  @ApiPropertyOptional({ description: 'Total amount currently in portfolio' })
+  @IsOptional()
+  @IsNumber()
+  total_amount?: number;
+
+  @ApiPropertyOptional({ description: 'Number of clients in portfolio' })
+  @IsOptional()
+  @IsNumber()
+  clientCount?: number;
+
+  @ApiPropertyOptional({ description: 'Risk score (0-100)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  riskScore?: number;
 
   @ApiPropertyOptional({ description: 'Target return percentage' })
   @IsOptional()

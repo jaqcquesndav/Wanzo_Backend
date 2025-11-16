@@ -287,7 +287,11 @@ export class AccountingIntegrationService {
     }
   }
 
-  private async getSMESector(companyId: string): Promise<string> {
+  /**
+   * Récupère le secteur depuis les données comptables ou profil entreprise
+   * EXPOSÉE pour CompanySyncService
+   */
+  async getSMESector(companyId: string): Promise<string> {
     // Récupérer le secteur depuis les données comptables ou profil entreprise
     try {
       const response = await firstValueFrom(
@@ -301,7 +305,11 @@ export class AccountingIntegrationService {
     }
   }
 
-  private async getSMEEmployeeCount(companyId: string): Promise<number> {
+  /**
+   * Récupère le nombre d'employés depuis le profil entreprise
+   * EXPOSÉE pour CompanySyncService
+   */
+  async getSMEEmployeeCount(companyId: string): Promise<number> {
     // Récupérer le nombre d'employés depuis le profil entreprise
     try {
       const response = await firstValueFrom(
@@ -315,7 +323,11 @@ export class AccountingIntegrationService {
     }
   }
 
-  private async getSMEWebsite(companyId: string): Promise<string | undefined> {
+  /**
+   * Récupère le site web de l'entreprise
+   * EXPOSÉE pour CompanySyncService
+   */
+  async getSMEWebsite(companyId: string): Promise<string | undefined> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.accountingServiceUrl}/api/users/profile`, {

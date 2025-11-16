@@ -230,6 +230,17 @@ export class SerdiPayFinancingController {
   }
 
   /**
+   * Limites de transaction par opérateur mobile money (en XOF)
+   */
+  private readonly OPERATOR_LIMITS: Record<string, { min: number; max: number; daily: number }> = {
+    'AM': { min: 100, max: 5000000, daily: 10000000 },      // Airtel Money
+    'OM': { min: 100, max: 3000000, daily: 8000000 },       // Orange Money
+    'WAVE': { min: 100, max: 10000000, daily: 20000000 },   // WAVE
+    'MP': { min: 100, max: 2000000, daily: 5000000 },       // M-Pesa
+    'AF': { min: 100, max: 2000000, daily: 5000000 }        // Africell
+  };
+
+  /**
    * Valide les données de paiement de financement
    */
   private validateFinancingPaymentRequest(request: FinancingPaymentRequest): void {
@@ -237,21 +248,26 @@ export class SerdiPayFinancingController {
       throw new BadRequestException('Le montant doit être supérieur à zéro');
     }
 
+    // Validation E.164 pour numéros RDC
     if (!request.phone || !request.phone.match(/^\+243[0-9]{9}$/)) {
-      throw new BadRequestException('Numéro de téléphone invalide');
+      throw new BadRequestException('Numéro de téléphone invalide (format: +243XXXXXXXXX)');
     }
 
     if (!['AM', 'OM', 'WAVE', 'MP', 'AF'].includes(request.operator)) {
-      throw new BadRequestException('Opérateur mobile money invalide');
+      throw new BadRequestException('Opérateur mobile money invalide. Valeurs acceptées: AM, OM, WAVE, MP, AF');
     }
 
     if (!request.reference || request.reference.trim().length === 0) {
       throw new BadRequestException('Référence de paiement requise');
     }
 
-    // Validation spécifique aux montants variables (pas de limites fixes)
-    if (request.amount > 10000000) { // Limite maximum de 10M XOF
-      throw new BadRequestException('Montant trop élevé pour un paiement mobile money');
+    // Validation des limites par opérateur
+    const limits = this.OPERATOR_LIMITS[request.operator];
+    if (request.amount < limits.min) {
+      throw new BadRequestException(`Montant minimum pour ${request.operator}: ${limits.min} XOF`);
+    }
+    if (request.amount > limits.max) {
+      throw new BadRequestException(`Montant maximum pour ${request.operator}: ${limits.max} XOF`);
     }
   }
 

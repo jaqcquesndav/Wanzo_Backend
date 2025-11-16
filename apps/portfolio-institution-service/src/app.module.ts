@@ -17,6 +17,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { PaymentOrderModule } from './modules/payment-orders/payment-orders.module';
 import { UsersModule } from './modules/users/users.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CompanyProfileModule } from './modules/company-profile/company-profile.module';
 
 // Security Module
 import { SecurityModule } from '@wanzobe/shared';
@@ -73,6 +74,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
     EventsConsumerModule, // Added
     ChatModule, // Added for Adha AI integration
     UsersModule, // Added Users module
+    CompanyProfileModule, // Added Company Profile module for hybrid data sync
 
     // 4) Ajout du MonitoringModule pour /metrics
     MonitoringModule,

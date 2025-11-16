@@ -148,15 +148,14 @@ Crée un nouveau portefeuille traditionnel.
   "name": "Nouveau Portefeuille PME",
   "description": "Portefeuille de crédits pour PME",
   "type": "traditional",
+  "reference": "PTF-2025-001",
+  "manager_id": "123e4567-e89b-12d3-a456-426614174000",
+  "institution_id": "987e6543-e21b-34c5-b678-542698765432",
   "target_amount": 200000000,
   "target_return": 15,
   "target_sectors": ["Commerce", "Artisanat", "Agriculture"],
   "risk_profile": "moderate",
-  "manager": {
-    "id": "mgr-123",
-    "name": "Jean Dupont",
-    "email": "jean.dupont@exemple.com"
-  }
+  "currency": "XOF"
 }
 ```
 
@@ -164,36 +163,51 @@ Crée un nouveau portefeuille traditionnel.
 
 ```json
 {
-  "id": "trad-3",
-  "name": "Nouveau Portefeuille PME",
-  "description": "Portefeuille de crédits pour PME",
-  "type": "traditional",
-  "status": "active",
-  "target_amount": 200000000,
-  "target_return": 15,
-  "target_sectors": ["Commerce", "Artisanat", "Agriculture"],
-  "risk_profile": "moderate",
-  "products": [],
-  "metrics": {
-    "net_value": 0,
-    "average_return": 0,
-    "risk_portfolio": 0,
-    "sharpe_ratio": 0,
-    "volatility": 0,
-    "alpha": 0,
-    "beta": 0,
-    "asset_allocation": [],
-    "performance_curve": [],
-    "returns": [],
-    "benchmark": []
-  },
-  "manager": {
-    "id": "mgr-123",
-    "name": "Jean Dupont",
-    "email": "jean.dupont@exemple.com"
-  },
-  "created_at": "2025-08-03T15:30:00.000Z",
-  "updated_at": "2025-08-03T15:30:00.000Z"
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174003",
+    "reference": "PTF-2025-001",
+    "name": "Nouveau Portefeuille PME",
+    "description": "Portefeuille de crédits pour PME",
+    "type": "traditional",
+    "status": "active",
+    "manager_id": "123e4567-e89b-12d3-a456-426614174000",
+    "institution_id": "987e6543-e21b-34c5-b678-542698765432",
+    "target_amount": 200000000,
+    "total_amount": 0,
+    "target_return": 15,
+    "target_sectors": ["Commerce", "Artisanat", "Agriculture"],
+    "risk_profile": "moderate",
+    "currency": "XOF",
+    "clientCount": 0,
+    "riskScore": null,
+    "products": [],
+    "bank_accounts": [],
+    "financial_products": [],
+    "manager": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "Jean Dupont",
+      "email": "jean.dupont@exemple.com"
+    },
+    "managerBankAccounts": [],
+    "managerMobileMoneyAccounts": [],
+    "managerPaymentPreferences": null,
+    "metrics": {
+      "net_value": 0,
+      "average_return": 0,
+      "risk_portfolio": 0,
+      "sharpe_ratio": 0,
+      "volatility": 0,
+      "alpha": 0,
+      "beta": 0,
+      "asset_allocation": [],
+      "performance_curve": [],
+      "returns": [],
+      "benchmark": []
+    },
+    "created_at": "2025-08-03T15:30:00.000Z",
+    "updated_at": "2025-08-03T15:30:00.000Z"
+  }
 }
 ```
 
@@ -322,9 +336,13 @@ Met à jour les informations d'un portefeuille traditionnel existant.
   "name": "Portefeuille PME 2025 - Révisé",
   "description": "Portefeuille de crédits pour PME - Révisé",
   "status": "active",
-  "managerId": "user789",
+  "total_amount": 600000000,
+  "clientCount": 25,
+  "riskScore": 75,
+  "manager_id": "123e4567-e89b-12d3-a456-426614174789",
+  "target_return": 18,
   "settings": {
-    "maxLoanAmount": 600000.00,
+    "maxLoanAmount": 600000000,
     "interestRateRange": {
       "min": 6.0,
       "max": 16.0
@@ -487,14 +505,22 @@ interface TraditionalPortfolio extends Portfolio {
 interface Portfolio {
   id: string;
   name: string;
-  type: 'traditional';
-  status: 'active' | 'inactive' | 'pending' | 'archived';
+  reference: string;                      // Référence unique du portefeuille (obligatoire)
+  type: 'traditional' | 'credit' | 'savings' | 'microfinance' | 'treasury';
+  status: 'active' | 'inactive' | 'pending' | 'archived' | 'closed' | 'suspended';
+  manager_id: string;                     // UUID du gestionnaire (obligatoire)
+  institution_id: string;                 // UUID de l'institution (obligatoire)
   target_amount: number;
-  target_return: number;
-  target_sectors: string[];
+  total_amount: number;                   // Montant total actualisé (default: 0)
+  clientCount?: number;                   // Nombre de clients (calculé)
+  riskScore?: number;                     // Score de risque (0-100, calculé)
+  target_return?: number;
+  target_sectors?: string[];
   risk_profile: 'conservative' | 'moderate' | 'aggressive';
-  products: FinancialProduct[];
+  currency: string;                       // Code ISO 4217 (default: XOF)
+  products: string[];                     // IDs des produits
   bank_accounts?: BankAccount[];
+  financial_products?: FinancialProduct[];
   manager?: {
     id: string;
     name: string;
@@ -508,9 +534,58 @@ interface Portfolio {
     annual_fee?: number;
     performance_fee?: number;
   };
-  metrics: PortfolioMetrics;
+  metrics?: PortfolioMetrics;
+  settings?: {
+    maxLoanAmount: number;
+    interestRateRange: { min: number; max: number; };
+    loanTermRange: { min: number; max: number; };
+    riskToleranceLevel: 'low' | 'medium' | 'high';
+  };
+  managerBankAccounts?: ManagerBankAccount[];
+  managerMobileMoneyAccounts?: ManagerMobileMoneyAccount[];
+  managerPaymentPreferences?: ManagerPaymentPreferences;
+  clientId?: string;
+  createdBy?: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ManagerBankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  swiftCode?: string;
+  iban?: string;
+  branchCode?: string;
+  branchAddress?: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ManagerMobileMoneyAccount {
+  id: string;
+  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
+  phoneNumber: string;
+  accountHolderName: string;
+  isDefault: boolean;
+  verificationStatus: 'pending' | 'verified' | 'failed';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ManagerPaymentPreferences {
+  preferredMethod: 'bank' | 'mobile_money';
+  defaultBankAccount?: string;
+  defaultMobileMoneyAccount?: string;
+  allowAutomaticPayments: boolean;
+  minimumPaymentThreshold?: number;
+  notificationPreferences?: {
+    sms?: boolean;
+    email?: boolean;
+    push?: boolean;
+  };
 }
 ```
 
@@ -601,4 +676,24 @@ interface PortfolioMetrics {
 
 ---
 
-*Documentation mise à jour le 4 novembre 2025 pour correspondre aux types TypeScript du code source*
+## 📊 Champs Calculés et Dynamiques
+
+Les champs suivants sont calculés automatiquement par le système et ne peuvent pas être modifiés directement:
+
+| Champ | Type | Calcul | Description |
+|-------|------|--------|-------------|
+| `total_amount` | number | Somme des montants de tous les contrats actifs | Montant total actualisé du portefeuille |
+| `clientCount` | number | COUNT(DISTINCT client_id) des contrats | Nombre de clients uniques |
+| `riskScore` | number | Algorithme de scoring basé sur taux_impayes, taux_couverture, balance_AGE | Score de risque global (0-100) |
+| `metrics.nb_credits` | number | COUNT(contracts WHERE status='active') | Nombre de crédits actifs |
+| `metrics.total_credits` | number | SUM(contracts.amount) | Montant total des crédits |
+| `metrics.avg_credit` | number | total_credits / nb_credits | Montant moyen par crédit |
+| `metrics.nb_clients` | number | COUNT(DISTINCT clients) | Nombre de clients (identique à clientCount) |
+| `metrics.taux_impayes` | number | Calculé depuis repayments en retard | Taux d'impayés en % |
+| `metrics.taux_recouvrement` | number | Calculé depuis repayments reçus vs dus | Taux de recouvrement en % |
+
+> **Note**: Ces champs sont en lecture seule et sont recalculés lors de chaque événement affectant le portefeuille (création de contrat, remboursement, etc.).
+
+---
+
+*Documentation mise à jour le 16 novembre 2025 - Conformité 100% avec le code source*

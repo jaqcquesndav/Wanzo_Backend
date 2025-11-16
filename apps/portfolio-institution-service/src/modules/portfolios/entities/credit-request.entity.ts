@@ -118,6 +118,18 @@ export class CreditRequest {
   @Column({ default: 'XOF' })
   currency!: string;
 
+  @Column('jsonb', { nullable: true })
+  metadata?: {
+    sourceRequestId?: string;
+    syncedFrom?: string;
+    businessInformation?: any;
+    financialInformation?: any;
+    creditScore?: any;
+    firstSyncAt?: string;
+    lastSyncAt?: string;
+    [key: string]: any;
+  };
+
   @CreateDateColumn()
   createdAt!: Date;
 

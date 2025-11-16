@@ -18,7 +18,7 @@ Récupère la liste des remboursements effectués pour un contrat de crédit sp�
 - `status` (optionnel) : Filtre par statut (paid, partial, late, pending)
 - `dateFrom` (optionnel) : Filtre par date de paiement (début)
 - `dateTo` (optionnel) : Filtre par date de paiement (fin)
-- `sortBy` (optionnel) : Trier par (payment_date, due_date, amount)
+- `sortBy` (optionnel) : Trier par (transaction_date, due_date, amount, created_at)
 - `sortOrder` (optionnel) : Ordre de tri (asc, desc)
 
 **Réponse réussie** (200 OK) :
@@ -28,43 +28,34 @@ Récupère la liste des remboursements effectués pour un contrat de crédit sp�
   "success": true,
   "data": [
     {
-      "id": "repayment123",
-      "contract_id": "contract123",
-      "portfolio_id": "portfolio456",
-      "client_id": "client789",
-      "payment_date": "2025-02-14T10:30:00.000Z",
+      "id": "123e4567-e89b-12d3-a456-426614174123",
+      "reference": "PMT-2025-0001",
+      "contract_id": "123e4567-e89b-12d3-a456-426614174001",
+      "portfolio_id": "123e4567-e89b-12d3-a456-426614174456",
+      "client_id": "123e4567-e89b-12d3-a456-426614174789",
+      "transaction_date": "2025-02-14T10:30:00.000Z",
       "amount": 4583.33,
+      "currency": "XOF",
       "payment_method": "bank_transfer",
-      "payment_reference": "TRX-12345678",
-      "transaction_reference": "BOA20250214103022",
+      "payment_method_type": "BANK_TRANSFER",
+      "transaction_id": "BOA20250214103022",
       "status": "completed",
-      "payment_type": "mixed",
-      "payment_details": {
-        "principal_amount": 3750.00,
-        "interest_amount": 833.33,
-        "penalty_amount": 0.00
-      },
-      "scheduled_payment_id": "payment1",
+      "payment_type": "standard",
+      "principal_amount": 3750.00,
+      "interest_amount": 833.33,
+      "penalty_amount": 0.00,
+      "allocation": [
+        {
+          "schedule_id": "123e4567-e89b-12d3-a456-426614174999",
+          "principal_amount": 3750.00,
+          "interest_amount": 833.33,
+          "penalties_amount": 0.00,
+          "fees_amount": 0.00
+        }
+      ],
       "due_date": "2025-02-15T00:00:00.000Z",
-      "remaining_amount": 0.00,
-      "remaining_percentage": 0.0,
-      "slippage": -1,
-      "installment_number": 1,
-      "total_installments": 12,
-      "receipt_url": "https://example.com/receipts/rec-2025-001-01.pdf",
-      "source_account": {
-        "accountNumber": "XXXX-XXXX-XXXX-1234",
-        "accountName": "Entreprise ABC",
-        "bankName": "Bank of Africa",
-        "bankCode": "BOA-CI",
-        "companyName": "Entreprise ABC"
-      },
-      "destination_account": {
-        "accountNumber": "XXXX-XXXX-XXXX-5678",
-        "accountName": "Portfolio Traditionnel PME",
-        "bankName": "Banque Centrale",
-        "portfolioName": "Portefeuille PME Nord-Kivu"
-      },
+      "daysLate": -1,
+      "receipt_number": "REC-2025-001-01",
       "notes": "Paiement reçu en avance d'un jour",
       "created_at": "2025-02-14T10:30:00.000Z",
       "updated_at": "2025-02-14T10:30:00.000Z"
@@ -94,46 +85,34 @@ Récupère les détails complets d'un remboursement spécifique.
 {
   "success": true,
   "data": {
-    "id": "repayment123",
-    "contract_id": "contract123",
-    "portfolio_id": "portfolio456",
-    "client_id": "client789",
-    "payment_date": "2025-02-14T10:30:00.000Z",
+    "id": "123e4567-e89b-12d3-a456-426614174123",
+    "reference": "PMT-2025-0001",
+    "contract_id": "123e4567-e89b-12d3-a456-426614174001",
+    "portfolio_id": "123e4567-e89b-12d3-a456-426614174456",
+    "client_id": "123e4567-e89b-12d3-a456-426614174789",
+    "transaction_date": "2025-02-14T10:30:00.000Z",
     "amount": 4583.33,
+    "currency": "XOF",
     "payment_method": "bank_transfer",
-    "payment_reference": "TRX-12345678",
-    "transaction_reference": "BOA20250214103022",
+    "payment_method_type": "BANK_TRANSFER",
+    "transaction_id": "BOA20250214103022",
     "status": "completed",
-    "payment_type": "mixed",
-    "payment_details": {
-      "principal_amount": 3750.00,
-      "interest_amount": 833.33,
-      "penalty_amount": 0.00
-    },
-    "scheduled_payment_id": "payment1",
+    "payment_type": "standard",
+    "principal_amount": 3750.00,
+    "interest_amount": 833.33,
+    "penalty_amount": 0.00,
+    "allocation": [
+      {
+        "schedule_id": "123e4567-e89b-12d3-a456-426614174999",
+        "principal_amount": 3750.00,
+        "interest_amount": 833.33,
+        "penalties_amount": 0.00,
+        "fees_amount": 0.00
+      }
+    ],
     "due_date": "2025-02-15T00:00:00.000Z",
-    "remaining_amount": 0.00,
-    "remaining_percentage": 0.0,
-    "slippage": -1,
-    "installment_number": 1,
-    "total_installments": 12,
-    "receipt_url": "https://example.com/receipts/rec-2025-001-01.pdf",
-    "supporting_document_url": "https://example.com/documents/payment-proof-123.pdf",
-    "has_supporting_document": true,
-    "description": "Paiement échéance mensuelle #1",
-    "source_account": {
-      "accountNumber": "XXXX-XXXX-XXXX-1234",
-      "accountName": "Entreprise ABC",
-      "bankName": "Bank of Africa",
-      "bankCode": "BOA-CI",
-      "companyName": "Entreprise ABC"
-    },
-    "destination_account": {
-      "accountNumber": "XXXX-XXXX-XXXX-5678",
-      "accountName": "Portfolio Traditionnel PME",
-      "bankName": "Banque Centrale",
-      "portfolioName": "Portefeuille PME Nord-Kivu"
-    },
+    "daysLate": -1,
+    "receipt_number": "REC-2025-001-01",
     "notes": "Paiement reçu en avance d'un jour",
     "created_at": "2025-02-14T10:30:00.000Z",
     "updated_at": "2025-02-14T10:30:00.000Z"
@@ -147,43 +126,40 @@ Enregistre un nouveau paiement pour une échéance d'un contrat de crédit.
 
 **Endpoint** : `POST /portfolios/traditional/repayments`
 
-**Paramètres de chemin** :
-- `portfolioId` : Identifiant unique du portefeuille traditionnel
-- `contractId` : Identifiant unique du contrat de crédit
-
 **Corps de la requête** :
 
 ```json
 {
-  "contract_id": "contract123",
-  "portfolio_id": "portfolio456",
-  "client_id": "client789",
-  "payment_date": "2025-05-14",
-  "amount": 4427.08,
-  "payment_method": "bank_transfer",
-  "payment_reference": "TRX-45678901",
-  "transaction_reference": "BOA20250514091545",
-  "status": "completed",
-  "payment_type": "mixed",
-  "payment_details": {
-    "principal_amount": 3750.00,
-    "interest_amount": 677.08,
-    "penalty_amount": 0.00
-  },
-  "scheduled_payment_id": "payment4",
-  "due_date": "2025-05-15",
-  "installment_number": 4,
-  "total_installments": 12,
-  "source_account": {
-    "accountNumber": "XXXX-XXXX-XXXX-1234",
-    "accountName": "Entreprise ABC",
-    "bankName": "Bank of Africa",
-    "bankCode": "BOA-CI",
-    "companyName": "Entreprise ABC"
-  },
-  "notes": "Paiement reçu en avance d'un jour",
-  "description": "Paiement échéance mensuelle #4"
+  "contractId": "123e4567-e89b-12d3-a456-426614174001",
+  "amount": 4583.33,
+  "paymentDate": "2025-02-14T10:30:00.000Z",
+  "paymentMethod": "bank_transfer",
+  "paymentType": "standard",
+  "transactionId": "BOA20250214103022",
+  "transactionDate": "2025-02-14T10:30:00.000Z",
+  "scheduleIds": ["123e4567-e89b-12d3-a456-426614174999"],
+  "notes": "Paiement régulier de l'échéance mensuelle"
 }
+```
+
+**Champs obligatoires:**
+- `contractId` (UUID): Identifiant du contrat de crédit
+- `amount` (number > 0.01): Montant du paiement
+- `paymentDate` (ISO 8601): Date du paiement
+- `paymentMethod` (string): Méthode de paiement (bank_transfer, mobile_money, cash, check)
+- `paymentType` (enum): Type de remboursement
+
+**Champs optionnels:**
+- `transactionId` (string): ID transaction externe (unique pour idempotence)
+- `transactionDate` (ISO 8601): Date de la transaction
+- `scheduleIds` (UUID[]): IDs des échéances à payer spécifiquement
+- `notes` (string): Notes additionnelles
+
+**Types de remboursement (paymentType):**
+- **standard**: Paiement normal d'échéances dans l'ordre chronologique
+- **partial**: Paiement partiel d'une échéance spécifique (nécessite scheduleIds)
+- **advance**: Paiement anticipé de plusieurs échéances futures
+- **early_payoff**: Remboursement anticipé total du crédit
 ```
 
 **Réponse réussie** (201 Created) :
@@ -192,25 +168,39 @@ Enregistre un nouveau paiement pour une échéance d'un contrat de crédit.
 {
   "success": true,
   "data": {
-    "id": "repayment126",
-    "contract_id": "contract123",
-    "schedule_id": "payment4",
-    "due_date": "2025-05-15T00:00:00.000Z",
-    "payment_date": "2025-05-14T00:00:00.000Z",
+    "id": "123e4567-e89b-12d3-a456-426614174555",
+    "reference": "PMT-2025-0042",
+    "contract_id": "123e4567-e89b-12d3-a456-426614174001",
+    "portfolio_id": "123e4567-e89b-12d3-a456-426614174456",
+    "client_id": "123e4567-e89b-12d3-a456-426614174789",
+    "amount": 4583.33,
+    "currency": "XOF",
+    "status": "completed",
+    "payment_type": "standard",
+    "transaction_id": "BOA20250214103022",
+    "transaction_date": "2025-02-14T10:30:00.000Z",
     "principal_amount": 3750.00,
-    "interest_amount": 677.08,
-    "total_amount": 4427.08,
-    "paid_amount": 4427.08,
-    "remaining_amount": 0.00,
-    "status": "paid",
-    "payment_method": "bank_transfer",
-    "payment_reference": "TRX-45678901",
+    "interest_amount": 833.33,
+    "penalty_amount": 0.00,
+    "allocation": [
+      {
+        "schedule_id": "123e4567-e89b-12d3-a456-426614174999",
+        "principal_amount": 3750.00,
+        "interest_amount": 833.33,
+        "penalties_amount": 0.00,
+        "fees_amount": 0.00
+      }
+    ],
     "receipt_number": "REC-2025-001-04",
-    "receipt_url": "https://example.com/receipts/rec-2025-001-04.pdf",
     "created_at": "2025-07-25T18:30:00.000Z",
     "updated_at": "2025-07-25T18:30:00.000Z"
   }
 }
+```
+
+> **Note sur l'idempotence**: Si un `transactionId` est fourni et existe déjà, le système retournera le remboursement existant au lieu de créer un doublon.
+
+> **Champ allocation**: Tableau détaillant comment le paiement a été alloué sur chaque échéance, incluant la répartition entre principal, intérêts, pénalités et frais.
 ```
 
 La documentation des remboursements a été mise à jour pour refléter les endpoints réels du code source. 
@@ -237,31 +227,45 @@ Les endpoints de base confirmés dans le code source sont :
 ### Remboursement
 | Champ | Type | Description |
 |-------|------|-------------|
-| id | string | Identifiant unique du remboursement |
-| contract_id | string | Identifiant du contrat de crédit |
-| contract_number | string | Numéro de référence du contrat |
-| client_id | string | Identifiant du client |
-| company_name | string | Nom de l'entreprise cliente |
-| schedule_id | string | Identifiant de l'échéance dans le calendrier |
-| due_date | string | Date d'échéance prévue (format ISO) |
-| payment_date | string | Date du paiement effectif (format ISO) |
-| principal_amount | number | Part de capital à rembourser |
-| interest_amount | number | Part d'intérêts à payer |
-| total_amount | number | Montant total de l'échéance |
-| paid_amount | number | Montant payé |
-| remaining_amount | number | Montant restant à payer |
-| status | string | Statut ('paid', 'partial', 'pending', 'late', 'defaulted') |
-| payment_method | string | Méthode de paiement utilisée |
-| payment_reference | string | Référence de la transaction |
-| payment_details | object | Détails spécifiques au moyen de paiement |
-| payment_history | array | Historique des paiements (pour paiements partiels) |
-| receipt_number | string | Numéro du reçu de paiement |
-| receipt_url | string | URL d'accès au reçu de paiement |
-| processed_by | string | Identifiant de l'utilisateur ayant traité le paiement |
-| processor_name | string | Nom de l'utilisateur ayant traité le paiement |
-| processing_notes | string | Notes additionnelles sur le traitement |
-| created_at | string | Date de création (format ISO) |
-| updated_at | string | Date de dernière modification (format ISO) |
+| id | string (UUID) | Identifiant unique du remboursement |
+| reference | string | Référence unique du paiement (ex: PMT-2025-0001) |
+| contract_id | string (UUID) | Identifiant du contrat de crédit |
+| portfolio_id | string (UUID) | Identifiant du portefeuille |
+| client_id | string (UUID) | Identifiant du client |
+| schedule_id | string (UUID, optionnel) | Identifiant de l'échéance dans le calendrier |
+| amount | number | Montant total du paiement |
+| currency | string | Code devise ISO 4217 (CDF, USD, XOF, EUR, XAF) |
+| principal_amount | number (optionnel) | Part de capital remboursée |
+| interest_amount | number (optionnel) | Part d'intérêts payée |
+| penalty_amount | number (optionnel) | Part de pénalités payée |
+| status | enum | Statut: pending, processing, completed, failed, partial |
+| payment_method | string (optionnel) | Méthode de paiement utilisée |
+| payment_method_type | enum (optionnel) | Type: BANK_TRANSFER, CASH, CHECK, MOBILE_MONEY, OTHER |
+| payment_type | enum | Type: standard, partial, advance, early_payoff |
+| transaction_id | string (optionnel, unique) | ID transaction externe pour idempotence |
+| transaction_date | timestamp (optionnel) | Date de la transaction |
+| due_date | timestamp (optionnel) | Date d'échéance prévue |
+| receipt_number | string (optionnel) | Numéro du reçu de paiement |
+| daysLate | integer (optionnel) | Nombre de jours de retard (négatif si en avance) |
+| notes | string (optionnel) | Notes additionnelles |
+| processed_by | string (optionnel) | Identifiant de l'utilisateur ayant traité |
+| is_external | boolean | Paiement provenant d'un système externe (défaut: false) |
+| allocation | array (optionnel) | Détails d'allocation par échéance (voir structure ci-dessous) |
+| created_at | timestamp | Date de création |
+| updated_at | timestamp | Date de dernière modification |
+
+**Structure de l'allocation:**
+```json
+[
+  {
+    "schedule_id": "uuid",
+    "principal_amount": 0.00,
+    "interest_amount": 0.00,
+    "penalties_amount": 0.00,
+    "fees_amount": 0.00
+  }
+]
+```
 
 ### Pénalité
 | Champ | Type | Description |

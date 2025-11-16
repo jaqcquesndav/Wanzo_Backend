@@ -5,6 +5,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RepaymentService } from '../services/repayment.service';
 import { RepaymentStatus } from '../entities/repayment.entity';
+import { CreateRepaymentDto, UpdateRepaymentDto } from '../dtos/create-repayment.dto';
 
 @ApiTags('repayments')
 @Controller('portfolios/traditional/repayments')
@@ -46,7 +47,7 @@ export class RepaymentController {
   @ApiResponse({ status: 201, description: 'Repayment recorded successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input or contract not in active status' })
   @ApiResponse({ status: 404, description: 'Contract not found' })
-  async create(@Body() createRepaymentDto: any, @Req() req: any) {
+  async create(@Body() createRepaymentDto: CreateRepaymentDto, @Req() req: any) {
     const repayment = await this.repaymentService.create(
       createRepaymentDto,
       req.user.id
@@ -63,7 +64,7 @@ export class RepaymentController {
   @ApiParam({ name: 'id', description: 'Repayment ID' })
   @ApiResponse({ status: 200, description: 'Repayment updated successfully' })
   @ApiResponse({ status: 404, description: 'Repayment not found' })
-  async update(@Param('id') id: string, @Body() updateRepaymentDto: any) {
+  async update(@Param('id') id: string, @Body() updateRepaymentDto: UpdateRepaymentDto) {
     const repayment = await this.repaymentService.update(id, updateRepaymentDto);
     return {
       success: true,

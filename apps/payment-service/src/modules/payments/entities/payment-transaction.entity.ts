@@ -1,5 +1,21 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
+// ISO 4217 Currency Codes
+export const SUPPORTED_CURRENCIES = ['CDF', 'USD', 'XOF', 'EUR', 'XAF'] as const;
+export type SupportedCurrency = typeof SUPPORTED_CURRENCIES[number];
+
+export interface PaymentMetadata {
+  portfolioId?: string;
+  clientId?: string;
+  contractId?: string;
+  scheduleId?: string;
+  paymentType?: 'disbursement' | 'repayment' | 'subscription' | 'token';
+  isFinancingPayment?: boolean;
+  timestamp?: string;
+  description?: string;
+  [key: string]: any;
+}
+
 export enum PaymentStatus {
   PENDING = 'pending',
   SUCCESS = 'success',

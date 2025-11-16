@@ -31,7 +31,7 @@ export class Repayment {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ unique: true })
   reference!: string;
 
   @Column()
@@ -93,7 +93,7 @@ export class Repayment {
   })
   payment_type!: RepaymentType;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   transaction_id?: string;
 
   @Column({ type: 'timestamp', nullable: true })

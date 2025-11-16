@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { SUPPORTED_CURRENCIES, SupportedCurrency } from '../entities/payment-transaction.entity';
 
 export enum TelecomCode {
   AM = 'AM',
@@ -19,10 +20,10 @@ export class InitiateSerdiPayDto {
   @Min(0.1)
   amount!: number;
 
-  @ApiProperty({ example: 'CDF' })
-  @IsString()
+  @ApiProperty({ example: 'CDF', enum: SUPPORTED_CURRENCIES })
+  @IsIn(SUPPORTED_CURRENCIES, { message: 'Currency must be one of: CDF, USD, XOF, EUR, XAF (ISO 4217)' })
   @IsNotEmpty()
-  currency!: string;
+  currency!: SupportedCurrency;
 
   @ApiProperty({ enum: TelecomCode, example: TelecomCode.AM })
   @IsEnum(TelecomCode)

@@ -130,29 +130,32 @@ Crée une nouvelle demande de crédit.
 
 ```json
 {
-  "id": "req-006",
-  "memberId": "mem-004",
-  "productId": "prod-001",
-  "receptionDate": "2025-08-03",
-  "requestAmount": 50000,
-  "periodicity": "monthly",
-  "interestRate": 8.5,
-  "reason": "Expansion des activités commerciales",
-  "scheduleType": "constant",
-  "schedulesCount": 12,
-  "deferredPaymentsCount": 0,
-  "financingPurpose": "Achat de stocks et aménagement de local",
-  "creditManagerId": "mgr-001",
-  "isGroup": false,
-  "status": "pending",
-  "createdAt": "2025-08-03T10:30:00.000Z"
-}
-  "amount": 50000.00,
-  "currency": "XOF",
-  "status": "pending",
-  "status_date": "2025-07-25T12:00:00.000Z",
-  "created_at": "2025-07-25T12:00:00.000Z",
-  "updated_at": "2025-07-25T12:00:00.000Z"
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174006",
+    "memberId": "mem-004",
+    "productId": "prod-001",
+    "receptionDate": "2025-08-03",
+    "requestAmount": 50000,
+    "periodicity": "monthly",
+    "interestRate": 8.5,
+    "reason": "Expansion des activités commerciales",
+    "scheduleType": "constant",
+    "schedulesCount": 12,
+    "deferredPaymentsCount": 0,
+    "financingPurpose": "Achat de stocks et aménagement de local",
+    "creditManagerId": "mgr-001",
+    "isGroup": false,
+    "portfolioId": null,
+    "currency": "XOF",
+    "status": "draft",
+    "metadata": {
+      "sourceRequestId": null,
+      "syncedFrom": null
+    },
+    "createdAt": "2025-08-03T10:30:00.000Z",
+    "updatedAt": "2025-08-03T10:30:00.000Z"
+  }
 }
 ```
 
@@ -181,7 +184,7 @@ Met à jour les informations d'une demande de financement existante.
 
 Met à jour les informations d'une demande de crédit existante.
 
-**Endpoint** : `PATCH /portfolios/traditional/credit-requests/{id}`
+**Endpoint** : `PUT /portfolios/traditional/credit-requests/{id}`
 
 **Paramètres de chemin** :
 - `id` : Identifiant unique de la demande de crédit
@@ -385,6 +388,7 @@ interface CreditRequest {
   productId: string;                   // ID du produit financier
   receptionDate: string;               // Date de réception de la demande
   requestAmount: number;               // Montant demandé
+  currency: string;                    // Devise (ex: XOF, USD, EUR)
   periodicity: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
   interestRate: number;                // Taux d'intérêt
   reason: string;                      // Motif de la demande
@@ -399,8 +403,20 @@ interface CreditRequest {
   groupId?: string;                    // ID du groupe (si applicable)
   distributions?: CreditDistribution[]; // Distributions (si groupe)
   rejectionReason?: string;            // Raison du rejet (si applicable)
+  portfolioId?: string;                // ID du portefeuille associé
+  metadata?: CreditRequestMetadata;    // Métadonnées de synchronisation
   createdAt: string;                   // Date de création (ISO)
   updatedAt?: string;                  // Date de mise à jour (ISO)
+}
+
+interface CreditRequestMetadata {
+  sourceRequestId?: string;            // ID de la demande source (gestion commerciale)
+  syncedFrom?: string;                 // Service source (ex: 'gestion_commerciale')
+  businessInformation?: any;           // Informations commerciales
+  financialInformation?: any;          // Informations financières
+  creditScore?: any;                   // Score de crédit
+  firstSyncAt?: string;                // Date de première synchronisation
+  lastSyncAt?: string;                 // Date de dernière synchronisation
 }
 
 interface CreditDistribution {
@@ -715,3 +731,18 @@ Récupère des statistiques sur les demandes de financement d'un portefeuille tr
 | cancellation_date | string | Date d'annulation (format ISO) |
 | reason | string | Raison de l'annulation |
 | comments | string | Commentaires détaillés |
+
+---
+
+## 📋 Métadonnées de Synchronisation Inter-Services
+
+Le champ `metadata` est critique pour l'intégration avec `gestion-commerciale-service`. Il maintient la traçabilité des demandes synchronisées.
+
+**Structure:**
+```json
+{
+  "sourceRequestId": "uuid",
+  "syncedFrom": "gestion-commerciale-service",
+  "creditScore": { "score": 75, "riskLevel": "MEDIUM" }
+}
+```

@@ -103,6 +103,10 @@ export class FinancingRecord {
   @Column({ nullable: true })
   institutionId: string;
 
+  @ApiProperty({ description: 'ID du contrat portfolio-institution associé', example: '123e4567-e89b-12d3-a456-426614174004', nullable: true })
+  @Column({ name: 'contract_id', nullable: true })
+  contractId: string;
+
   @ApiProperty({ description: 'Date de soumission', example: '2023-08-01T12:30:00.000Z' })
   @Column({ name: 'application_date', nullable: true })
   applicationDate: Date;
