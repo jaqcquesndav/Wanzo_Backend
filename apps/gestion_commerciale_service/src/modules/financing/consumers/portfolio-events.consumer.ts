@@ -37,10 +37,18 @@ export class PortfolioEventsConsumerService {
         return;
       }
 
-      // Trouver la demande de financement correspondante
-      const financingRecord = await this.financingRecordRepository.findOne({
-        where: { id: sourceRequestId }
+      // Trouver la demande de financement correspondante par portfolioFundingRequestId
+      let financingRecord = await this.financingRecordRepository.findOne({
+        where: { portfolioFundingRequestId: sourceRequestId }
       });
+
+      // Fallback: chercher par ID direct (ancien système)
+      if (!financingRecord) {
+        this.logger.warn(`FinancingRecord with portfolioFundingRequestId ${sourceRequestId} not found, trying direct ID...`);
+        financingRecord = await this.financingRecordRepository.findOne({
+          where: { id: sourceRequestId }
+        });
+      }
 
       if (!financingRecord) {
         this.logger.warn(`FinancingRecord ${sourceRequestId} not found for contract ${data.id}`);

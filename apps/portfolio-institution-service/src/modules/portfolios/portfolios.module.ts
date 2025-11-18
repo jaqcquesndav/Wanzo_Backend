@@ -34,6 +34,7 @@ import { RepaymentController } from './controllers/repayment.controller';
 import { PaymentScheduleController } from './controllers/payment-schedule.controller';
 import { DocumentController } from './controllers/document.controller';
 import { PortfolioPaymentInfoController } from './controllers/portfolio-payment-info.controller';
+import { FundingRequestConsumerService } from './consumers/funding-request.consumer';
 import { EventsModule } from '../events/events.module';
 import { MulterModule } from '@nestjs/platform-express';
 
@@ -68,7 +69,8 @@ import { MulterModule } from '@nestjs/platform-express';
     RepaymentService,
     PaymentScheduleService,
     DocumentService,
-    PortfolioPaymentInfoService
+    PortfolioPaymentInfoService,
+    FundingRequestConsumerService
   ],
   controllers: [
     PortfolioController,

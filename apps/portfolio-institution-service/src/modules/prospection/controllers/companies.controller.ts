@@ -3,118 +3,103 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam }
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { CompanyFiltersDto } from '../dtos/company.dto';
-import { CompanyService } from '../services/company.service';
+import { ProspectionFiltersDto, GeolocationDto, ProspectionStatsDto } from '../dtos/prospection.dto';
+import { ProspectionService } from '../services/prospection.service';
+import { CompanySyncService } from '../../company-profile/services/company-sync.service';
 
-@ApiTags('companies')
+@ApiTags('prospection')
 @Controller('companies')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class CompaniesController {
-  constructor(private readonly companyService: CompanyService) {}
+  constructor(
+    private readonly prospectionService: ProspectionService,
+    private readonly companySyncService: CompanySyncService,
+  ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all companies with filters' })
+  @ApiOperation({ summary: 'Get all prospects with filters' })
   @ApiQuery({ name: 'sector', required: false, description: 'Filter by business sector' })
   @ApiQuery({ name: 'size', required: false, enum: ['small', 'medium', 'large'] })
-  @ApiQuery({ name: 'status', required: false, enum: ['active', 'pending', 'rejected', 'funded', 'contacted'] })
+  @ApiQuery({ name: 'status', required: false, enum: ['active', 'pending', 'contacted', 'qualified', 'rejected'] })
+  @ApiQuery({ name: 'minCreditScore', required: false, type: Number, description: 'Minimum credit score' })
+  @ApiQuery({ name: 'maxCreditScore', required: false, type: Number, description: 'Maximum credit score' })
+  @ApiQuery({ name: 'financialRating', required: false, description: 'Filter by financial rating' })
   @ApiQuery({ name: 'searchTerm', required: false, description: 'Search by name or sector' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Companies retrieved successfully' })
-  async findAll(@Query() filters: CompanyFiltersDto, @Req() req: any) {
-    return await this.companyService.findAll(filters, req.user.institutionId);
+  @ApiResponse({ status: 200, description: 'Prospects retrieved successfully' })
+  async findAll(@Query() filters: ProspectionFiltersDto, @Req() req: any) {
+    return await this.prospectionService.findProspects(filters, req.user.institutionId);
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get prospection statistics' })
+  @ApiResponse({ status: 200, description: 'Statistics retrieved successfully', type: ProspectionStatsDto })
+  async getStats(@Req() req: any) {
+    return await this.prospectionService.getProspectionStats(req.user.institutionId);
+  }
+
+  @Get('nearby')
+  @ApiOperation({ summary: 'Find prospects by geographic proximity' })
+  @ApiQuery({ name: 'latitude', required: true, type: Number, description: 'Latitude' })
+  @ApiQuery({ name: 'longitude', required: true, type: Number, description: 'Longitude' })
+  @ApiQuery({ name: 'radiusKm', required: false, type: Number, description: 'Search radius in kilometers (default: 50)' })
+  @ApiResponse({ status: 200, description: 'Nearby prospects retrieved successfully' })
+  async findNearby(
+    @Query('latitude') latitude: number,
+    @Query('longitude') longitude: number,
+    @Query('radiusKm') radiusKm: number = 50,
+    @Query() filters: ProspectionFiltersDto,
+  ) {
+    return await this.prospectionService.findNearbyProspects(
+      Number(latitude),
+      Number(longitude),
+      Number(radiusKm),
+      filters
+    );
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get company details by ID' })
-  @ApiParam({ name: 'id', description: 'Company ID' })
-  @ApiResponse({ status: 200, description: 'Company details retrieved successfully' })
-  @ApiResponse({ status: 404, description: 'Company not found' })
+  @ApiOperation({ summary: 'Get prospect details by ID' })
+  @ApiParam({ name: 'id', description: 'Prospect/Company ID' })
+  @ApiResponse({ status: 200, description: 'Prospect details retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Prospect not found' })
   async findOne(@Param('id') id: string, @Req() req: any) {
-    return await this.companyService.findOne(id, req.user.institutionId);
+    return await this.prospectionService.getProspectDetails(id, req.user.institutionId);
   }
 
 
 
-  @Post('sync-authorized-smes')
+  @Post(':id/sync')
   @Roles('admin', 'portfolio_manager')
   @ApiOperation({ 
-    summary: 'Sync authorized SMEs from accounting service',
-    description: 'Synchronizes all SMEs that have authorized data sharing from the accounting service for prospection purposes'
+    summary: 'Manually sync prospect data from accounting service',
+    description: 'Forces a synchronization of prospect data from accounting service'
   })
-  @ApiResponse({ status: 200, description: 'SMEs synchronized successfully' })
+  @ApiParam({ name: 'id', description: 'Prospect/Company ID to sync' })
+  @ApiResponse({ status: 200, description: 'Prospect synchronized successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Prospect not found' })
   @ApiResponse({ status: 503, description: 'Accounting service unavailable' })
-  async syncAuthorizedSMEs(@Req() req: any) {
-    const result = await this.companyService.syncAuthorizedSMEs(req.user.institutionId, req.user.id);
+  async syncProspect(@Param('id') id: string, @Req() req: any) {
+    const profile = await this.companySyncService.syncFromAccounting(id, true);
     return {
-      message: 'SME synchronization completed',
-      ...result
+      message: 'Prospect data synchronized successfully from accounting service',
+      prospect: this.prospectionService['toProspectDto'](profile)
     };
   }
 
-  @Post('sync-sme/:smeId')
+  @Post(':id/sync-complete')
   @Roles('admin', 'portfolio_manager')
   @ApiOperation({ 
-    summary: 'Sync specific SME from accounting service',
-    description: 'Synchronizes a specific SME that has authorized data sharing from the accounting service'
+    summary: 'Complete sync from all sources (accounting + customer)',
+    description: 'Synchronizes prospect data from both accounting and customer services'
   })
-  @ApiParam({ name: 'smeId', description: 'SME ID from accounting service' })
-  @ApiResponse({ status: 200, description: 'SME synchronized successfully' })
-  @ApiResponse({ status: 403, description: 'SME has not authorized data sharing or insufficient permissions' })
-  @ApiResponse({ status: 404, description: 'SME not found in accounting service' })
-  async syncSpecificSME(@Param('smeId') smeId: string, @Req() req: any) {
-    const company = await this.companyService.syncSpecificSME(smeId, req.user.institutionId, req.user.id);
-    return {
-      message: 'SME synchronized successfully',
-      company
-    };
-  }
-
-  @Get('authorized-smes/list')
-  @ApiOperation({ 
-    summary: 'Get list of SMEs that have authorized data sharing',
-    description: 'Returns the list of SME IDs that have given consent for data sharing'
-  })
-  @ApiResponse({ status: 200, description: 'Authorized SMEs list retrieved successfully' })
-  async getAuthorizedSMEsList() {
-    const authorizedSMEs = await this.companyService.getAuthorizedSMEsList();
-    return {
-      authorizedSMEs,
-      total: authorizedSMEs.length
-    };
-  }
-
-  @Get('check-authorization/:smeId')
-  @ApiOperation({ 
-    summary: 'Check if SME has authorized data sharing',
-    description: 'Verifies if a specific SME has given consent for data sharing'
-  })
-  @ApiParam({ name: 'smeId', description: 'SME ID to check' })
-  @ApiResponse({ status: 200, description: 'Authorization status retrieved successfully' })
-  async checkSMEAuthorization(@Param('smeId') smeId: string) {
-    const isAuthorized = await this.companyService.checkSMEDataSharingAuthorization(smeId);
-    return {
-      smeId,
-      isAuthorized,
-      message: isAuthorized ? 'SME has authorized data sharing' : 'SME has not authorized data sharing'
-    };
-  }
-
-  @Get('with-data-sharing')
-  @ApiOperation({ 
-    summary: 'Get companies with data sharing authorization status',
-    description: 'Returns companies with their data sharing authorization status'
-  })
-  @ApiQuery({ name: 'sector', required: false, description: 'Filter by business sector' })
-  @ApiQuery({ name: 'size', required: false, enum: ['small', 'medium', 'large'] })
-  @ApiQuery({ name: 'status', required: false, enum: ['active', 'pending', 'rejected', 'funded', 'contacted'] })
-  @ApiQuery({ name: 'searchTerm', required: false, description: 'Search by name or sector' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Companies with data sharing status retrieved successfully' })
-  async findAllWithDataSharing(@Query() filters: CompanyFiltersDto, @Req() req: any) {
-    return await this.companyService.findAllWithDataSharingFilter(filters, req.user.institutionId);
+  @ApiParam({ name: 'id', description: 'Prospect/Company ID to sync' })
+  @ApiResponse({ status: 200, description: 'Complete synchronization successful' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async syncProspectComplete(@Param('id') id: string) {
+    return await this.companySyncService.syncComplete(id, true);
   }
 }

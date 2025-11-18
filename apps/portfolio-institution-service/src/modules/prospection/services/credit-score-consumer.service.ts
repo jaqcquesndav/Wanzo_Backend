@@ -8,19 +8,19 @@ import {
   CreditScoreEventTopics
 } from '@wanzobe/shared/events/credit-score-events';
 import { CreditScoreUtils } from '@wanzobe/shared/interfaces/credit-score.interface';
-import { Company } from '../entities/company.entity';
+import { CompanyProfile } from '../../company-profile/entities/company-profile.entity';
 
 /**
  * Consumer Kafka pour les événements de cote crédit dans le module Prospection
- * Met à jour les données financières des entreprises prospectées
+ * Met à jour les scores de crédit dans le cache CompanyProfile
  */
 @Injectable()
 export class ProspectionCreditScoreConsumerService {
   private readonly logger = new Logger(ProspectionCreditScoreConsumerService.name);
 
   constructor(
-    @InjectRepository(Company)
-    private companyRepository: Repository<Company>,
+    @InjectRepository(CompanyProfile)
+    private companyProfileRepository: Repository<CompanyProfile>,
   ) {}
 
   /**
@@ -31,42 +31,34 @@ export class ProspectionCreditScoreConsumerService {
   async handleCreditScoreCalculated(@Payload() event: CreditScoreCalculatedEvent): Promise<void> {
     try {
       this.logger.log(
-        `Mise à jour score crédit prospection pour ${event.companyId}: ${event.score.score}/100`
+        `Mise à jour score crédit pour company ${event.companyId}: ${event.score.score}/100`
       );
 
-      // Chercher l'entreprise dans la base de prospection
-      const company = await this.companyRepository.findOne({
+      // Chercher le profil dans CompanyProfile (cache unifié)
+      const profile = await this.companyProfileRepository.findOne({
         where: { id: event.companyId }
       });
 
-      if (company) {
-        // Mettre à jour les métriques financières avec le nouveau score
-        const updatedFinancialMetrics = {
-          ...company.financial_metrics,
-          credit_score: event.score.score,
-          financial_rating: this.mapScoreToRating(event.score.score)
-        };
+      if (profile) {
+        // Mettre à jour le score de crédit et le rating
+        profile.creditScore = event.score.score;
+        profile.financialRating = this.mapScoreToRating(event.score.score);
+        profile.updatedAt = new Date();
 
-        await this.companyRepository.update(
-          { id: event.companyId },
-          { 
-            financial_metrics: updatedFinancialMetrics,
-            updated_at: new Date()
-          }
-        );
+        await this.companyProfileRepository.save(profile);
 
         this.logger.log(
-          `Score crédit mis à jour dans prospection: ${event.companyId} → ${event.score.score}/100 (${updatedFinancialMetrics.financial_rating})`
+          `Score crédit mis à jour: ${event.companyId} → ${event.score.score}/100 (${profile.financialRating})`
         );
       } else {
         this.logger.debug(
-          `Entreprise ${event.companyId} non trouvée dans prospection - pas de mise à jour nécessaire`
+          `Company profile ${event.companyId} non trouvé - pas de mise à jour nécessaire`
         );
       }
 
     } catch (error) {
       this.logger.error(
-        `Erreur lors de la mise à jour du score crédit en prospection pour ${event.companyId}:`,
+        `Erreur lors de la mise à jour du score crédit pour ${event.companyId}:`,
         error
       );
     }
@@ -79,7 +71,7 @@ export class ProspectionCreditScoreConsumerService {
   async handleCreditScoreUpdated(@Payload() event: CreditScoreUpdatedEvent): Promise<void> {
     try {
       this.logger.log(
-        `Mise à jour score crédit prospection: ${event.companyId} (${event.previousScore.score} → ${event.newScore.score})`
+        `Mise à jour score crédit: ${event.companyId} (${event.previousScore.score} → ${event.newScore.score})`
       );
 
       // Réutiliser la logique du score calculé en créant un événement mock
@@ -98,7 +90,7 @@ export class ProspectionCreditScoreConsumerService {
 
     } catch (error) {
       this.logger.error(
-        `Erreur lors de la mise à jour du score crédit en prospection pour ${event.companyId}:`,
+        `Erreur lors de la mise à jour du score crédit pour ${event.companyId}:`,
         error
       );
     }

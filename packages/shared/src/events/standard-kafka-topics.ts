@@ -56,6 +56,9 @@ export class StandardKafkaTopics {
   static readonly SUBSCRIPTION_STATUS_CHANGED = 'subscription.status.changed';
   
   // Portfolio/Contract Events
+  static readonly FUNDING_REQUEST_CREATED = 'funding.request.created';
+  static readonly FUNDING_REQUEST_ACKNOWLEDGED = 'funding.request.acknowledged';
+  static readonly FUNDING_REQUEST_ERROR = 'funding.request.error';
   static readonly FUNDING_REQUEST_STATUS_CHANGED = 'funding.request.status.changed';
   static readonly CONTRACT_CREATED = 'contract.created';
   static readonly CONTRACT_STATUS_CHANGED = 'contract.status.changed';

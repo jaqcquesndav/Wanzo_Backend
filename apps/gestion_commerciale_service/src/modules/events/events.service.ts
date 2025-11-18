@@ -21,6 +21,11 @@ import {
   SharedOperationType,
   SharedOperationStatus
 } from '@wanzobe/shared/events/commerce-operations';
+import { 
+  FundingRequestCreatedEvent,
+  FundingRequestAcknowledgedEvent,
+  FundingRequestErrorEvent
+} from '@wanzobe/shared';
 import { GESTION_COMMERCIALE_KAFKA_PRODUCER_SERVICE } from './kafka-producer.module';
 
 @Injectable()
@@ -195,6 +200,47 @@ export class EventsService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error publishing organization sync request: ${errorMessage}`,
         error instanceof Error ? error.stack : undefined);
+    }
+  }
+
+  /**
+   * Publie un événement de création de demande de financement
+   * @param event Données de la demande de financement créée
+   */
+  async publishFundingRequestCreated(event: FundingRequestCreatedEvent): Promise<void> {
+    const startTime = Date.now();
+    
+    this.logger.log(`Publishing funding request created event: ${JSON.stringify({
+      financingRecordId: event.data.financingRecordId,
+      userId: event.data.userId,
+      amount: event.data.amount,
+      currency: event.data.currency
+    })}`);
+    
+    try {
+      // Créer message standardisé avec versioning
+      const standardMessage = MessageVersionManager.createStandardMessage(
+        StandardKafkaTopics.FUNDING_REQUEST_CREATED,
+        event.data,
+        'gestion_commerciale',
+        event.metadata.correlationId
+      );
+
+      this.eventsClient.emit(StandardKafkaTopics.FUNDING_REQUEST_CREATED, standardMessage);
+      
+      const processingTime = Date.now() - startTime;
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.FUNDING_REQUEST_CREATED, processingTime, true);
+      
+      this.logger.log(`Successfully published ${StandardKafkaTopics.FUNDING_REQUEST_CREATED} event in ${processingTime}ms`);
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      kafkaMonitoring.recordMessageSent(StandardKafkaTopics.FUNDING_REQUEST_CREATED, processingTime, false);
+      
+      this.logger.error(`Error publishing ${StandardKafkaTopics.FUNDING_REQUEST_CREATED}: ${errorMessage} (failed after ${processingTime}ms)`, 
+        error instanceof Error ? error.stack : undefined);
+      throw error;
     }
   }
 }

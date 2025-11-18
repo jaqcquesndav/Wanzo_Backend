@@ -103,9 +103,17 @@ export class FinancingRecord {
   @Column({ nullable: true })
   institutionId: string;
 
+  @ApiProperty({ description: 'ID du FundingRequest côté portfolio-institution', example: '123e4567-e89b-12d3-a456-426614174003', nullable: true })
+  @Column({ name: 'portfolio_funding_request_id', nullable: true })
+  portfolioFundingRequestId: string;
+
   @ApiProperty({ description: 'ID du contrat portfolio-institution associé', example: '123e4567-e89b-12d3-a456-426614174004', nullable: true })
   @Column({ name: 'contract_id', nullable: true })
   contractId: string;
+
+  @ApiProperty({ description: 'Numéro de référence du FundingRequest portfolio', example: 'FR-2025-001234', nullable: true })
+  @Column({ name: 'portfolio_request_number', nullable: true })
+  portfolioRequestNumber: string;
 
   @ApiProperty({ description: 'Date de soumission', example: '2023-08-01T12:30:00.000Z' })
   @Column({ name: 'application_date', nullable: true })

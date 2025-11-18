@@ -60,6 +60,10 @@ export {
   type DocumentUploadedEvent
 } from './events/portfolio-events';
 
+// Export Funding Request Events and Status Mapping
+export * from './events/funding-request-events';
+export * from './enums/funding-status';
+
 // Export Credit Score Interfaces and Utilities
 export {
   // Enums

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, MoreThanOrEqual, LessThanOrEqual, ILike } from 'typeorm';
 import { FinancingRecord, FinancingRequestStatus, FinancingType } from './entities/financing-record.entity';
@@ -6,12 +6,19 @@ import { CreateFinancingRecordDto } from './dto/create-financing-record.dto';
 import { UpdateFinancingRecordDto } from './dto/update-financing-record.dto';
 import { ListFinancingRecordsDto } from './dto/list-financing-records.dto';
 import { User } from '../auth/entities/user.entity';
+import { EventsService } from '../events/events.service';
+import { CompanyPaymentInfoService } from '../company/services/company-payment-info.service';
+import { FundingRequestCreatedEvent } from '@wanzobe/shared';
 
 @Injectable()
 export class FinancingService {
+  private readonly logger = new Logger(FinancingService.name);
+
   constructor(
     @InjectRepository(FinancingRecord)
     private readonly financingRecordRepository: Repository<FinancingRecord>,
+    private readonly eventsService: EventsService,
+    private readonly companyPaymentInfoService: CompanyPaymentInfoService,
   ) {}
 
   async create(createFinancingRecordDto: CreateFinancingRecordDto, user: User): Promise<FinancingRecord> {
@@ -19,7 +26,80 @@ export class FinancingService {
       ...createFinancingRecordDto,
       userId: user.id,
     });
-    return this.financingRecordRepository.save(newRecord);
+    const savedRecord = await this.financingRecordRepository.save(newRecord);
+
+    // Publier événement après création
+    setImmediate(async () => {
+      try {
+        await this.publishFundingRequestCreatedEvent(savedRecord, user);
+      } catch (error) {
+        this.logger.error(
+          `Failed to publish funding request created event for ${savedRecord.id}: ${error.message}`,
+          error.stack
+        );
+      }
+    });
+
+    return savedRecord;
+  }
+
+  private async publishFundingRequestCreatedEvent(
+    record: FinancingRecord,
+    user: User
+  ): Promise<void> {
+    // Récupérer les informations de paiement de l'entreprise
+    let paymentInfo: any = {
+      bankAccounts: [],
+      mobileMoneyAccounts: [],
+      preferredMethod: 'bank' as const,
+    };
+
+    if (record.businessId) {
+      try {
+        const companyPaymentInfo = await this.companyPaymentInfoService.getCompanyPaymentInfo(
+          record.businessId
+        );
+        paymentInfo = {
+          bankAccounts: companyPaymentInfo.bankAccounts || [],
+          mobileMoneyAccounts: companyPaymentInfo.mobileMoneyAccounts || [],
+          preferredMethod: companyPaymentInfo.paymentPreferences?.preferredMethod || 'bank',
+          defaultBankAccountId: companyPaymentInfo.paymentPreferences?.defaultBankAccountId,
+          defaultMobileMoneyAccountId: companyPaymentInfo.paymentPreferences?.defaultMobileMoneyAccountId,
+        };
+      } catch (error) {
+        this.logger.warn(
+          `Could not retrieve payment info for company ${record.businessId}: ${error.message}`
+        );
+      }
+    }
+
+    const event: FundingRequestCreatedEvent = {
+      eventType: 'funding.request.created',
+      data: {
+        financingRecordId: record.id,
+        userId: user.id,
+        companyId: record.businessId || user.id,
+        amount: Number(record.amount),
+        currency: record.currency,
+        type: record.type,
+        term: record.term,
+        purpose: record.purpose,
+        institutionId: record.institutionId,
+        businessInformation: record.businessInformation,
+        financialInformation: record.financialInformation,
+        paymentInfo,
+        documents: record.documents || [],
+      },
+      metadata: {
+        source: 'gestion_commerciale',
+        correlationId: `gc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+      },
+    };
+
+    await this.eventsService.publishFundingRequestCreated(event);
+    this.logger.log(`Published funding.request.created event for FinancingRecord ${record.id}`);
   }
 
   async findAll(

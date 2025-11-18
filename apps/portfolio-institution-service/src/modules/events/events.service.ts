@@ -251,4 +251,20 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
       `Publishing token alert event: ${JSON.stringify(event)}`
     );
   }
+
+  async publishFundingRequestAcknowledged(event: any): Promise<void> {
+    await this.publishEvent(
+      StandardKafkaTopics.FUNDING_REQUEST_ACKNOWLEDGED,
+      event,
+      `Publishing funding request acknowledged: ${event.data.fundingRequestId}`
+    );
+  }
+
+  async publishFundingRequestError(event: any): Promise<void> {
+    await this.publishEvent(
+      StandardKafkaTopics.FUNDING_REQUEST_ERROR,
+      event,
+      `Publishing funding request error: ${event.data.financingRecordId}`
+    );
+  }
 }

@@ -329,6 +329,19 @@ export class CompanySyncService {
     profile.logo = event.logo;
     profile.address = event.address;
     profile.customerServiceStatus = event.status;
+
+    // Extraire les coordonnées géographiques de la location primaire
+    if (cp?.locations && Array.isArray(cp.locations)) {
+      const primaryLocation = cp.locations.find(loc => loc.isPrimary);
+      if (primaryLocation?.coordinates) {
+        profile.latitude = primaryLocation.coordinates.lat;
+        profile.longitude = primaryLocation.coordinates.lng;
+      } else if (cp.locations.length > 0 && cp.locations[0].coordinates) {
+        // Si pas de location primaire, prendre la première avec coordonnées
+        profile.latitude = cp.locations[0].coordinates.lat;
+        profile.longitude = cp.locations[0].coordinates.lng;
+      }
+    }
   }
 
   // ============================================================
@@ -546,6 +559,8 @@ export class CompanySyncService {
       logo: profile.logo,
       address: profile.address,
       customerServiceStatus: profile.customerServiceStatus,
+      latitude: profile.latitude,
+      longitude: profile.longitude,
       lastSyncFromAccounting: profile.lastSyncFromAccounting?.toISOString(),
       lastSyncFromCustomer: profile.lastSyncFromCustomer?.toISOString(),
       profileCompleteness: profile.profileCompleteness,

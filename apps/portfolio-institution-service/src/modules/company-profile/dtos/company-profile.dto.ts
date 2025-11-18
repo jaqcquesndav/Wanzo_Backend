@@ -68,6 +68,10 @@ export class CustomerCompanyProfileEventDto {
       city: string;
       country: string;
       isPrimary: boolean;
+      coordinates?: {
+        lat: number;
+        lng: number;
+      };
     }>;
     yearFounded?: number;
     employeeCount?: number;
@@ -272,7 +276,19 @@ export class CompanyProfileResponseDto {
     city: string;
     country: string;
     isPrimary: boolean;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
   }>;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 
   @IsOptional()
   @IsArray()

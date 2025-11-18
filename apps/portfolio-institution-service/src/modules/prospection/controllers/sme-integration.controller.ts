@@ -1,10 +1,10 @@
-import { Controller, Post, Get, Param, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Param, UseGuards, Req, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { AccountingIntegrationService } from '../../integration/accounting-integration.service';
-import { CompanyService } from '../services/company.service';
+import { CompanySyncService } from '../../company-profile/services/company-sync.service';
 
 @ApiTags('sme-integration')
 @Controller('sme-integration')
@@ -13,7 +13,7 @@ import { CompanyService } from '../services/company.service';
 export class SMEIntegrationController {
   constructor(
     private readonly accountingIntegrationService: AccountingIntegrationService,
-    private readonly companyService: CompanyService,
+    private readonly companySyncService: CompanySyncService,
   ) {}
 
   @Get('authorized-companies')
@@ -126,8 +126,8 @@ export class SMEIntegrationController {
   @Post('sync-all')
   @Roles('admin', 'portfolio_manager')
   @ApiOperation({ 
-    summary: 'Sync all authorized SMEs to local prospect database',
-    description: 'Synchronizes all SMEs that have authorized data sharing from accounting service to local prospect database'
+    summary: 'Sync all authorized SMEs to CompanyProfile cache',
+    description: 'Synchronizes all SMEs that have authorized data sharing from accounting service to the unified CompanyProfile cache'
   })
   @ApiResponse({ 
     status: 200, 
@@ -145,19 +145,44 @@ export class SMEIntegrationController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 503, description: 'Accounting service unavailable' })
   async syncAllAuthorizedSMEs(@Req() req: any) {
-    const result = await this.companyService.syncAuthorizedSMEs(req.user.institutionId, req.user.id);
-    return {
-      message: 'SME synchronization process completed',
-      ...result,
-      completedAt: new Date().toISOString()
-    };
+    try {
+      // Récupérer toutes les SME autorisées
+      const authorizedSMEs = await this.accountingIntegrationService.getAuthorizedSMEsList();
+      
+      let synced = 0;
+      let errors = 0;
+
+      // Synchroniser chaque SME via CompanySyncService
+      for (const smeId of authorizedSMEs) {
+        try {
+          await this.companySyncService.syncFromAccounting(smeId, true);
+          synced++;
+        } catch (error) {
+          errors++;
+        }
+      }
+
+      return {
+        message: 'SME synchronization process completed',
+        synced,
+        errors,
+        total: authorizedSMEs.length,
+        completedAt: new Date().toISOString()
+      };
+    } catch (error: any) {
+      return {
+        message: 'SME synchronization failed',
+        error: error.message,
+        completedAt: new Date().toISOString()
+      };
+    }
   }
 
   @Post('sync/:smeId')
   @Roles('admin', 'portfolio_manager')
   @ApiOperation({ 
-    summary: 'Sync specific SME to local prospect database',
-    description: 'Synchronizes a specific SME that has authorized data sharing from accounting service to local prospect database'
+    summary: 'Sync specific SME to CompanyProfile cache',
+    description: 'Synchronizes a specific SME that has authorized data sharing from accounting service to the unified cache'
   })
   @ApiParam({ name: 'smeId', description: 'SME Company ID to synchronize' })
   @ApiResponse({ 
@@ -168,10 +193,24 @@ export class SMEIntegrationController {
   @ApiResponse({ status: 404, description: 'SME not found in accounting service' })
   @ApiResponse({ status: 503, description: 'Accounting service unavailable' })
   async syncSpecificSME(@Param('smeId') smeId: string, @Req() req: any) {
-    const company = await this.companyService.syncSpecificSME(smeId, req.user.institutionId, req.user.id);
+    // Vérifier l'autorisation
+    const isAuthorized = await this.accountingIntegrationService.checkDataSharingAuthorization(smeId);
+    
+    if (!isAuthorized) {
+      return {
+        success: false,
+        message: `SME ${smeId} has not authorized data sharing`,
+        smeId
+      };
+    }
+
+    // Synchroniser via CompanySyncService
+    const profile = await this.companySyncService.syncFromAccounting(smeId, true);
+    
     return {
-      message: 'SME synchronized successfully to local prospect database',
-      company,
+      success: true,
+      message: 'SME synchronized successfully to CompanyProfile cache',
+      profile: this.companySyncService.toDto(profile),
       syncedAt: new Date().toISOString()
     };
   }

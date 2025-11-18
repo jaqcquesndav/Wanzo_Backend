@@ -224,6 +224,10 @@ export class CompanyProfile {
     city: string;
     country: string;
     isPrimary: boolean;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
   }>;
 
   /**
@@ -290,6 +294,18 @@ export class CompanyProfile {
    */
   @Column({ length: 50, nullable: true })
   customerServiceStatus?: string;
+
+  /**
+   * Latitude du siège principal (depuis location primaire)
+   */
+  @Column('decimal', { precision: 10, scale: 6, nullable: true })
+  latitude?: number;
+
+  /**
+   * Longitude du siège principal (depuis location primaire)
+   */
+  @Column('decimal', { precision: 10, scale: 6, nullable: true })
+  longitude?: number;
 
   // ============================================================
   // MÉTADONNÉES DE SYNCHRONISATION

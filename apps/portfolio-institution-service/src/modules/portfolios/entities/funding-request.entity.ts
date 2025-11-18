@@ -44,7 +44,7 @@ export class FundingRequest {
   @Column('decimal', { precision: 15, scale: 2 })
   amount!: number;
 
-  @Column({ default: 'XOF' })
+  @Column({ default: 'CDF' })
   currency!: string;
 
   @Column({ nullable: true })
@@ -78,6 +78,41 @@ export class FundingRequest {
 
   @Column({ nullable: true })
   contract_id?: string;
+
+  @Column({ name: 'source_request_id', nullable: true })
+  source_request_id?: string;
+
+  @Column({ name: 'source_system', nullable: true, default: 'direct' })
+  source_system?: string;
+
+  @Column('jsonb', { nullable: true })
+  payment_info?: {
+    bankAccounts: Array<{
+      id: string;
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string;
+      branchCode?: string;
+      swiftCode?: string;
+      rib?: string;
+      isDefault: boolean;
+      status: string;
+    }>;
+    mobileMoneyAccounts: Array<{
+      id: string;
+      phoneNumber: string;
+      accountName: string;
+      operator: string;
+      operatorName: string;
+      isDefault: boolean;
+      status: string;
+      verificationStatus: string;
+    }>;
+    preferredMethod: string;
+    defaultBankAccountId?: string;
+    defaultMobileMoneyAccountId?: string;
+  };
 
   @Column('jsonb', { nullable: true })
   financial_data?: {
