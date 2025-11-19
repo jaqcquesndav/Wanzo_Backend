@@ -59,9 +59,13 @@ Gestion de la prospection commerciale avec synchronisation hybride
   - Support coordonnées GPS (latitude/longitude)
 
 ### 🔄 [Intégration Inter-Services](./integration/README.md)
-Compatibilité et synchronisation avec Gestion Commerciale
-- **Endpoint** : `/integration`
-- **Fonctionnalités** : Synchronisation bidirectionnelle, mappings de statuts, événements Kafka
+Compatibilité et synchronisation avec les services de l'écosystème Wanzo
+- **Endpoint** : `/integration`, `/company-profiles`
+- **Fonctionnalités** : 
+  - Synchronisation bidirectionnelle avec Gestion Commerciale (mappings de statuts, événements Kafka)
+  - Cache CompanyProfile unifié avec enrichissement depuis customer-service
+  - Événements Kafka temps réel pour mise à jour des profils financiers
+  - **Données de trésorerie** : Voir [documentation prospection](./prospection/README.md#-données-de-trésorerie-treasury-data)
 
 ### 💰 [Paiements](./paiements/README.md)
 Gestion des ordres de paiement génériques

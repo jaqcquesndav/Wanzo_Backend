@@ -1,10 +1,15 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AccountingSettings, DepreciationMethod, JournalEntryValidation } from '../entities/accounting-settings.entity';
 import { UserSettings } from '../entities/user-settings.entity';
 import { IntegrationsSettings } from '../entities/integrations-settings.entity';
 import { DataSource, DataSourceType, DataSourceStatus } from '../entities/data-source.entity';
+import { Organization } from '../../organization/entities/organization.entity';
+import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
+import { Account } from '../../accounts/entities/account.entity';
+import { JournalService } from '../../journals/services/journal.service';
+import { EventsService } from '../../events/events.service';
 import { 
   SettingsDto,
   UpdateGeneralSettingsDto,
@@ -28,6 +33,14 @@ export class SettingsService {
     private integrationsSettingsRepository: Repository<IntegrationsSettings>,
     @InjectRepository(DataSource)
     private dataSourceRepository: Repository<DataSource>,
+    @InjectRepository(Organization)
+    private organizationRepository: Repository<Organization>,
+    @InjectRepository(FiscalYear)
+    private fiscalYearRepository: Repository<FiscalYear>,
+    @InjectRepository(Account)
+    private accountRepository: Repository<Account>,
+    private readonly journalService: JournalService,
+    @Optional() private readonly eventsService: EventsService,
   ) {}
 
   async getAllSettings(companyId: string, userId: string): Promise<SettingsDto> {
@@ -376,7 +389,345 @@ export class SettingsService {
     integrationsSettings.dataSharing = updatedDataSharing;
     await this.integrationsSettingsRepository.save(integrationsSettings);
     
+    // Si le consentement est donné et que partners/analysts sont autorisés,
+    // publier les données financières incluant la trésorerie
+    if (dto.consentGiven && (dto.partners || dto.analysts || dto.banks || dto.microfinance || dto.coopec)) {
+      await this.publishFinancialDataWithTreasury(companyId, dto);
+    }
+    
     return updatedDataSharing;
+  }
+
+  /**
+   * Récupère et publie les données financières avec détails de trésorerie
+   */
+  private async publishFinancialDataWithTreasury(companyId: string, dataSharingSettings: any): Promise<void> {
+    try {
+      // Récupérer les informations de l'organisation
+      const organization = await this.organizationRepository.findOne({ where: { id: companyId } });
+      if (!organization) {
+        this.logger.warn(`Organization ${companyId} not found for financial data publishing`);
+        return;
+      }
+
+      // Récupérer le dernier exercice fiscal actif
+      const fiscalYear = await this.fiscalYearRepository.findOne({
+        where: { companyId, status: 'open' },
+        order: { startDate: 'DESC' }
+      });
+
+      if (!fiscalYear) {
+        this.logger.warn(`No active fiscal year found for company ${companyId}`);
+        return;
+      }
+
+      // Récupérer les comptes de trésorerie (classe 52 en SYSCOHADA)
+      const treasuryAccounts = await this.accountRepository.find({
+        where: { companyId },
+        order: { code: 'ASC' }
+      });
+
+      const treasuryAccountsData = [];
+      for (const account of treasuryAccounts.filter(a => a.code.startsWith('52'))) {
+        try {
+          const balance = await this.journalService.getAccountBalance(
+            account.id,
+            fiscalYear.year,
+            companyId,
+            new Date()
+          );
+
+          treasuryAccountsData.push({
+            accountCode: account.code,
+            accountName: account.name,
+            balance: balance.balance,
+            currency: account.currency || 'CDF',
+            bankName: account.metadata?.bankName,
+            accountNumber: account.metadata?.accountNumber
+          });
+        } catch (error) {
+          this.logger.warn(`Failed to get balance for account ${account.code}: ${error.message}`);
+        }
+      }
+
+      // Calculer les métriques financières agrégées
+      const allAccounts = treasuryAccounts;
+      const currentDate = new Date();
+      
+      let totalRevenue = 0;
+      let totalExpenses = 0;
+      let totalAssets = 0;
+      let totalLiabilities = 0;
+
+      for (const account of allAccounts) {
+        try {
+          const balance = await this.journalService.getAccountBalance(
+            account.id,
+            fiscalYear.year,
+            companyId,
+            currentDate
+          );
+
+          // Classe 7: Produits (Revenue)
+          if (account.code.startsWith('7')) {
+            totalRevenue += Math.abs(balance.balance);
+          }
+          // Classe 6: Charges (Expenses)
+          else if (account.code.startsWith('6')) {
+            totalExpenses += Math.abs(balance.balance);
+          }
+          // Classe 2, 3, 4, 5: Actif
+          else if (account.code.startsWith('2') || account.code.startsWith('3') || 
+                   account.code.startsWith('4') || account.code.startsWith('5')) {
+            if (balance.balance > 0) {
+              totalAssets += balance.balance;
+            }
+          }
+          // Classe 1, 4: Passif
+          else if (account.code.startsWith('1') || (account.code.startsWith('4') && balance.balance < 0)) {
+            totalLiabilities += Math.abs(balance.balance);
+          }
+        } catch (error) {
+          this.logger.debug(`Error calculating balance for ${account.code}: ${error.message}`);
+        }
+      }
+
+      const netProfit = totalRevenue - totalExpenses;
+      const cashFlow = treasuryAccountsData.reduce((sum, acc) => sum + acc.balance, 0);
+
+      // Calculer un score de crédit simple basé sur les métriques
+      const debtRatio = totalLiabilities / (totalAssets || 1);
+      const profitMargin = netProfit / (totalRevenue || 1);
+      let creditScore = 50; // Score de base
+      
+      if (debtRatio < 0.5) creditScore += 20;
+      else if (debtRatio < 0.7) creditScore += 10;
+      
+      if (profitMargin > 0.1) creditScore += 20;
+      else if (profitMargin > 0) creditScore += 10;
+      
+      if (cashFlow > 0) creditScore += 10;
+
+      const financialRating = creditScore >= 80 ? 'A' : 
+                             creditScore >= 60 ? 'B' : 
+                             creditScore >= 40 ? 'C' : 'D';
+
+      // Déterminer qui peut accéder aux données
+      const consentGrantedTo = [];
+      if (dataSharingSettings.banks) consentGrantedTo.push('banks');
+      if (dataSharingSettings.microfinance) consentGrantedTo.push('microfinance');
+      if (dataSharingSettings.coopec) consentGrantedTo.push('coopec');
+      if (dataSharingSettings.analysts) consentGrantedTo.push('analysts');
+      if (dataSharingSettings.partners) consentGrantedTo.push('partners');
+
+      // Générer les données de trésorerie sur plusieurs échelles temporelles
+      const treasuryTimeseries = await this.generateTreasuryTimeseries(
+        treasuryAccounts.filter(a => a.code.startsWith('52') || a.code.startsWith('53') || 
+                                     a.code.startsWith('54') || a.code.startsWith('57')),
+        fiscalYear,
+        companyId
+      );
+
+      // Publier l'événement via EventsService (si disponible)
+      if (this.eventsService) {
+        await this.eventsService.publishCompanyFinancialDataShared({
+          companyId,
+          companyName: organization.name,
+          consentGrantedTo,
+          accountingStandard: organization.accountingFramework || 'SYSCOHADA',
+          financialData: {
+            totalRevenue,
+            netProfit,
+            totalAssets,
+            totalLiabilities,
+            cashFlow,
+            creditScore,
+            financialRating
+          },
+          treasuryAccounts: treasuryAccountsData,
+          treasuryTimeseries, // Données sur plusieurs échelles temporelles
+          timestamp: new Date().toISOString()
+        });
+
+        this.logger.log(
+          `Published financial data with ${treasuryAccountsData.length} treasury accounts ` +
+          `and timeseries data (${treasuryTimeseries.weekly.length}W/${treasuryTimeseries.monthly.length}M/` +
+          `${treasuryTimeseries.quarterly.length}Q/${treasuryTimeseries.annual.length}Y) for company ${companyId}`
+        );
+      }
+
+    } catch (error) {
+      this.logger.error(
+        `Failed to publish financial data with treasury for company ${companyId}: ${error.message}`,
+        error.stack
+      );
+      // Ne pas throw - ne pas bloquer la mise à jour des settings
+    }
+  }
+
+  /**
+   * Génère les données de trésorerie sur plusieurs échelles temporelles
+   * Conforme SYSCOHADA et IFRS
+   */
+  private async generateTreasuryTimeseries(
+    treasuryAccounts: Account[],
+    fiscalYear: FiscalYear,
+    companyId: string
+  ): Promise<{
+    weekly: any[];
+    monthly: any[];
+    quarterly: any[];
+    annual: any[];
+  }> {
+    const now = new Date();
+    const results = { weekly: [], monthly: [], quarterly: [], annual: [] };
+
+    try {
+      // Données hebdomadaires (12 dernières semaines)
+      for (let i = 0; i < 12; i++) {
+        const endDate = new Date(now);
+        endDate.setDate(endDate.getDate() - (i * 7));
+        const startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 6);
+
+        const periodData = await this.calculateTreasuryPeriod(
+          treasuryAccounts,
+          fiscalYear.year,
+          companyId,
+          startDate,
+          endDate,
+          'weekly'
+        );
+        results.weekly.unshift(periodData);
+      }
+
+      // Données mensuelles (12 derniers mois)
+      for (let i = 0; i < 12; i++) {
+        const endDate = new Date(now.getFullYear(), now.getMonth() - i, 0); // Dernier jour du mois
+        const startDate = new Date(now.getFullYear(), now.getMonth() - i - 1, 1); // Premier jour du mois
+
+        const periodData = await this.calculateTreasuryPeriod(
+          treasuryAccounts,
+          fiscalYear.year,
+          companyId,
+          startDate,
+          endDate,
+          'monthly'
+        );
+        results.monthly.unshift(periodData);
+      }
+
+      // Données trimestrielles (4 derniers trimestres)
+      for (let i = 0; i < 4; i++) {
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        const quarterStartMonth = (currentQuarter - i) * 3;
+        const year = now.getFullYear() + Math.floor(quarterStartMonth / 12);
+        const month = ((quarterStartMonth % 12) + 12) % 12;
+        
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 3, 0);
+
+        const periodData = await this.calculateTreasuryPeriod(
+          treasuryAccounts,
+          fiscalYear.year,
+          companyId,
+          startDate,
+          endDate,
+          'quarterly'
+        );
+        results.quarterly.unshift(periodData);
+      }
+
+      // Données annuelles (3 dernières années)
+      for (let i = 0; i < 3; i++) {
+        const year = now.getFullYear() - i;
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+
+        const periodData = await this.calculateTreasuryPeriod(
+          treasuryAccounts,
+          fiscalYear.year,
+          companyId,
+          startDate,
+          endDate,
+          'annual'
+        );
+        results.annual.unshift(periodData);
+      }
+
+    } catch (error) {
+      this.logger.warn(`Error generating treasury timeseries: ${error.message}`);
+    }
+
+    return results;
+  }
+
+  /**
+   * Calcule les données de trésorerie pour une période donnée
+   */
+  private async calculateTreasuryPeriod(
+    accounts: Account[],
+    fiscalYearId: string,
+    companyId: string,
+    startDate: Date,
+    endDate: Date,
+    periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual'
+  ): Promise<any> {
+    const accountsData = [];
+    let totalBalance = 0;
+
+    for (const account of accounts) {
+      try {
+        const balance = await this.journalService.getAccountBalance(
+          account.id,
+          fiscalYearId,
+          companyId,
+          endDate
+        );
+
+        accountsData.push({
+          accountCode: account.code,
+          accountName: account.name,
+          balance: balance.balance,
+          currency: account.metadata?.currency || 'CDF',
+          accountType: account.code.startsWith('521') ? 'bank' :
+                      account.code.startsWith('53') ? 'cash' :
+                      account.code.startsWith('54') ? 'short_term_investment' :
+                      'cash_in_transit'
+        });
+
+        totalBalance += balance.balance;
+      } catch (error) {
+        this.logger.debug(`Error getting balance for ${account.code}: ${error.message}`);
+      }
+    }
+
+    return {
+      periodId: this.formatPeriodId(startDate, periodType),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      periodType,
+      treasuryAccounts: accountsData,
+      totalTreasuryBalance: totalBalance
+    };
+  }
+
+  /**
+   * Formate l'identifiant de période selon le type
+   */
+  private formatPeriodId(date: Date, type: string): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const week = Math.ceil(date.getDate() / 7);
+    const quarter = Math.ceil((date.getMonth() + 1) / 3);
+
+    switch (type) {
+      case 'weekly': return `${year}-W${week}`;
+      case 'monthly': return `${year}-${month}`;
+      case 'quarterly': return `${year}-Q${quarter}`;
+      case 'annual': return `${year}`;
+      default: return `${year}`;
+    }
   }
 
   /**

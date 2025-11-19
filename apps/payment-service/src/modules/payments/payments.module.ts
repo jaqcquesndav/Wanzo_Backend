@@ -29,6 +29,7 @@ import { PaymentTransaction } from './entities/payment-transaction.entity';
     SubscriptionPaymentService,
     SubscriptionPaymentEventsService,
     PaymentRequestListenerService,
+    CreditPaymentConsumerService,
     SerdiPayService,
     SerdiPayProvider
   ],

@@ -12,6 +12,8 @@ export class StandardKafkaTopics {
   // Accounting Operations
   static readonly ACCOUNTING_JOURNAL_ENTRY = 'accounting.journal.entry';
   static readonly ACCOUNTING_JOURNAL_STATUS = 'accounting.journal.status';
+  static readonly COMPANY_FINANCIAL_DATA_SHARED = 'company.financial.data.shared';
+  static readonly COMPANY_TREASURY_UPDATE = 'company.treasury.update';
   
   // Portfolio Analysis
   static readonly PORTFOLIO_ANALYSIS_REQUEST = 'portfolio.analysis.request';

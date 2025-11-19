@@ -67,6 +67,9 @@ export class Document {
   funding_request?: FundingRequest;
 
   @Column({ nullable: true })
+  credit_request_id?: string;
+
+  @Column({ nullable: true })
   contract_id?: string;
 
   @ManyToOne(() => Contract)

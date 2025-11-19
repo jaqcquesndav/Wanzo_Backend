@@ -67,6 +67,56 @@ export class FundingRequestConsumerService {
         this.logger.log(`Portfolio created: ${portfolio.id}`);
       }
 
+      // ✅ 1.5 Propager les informations bancaires au Portfolio
+      if (data.paymentInfo && (data.paymentInfo.bankAccounts?.length > 0 || data.paymentInfo.mobileMoneyAccounts?.length > 0)) {
+        this.logger.log(`Updating portfolio ${portfolio.id} with payment information`);
+        
+        // Transformer les comptes bancaires (camelCase → snake_case)
+        if (data.paymentInfo.bankAccounts?.length > 0) {
+          portfolio.bank_accounts = data.paymentInfo.bankAccounts.map(acc => ({
+            id: acc.id || `bank-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: acc.accountName,
+            bank_name: acc.bankName,
+            account_number: acc.accountNumber,
+            currency: portfolio.currency,
+            balance: 0,
+            is_default: acc.isDefault,
+            status: acc.status,
+            bank_code: acc.bankCode,
+            branch_code: acc.branchCode,
+            swift_code: acc.swiftCode,
+            rib: acc.rib,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }));
+        }
+
+        // Transformer les comptes mobile money
+        if (data.paymentInfo.mobileMoneyAccounts?.length > 0) {
+          portfolio.mobile_money_accounts = data.paymentInfo.mobileMoneyAccounts.map(acc => ({
+            id: acc.id || `mm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            account_name: acc.accountName,
+            phone_number: acc.phoneNumber,
+            provider: acc.operator, // Code déjà standardisé (AM, OM, MP, etc.)
+            provider_name: acc.operatorName,
+            currency: portfolio.currency,
+            is_primary: acc.isDefault,
+            is_active: acc.status === 'active',
+            account_status: acc.verificationStatus,
+            purpose: 'collection',
+            balance: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }));
+        }
+
+        await this.portfolioRepository.save(portfolio);
+        this.logger.log(
+          `Portfolio ${portfolio.id} updated with ${portfolio.bank_accounts?.length || 0} bank accounts ` +
+          `and ${portfolio.mobile_money_accounts?.length || 0} mobile money accounts`
+        );
+      }
+
       // 2. Créer le FundingRequest
       const fundingRequest = this.fundingRequestRepository.create({
         request_number: this.generateRequestNumber(),

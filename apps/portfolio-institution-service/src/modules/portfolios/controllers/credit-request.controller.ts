@@ -128,4 +128,77 @@ export class CreditRequestController {
       data: result,
     };
   }
+
+  @Post(':id/documents')
+  @Roles('admin', 'credit_manager')
+  @ApiOperation({ summary: 'Add document to credit request' })
+  @ApiParam({ name: 'id', description: 'Credit request ID' })
+  @ApiResponse({ status: 201, description: 'Document added successfully' })
+  @ApiResponse({ status: 404, description: 'Credit request not found' })
+  async addDocument(
+    @Param('id') id: string,
+    @Body() documentData: { name: string; type: string; content: string; mimeType: string; description?: string },
+    @Req() req: any
+  ) {
+    const result = await this.creditRequestService.addDocument(id, documentData, req.user.id);
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Get(':id/documents')
+  @ApiOperation({ summary: 'Get all documents of a credit request' })
+  @ApiParam({ name: 'id', description: 'Credit request ID' })
+  @ApiResponse({ status: 200, description: 'Documents retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Credit request not found' })
+  async getDocuments(@Param('id') id: string) {
+    const documents = await this.creditRequestService.getDocuments(id);
+    return {
+      success: true,
+      data: documents,
+    };
+  }
+
+  @Delete(':id/documents/:documentId')
+  @Roles('admin', 'credit_manager')
+  @ApiOperation({ summary: 'Delete document from credit request' })
+  @ApiParam({ name: 'id', description: 'Credit request ID' })
+  @ApiParam({ name: 'documentId', description: 'Document ID' })
+  @ApiResponse({ status: 200, description: 'Document deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Document not found' })
+  async deleteDocument(@Param('id') id: string, @Param('documentId') documentId: string) {
+    await this.creditRequestService.deleteDocument(id, documentId);
+    return {
+      success: true,
+      message: 'Document deleted successfully',
+    };
+  }
+
+  @Patch(':id/status')
+  @Roles('admin', 'credit_manager')
+  @ApiOperation({ summary: 'Change credit request status' })
+  @ApiParam({ name: 'id', description: 'Credit request ID' })
+  @ApiResponse({ status: 200, description: 'Status changed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid status' })
+  @ApiResponse({ status: 404, description: 'Credit request not found' })
+  async changeStatus(@Param('id') id: string, @Body() statusData: { status: string }) {
+    const result = await this.creditRequestService.changeStatus(id, statusData.status);
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Post('reset')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Reset credit requests to mock data (development only)' })
+  @ApiResponse({ status: 200, description: 'Credit requests reset successfully' })
+  async reset() {
+    const result = await this.creditRequestService.resetToMockData();
+    return {
+      success: true,
+      data: result,
+    };
+  }
 }

@@ -219,4 +219,100 @@ export class FinancingService {
       throw new NotFoundException(`Financing record with ID "${id}" not found or operation did not affect any rows.`);
     }
   }
+
+  /**
+   * Get available financing products
+   * Returns a list of financing products with their details
+   */
+  async getAvailableProducts(): Promise<any[]> {
+    // TODO: Replace with actual database table when products are managed in DB
+    // For now, return static list matching documentation
+    return [
+      {
+        id: 'prod-business-loan-001',
+        name: 'Prêt Entreprise Standard',
+        description: 'Prêt destiné aux PME pour financer leurs activités courantes',
+        provider: 'Wanzo Finance',
+        type: FinancingType.BUSINESS_LOAN,
+        minAmount: 1000.00,
+        maxAmount: 50000.00,
+        term: {
+          min: 3,
+          max: 36
+        },
+        interestRate: 15.5,
+        currency: 'CDF',
+        requirementsSummary: 'Entreprise enregistrée avec minimum 6 mois d\'activité',
+        requiredDocuments: ['businessPlan', 'financialStatements', 'registrationCertificate']
+      },
+      {
+        id: 'prod-equipment-loan-001',
+        name: 'Prêt Équipement',
+        description: 'Financement pour l\'achat d\'équipements professionnels',
+        provider: 'Wanzo Finance',
+        type: FinancingType.EQUIPMENT_LOAN,
+        minAmount: 2000.00,
+        maxAmount: 100000.00,
+        term: {
+          min: 6,
+          max: 48
+        },
+        interestRate: 14.0,
+        currency: 'CDF',
+        requirementsSummary: 'Facture proforma de l\'équipement requise',
+        requiredDocuments: ['proformaInvoice', 'businessPlan', 'financialStatements']
+      },
+      {
+        id: 'prod-working-capital-001',
+        name: 'Fonds de Roulement',
+        description: 'Crédit de trésorerie pour financer le cycle d\'exploitation',
+        provider: 'Wanzo Finance',
+        type: FinancingType.WORKING_CAPITAL,
+        minAmount: 500.00,
+        maxAmount: 30000.00,
+        term: {
+          min: 1,
+          max: 12
+        },
+        interestRate: 16.5,
+        currency: 'CDF',
+        requirementsSummary: 'Flux de trésorerie des 6 derniers mois requis',
+        requiredDocuments: ['cashFlowStatement', 'financialStatements']
+      },
+      {
+        id: 'prod-expansion-loan-001',
+        name: 'Prêt Expansion',
+        description: 'Financement pour l\'expansion ou diversification des activités',
+        provider: 'Wanzo Finance',
+        type: FinancingType.EXPANSION_LOAN,
+        minAmount: 5000.00,
+        maxAmount: 200000.00,
+        term: {
+          min: 12,
+          max: 60
+        },
+        interestRate: 13.5,
+        currency: 'CDF',
+        requirementsSummary: 'Plan d\'expansion détaillé et bilan des 2 dernières années',
+        requiredDocuments: ['expansionPlan', 'businessPlan', 'financialStatements', 'balanceSheet']
+      },
+      {
+        id: 'prod-line-of-credit-001',
+        name: 'Ligne de Crédit',
+        description: 'Crédit renouvelable pour besoins ponctuels',
+        provider: 'Wanzo Finance',
+        type: FinancingType.LINE_OF_CREDIT,
+        minAmount: 1000.00,
+        maxAmount: 50000.00,
+        term: {
+          min: 3,
+          max: 24
+        },
+        interestRate: 17.0,
+        currency: 'CDF',
+        requirementsSummary: 'Score crédit minimum de 60/100 requis',
+        requiredDocuments: ['financialStatements', 'creditReport']
+      }
+    ];
+  }
 }

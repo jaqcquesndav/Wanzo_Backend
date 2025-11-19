@@ -70,6 +70,54 @@ export class EventsService {
     }
   }
 
+  async publishCompanyFinancialDataShared(eventData: {
+    companyId: string;
+    companyName: string;
+    consentGrantedTo: string[];
+    accountingStandard?: string; // SYSCOHADA ou IFRS
+    financialData: {
+      totalRevenue: number;
+      netProfit: number;
+      totalAssets: number;
+      totalLiabilities: number;
+      cashFlow: number;
+      creditScore: number;
+      financialRating: string;
+    };
+    treasuryAccounts?: Array<{
+      accountCode: string;
+      accountName: string;
+      balance: number;
+      currency: string;
+      bankName?: string;
+      accountNumber?: string;
+    }>;
+    treasuryTimeseries?: {
+      weekly: any[];
+      monthly: any[];
+      quarterly: any[];
+      annual: any[];
+    };
+    timestamp: string;
+  }): Promise<void> {
+    try {
+      const COMPANY_FINANCIAL_DATA_SHARED = 'company.financial.data.shared';
+      
+      this.logger.log(
+        `Publishing ${COMPANY_FINANCIAL_DATA_SHARED} event for company ${eventData.companyId} with treasury data`
+      );
+      await this.kafkaClient
+        .emit(COMPANY_FINANCIAL_DATA_SHARED, JSON.stringify(eventData))
+        .toPromise();
+    } catch (error) {
+      this.logger.error(
+        `Failed to publish financial data shared event for company ${eventData.companyId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   async onModuleDestroy() {
     await this.kafkaClient.close();
   }

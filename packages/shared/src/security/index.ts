@@ -16,3 +16,6 @@ export interface EncryptedData {
   tag: string;
   hash?: string;
 }
+
+// Kafka encryption utilities
+export * from './kafka-encryption';

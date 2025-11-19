@@ -4,6 +4,7 @@ import { HttpModule } from '@nestjs/axios';
 import { CompanyProfile } from './entities/company-profile.entity';
 import { CompanySyncService } from './services/company-sync.service';
 import { CompanyEventsConsumer } from './consumers/company-events.consumer';
+import { FinancialDataConsumer } from './consumers/financial-data.consumer';
 import { CompanyProfileController } from './controllers/company-profile.controller';
 import { AccountingIntegrationModule } from '../integration/accounting-integration.module';
 
@@ -43,6 +44,9 @@ import { AccountingIntegrationModule } from '../integration/accounting-integrati
     
     // Consumer Kafka pour événements customer-service
     CompanyEventsConsumer,
+    
+    // Consumer Kafka pour données financières partagées depuis accounting-service
+    FinancialDataConsumer,
   ],
   
   controllers: [

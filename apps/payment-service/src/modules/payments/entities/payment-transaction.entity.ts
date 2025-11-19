@@ -25,6 +25,8 @@ export enum PaymentStatus {
 export enum PaymentType {
   SUBSCRIPTION = 'subscription',
   TOKEN = 'token',
+  DISBURSEMENT = 'disbursement',
+  REPAYMENT = 'repayment',
   LEGACY = 'legacy'
 }
 
@@ -79,6 +81,14 @@ export class PaymentTransaction {
 
   @Column({ nullable: true })
   subscriptionId?: string; // Référence vers customer-service subscription
+
+  @Index()
+  @Column({ nullable: true })
+  contractId?: string; // Référence vers le contrat de crédit
+
+  @Index()
+  @Column({ nullable: true })
+  portfolioId?: string; // Référence vers le portfolio
 
   @Column({ type: 'json', nullable: true })
   meta?: any;

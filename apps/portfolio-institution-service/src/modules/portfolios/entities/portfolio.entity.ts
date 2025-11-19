@@ -51,8 +51,37 @@ interface BankAccount {
   balance: number;
   is_default: boolean;
   status: 'active' | 'inactive' | 'suspended';
+  // ✅ Champs ajoutés pour transactions internationales
+  bank_code?: string;
+  branch_code?: string;
+  swift_code?: string;
+  rib?: string;
+  iban?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+interface MobileMoneyAccount {
+  id: string;
+  account_name: string;
+  phone_number: string;
+  // ✅ Utiliser code standardisé au lieu de nom complet
+  provider: 'AM' | 'OM' | 'MP' | 'AF' | 'WAVE'; // Code opérateur standardisé
+  provider_name: string; // Nom complet (Airtel Money, Orange Money, etc.)
+  pin_code?: string;
+  account_holder_id?: string;
+  currency: string;
+  is_primary: boolean;
+  is_active: boolean;
+  portfolio_id?: string;
+  purpose?: 'disbursement' | 'collection' | 'general' | 'investment' | 'escrow' | 'reserve';
+  balance?: number;
+  service_number?: string;
+  account_status?: 'verified' | 'pending' | 'suspended';
+  daily_limit?: number;
+  monthly_limit?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 interface FinancialProduct {
@@ -216,6 +245,9 @@ export class Portfolio {
 
   @Column('jsonb', { nullable: true })
   bank_accounts?: BankAccount[];
+
+  @Column('jsonb', { nullable: true })
+  mobile_money_accounts?: MobileMoneyAccount[];
 
   @Column('jsonb', { nullable: true })
   financial_products?: FinancialProduct[];

@@ -12,6 +12,9 @@ Les portefeuilles traditionnels sont organisés en plusieurs modules :
 4. **[Remboursements](./remboursements/README.md)** - Gestion des remboursements des clients
 5. **[Garanties](./garanties/README.md)** - Gestion des garanties
 6. **[Paramètres](./parametres/README.md)** - Configuration des paramètres du portefeuille
+7. **[Comptes](./comptes/README.md)** - Gestion des comptes bancaires et Mobile Money
+
+> **Note importante**: Les comptes bancaires et Mobile Money sont synchronisés automatiquement entre le stockage dédié et l'entité Portfolio. Toute modification via les endpoints `/accounts` est immédiatement reflétée dans les champs `bank_accounts` et `mobile_money_accounts` du portfolio.
 
 ## Liste des portefeuilles traditionnels
 
@@ -81,6 +84,26 @@ Récupère la liste des portefeuilles traditionnels avec pagination et filtrage.
         "balance": 45000000,
         "is_default": true,
         "status": "active"
+      }
+    ],
+    "mobile_money_accounts": [
+      {
+        "id": "mm-1",
+        "account_name": "M-Pesa Principal",
+        "phone_number": "+243900000001",
+        "provider": "M-Pesa",
+        "account_holder_id": "holder-1",
+        "currency": "CDF",
+        "is_primary": true,
+        "is_active": true,
+        "purpose": "collection",
+        "balance": 5000000,
+        "service_number": "*555#",
+        "account_status": "verified",
+        "daily_limit": 10000000,
+        "monthly_limit": 100000000,
+        "created_at": "2025-01-01T10:00:00Z",
+        "updated_at": "2025-01-10T14:30:00Z"
       }
     ],
     "manager": {
@@ -183,6 +206,7 @@ Crée un nouveau portefeuille traditionnel.
     "riskScore": null,
     "products": [],
     "bank_accounts": [],
+  "mobile_money_accounts": [],
     "financial_products": [],
     "manager": {
       "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -428,6 +452,8 @@ Change le statut d'un portefeuille traditionnel.
 - `inactive` : Inactif 
 - `pending` : En attente
 - `archived` : Archivé
+- `closed` : Fermé (voir endpoint `/close`)
+- `suspended` : Suspendu temporairement
 
 **Réponse réussie** (200 OK) :
 
@@ -519,7 +545,8 @@ interface Portfolio {
   risk_profile: 'conservative' | 'moderate' | 'aggressive';
   currency: string;                       // Code ISO 4217 (default: XOF)
   products: string[];                     // IDs des produits
-  bank_accounts?: BankAccount[];
+  bank_accounts?: BankAccount[];          // Comptes bancaires du portefeuille (jsonb)
+  mobile_money_accounts?: MobileMoneyAccount[];  // Comptes Mobile Money du portefeuille (jsonb)
   financial_products?: FinancialProduct[];
   manager?: {
     id: string;
@@ -544,8 +571,8 @@ interface Portfolio {
   managerBankAccounts?: ManagerBankAccount[];
   managerMobileMoneyAccounts?: ManagerMobileMoneyAccount[];
   managerPaymentPreferences?: ManagerPaymentPreferences;
-  clientId?: string;
-  createdBy?: string;
+  clientId?: string;                      // ID du client (optionnel)
+  createdBy?: string;                     // ID de l'utilisateur créateur (optionnel)
   created_at: string;
   updated_at: string;
 }
@@ -562,6 +589,27 @@ interface ManagerBankAccount {
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface MobileMoneyAccount {
+  id: string;
+  account_name: string;
+  phone_number: string;
+  provider: 'Orange Money' | 'M-Pesa' | 'Airtel Money';
+  pin_code?: string;  // Encrypted
+  account_holder_id?: string;
+  currency: string;
+  is_primary: boolean;
+  is_active: boolean;
+  portfolio_id?: string;
+  purpose?: 'disbursement' | 'collection' | 'general' | 'investment' | 'escrow' | 'reserve';
+  balance?: number;
+  service_number?: string;
+  account_status?: 'verified' | 'pending' | 'suspended';
+  daily_limit?: number;
+  monthly_limit?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ManagerMobileMoneyAccount {
@@ -696,4 +744,52 @@ Les champs suivants sont calculés automatiquement par le système et ne peuvent
 
 ---
 
-*Documentation mise à jour le 16 novembre 2025 - Conformité 100% avec le code source*
+## 🔄 Synchronisation des Comptes
+
+Les comptes bancaires et Mobile Money d'un portefeuille sont stockés dans deux emplacements :
+
+1. **Stockage dédié** : Utilisé par les endpoints `/portfolios/{id}/accounts/*` pour les opérations CRUD
+   - Clés localStorage : `portfolio_{id}_bank_accounts` et `portfolio_{id}_mobile_money_accounts`
+   - Avantage : Performance et isolation des données
+
+2. **Entité Portfolio** : Champs `bank_accounts` et `mobile_money_accounts` du portfolio
+   - Utilisé pour les requêtes complètes de portfolio
+   - Avantage : Cohérence et requêtes unifiées
+
+### Mécanisme de Synchronisation Automatique
+
+**Toutes les modifications de comptes déclenchent une synchronisation automatique :**
+
+- ✅ Ajout d'un compte (bancaire ou Mobile Money)
+- ✅ Modification d'un compte
+- ✅ Suppression d'un compte
+- ✅ Changement du compte principal
+
+La synchronisation est gérée par le hook `usePortfolioAccounts` qui appelle `syncAccountsToPortfolio()` après chaque opération CRUD.
+
+### Architecture du Workflow
+
+```
+UI (AccountsPanel)
+  ↓
+Hook (usePortfolioAccounts)
+  ↓ CRUD Operation
+API Service (portfolioAccountsApi)
+  ↓ Update Dedicated Storage
+LocalStorage (portfolio_{id}_*_accounts)
+  ↓ Auto-Sync
+Portfolio Entity (portfolio.bank_accounts / mobile_money_accounts)
+```
+
+### Points Importants
+
+1. **Pas d'intervention manuelle requise** : La synchronisation est entièrement automatique
+2. **Cohérence garantie** : Les deux sources de données sont toujours à jour
+3. **Gestion d'erreurs** : Les erreurs de sync sont loggées en console sans bloquer l'UI
+4. **Performance** : La synchronisation est asynchrone et n'impacte pas l'expérience utilisateur
+
+Pour plus de détails sur l'architecture de synchronisation, consultez [accounts-synchronization.md](../../docs/accounts-synchronization.md).
+
+---
+
+*Documentation mise à jour le 19 novembre 2025 - Conformité 100% avec le code source*

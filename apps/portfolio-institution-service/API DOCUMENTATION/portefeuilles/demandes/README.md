@@ -40,6 +40,26 @@ Récupère la liste des demandes de crédit pour un portefeuille traditionnel sp
     "financingPurpose": "Achat de stocks et aménagement de local",
     "creditManagerId": "mgr-001",
     "isGroup": false,
+    "documents": [
+      {
+        "id": "doc-001",
+        "name": "Plan d'affaires.pdf",
+        "type": "business_plan",
+        "url": "/documents/plan-affaires-mem001.pdf",
+        "size": 2457600,
+        "mimeType": "application/pdf",
+        "uploadedAt": "2023-07-15T09:00:00Z"
+      },
+      {
+        "id": "doc-002",
+        "name": "Bilans financiers 2022-2023.pdf",
+        "type": "financial_statements",
+        "url": "/documents/bilans-mem001.pdf",
+        "size": 1843200,
+        "mimeType": "application/pdf",
+        "uploadedAt": "2023-07-15T09:15:00Z"
+      }
+    ],
     "status": "pending",
     "createdAt": "2023-07-15T09:30:45Z",
     "updatedAt": "2023-07-15T09:30:45Z"
@@ -159,27 +179,6 @@ Crée une nouvelle demande de crédit.
 }
 ```
 
-### Mise à jour d'une demande de financement
-
-Met à jour les informations d'une demande de financement existante.
-
-**Endpoint** : `PUT /portfolios/traditional/funding-requests/{id}`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "amount": 55000.00,
-  "purpose": "Achat de matériel, extension d'activité et recrutement",
-  "duration": 15,
-  "financial_data": {
-    "annual_revenue": 260000.00,
-    "net_profit": 78000.00
-  }
-}
 ### Mise à jour d'une demande de crédit
 
 Met à jour les informations d'une demande de crédit existante.
@@ -282,45 +281,6 @@ Met à jour le statut d'une demande de crédit.
   "createdAt": "2023-07-15T09:30:45Z",
   "updatedAt": "2025-08-03T14:30:00.000Z"
 }
-  "recommended_duration": 15,
-  "recommended_rate": 12.5,
-  "comments": "Client avec un historique de crédit solide et une bonne gestion financière."
-}
-```
-
-**Réponse réussie** (200 OK) :
-
-```json
-{
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "status": "under_review",
-  "risk_analysis": {
-    "credit_score": 85,
-    "risk_level": "low",
-    "debt_service_ratio": 0.30,
-    "analysis_date": "2025-07-25T13:00:00.000Z",
-    "analyst_id": "USER-00001",
-    "recommended_action": "approve",
-    "recommended_amount": 55000.00,
-    "recommended_duration": 15,
-    "recommended_rate": 12.5,
-    "comments": "Client avec un historique de crédit solide et une bonne gestion financière."
-  },
-  "updated_at": "2025-07-25T13:00:00.000Z"
-}
-```
-
-### Approbation d'une demande
-
-Approuve une demande de financement après analyse.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/approve`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
 ```
 
 ### Suppression d'une demande de crédit
@@ -402,6 +362,7 @@ interface CreditRequest {
   isGroup: boolean;                    // Demande de groupe ou individuelle
   groupId?: string;                    // ID du groupe (si applicable)
   distributions?: CreditDistribution[]; // Distributions (si groupe)
+  documents?: CreditDocument[];        // Documents et pièces jointes
   rejectionReason?: string;            // Raison du rejet (si applicable)
   portfolioId?: string;                // ID du portefeuille associé
   metadata?: CreditRequestMetadata;    // Métadonnées de synchronisation
@@ -425,6 +386,18 @@ interface CreditDistribution {
   memberId: string;
   amount: number;
   createdAt: string;
+}
+
+interface CreditDocument {
+  id: string;
+  name: string;
+  type: 'business_plan' | 'financial_statements' | 'identity_document' | 'proof_of_address' | 'tax_certificate' | 'bank_statements' | 'project_file' | 'guarantee_document' | 'other';
+  url: string;
+  size?: number;                       // Taille en bytes
+  mimeType?: string;                   // Type MIME (application/pdf, image/jpeg, etc.)
+  uploadedBy?: string;                 // ID de l'utilisateur qui a uploadé
+  uploadedAt: string;                  // Date d'upload (ISO 8601)
+  description?: string;                // Description optionnelle
 }
 ```
 
@@ -458,6 +431,105 @@ type CreditPeriodicity =
   | 'annual';
 ```
 
+## Gestion des documents
+
+### Ajout d'un document à une demande de crédit
+
+Ajoute un nouveau document à une demande de crédit existante.
+
+**Endpoint** : `POST /portfolios/traditional/credit-requests/{id}/documents`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique de la demande de crédit
+
+**Corps de la requête** :
+
+```json
+{
+  "name": "Bilan actualisé",
+  "type": "financial_statements",
+  "content": "base64_encoded_content",
+  "mimeType": "application/pdf",
+  "description": "Bilan actualisé pour le premier semestre 2025"
+}
+```
+
+**Types de documents valides** :
+- `business_plan` : Plan d'affaires
+- `financial_statements` : États financiers
+- `identity_document` : Pièce d'identité
+- `proof_of_address` : Justificatif de domicile
+- `tax_certificate` : Attestation fiscale
+- `bank_statements` : Relevés bancaires
+- `project_file` : Dossier de projet
+- `guarantee_document` : Document de garantie
+- `other` : Autre type de document
+
+**Réponse réussie** (201 Created) :
+
+```json
+{
+  "id": "doc-011",
+  "name": "Bilan actualisé",
+  "type": "financial_statements",
+  "url": "/documents/bilan-actualise-mem001.pdf",
+  "size": 1536000,
+  "mimeType": "application/pdf",
+  "uploadedAt": "2025-07-25T15:30:00.000Z",
+  "description": "Bilan actualisé pour le premier semestre 2025"
+}
+```
+
+### Récupérer les documents d'une demande
+
+Récupère tous les documents associés à une demande de crédit.
+
+**Endpoint** : `GET /portfolios/traditional/credit-requests/{id}/documents`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique de la demande de crédit
+
+**Réponse réussie** (200 OK) :
+
+```json
+[
+  {
+    "id": "doc-001",
+    "name": "Plan d'affaires.pdf",
+    "type": "business_plan",
+    "url": "/documents/plan-affaires-mem001.pdf",
+    "size": 2457600,
+    "mimeType": "application/pdf",
+    "uploadedBy": "user-123",
+    "uploadedAt": "2023-07-15T09:00:00Z",
+    "description": "Plan d'affaires détaillé pour l'expansion"
+  },
+  {
+    "id": "doc-002",
+    "name": "Bilans financiers 2022-2023.pdf",
+    "type": "financial_statements",
+    "url": "/documents/bilans-mem001.pdf",
+    "size": 1843200,
+    "mimeType": "application/pdf",
+    "uploadedAt": "2023-07-15T09:15:00Z"
+  }
+]
+```
+
+### Supprimer un document
+
+Supprime un document d'une demande de crédit.
+
+**Endpoint** : `DELETE /portfolios/traditional/credit-requests/{id}/documents/{documentId}`
+
+**Paramètres de chemin** :
+- `id` : Identifiant unique de la demande de crédit
+- `documentId` : Identifiant unique du document
+
+**Réponse réussie** (204 No Content) : Corps vide
+
+---
+
 ## Gestion des erreurs
 
 Toutes les réponses d'erreur suivent le format standard :
@@ -471,266 +543,13 @@ Toutes les réponses d'erreur suivent le format standard :
 }
 ```
 
-### Rejet d'une demande
-
-Rejette une demande de financement.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/reject`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "reason": "Ratio d'endettement trop élevé",
-  "comments": "Le client présente un ratio d'endettement supérieur à nos critères d'acceptation.",
-  "suggestions": "Possibilité de soumettre une nouvelle demande avec un montant réduit ou des garanties supplémentaires."
-}
-```
-
-**Réponse réussie** (200 OK) :
-
-```json
-{
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "status": "rejected",
-  "rejection_details": {
-    "rejected_by": "USER-00003",
-    "rejection_date": "2025-07-25T14:00:00.000Z",
-    "reason": "Ratio d'endettement trop élevé",
-    "comments": "Le client présente un ratio d'endettement supérieur à nos critères d'acceptation.",
-    "suggestions": "Possibilité de soumettre une nouvelle demande avec un montant réduit ou des garanties supplémentaires."
-  },
-  "updated_at": "2025-07-25T14:00:00.000Z"
-}
-```
-
-### Annulation d'une demande
-
-Annule une demande de financement en cours.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/cancel`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "reason": "Annulation à la demande du client",
-  "comments": "Le client a trouvé un autre moyen de financement."
-}
-```
-
-**Réponse réussie** (200 OK) :
-
-```json
-{
-  "id": "FR-00001",
-  "portfolio_id": "TP-00001",
-  "request_number": "REQ-2025-001",
-  "status": "canceled",
-  "cancellation_details": {
-    "canceled_by": "USER-00003",
-    "cancellation_date": "2025-07-25T14:30:00.000Z",
-    "reason": "Annulation à la demande du client",
-    "comments": "Le client a trouvé un autre moyen de financement."
-  },
-  "updated_at": "2025-07-25T14:30:00.000Z"
-}
-```
-
-### Ajout d'un document à une demande
-
-Ajoute un nouveau document à une demande de financement existante.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/documents`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "name": "Bilan actualisé",
-  "type": "updated_balance_sheet",
-  "content": "base64_encoded_content",
-  "contentType": "application/pdf",
-  "description": "Bilan actualisé pour le premier semestre 2025"
-}
-```
-
-**Réponse réussie** (201 Created) :
-
-```json
-{
-  "id": "DOC-00003",
-  "name": "Bilan actualisé",
-  "type": "updated_balance_sheet",
-  "url": "https://example.com/documents/bilan-actualise-abc.pdf",
-  "created_at": "2025-07-25T15:30:00.000Z"
-}
-```
-
-### Création d'un contrat à partir d'une demande
-
-Crée un contrat de crédit basé sur une demande de financement approuvée.
-
-**Endpoint** : `POST /portfolios/traditional/funding-requests/{id}/create-contract`
-
-**Paramètres de chemin** :
-- `id` : Identifiant unique de la demande de financement
-
-**Corps de la requête** :
-
-```json
-{
-  "start_date": "2025-08-01",
-  "terms": "Ce contrat est soumis aux conditions générales de crédit de l'institution..."
-}
-```
-
-**Réponse réussie** (201 Created) :
-
-```json
-{
-  "contract_id": "CC-00001",
-  "contract_number": "CONT-2025-001"
-}
-```
-
-### Statistiques des demandes par portefeuille
-
-Récupère des statistiques sur les demandes de financement d'un portefeuille traditionnel.
-
-**Endpoint** : `GET /portfolios/traditional/{portfolioId}/funding-requests/stats`
-
-**Paramètres de chemin** :
-- `portfolioId` : Identifiant unique du portefeuille traditionnel
-
-**Réponse réussie** (200 OK) :
-
-```json
-{
-  "total_requests": 35,
-  "by_status": [
-    {
-      "status": "approved",
-      "count": 15
-    },
-    {
-      "status": "pending",
-      "count": 8
-    }
-  ]
-}
-```
-
-## Modèles de données
-
-### Demande de financement
-| Champ | Type | Description |
-|-------|------|-------------|
-| id | string | Identifiant unique de la demande |
-| portfolio_id | string | Identifiant du portefeuille traditionnel |
-| request_number | string | Numéro de référence de la demande |
-| client_id | string | Identifiant du client |
-| company_name | string | Nom de l'entreprise cliente |
-| product_type | string | Type de produit financier demandé |
-| amount | number | Montant demandé |
-| currency | string | Devise du montant |
-| purpose | string | Objet du financement |
-| duration | number | Durée souhaitée du financement |
-| duration_unit | string | Unité de la durée (months, years) |
-| proposed_start_date | string | Date de début souhaitée (format ISO) |
-| status | string | Statut de la demande ('pending', 'under_review', 'approved', 'rejected', 'canceled', 'disbursed') |
-| status_date | string | Date du dernier changement de statut |
-| assigned_to | string | Identifiant de l'analyste assigné |
-| financial_data | object | Données financières fournies |
-| proposed_guarantees | array | Garanties proposées |
-| documents | array | Documents fournis avec la demande |
-| risk_analysis | object | Résultats de l'analyse de risque |
-| approval_details | object | Détails de l'approbation (si applicable) |
-| rejection_details | object | Détails du rejet (si applicable) |
-| cancellation_details | object | Détails de l'annulation (si applicable) |
-| contract_id | string | Identifiant du contrat créé (si applicable) |
-| created_at | string | Date de création (format ISO) |
-| updated_at | string | Date de dernière modification (format ISO) |
-
-### Données financières
-| Champ | Type | Description |
-|-------|------|-------------|
-| annual_revenue | number | Chiffre d'affaires annuel |
-| net_profit | number | Bénéfice net |
-| existing_debts | number | Dettes existantes |
-| cash_flow | number | Flux de trésorerie mensuel |
-| assets | number | Valeur totale des actifs |
-| liabilities | number | Valeur totale des passifs |
-
-### Garantie proposée
-| Champ | Type | Description |
-|-------|------|-------------|
-| type | string | Type de garantie (ex: "real_estate", "equipment") |
-| description | string | Description détaillée de la garantie |
-| estimated_value | number | Valeur estimée de la garantie |
-| currency | string | Devise de la valeur |
-
-### Document
-| Champ | Type | Description |
-|-------|------|-------------|
-| id | string | Identifiant unique du document |
-| name | string | Nom du document |
-| type | string | Type de document (ex: "business_plan", "financial_statements") |
-| url | string | URL d'accès au document |
-| created_at | string | Date de création/téléchargement (format ISO) |
-
-### Analyse de risque
-| Champ | Type | Description |
-|-------|------|-------------|
-| credit_score | number | Score de crédit attribué (0-100) |
-| risk_level | string | Niveau de risque évalué (low, medium, high) |
-| debt_service_ratio | number | Ratio de service de la dette calculé |
-| analysis_date | string | Date de l'analyse (format ISO) |
-| analyst_id | string | Identifiant de l'analyste |
-| recommended_action | string | Action recommandée (approve, reject) |
-| recommended_amount | number | Montant recommandé pour approbation |
-| recommended_duration | number | Durée recommandée |
-| recommended_rate | number | Taux d'intérêt recommandé |
-| comments | string | Commentaires de l'analyste |
-
-### Détails d'approbation
-| Champ | Type | Description |
-|-------|------|-------------|
-| approved_by | string | Identifiant de l'approbateur |
-| approval_date | string | Date d'approbation (format ISO) |
-| approved_amount | number | Montant approuvé |
-| approved_duration | number | Durée approuvée |
-| approved_rate | number | Taux d'intérêt approuvé |
-| conditions | string | Conditions particulières d'approbation |
-| comments | string | Commentaires de l'approbateur |
-
-### Détails de rejet
-| Champ | Type | Description |
-|-------|------|-------------|
-| rejected_by | string | Identifiant de la personne ayant rejeté la demande |
-| rejection_date | string | Date de rejet (format ISO) |
-| reason | string | Raison principale du rejet |
-| comments | string | Commentaires détaillés |
-| suggestions | string | Suggestions pour une éventuelle nouvelle demande |
-
-### Détails d'annulation
-| Champ | Type | Description |
-|-------|------|-------------|
-| canceled_by | string | Identifiant de la personne ayant annulé la demande |
-| cancellation_date | string | Date d'annulation (format ISO) |
-| reason | string | Raison de l'annulation |
-| comments | string | Commentaires détaillés |
+**Codes d'erreur courants** :
+- `CREDIT_REQUEST_NOT_FOUND` (404) : Demande de crédit introuvable
+- `INVALID_CREDIT_REQUEST_DATA` (400) : Données de demande invalides
+- `CREDIT_REQUEST_ALREADY_PROCESSED` (409) : Demande déjà traitée
+- `INSUFFICIENT_PERMISSIONS` (403) : Permissions insuffisantes
+- `DOCUMENT_UPLOAD_FAILED` (500) : Échec de l'upload du document
+- `DOCUMENT_NOT_FOUND` (404) : Document introuvable
 
 ---
 

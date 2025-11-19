@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 // Interfaces pour les informations de paiement
 interface BankAccountInfo {
+  id?: string; // ✅ Ajouté pour compatibilité
   accountNumber: string;
   accountName: string;
   bankName: string;
@@ -10,18 +11,31 @@ interface BankAccountInfo {
   branchCode?: string;
   swiftCode?: string;
   rib?: string;
+  iban?: string; // ✅ Ajouté pour SEPA
   isDefault: boolean;
   status: 'active' | 'inactive' | 'suspended';
+  currency?: string; // ✅ Ajouté pour multi-devise
+  balance?: number; // ✅ Ajouté pour suivi
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface MobileMoneyAccount {
+  id?: string; // ✅ Ajouté pour compatibilité
   phoneNumber: string;
   accountName: string;
-  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
-  operatorName: string;
+  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF'; // Code standardisé
+  operatorName: string; // Nom complet
   isDefault: boolean;
   status: 'active' | 'inactive' | 'suspended';
   verificationStatus: 'pending' | 'verified' | 'failed';
+  currency?: string; // ✅ Ajouté pour multi-devise
+  dailyLimit?: number; // ✅ Ajouté pour limites
+  monthlyLimit?: number;
+  balance?: number; // ✅ Ajouté pour suivi
+  purpose?: 'disbursement' | 'collection' | 'general'; // ✅ Ajouté
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 @Entity('companies')

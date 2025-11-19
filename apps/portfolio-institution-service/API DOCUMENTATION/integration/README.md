@@ -1,8 +1,22 @@
 # Intégration et Compatibilité Inter-Services
 
-Documentation de l'intégration entre les services Gestion Commerciale et Portfolio Institution.
+Documentation de l'intégration entre Portfolio Institution et les autres services de l'écosystème Wanzo.
 
 ## Vue d'ensemble
+
+Le service Portfolio Institution s'intègre avec plusieurs services:
+- **Gestion Commerciale**: Synchronisation bidirectionnelle des demandes de financement
+- **Accounting Service**: Réception automatique des données financières et de trésorerie des entreprises (via Kafka)
+- **Customer Service**: Enrichissement des profils avec données administratives (via Kafka)
+
+## Documentation Disponible
+
+- 📄 **Synchronisation Gestion Commerciale** (cette page) - Mapping des statuts et synchronisation des demandes de financement
+- 💰 **Données de Trésorerie des Entreprises** - Voir la [documentation prospection](../prospection/README.md#-données-de-trésorerie-treasury-data) pour les données financières multi-échelles conformes SYSCOHADA et IFRS
+
+---
+
+## Intégration Gestion Commerciale
 
 Le service Portfolio Institution s'intègre avec le service Gestion Commerciale pour assurer une synchronisation bidirectionnelle des demandes de financement.
 

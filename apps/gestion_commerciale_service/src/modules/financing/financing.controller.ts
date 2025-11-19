@@ -94,7 +94,7 @@ export class FinancingController {
     };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update a financing request by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Financing Request ID (UUID)' })
   @ApiResponse({ status: 200, description: 'The financing request has been successfully updated.', type: FinancingRequestResponseDto })
@@ -200,6 +200,65 @@ export class FinancingController {
       data: {
         id: updatedRecord.id,
         status: updatedRecord.status
+      },
+      statusCode: 200
+    };
+  }
+
+  @Get('products')
+  @ApiOperation({ summary: 'Get available financing products' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Successfully retrieved financing products.',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        data: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  provider: { type: 'string' },
+                  minAmount: { type: 'number' },
+                  maxAmount: { type: 'number' },
+                  term: {
+                    type: 'object',
+                    properties: {
+                      min: { type: 'number' },
+                      max: { type: 'number' }
+                    }
+                  },
+                  interestRate: { type: 'number' },
+                  requirementsSummary: { type: 'string' },
+                  requiredDocuments: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        statusCode: { type: 'number' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getProducts() {
+    const products = await this.financingService.getAvailableProducts();
+    return {
+      success: true,
+      message: 'Financing products retrieved successfully',
+      data: {
+        items: products
       },
       statusCode: 200
     };

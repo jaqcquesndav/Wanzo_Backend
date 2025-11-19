@@ -97,6 +97,26 @@ export interface DisbursementCompletedEvent {
   paymentMethod: string;
   transactionId?: string;
   executedBy?: string;
+  // ✅ Informations du compte utilisé pour le décaissement
+  bankAccount?: {
+    id: string;
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    bankCode?: string;
+    swiftCode?: string;
+    rib?: string;
+  };
+  mobileMoneyAccount?: {
+    id: string;
+    phoneNumber: string;
+    accountName: string;
+    operator: string; // Code standardisé (AM, OM, MP, etc.)
+    operatorName: string;
+  };
+  // Référence de transaction externe (SerdiPay, Mobile Money provider)
+  externalTransactionId?: string;
+  externalTransactionStatus?: string;
 }
 
 // Types d'événements de remboursement
@@ -120,6 +140,26 @@ export interface RepaymentReceivedEvent {
   }[];
   transactionId?: string;
   processedBy?: string;
+  // ✅ Informations du compte depuis lequel le remboursement a été reçu
+  bankAccount?: {
+    id: string;
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    bankCode?: string;
+    swiftCode?: string;
+    rib?: string;
+  };
+  mobileMoneyAccount?: {
+    id: string;
+    phoneNumber: string;
+    accountName: string;
+    operator: string; // Code standardisé (AM, OM, MP, etc.)
+    operatorName: string;
+  };
+  // Référence de transaction externe (SerdiPay, Mobile Money provider)
+  externalTransactionId?: string;
+  externalTransactionStatus?: string;
 }
 
 // Types d'événements d'échéancier

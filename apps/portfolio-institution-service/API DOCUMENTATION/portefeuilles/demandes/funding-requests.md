@@ -42,9 +42,11 @@ Pour migrer du modèle `FundingRequest` vers `CreditRequest`, utilisez la table 
 | portfolioId | N/A | À ajouter dans les filtres d'API |
 | maturity | schedulesCount | Lié au nombre d'échéances |
 | dueDate | N/A | Calculé à partir de la date de début et de la périodicité |
-| projectFile | N/A | À gérer via un système de pièces jointes séparé |
-| attachments | N/A | À gérer via un système de pièces jointes séparé |
+| projectFile | documents[] | Remplacé par le tableau `documents` de type `CreditDocument[]` |
+| attachments | documents[] | Remplacé par le tableau `documents` de type `CreditDocument[]` |
 | productDetails | N/A | Les détails sont stockés dans la référence au produit |
+
+> **Important**: Le système de pièces jointes a été implémenté dans `CreditRequest` via le champ `documents` de type `CreditDocument[]`. Voir la documentation principale pour les endpoints de gestion des documents (`POST /credit-requests/{id}/documents`, etc.).
 
 ## Recommandations
 

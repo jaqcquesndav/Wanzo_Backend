@@ -21,6 +21,7 @@ import { DisbursementService } from './services/disbursement.service';
 import { RepaymentService } from './services/repayment.service';
 import { PaymentScheduleService } from './services/payment-schedule.service';
 import { DocumentService } from './services/document.service';
+import { AccountValidationService } from './services/account-validation.service';
 import { PortfolioPaymentInfoService } from './services/portfolio-payment-info.service';
 import { PortfolioController } from './controllers/portfolio.controller';
 import { PortfolioProductsController } from './controllers/portfolio-products.controller';
@@ -69,8 +70,9 @@ import { MulterModule } from '@nestjs/platform-express';
     RepaymentService,
     PaymentScheduleService,
     DocumentService,
+    AccountValidationService,
     PortfolioPaymentInfoService,
-    FundingRequestConsumerService
+    FundingRequestConsumerService,
   ],
   controllers: [
     PortfolioController,
@@ -96,7 +98,8 @@ import { MulterModule } from '@nestjs/platform-express';
     RepaymentService,
     PaymentScheduleService,
     DocumentService,
-    PortfolioPaymentInfoService
+    AccountValidationService,
+    PortfolioPaymentInfoService,
   ],
 })
 export class PortfoliosModule {}

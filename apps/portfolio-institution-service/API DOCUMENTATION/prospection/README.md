@@ -118,7 +118,73 @@ GET /companies?sector=Technologies&minCreditScore=70&page=1&limit=10
         "working_capital": 650000.00,
         "credit_score": 82,
         "financial_rating": "B+",
-        "ebitda": 320000.00
+        "ebitda": 320000.00,
+        "treasury_data": {
+          "total_treasury_balance": 125000000.00,
+          "accounts": [
+            {
+              "code": "521001",
+              "name": "Rawbank - Compte Courant CDF",
+              "type": "bank",
+              "balance": 75000000.00,
+              "currency": "CDF",
+              "bankName": "Rawbank",
+              "accountNumber": "CD39-1234-5678-9012-3456"
+            },
+            {
+              "code": "531001",
+              "name": "Caisse Principale CDF",
+              "type": "cash",
+              "balance": 15000000.00,
+              "currency": "CDF"
+            },
+            {
+              "code": "541001",
+              "name": "Dépôts à terme - Equity Bank",
+              "type": "investment",
+              "balance": 35000000.00,
+              "currency": "USD"
+            }
+          ],
+          "timeseries": {
+            "weekly": [
+              {
+                "periodId": "2025-W46",
+                "startDate": "2025-11-10",
+                "endDate": "2025-11-16",
+                "totalBalance": 125000000.00,
+                "accountsCount": 3
+              }
+            ],
+            "monthly": [
+              {
+                "periodId": "2025-11",
+                "startDate": "2025-11-01",
+                "endDate": "2025-11-30",
+                "totalBalance": 118000000.00,
+                "accountsCount": 3
+              }
+            ],
+            "quarterly": [
+              {
+                "periodId": "2025-Q4",
+                "startDate": "2025-10-01",
+                "endDate": "2025-12-31",
+                "totalBalance": 110000000.00,
+                "accountsCount": 3
+              }
+            ],
+            "annual": [
+              {
+                "periodId": "2025",
+                "startDate": "2025-01-01",
+                "endDate": "2025-12-31",
+                "totalBalance": 95000000.00,
+                "accountsCount": 2
+              }
+            ]
+          }
+        }
       },
       "contact_info": {
         "email": "contact@techinnovate.cd",
@@ -529,6 +595,36 @@ interface ProspectFinancialMetricsDto {
   credit_score: number;                      // @IsNumber() @Min(0) @Max(100) - Score (0-100)
   financial_rating: string;                  // @IsString() - Rating (AAA, AA, A, BBB, BB, B, C, D, E)
   ebitda?: number;                           // @IsOptional() @IsNumber() - EBITDA (CDF)
+  treasury_data?: TreasuryDataDto;           // @IsOptional() @ValidateNested() - Données de trésorerie
+}
+
+interface TreasuryDataDto {
+  total_treasury_balance: number;            // @IsNumber() - Solde total trésorerie (CDF)
+  accounts: TreasuryAccountDto[];            // @IsArray() - Liste des comptes de trésorerie
+  timeseries?: {                             // @IsOptional() - Séries temporelles multi-échelles
+    weekly: TreasuryPeriodDto[];             // 12 dernières semaines
+    monthly: TreasuryPeriodDto[];            // 12 derniers mois
+    quarterly: TreasuryPeriodDto[];          // 4 derniers trimestres
+    annual: TreasuryPeriodDto[];             // 3 dernières années
+  };
+}
+
+interface TreasuryAccountDto {
+  code: string;                              // @IsString() - Code comptable SYSCOHADA (521*, 53*, 54*, 57*)
+  name: string;                              // @IsString() - Libellé du compte
+  type: 'bank' | 'cash' | 'investment' | 'transit'; // @IsEnum() - Type de compte
+  balance: number;                           // @IsNumber() - Solde actuel
+  currency: string;                          // @IsString() - Devise (CDF, USD, EUR)
+  bankName?: string;                         // @IsOptional() - Nom de la banque (pour type=bank)
+  accountNumber?: string;                    // @IsOptional() - Numéro de compte (pour type=bank)
+}
+
+interface TreasuryPeriodDto {
+  periodId: string;                          // @IsString() - Identifiant période (2025-W46, 2025-11, 2025-Q4, 2025)
+  startDate: string;                         // @IsString() - Date début période (ISO 8601)
+  endDate: string;                           // @IsString() - Date fin période (ISO 8601)
+  totalBalance: number;                      // @IsNumber() - Solde total pour la période
+  accountsCount: number;                     // @IsNumber() - Nombre de comptes actifs
 }
 
 interface ProspectContactInfoDto {
@@ -635,6 +731,256 @@ class ProspectListResponseDto {
 
 ---
 
+## 💰 Données de Trésorerie (Treasury Data)
+
+### Vue d'ensemble
+
+Les données de trésorerie sont **automatiquement partagées** depuis `accounting-service` vers `portfolio-institution-service` via Kafka lorsque l'entreprise active le **partage de données** (Data Sharing Consent).
+
+```
+┌─────────────────────────┐         Kafka Topic:                    ┌──────────────────────────┐
+│  Accounting Service     │   company.financial.data.shared         │  Portfolio Institution   │
+│                         │──────────────────────────────────────►  │  CompanyProfile Cache    │
+│  • Génère séries tempo  │                                          │                          │
+│  • Comptes SYSCOHADA    │   Payload: treasuryAccounts +            │  • Stockage metadata     │
+│  • 4 échelles temporelles│            treasuryTimeseries            │  • API REST              │
+└─────────────────────────┘                                          └──────────────────────────┘
+```
+
+### Classification des Comptes (SYSCOHADA)
+
+Les comptes de trésorerie suivent la **norme SYSCOHADA** (Plan comptable OHADA révisé 2017) :
+
+| Classe SYSCOHADA | Type         | Description                           | Équivalent IFRS |
+|------------------|--------------|---------------------------------------|-----------------|
+| **521**          | `bank`       | Banques, établissements financiers    | IAS 7 - Cash    |
+| **53**           | `cash`       | Caisse (531-538)                      | IAS 7 - Cash    |
+| **54**           | `investment` | Instruments de trésorerie et placements | IAS 7 - Cash Equivalents |
+| **57**           | `transit`    | Virements internes, régies d'avance   | IAS 7 - Cash    |
+
+### Structure des Données
+
+#### 1. Snapshot Actuel (Current Treasury)
+
+Accessible via `financial_metrics.treasury_data.accounts[]` dans la réponse de l'API `/companies/:id` :
+
+```json
+{
+  "total_treasury_balance": 125000000.00,
+  "accounts": [
+    {
+      "code": "521001",
+      "name": "Rawbank - Compte Courant CDF",
+      "type": "bank",
+      "balance": 75000000.00,
+      "currency": "CDF",
+      "bankName": "Rawbank",
+      "accountNumber": "CD39-1234-5678-9012-3456"
+    },
+    {
+      "code": "531001",
+      "name": "Caisse Principale CDF",
+      "type": "cash",
+      "balance": 15000000.00,
+      "currency": "CDF"
+    }
+  ]
+}
+```
+
+#### 2. Séries Temporelles Multi-Échelles (Timeseries)
+
+Accessible via `financial_metrics.treasury_data.timeseries` :
+
+**4 échelles temporelles :**
+- **Weekly** : 12 dernières semaines (périodes de 7 jours, identifiant: `2025-W46`)
+- **Monthly** : 12 derniers mois (mois calendaires, identifiant: `2025-11`)
+- **Quarterly** : 4 derniers trimestres (trimestres de 3 mois, identifiant: `2025-Q4`)
+- **Annual** : 3 dernières années (années complètes, identifiant: `2025`)
+
+```json
+{
+  "timeseries": {
+    "weekly": [
+      {
+        "periodId": "2025-W46",
+        "startDate": "2025-11-10",
+        "endDate": "2025-11-16",
+        "totalBalance": 125000000.00,
+        "accountsCount": 3
+      }
+    ],
+    "monthly": [
+      {
+        "periodId": "2025-11",
+        "startDate": "2025-11-01",
+        "endDate": "2025-11-30",
+        "totalBalance": 118000000.00,
+        "accountsCount": 3
+      }
+    ],
+    "quarterly": [
+      {
+        "periodId": "2025-Q4",
+        "startDate": "2025-10-01",
+        "endDate": "2025-12-31",
+        "totalBalance": 110000000.00,
+        "accountsCount": 3
+      }
+    ],
+    "annual": [
+      {
+        "periodId": "2025",
+        "startDate": "2025-01-01",
+        "endDate": "2025-12-31",
+        "totalBalance": 95000000.00,
+        "accountsCount": 2
+      }
+    ]
+  }
+}
+```
+
+### Stockage dans CompanyProfile.metadata
+
+Les données de trésorerie sont stockées dans le champ JSONB `metadata` de l'entité `CompanyProfile` :
+
+```typescript
+// Structure metadata (JSONB column)
+{
+  accountingStandard: 'SYSCOHADA',      // Standard comptable (SYSCOHADA ou IFRS)
+  treasuryAccounts: TreasuryAccount[],  // Snapshot actuel des comptes
+  totalTreasuryBalance: number,          // Solde total agrégé
+  treasuryTimeseries: {                  // Séries temporelles
+    weekly: TreasuryPeriodSummary[],     // 12 semaines
+    monthly: TreasuryPeriodSummary[],    // 12 mois
+    quarterly: TreasuryPeriodSummary[],  // 4 trimestres
+    annual: TreasuryPeriodSummary[]      // 3 années
+  },
+  sharedDataConsent: {                   // Consentement de partage
+    granted: boolean,
+    grantedTo: string[],
+    grantedAt: string
+  }
+}
+```
+
+### Utilisation Frontend
+
+#### Exemple 1 : Afficher le Solde Actuel
+
+```typescript
+import { useEffect, useState } from 'react';
+import { companyApi } from '@/api';
+
+function TreasuryBalance({ companyId }: { companyId: string }) {
+  const [treasury, setTreasury] = useState<any>(null);
+  
+  useEffect(() => {
+    async function loadTreasury() {
+      const company = await companyApi.getCompanyById(companyId);
+      setTreasury(company.financial_metrics.treasury_data);
+    }
+    loadTreasury();
+  }, [companyId]);
+  
+  if (!treasury) return <div>Chargement...</div>;
+  
+  return (
+    <div>
+      <h3>Solde de Trésorerie</h3>
+      <p><strong>{treasury.total_treasury_balance.toLocaleString()} CDF</strong></p>
+      <ul>
+        {treasury.accounts.map(acc => (
+          <li key={acc.code}>
+            {acc.name} ({acc.type}): {acc.balance.toLocaleString()} {acc.currency}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+#### Exemple 2 : Graphique Temporel avec Chart.js
+
+```typescript
+import { Line } from 'react-chartjs-2';
+
+function TreasuryChart({ companyId }: { companyId: string }) {
+  const [data, setData] = useState<any>(null);
+  const [scale, setScale] = useState<'weekly' | 'monthly' | 'quarterly' | 'annual'>('monthly');
+  
+  useEffect(() => {
+    async function loadData() {
+      const company = await companyApi.getCompanyById(companyId);
+      const timeseries = company.financial_metrics.treasury_data?.timeseries;
+      
+      if (timeseries) {
+        const periods = timeseries[scale];
+        setData({
+          labels: periods.map(p => p.periodId),
+          datasets: [{
+            label: 'Trésorerie Totale',
+            data: periods.map(p => p.totalBalance),
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+          }]
+        });
+      }
+    }
+    loadData();
+  }, [companyId, scale]);
+  
+  return (
+    <div>
+      <div>
+        <button onClick={() => setScale('weekly')}>Hebdo</button>
+        <button onClick={() => setScale('monthly')}>Mensuel</button>
+        <button onClick={() => setScale('quarterly')}>Trimestriel</button>
+        <button onClick={() => setScale('annual')}>Annuel</button>
+      </div>
+      {data && <Line data={data} />}
+    </div>
+  );
+}
+```
+
+### Conformité SYSCOHADA et IFRS
+
+| Norme       | Référence                              | Application                                    |
+|-------------|----------------------------------------|------------------------------------------------|
+| SYSCOHADA   | Plan comptable OHADA révisé 2017       | Classification des comptes (521, 53, 54, 57)   |
+| SYSCOHADA   | Classes 1-8                            | Structure du bilan et compte de résultat       |
+| IFRS        | IAS 7 - Statement of Cash Flows        | Flux de trésorerie, équivalents de trésorerie  |
+| IFRS        | IAS 1 - Presentation of Financial Statements | Présentation des états financiers     |
+
+### Sécurité et Consentement
+
+Les données de trésorerie ne sont partagées **QUE SI** :
+1. L'entreprise a **explicitement consenti** au partage de données (Data Sharing Consent)
+2. Le consentement est actif dans `accounting-service` via `PUT /settings/data-sharing`
+3. Le consentement inclut `portfolio-institution-service` dans la liste des services autorisés
+
+**Vérification côté frontend :**
+
+```typescript
+function hasConsentForTreasury(company: CompanyProfile): boolean {
+  const consent = company.metadata?.sharedDataConsent;
+  return consent?.granted && consent?.grantedTo?.includes('portfolio-institution');
+}
+```
+
+### Cas d'Usage
+
+1. **Analyse de Solvabilité** : Évaluer la capacité de remboursement via le solde de trésorerie actuel
+2. **Détection de Tendances** : Identifier les variations saisonnières dans les séries temporelles
+3. **Scoring Crédit** : Intégrer les données de trésorerie dans l'algorithme de credit scoring
+4. **Alertes Automatiques** : Déclencher des alertes si le solde tombe sous un seuil critique
+5. **Rapports Réglementaires** : Générer des rapports conformes SYSCOHADA/IFRS
+
+---
+
 ## 🔄 Topics Kafka Consommés
 
 Le module `CompanyEventsConsumer` écoute **6 topics Kafka** depuis `customer-service` :
@@ -648,7 +994,113 @@ Le module `CompanyEventsConsumer` écoute **6 topics Kafka** depuis `customer-se
 | `customer.validated`                     | StandardKafkaTopics.CUSTOMER_VALIDATED | Company validée - déclenche sync complète |
 | `customer.deleted`                       | StandardKafkaTopics.CUSTOMER_DELETED | Company supprimée - marque comme deleted (garde historique) |
 
-### Structure de l'événement `admin.customer.company.profile.shared`
+### Structure de l'événement `company.financial.data.shared` (Accounting Service)
+
+**Topic :** `company.financial.data.shared` (StandardKafkaTopics.COMPANY_FINANCIAL_DATA_SHARED)  
+**Source :** `accounting-service`  
+**Consumer :** `FinancialDataConsumer` dans `portfolio-institution-service`
+
+Cet événement est publié lorsqu'une entreprise **active le partage de données** (Data Sharing Consent) dans `accounting-service`. Il contient les **données financières complètes** incluant les comptes de trésorerie avec séries temporelles multi-échelles.
+
+```typescript
+interface CompanyFinancialDataSharedEvent {
+  organizationId: string;                 // UUID de l'organization
+  companyName: string;                    // Nom de la company
+  sector?: string;                        // Secteur d'activité
+  
+  // Métriques financières
+  totalRevenue?: number;
+  annualRevenue?: number;
+  netProfit?: number;
+  totalAssets?: number;
+  totalLiabilities?: number;
+  cashFlow?: number;
+  debtRatio?: number;
+  workingCapital?: number;
+  creditScore?: number;
+  financialRating?: string;
+  ebitda?: number;
+  revenueGrowth?: number;
+  profitMargin?: number;
+  
+  // Autres métriques
+  employeeCount?: number;
+  companySize?: string;
+  websiteUrl?: string;
+  
+  // Standard comptable (SYSCOHADA ou IFRS)
+  accountingStandard?: string;
+  
+  // NOUVEAUTÉ : Comptes de trésorerie (snapshot actuel)
+  treasuryAccounts?: Array<{
+    code: string;                         // Code comptable (521*, 53*, 54*, 57*)
+    name: string;                         // Libellé du compte
+    type: 'bank' | 'cash' | 'investment' | 'transit';
+    balance: number;                      // Solde actuel
+    currency: string;                     // Devise (CDF, USD, EUR)
+    bankName?: string;                    // Nom de la banque (si type=bank)
+    accountNumber?: string;               // Numéro de compte (si type=bank)
+  }>;
+  
+  // NOUVEAUTÉ : Séries temporelles multi-échelles
+  treasuryTimeseries?: {
+    weekly: Array<{                       // 12 dernières semaines
+      periodId: string;                   // "2025-W46"
+      startDate: string;                  // Date ISO 8601
+      endDate: string;                    // Date ISO 8601
+      totalBalance: number;               // Solde total période
+      accountsCount: number;              // Nombre de comptes actifs
+      treasuryAccounts: Array<{           // Détails des comptes pour cette période
+        code: string;
+        name: string;
+        type: string;
+        balance: number;
+        currency: string;
+      }>;
+    }>;
+    monthly: Array<{                      // 12 derniers mois
+      periodId: string;                   // "2025-11"
+      startDate: string;
+      endDate: string;
+      totalBalance: number;
+      accountsCount: number;
+      treasuryAccounts: Array<{...}>;
+    }>;
+    quarterly: Array<{                    // 4 derniers trimestres
+      periodId: string;                   // "2025-Q4"
+      startDate: string;
+      endDate: string;
+      totalBalance: number;
+      accountsCount: number;
+      treasuryAccounts: Array<{...}>;
+    }>;
+    annual: Array<{                       // 3 dernières années
+      periodId: string;                   // "2025"
+      startDate: string;
+      endDate: string;
+      totalBalance: number;
+      accountsCount: number;
+      treasuryAccounts: Array<{...}>;
+    }>;
+  };
+}
+```
+
+**Traitement dans FinancialDataConsumer :**
+1. Reçoit l'événement Kafka avec les données financières + trésorerie
+2. Crée ou met à jour le `CompanyProfile` avec toutes les métriques
+3. Stocke les comptes de trésorerie dans `metadata.treasuryAccounts`
+4. Stocke les séries temporelles dans `metadata.treasuryTimeseries` (avec résumé : periodId, dates, totalBalance, accountsCount)
+5. Stocke le standard comptable dans `metadata.accountingStandard`
+6. Met à jour `lastSyncFromAccounting` avec le timestamp actuel
+
+---
+
+### Structure de l'événement `admin.customer.company.profile.shared` (Customer Service)
+
+**Topic :** `admin.customer.company.profile.shared`  
+**Source :** `customer-service`  
+**Consumer :** `CompanyEventsConsumer` dans `portfolio-institution-service`
 
 ```typescript
 interface CustomerCompanyProfileEvent {

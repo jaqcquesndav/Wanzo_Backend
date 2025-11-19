@@ -56,3 +56,15 @@ export {
 } from './token-events';
 
 export * from './subscription-types';
+
+// Export funding request events
+export * from './funding-request-events';
+export * from './portfolio-events';
+export * from './financing-payment-events';
+
+// Export constants standardisés
+export * from '../constants/mobile-money-operators';
+export * from '../constants/funding-status';
+
+// Export utilitaires
+export * from '../utils/data-transformers';
