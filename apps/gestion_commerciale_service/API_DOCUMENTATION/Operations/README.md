@@ -40,7 +40,7 @@ Les types d'opérations disponibles dans l'API:
 
 ### 1. Récupérer la liste des opérations
 
-**Endpoint**: `GET /api/v1/operations`
+**Endpoint**: `GET /commerce/api/v1/operations`
 
 **Description**: Récupère la liste des opérations avec filtrage et pagination.
 

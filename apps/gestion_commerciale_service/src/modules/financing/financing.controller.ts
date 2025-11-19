@@ -29,7 +29,7 @@ import { FinancingRequestResponseDto } from './dto/financing-request-response.dt
 @ApiTags('financing')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/financing/requests')
+@Controller('financing/requests')
 export class FinancingController {
   constructor(private readonly financingService: FinancingService) {}
 

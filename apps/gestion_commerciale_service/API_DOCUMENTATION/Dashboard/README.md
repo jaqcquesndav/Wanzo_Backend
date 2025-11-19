@@ -24,17 +24,17 @@ Toutes les réponses de l'API Dashboard suivent la structure standard ApiRespons
 
 ### Récupérer les données complètes du dashboard
 ```bash
-GET /api/v1/dashboard/data?date=2023-08-01
+GET /commerce/api/v1/dashboard/data?date=2023-08-01
 ```
 
 ### Filtrer le journal par type d'opération
 ```bash
-GET /api/v1/dashboard/operations-journal?type=saleCash&startDate=2023-08-01&endDate=2023-08-31
+GET /commerce/api/v1/dashboard/operations-journal?type=saleCash&startDate=2023-08-01&endDate=2023-08-31
 ```
 
 ### Récupérer uniquement les ventes du jour
 ```bash
-GET /api/v1/dashboard/sales-today?date=2023-08-01
+GET /commerce/api/v1/dashboard/sales-today?date=2023-08-01
 ``` `DashboardData` représente les indicateurs clés de performance (KPI) affichés sur le tableau de bord principal :
 
 ```json
@@ -96,7 +96,7 @@ Les types d'opérations supportés dans le journal :
 
 ### 1. Récupérer les données du tableau de bord
 
-**Endpoint**: `GET /api/v1/dashboard/data`
+**Endpoint**: `GET /commerce/api/v1/dashboard/data`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les données au format ISO8601 (YYYY-MM-DD). Par défaut : date actuelle
@@ -115,7 +115,7 @@ Les types d'opérations supportés dans le journal :
 
 ### 2. Récupérer uniquement les ventes du jour
 
-**Endpoint**: `GET /api/v1/dashboard/sales-today`
+**Endpoint**: `GET /commerce/api/v1/dashboard/sales-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les ventes au format ISO8601 (YYYY-MM-DD)
@@ -135,7 +135,7 @@ Les types d'opérations supportés dans le journal :
 
 ### 3. Récupérer le nombre de clients servis aujourd'hui
 
-**Endpoint**: `GET /api/v1/dashboard/clients-served-today`
+**Endpoint**: `GET /commerce/api/v1/dashboard/clients-served-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les données
@@ -152,7 +152,7 @@ Les types d'opérations supportés dans le journal :
 
 ### 4. Récupérer le total des montants à recevoir
 
-**Endpoint**: `GET /api/v1/dashboard/receivables`
+**Endpoint**: `GET /commerce/api/v1/dashboard/receivables`
 
 **Réponse:**
 ```json
@@ -166,7 +166,7 @@ Les types d'opérations supportés dans le journal :
 
 ### 5. Récupérer les dépenses du jour
 
-**Endpoint**: `GET /api/v1/dashboard/expenses-today`
+**Endpoint**: `GET /commerce/api/v1/dashboard/expenses-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les dépenses
@@ -187,7 +187,7 @@ Le dashboard inclut également un journal des opérations détaillé qui trace t
 
 ### 6. Récupérer les entrées du journal des opérations
 
-**Endpoint**: `GET /api/v1/dashboard/operations-journal`
+**Endpoint**: `GET /commerce/api/v1/dashboard/operations-journal`
 
 **Paramètres de requête:**
 - `startDate` (optionnel): Date de début au format ISO8601
@@ -236,7 +236,7 @@ Le dashboard inclut également un journal des opérations détaillé qui trace t
 
 ### 2. Récupérer le résumé des ventes
 
-**Endpoint**: `GET /api/v1/dashboard/sales-summary`
+**Endpoint**: `GET /commerce/api/v1/dashboard/sales-summary`
 
 **Description**: Récupère uniquement le résumé des ventes pour une période spécifique.
 
@@ -273,7 +273,7 @@ Le dashboard inclut également un journal des opérations détaillé qui trace t
 
 ### 3. Récupérer les statistiques clients
 
-**Endpoint**: `GET /api/v1/dashboard/customer-stats`
+**Endpoint**: `GET /commerce/api/v1/dashboard/customer-stats`
 
 **Description**: Récupère les statistiques des clients pour une période spécifique.
 
@@ -308,7 +308,7 @@ Le dashboard inclut également un journal des opérations détaillé qui trace t
 
 ### 4. Récupérer les entrées du journal d'opérations
 
-**Endpoint**: `GET /api/v1/dashboard/journal`
+**Endpoint**: `GET /commerce/api/v1/dashboard/operations-journal`
 
 **Description**: Récupère les entrées du journal d'opérations pour une période spécifique.
 

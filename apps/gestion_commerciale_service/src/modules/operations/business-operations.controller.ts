@@ -25,7 +25,7 @@ import { BusinessOperation } from './entities/business-operation.entity';
 @ApiTags('business-operations')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/operations')
+@Controller('operations')
 export class BusinessOperationsController {
   constructor(private readonly businessOperationsService: BusinessOperationsService) {}
 

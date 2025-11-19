@@ -61,6 +61,12 @@ En cas d'erreur, l'API renvoie une réponse avec `success: false` et un message 
 }
 ```
 
+## Base URL
+
+Tous les endpoints sont accessibles via l'API Gateway:
+- **Via API Gateway**: `http://localhost:8000/commerce/api/v1`
+- **Accès direct (développement)**: `http://localhost:3006/api`
+
 ## Authentification
 
 La plupart des endpoints nécessitent une authentification. Vous devez inclure un token JWT dans l'en-tête de vos requêtes:
@@ -78,7 +84,7 @@ Pour les endpoints qui retournent plusieurs éléments, la pagination est dispon
 - `page`: Le numéro de page à retourner (commence à 1)
 - `limit`: Le nombre d'éléments par page
 
-Exemple: `GET /expenses?page=2&limit=10`
+Exemple: `GET /commerce/api/v1/expenses?page=2&limit=10`
 
 ## Filtres et tri
 

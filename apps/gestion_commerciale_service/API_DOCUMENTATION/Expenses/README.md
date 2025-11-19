@@ -60,7 +60,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 1. Récupérer toutes les dépenses
 
-**Endpoint:** `GET /expenses`
+**Endpoint:** `GET /commerce/api/v1/expenses`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination
@@ -88,7 +88,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 2. Récupérer une dépense par ID
 
-**Endpoint:** `GET /expenses/{id}`
+**Endpoint:** `GET /commerce/api/v1/expenses/{id}`
 
 **Paramètres:**
 - `id`: ID de la dépense à récupérer
@@ -107,7 +107,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 3. Créer une nouvelle dépense
 
-**Endpoint:** `POST /expenses`
+**Endpoint:** `POST /commerce/api/v1/expenses`
 
 **Corps de la requête:**
 ```json
@@ -138,7 +138,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 4. Mettre à jour une dépense
 
-**Endpoint:** `PUT /expenses/{id}`
+**Endpoint:** `PATCH /commerce/api/v1/expenses/{id}`
 
 **Paramètres:**
 - `id`: ID de la dépense à mettre à jour
@@ -172,7 +172,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 5. Supprimer une dépense
 
-**Endpoint:** `DELETE /expenses/{id}`
+**Endpoint:** `DELETE /commerce/api/v1/expenses/{id}`
 
 **Paramètres:**
 - `id`: ID de la dépense à supprimer
@@ -189,7 +189,7 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 
 ### 6. Téléchargement de pièces jointes
 
-**Endpoint:** `POST /expenses/attachments`
+**Endpoint:** `POST /commerce/api/v1/expenses/:id/upload-receipt`
 
 **Type de requête:** `multipart/form-data`
 

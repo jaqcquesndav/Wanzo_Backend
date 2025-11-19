@@ -409,6 +409,80 @@ export class ProxyController {
     }
   }
 
+  @All('commerce/api/v1/*')
+  @ApiOperation({ 
+    summary: 'Proxy to Commerce Service',
+    description: 'Routes all requests starting with commerce/api/v1 to the gestion commerciale service (mobile app)'
+  })
+  @ApiResponse({ status: 200, description: 'Request successfully proxied' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async proxyToCommerceService(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const { method, path, headers, body } = req;
+    const startTime = Date.now();
+    
+    this.logger.log(`🛒 COMMERCE SERVICE PROXY: ${method} ${path}`);
+    this.logger.log(`📋 Headers received: ${JSON.stringify(Object.keys(headers))}`);
+    
+    // Check for Authorization header (case insensitive)
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader) {
+      const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+      this.logger.log(`🔑 Authorization header found and will be forwarded: ${authValue.substring(0, 20)}...`);
+    } else {
+      this.logger.log(`❌ No Authorization header found - this may cause authentication issues`);
+    }
+    
+    try {
+      // Extract path after 'commerce/api/v1' and prepend /api since commerce service has global prefix 'api'
+      const targetPath = path.replace('/commerce/api/v1', '/api');
+      
+      const commerceServiceUrl = this.configService.get('COMMERCE_SERVICE_URL', 'http://kiota-gestion-commerciale-service:3006');
+      const targetUrl = `${commerceServiceUrl}${targetPath}`;
+      
+      this.logger.log(`📡 Forwarding to: ${targetUrl}`);
+      
+      // Prepare headers - ensure Authorization header is properly forwarded
+      const serviceHost = commerceServiceUrl.replace('http://', '').replace('https://', '');
+      const forwardHeaders = {
+        ...headers,
+        host: serviceHost
+      };
+      delete forwardHeaders['content-length'];
+      
+      // Ensure Authorization header is preserved (case sensitive handling)
+      if (authHeader) {
+        forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+        this.logger.log(`🔑 Authorization header set in forward headers`);
+      }
+      
+      const response = await axios({
+        method: method.toLowerCase() as any,
+        url: targetUrl,
+        headers: forwardHeaders,
+        data: body,
+        timeout: 30000,
+        validateStatus: () => true // Accept all status codes
+      });
+      
+      const duration = Date.now() - startTime;
+      this.logger.log(`✅ COMMERCE SERVICE RESPONSE: ${response.status} (${duration}ms)`);
+      
+      // Forward response headers
+      Object.entries(response.headers).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'transfer-encoding') {
+          res.set(key, value as string);
+        }
+      });
+      
+      res.status(response.status).send(response.data);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.handleError(error, req, res, duration);
+    }
+  }
+
   @All('admin/api/v1/*')
   @ApiOperation({ 
     summary: 'Proxy to Admin Service',
@@ -453,7 +527,7 @@ export class ProxyController {
       // Ensure Authorization header is preserved (case sensitive handling)
       if (authHeader) {
         forwardHeaders['Authorization'] = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-        this.logger.log(`� Authorization header set in forward headers`);
+        this.logger.log(`🔑 Authorization header set in forward headers`);
       }
       
       const response = await axios({
@@ -506,7 +580,8 @@ export class ProxyController {
         'ANY /portfolio/api/v1/* - Portfolio Institution service routes',
         'ANY /adha/api/v1/* - Adha AI service routes',
         'ANY /accounting/api/v1/* - Accounting service routes (full path)',
-        'ANY /accounting/* - Accounting service routes (short path)'
+        'ANY /accounting/* - Accounting service routes (short path)',
+        'ANY /commerce/api/v1/* - Commerce service routes (mobile app)'
       ]
     });
   }

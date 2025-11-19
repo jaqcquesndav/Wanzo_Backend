@@ -26,7 +26,7 @@ Cette documentation détaille les endpoints disponibles pour la gestion des four
 
 ### 1. Récupérer tous les fournisseurs
 
-**Endpoint:** `GET /suppliers`
+**Endpoint:** `GET /commerce/api/v1/suppliers`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination
@@ -52,7 +52,7 @@ Cette documentation détaille les endpoints disponibles pour la gestion des four
 
 ### 2. Récupérer un fournisseur par ID
 
-**Endpoint:** `GET /suppliers/{id}`
+**Endpoint:** `GET /commerce/api/v1/suppliers/{id}`
 
 **Paramètres:**
 - `id`: ID du fournisseur à récupérer
@@ -71,7 +71,7 @@ Cette documentation détaille les endpoints disponibles pour la gestion des four
 
 ### 3. Créer un nouveau fournisseur
 
-**Endpoint:** `POST /suppliers`
+**Endpoint:** `POST /commerce/api/v1/suppliers`
 
 **Corps de la requête:**
 ```json

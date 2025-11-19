@@ -50,7 +50,7 @@ Les statuts de transactions sont représentés par des chaînes de caractères:
 
 ### 1. Récupérer toutes les transactions financières
 
-**Endpoint:** `GET /financial-transactions`
+**Endpoint:** `GET /commerce/api/v1/financial-transactions`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination

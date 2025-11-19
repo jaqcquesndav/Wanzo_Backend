@@ -95,7 +95,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 1. Récupérer tous les produits
 
-**Endpoint:** `GET /products`
+**Endpoint:** `GET /commerce/api/v1/products`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination
@@ -122,7 +122,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 2. Récupérer un produit par ID
 
-**Endpoint:** `GET /products/{id}`
+**Endpoint:** `GET /commerce/api/v1/products/{id}`
 
 **Paramètres:**
 - `id`: ID du produit à récupérer
@@ -141,7 +141,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 3. Créer un nouveau produit
 
-**Endpoint:** `POST /products`
+**Endpoint:** `POST /commerce/api/v1/products`
 
 **Type de requête:** `multipart/form-data` (si vous incluez une image) ou `application/json`
 
@@ -181,7 +181,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 4. Mettre à jour un produit
 
-**Endpoint:** `PUT /products/{id}`
+**Endpoint:** `PATCH /commerce/api/v1/products/{id}`
 
 **Paramètres:**
 - `id`: ID du produit à mettre à jour
@@ -225,7 +225,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 5. Supprimer un produit
 
-**Endpoint:** `DELETE /products/{id}`
+**Endpoint:** `DELETE /commerce/api/v1/products/{id}`
 
 **Paramètres:**
 - `id`: ID du produit à supprimer
@@ -244,7 +244,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 1. Récupérer toutes les transactions de stock
 
-**Endpoint:** `GET /stock-transactions`
+**Endpoint:** `GET /commerce/api/v1/stock-transactions`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination
@@ -271,7 +271,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 2. Récupérer une transaction de stock par ID
 
-**Endpoint:** `GET /stock-transactions/{id}`
+**Endpoint:** `GET /commerce/api/v1/stock-transactions/{id}`
 
 **Paramètres:**
 - `id`: ID de la transaction à récupérer
@@ -290,7 +290,7 @@ Les types de transactions de stock sont représentés par des chaînes de caract
 
 ### 3. Créer une nouvelle transaction de stock
 
-**Endpoint:** `POST /stock-transactions`
+**Endpoint:** `POST /commerce/api/v1/stock-transactions`
 
 **Corps de la requête:**
 ```json

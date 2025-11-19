@@ -53,7 +53,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 1. Récupérer toutes les ventes
 
-**Endpoint:** `GET /sales`
+**Endpoint:** `GET /commerce/api/v1/sales`
 
 **Paramètres de requête:**
 - `page` (optionnel): Numéro de page pour la pagination
@@ -84,7 +84,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 2. Récupérer une vente par ID
 
-**Endpoint:** `GET /sales/{id}`
+**Endpoint:** `GET /commerce/api/v1/sales/{id}`
 
 **Paramètres:**
 - `id`: ID de la vente à récupérer
@@ -103,7 +103,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 3. Créer une nouvelle vente
 
-**Endpoint:** `POST /sales`
+**Endpoint:** `POST /commerce/api/v1/sales`
 
 **Corps de la requête:**
 ```json
@@ -145,7 +145,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 4. Mettre à jour une vente
 
-**Endpoint:** `PUT /sales/{id}`
+**Endpoint:** `PATCH /commerce/api/v1/sales/{id}`
 
 **Paramètres:**
 - `id`: ID de la vente à mettre à jour
@@ -189,7 +189,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 5. Supprimer une vente
 
-**Endpoint:** `DELETE /sales/{id}`
+**Endpoint:** `DELETE /commerce/api/v1/sales/{id}`
 
 **Paramètres:**
 - `id`: ID de la vente à supprimer
@@ -206,7 +206,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 6. Marquer une vente comme complétée
 
-**Endpoint:** `PUT /sales/{id}/complete`
+**Endpoint:** `PUT /commerce/api/v1/sales/{id}/complete`
 
 **Paramètres:**
 - `id`: ID de la vente à marquer comme complétée
@@ -234,7 +234,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 
 ### 7. Annuler une vente
 
-**Endpoint:** `PUT /sales/{id}/cancel`
+**Endpoint:** `PUT /commerce/api/v1/sales/{id}/cancel`
 
 **Paramètres:**
 - `id`: ID de la vente à annuler

@@ -41,7 +41,7 @@ Represents the type of notification:
 
 Retrieves a list of notifications for the authenticated user.
 
-- **Endpoint**: `/notifications`
+- **Endpoint**: `/commerce/api/v1/notifications`
 - **Method**: GET
 - **Authorization**: Bearer token required
 - **Query Parameters**:
