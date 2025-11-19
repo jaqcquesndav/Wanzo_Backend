@@ -1,0 +1,16 @@
+# Cron Jobs Configuration for Adha AI Service
+# Add these to your system crontab or use a scheduler like systemd timers
+
+# 1. Reset monthly tokens - Every 1st of month at midnight
+# 0 0 1 * * cd /path/to/Wanzo_Backend/apps/Adha-ai-service && python manage.py reset_monthly_tokens
+
+# 2. Cleanup old data - Every day at 2 AM
+# 0 2 * * * cd /path/to/Wanzo_Backend/apps/Adha-ai-service && python manage.py cleanup_old_data
+
+# Installation instructions:
+# 1. Edit crontab: crontab -e
+# 2. Add the lines above (uncommented and with correct paths)
+# 3. Save and exit
+
+# For systemd timers (alternative to cron):
+# See: docs/systemd-timers-setup.md

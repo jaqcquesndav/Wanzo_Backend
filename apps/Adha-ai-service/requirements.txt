@@ -29,6 +29,10 @@ langchain>=0.1.0,<0.2.0  # LLM framework optimisé
 psutil>=5.9.0
 kafka-python>=2.0.0
 
+# Celery & Redis (tâches asynchrones et retry)
+celery>=5.3.0,<5.4.0
+redis>=4.5.0,<5.0.0
+
 # Monitoring (léger)
 prometheus_client>=0.17.0,<0.20.0
 

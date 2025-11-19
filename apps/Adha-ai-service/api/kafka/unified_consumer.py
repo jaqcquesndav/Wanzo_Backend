@@ -19,6 +19,8 @@ from .robust_kafka_client import (
 )
 import time
 from api.services.task_router import task_router
+from api.models import ProcessedMessage, ProcessingRequest
+from api.services.token_reservation import token_reservation_service, InsufficientTokensError
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +71,7 @@ class UnifiedConsumer:
     def _process_message(self, message: Dict[str, Any]):
         """
         Traite les messages en continu et les route vers le service approprié.
-        Avec gestion d'erreurs robuste et retry automatique.
+        Avec gestion d'erreurs robuste, idempotence, et retry automatique.
         """
         start_time = time.time()
         topic = message.get('metadata', {}).get('kafka_topic', 'unknown')
@@ -81,7 +83,39 @@ class UnifiedConsumer:
             message_id = message.get('id', 'unknown')
             correlation_id = metadata.get('correlation_id', 'unknown')
             
+            # ✅ IDEMPOTENCE: Vérifier si message déjà traité
+            if ProcessedMessage.is_already_processed(message_id):
+                logger.info(f"Skipping duplicate message {message_id} from topic {topic}")
+                return
+            
             logger.info(f"Processing message {message_id} (correlation: {correlation_id}) from topic {topic}")
+            
+            # Extraire company_id pour tracking
+            company_id = data.get('company_id') or data.get('companyId') or data.get('institutionId')
+            
+            # ✅ STATE MANAGEMENT: Créer ou récupérer ProcessingRequest
+            request_type_map = {
+                'portfolio.analysis.request': 'analysis',
+                'portfolio.chat.message': 'chat',
+                'commerce.operation.created': 'accounting',
+                'accounting.journal.status': 'accounting'
+            }
+            request_type = request_type_map.get(topic, 'chat')
+            
+            processing_request, created = ProcessingRequest.objects.get_or_create(
+                correlation_id=correlation_id,
+                defaults={
+                    'request_type': request_type,
+                    'company_id': company_id,
+                    'request_data': data
+                }
+            )
+            
+            if not created and processing_request.status == 'completed':
+                logger.info(f"Request {correlation_id} already completed, skipping")
+                return
+            
+            processing_request.mark_as_processing()
             
             # Enrichir le message avec des métadonnées de traitement
             if 'processing_metadata' not in data:
@@ -89,9 +123,34 @@ class UnifiedConsumer:
             
             data['processing_metadata'].update({
                 'received_at': datetime.utcnow().isoformat(),
-                'consumer_version': '2.0.0',
-                'retry_count': metadata.get('retry_count', 0)
+                'consumer_version': '3.0.0',
+                'retry_count': metadata.get('retry_count', 0),
+                'processing_request_id': str(processing_request.request_id)
             })
+            
+            # ✅ VÉRIFICATION QUOTA: Estimer et réserver tokens AVANT traitement
+            estimated_tokens = 0
+            if company_id and request_type in ['chat', 'analysis', 'accounting']:
+                try:
+                    content_length = len(str(data))
+                    estimated_tokens = token_reservation_service.estimate_tokens(
+                        request_type, content_length
+                    )
+                    
+                    token_reservation_service.check_and_reserve_tokens(
+                        company_id, estimated_tokens
+                    )
+                    logger.info(f"Reserved {estimated_tokens} tokens for company {company_id}")
+                    
+                except InsufficientTokensError as e:
+                    logger.warning(f"Insufficient tokens: {str(e)}")
+                    processing_request.mark_as_failed(str(e))
+                    
+                    # Marquer comme traité même si quota insuffisant
+                    ProcessedMessage.mark_as_processed(
+                        message_id, correlation_id, topic, company_id, 0
+                    )
+                    return
             
             # Router le message vers le service approprié
             response = task_router.route_task(data)
@@ -100,11 +159,42 @@ class UnifiedConsumer:
             
             if response and 'error' in response:
                 logger.error(f"Error processing message {message_id}: {response.get('error')} (processed in {processing_time:.2f}ms)")
+                
+                # Marquer request comme failed
+                processing_request.mark_as_failed(response.get('error'))
+                
+                # Rollback tokens réservés
+                if estimated_tokens > 0 and company_id:
+                    token_reservation_service.release_reserved_tokens(company_id, estimated_tokens)
+                
                 self._handle_processing_error(message, response.get('error'))
-                # Note: Le monitoring d'erreur sera fait dans _handle_processing_error
             else:
                 logger.info(f"Successfully processed message {message_id} of type: {response.get('type', 'unknown')} in {processing_time:.2f}ms")
                 self.error_count = max(0, self.error_count - 1)  # Réduire le compteur d'erreurs
+                
+                # Extraire tokens réellement utilisés
+                actual_tokens_used = response.get('tokens_used', {}).get('total', estimated_tokens)
+                
+                # Ajuster tokens si nécessaire
+                if estimated_tokens > 0 and company_id:
+                    token_reservation_service.adjust_tokens_after_processing(
+                        company_id, estimated_tokens, actual_tokens_used
+                    )
+                
+                # Marquer request comme completed
+                processing_request.mark_as_completed(
+                    result_data=response,
+                    tokens_used=actual_tokens_used
+                )
+                
+                # ✅ Marquer message comme traité (idempotence)
+                ProcessedMessage.mark_as_processed(
+                    message_id=message_id,
+                    correlation_id=correlation_id,
+                    topic=topic,
+                    company_id=company_id,
+                    processing_time_ms=int(processing_time)
+                )
                 
                 # Enregistrer les métriques de succès
                 try:
@@ -118,6 +208,16 @@ class UnifiedConsumer:
         except Exception as e:
             processing_time = (time.time() - start_time) * 1000
             logger.exception(f"Critical error processing message: {str(e)} (failed after {processing_time:.2f}ms)")
+            
+            # Rollback tokens si réservés
+            if 'estimated_tokens' in locals() and estimated_tokens > 0 and 'company_id' in locals() and company_id:
+                token_reservation_service.release_reserved_tokens(company_id, estimated_tokens)
+            
+            # Marquer request comme failed si existe
+            if 'processing_request' in locals():
+                import traceback
+                processing_request.mark_as_failed(str(e), traceback.format_exc())
+            
             self._handle_processing_error(message, str(e))
             
             # Enregistrer les métriques d'erreur

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ExternalUserEventsConsumer } from './consumers/external-user-events.consumer';
+import { SyncConfirmationConsumer } from './consumers/sync-confirmation.consumer';
 import { SystemUsersModule } from '../system-users/system-users.module';
 import { CustomersModule } from '../customers/customers.module';
 
@@ -28,9 +29,11 @@ import { CustomersModule } from '../customers/customers.module';
   ],
   providers: [
     ExternalUserEventsConsumer,
+    SyncConfirmationConsumer,
   ],
   exports: [
     ExternalUserEventsConsumer,
+    SyncConfirmationConsumer,
   ],
 })
 export class EventsModule {}

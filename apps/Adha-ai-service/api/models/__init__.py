@@ -10,6 +10,8 @@ from .admin_key import AdminAccessKey
 from .journal_entry import JournalEntry
 from .token_usage import TokenUsage, UserTokenQuota
 from .chat import ChatConversation, ChatMessage
+from .processed_message import ProcessedMessage
+from .processing_request import ProcessingRequest
 
 # AdminAccessKey is specifically for admin users, not companies
 __all__ = [
@@ -23,5 +25,7 @@ __all__ = [
     'ChatMessage',
     'TokenPrice',
     'TokenPurchaseRequest',
-    'TokenQuota'
+    'TokenQuota',
+    'ProcessedMessage',
+    'ProcessingRequest',
 ]

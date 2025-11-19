@@ -162,6 +162,7 @@ class TaskRouter:
     def process_accounting_status_task(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """
         Traite un message de statut de traitement d'écriture comptable.
+        ✅ PRÉVENTION BOUCLE: Limite les retry à 3 tentatives maximum.
         
         Args:
             message: Le message de statut à traiter
@@ -169,7 +170,39 @@ class TaskRouter:
         Returns:
             Dict: Le résultat du traitement du statut
         """
-        logger.info(f"Processing accounting status message: {message.get('journalEntryId', 'unknown')}")
+        journal_entry_id = message.get('journalEntryId', 'unknown')
+        logger.info(f"Processing accounting status message: {journal_entry_id}")
+        
+        # ✅ Extraire retry_count pour éviter boucle infinie
+        retry_count = message.get('metadata', {}).get('retry_count', 0)
+        max_retries = 3
+        
+        if message.get('status') == 'failed':
+            if retry_count >= max_retries:
+                logger.error(
+                    f"Max retries ({max_retries}) exceeded for journal entry {journal_entry_id}. "
+                    f"Sending to DLQ."
+                )
+                # Ne pas réessayer, envoyer en DLQ
+                return {
+                    "type": "accounting_status_response",
+                    "action": "sent_to_dlq",
+                    "reason": "max_retries_exceeded",
+                    "journal_entry_id": journal_entry_id
+                }
+            else:
+                logger.warning(
+                    f"Accounting entry failed, retry {retry_count + 1}/{max_retries}: "
+                    f"{journal_entry_id}"
+                )
+                # Programmer un retry avec delay
+                return {
+                    "type": "accounting_status_response",
+                    "action": "scheduled_retry",
+                    "retry_count": retry_count + 1,
+                    "journal_entry_id": journal_entry_id
+                }
+        
         status_result = handle_accounting_status(message)
         
         if status_result:

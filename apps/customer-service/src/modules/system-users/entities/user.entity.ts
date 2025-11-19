@@ -18,8 +18,24 @@ export enum UserRole {
 export enum UserStatus {
   ACTIVE = 'active',
   PENDING = 'pending',
+  PENDING_PROFILE = 'pending_profile',  // User créé mais sans organisation associée
   SUSPENDED = 'suspended',
   INACTIVE = 'inactive',
+}
+
+export enum ProfileCompletionStatus {
+  NOT_STARTED = 'not_started',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  EXPIRED = 'expired',
+}
+
+export enum SyncStatus {
+  PENDING = 'pending',        // En attente de synchronisation
+  IN_PROGRESS = 'in_progress', // Synchronisation en cours
+  SYNCED = 'synced',          // Synchronisé avec succès
+  FAILED = 'failed',          // Échec de synchronisation
+  RETRY = 'retry',            // En attente de retry
 }
 
 export enum UserType {
@@ -220,6 +236,48 @@ export class User {
 
   @Column({ nullable: true })
   auth0Id?: string;
+
+  // === GESTION DES ÉTATS INTERMÉDIAIRES ===
+  @Column({
+    type: 'enum',
+    enum: ProfileCompletionStatus,
+    default: ProfileCompletionStatus.NOT_STARTED,
+  })
+  profileCompletionStatus!: ProfileCompletionStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  profileCompletionDeadline?: Date;  // 7 jours après création
+
+  @Column({ type: 'timestamp', nullable: true })
+  profileCompletedAt?: Date;
+
+  @Column({ default: 0 })
+  profileCompletionReminders!: number;  // Nombre de rappels envoyés
+
+  // === GESTION DE LA SYNCHRONISATION KAFKA ===
+  @Column({
+    type: 'enum',
+    enum: SyncStatus,
+    default: SyncStatus.PENDING,
+  })
+  syncStatus!: SyncStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastSyncAttempt?: Date;
+
+  @Column({ default: 0 })
+  syncRetryCount!: number;
+
+  @Column({ type: 'text', nullable: true })
+  lastSyncError?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  syncMetadata?: {
+    servicesToSync?: string[];  // Services qui doivent recevoir les données
+    syncedServices?: string[];   // Services qui ont confirmé la réception
+    failedServices?: string[];   // Services qui ont échoué
+    lastSuccessfulSync?: Record<string, string>;  // Timestamp par service
+  };
 
   // Relations avec les nouvelles entités
   @OneToOne(() => UserSettings, settings => settings.user, { cascade: true, nullable: true })

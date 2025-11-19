@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Connection } from 'typeorm';
 import { User, UserRole, UserStatus, UserType, IdStatus, IdType } from '../entities/user.entity';
@@ -9,6 +9,8 @@ import { CustomerEventsProducer } from '../../kafka/producers/customer-events.pr
 import { Customer, CustomerStatus, CustomerType } from '../../customers/entities/customer.entity';
 // Note: Sme functionality moved to CompanyModule with CompanyCoreEntity
 import { CloudinaryService, MulterFile } from '../../cloudinary/cloudinary.service';
+import { UserStateManagerService } from './user-state-manager.service';
+import { UserSyncManagerService } from './user-sync-manager.service';
 
 
 // Define a UserActivityDto interface for internal use
@@ -55,6 +57,10 @@ export class UserService {
     private readonly connection: Connection,
     private readonly customerEventsProducer: CustomerEventsProducer,
     private readonly cloudinaryService: CloudinaryService,
+    @Inject(forwardRef(() => UserStateManagerService))
+    private readonly userStateManager: UserStateManagerService,
+    @Inject(forwardRef(() => UserSyncManagerService))
+    private readonly userSyncManager: UserSyncManagerService,
   ) {}
 
   /**
@@ -143,7 +149,7 @@ export class UserService {
       customerId: savedCustomer?.id || null, // Only set if company exists
       companyId: savedCustomer?.id || companyId || null, // Set companyId even if customer doesn't exist yet
       financialInstitutionId: financialInstitutionId || null, // Set financialInstitutionId if provided
-      status: UserStatus.ACTIVE,
+      status: savedCustomer ? UserStatus.ACTIVE : UserStatus.PENDING_PROFILE, // PENDING_PROFILE si pas de company
       picture: picture,
       isCompanyOwner: savedCustomer ? false : true, // Will be owner when company is created later
       createdAt: new Date(),
@@ -151,14 +157,27 @@ export class UserService {
       lastLogin: new Date(),
     } as Partial<User>);
     
+    // Initialiser la gestion d'état si pas de company
+    if (!savedCustomer) {
+      this.userStateManager.initializeUserState(newUser);
+      console.log('📋 [UserService] Profile completion deadline set:', newUser.profileCompletionDeadline);
+    }
+    
+    // Déterminer les services à synchroniser
+    const servicesToSync = this.determineServicesToSync(newUser);
+    this.userSyncManager.initializeSyncStatus(newUser, servicesToSync);
+    console.log('🔄 [UserService] Services to sync:', servicesToSync);
+    
     const savedUser = await this.userRepository.save(newUser);
     console.log('✅ [UserService] Created User:', savedUser.id);
     
-    // Emit user creation events
-    await this.customerEventsProducer.emitUserCreated(savedUser);
-    await this.customerEventsProducer.emitUserLogin(savedUser, { 
-      isFirstLogin: true 
-    });
+    // Tenter la synchronisation Kafka avec retry automatique
+    try {
+      await this.userSyncManager.syncUserWithRetry(savedUser.id);
+    } catch (error) {
+      console.error('⚠️ [UserService] Initial sync failed, will retry automatically:', error);
+      // Ne pas bloquer la création du user, le système de retry s'en occupera
+    }
     
     // Record first login activity
     await this.recordUserActivity({
@@ -168,7 +187,8 @@ export class UserService {
         source: 'auth0_sync', 
         isFirstLogin: true, 
         accountCreated: true,
-        companyAssociated: !!savedCustomer
+        companyAssociated: !!savedCustomer,
+        profileCompletionRequired: !savedCustomer,
       },
     });
     
@@ -789,5 +809,40 @@ export class UserService {
     }
 
     return [];
+  }
+
+  /**
+   * Détermine les services qui doivent être synchronisés en fonction du type d'utilisateur
+   */
+  private determineServicesToSync(user: User): string[] {
+    const services: string[] = [];
+
+    switch (user.userType) {
+      case UserType.SME:
+        services.push('gestion_commerciale_service');
+        if (user.isCompanyOwner) {
+          services.push('accounting-service');
+          services.push('analytics-service');
+        }
+        break;
+
+      case UserType.FINANCIAL_INSTITUTION:
+        services.push('portfolio-institution-service');
+        services.push('accounting-service');
+        services.push('analytics-service');
+        if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN) {
+          services.push('admin-service');
+        }
+        break;
+
+      default:
+        // Type générique, synchroniser seulement avec les services de base
+        break;
+    }
+
+    // Tous les users ont accès à l'IA
+    services.push('adha-ai-service');
+
+    return services;
   }
 }
