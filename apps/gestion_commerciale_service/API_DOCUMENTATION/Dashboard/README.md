@@ -2,6 +2,32 @@
 
 Cette documentation détaille les endpoints disponibles pour le tableau de bord (dashboard) dans l'application Wanzo.
 
+## ⚠️ Note d'Architecture
+
+**Architecture Offline-First Implémentée**
+
+Le Dashboard utilise une architecture **offline-first avec synchronisation API optionnelle**:
+- **Stockage local**: Hive NoSQL pour accès instantané
+- **Calculs en temps réel**: Les KPI sont calculés depuis les données locales (Sales, Customers, Expenses)
+- **Mode API**: Les endpoints décrits ci-dessous sont utilisés pour la synchronisation avec le backend (optionnel)
+- **Pas de latence réseau**: L'application fonctionne pleinement hors ligne
+
+### Workflow Actuel
+```
+UI → DashboardApiService → Repositories Locaux (Hive)
+                              ├─ SalesRepository
+                              ├─ CustomerRepository
+                              ├─ ExpenseRepository
+                              └─ TransactionRepository
+```
+
+### Roadmap API Backend
+Les endpoints REST décrits dans cette documentation sont prévus pour:
+- Synchronisation multi-appareils
+- Backup cloud des données
+- Analytics centralisés
+- Collaboration en équipe
+
 ## Structure du modèle DashboardData
 
 Le modèl6. **Export PDF**: Le journal des opérations peut être exporté en PDF pour les rapports
@@ -66,11 +92,49 @@ Le journal des opérations trace toutes les transactions commerciales et financi
   "quantity": 5.0,                         // Quantité pour les mouvements de stock - optionnel
   "productId": "string",                   // ID du produit pour les mouvements de stock - optionnel
   "productName": "string",                 // Nom du produit pour les mouvements de stock - optionnel
+  "customerId": "string",                  // ID du client pour les ventes - optionnel
+  "customerName": "string",                // Nom du client pour les ventes - optionnel
+  "supplierId": "string",                  // ID du fournisseur pour les achats - optionnel
+  "supplierName": "string",                // Nom du fournisseur pour les achats - optionnel
   "paymentMethod": "string",               // Méthode de paiement - optionnel
   "balancesByCurrency": {                  // Soldes par devise - optionnel
     "CDF": 2000000.00,
     "USD": 1000.00
   }
+}
+```
+
+### Champs Client et Fournisseur
+
+Les champs `customerId`, `customerName`, `supplierId` et `supplierName` permettent de:
+- **Tracer les opérations**: Identifier rapidement quel client/fournisseur est impliqué
+- **Générer des rapports**: Créer des historiques par client ou fournisseur
+- **Analyses ADHA**: Fournir du contexte pour l'assistant IA
+- **Gestion des créances/dettes**: Suivre les montants dus par client ou dus aux fournisseurs
+
+**Exemples d'utilisation**:
+
+1. **Vente à un client**:
+```json
+{
+  "type": "saleCredit",
+  "amount": 150000.00,
+  "customerId": "cust_123",
+  "customerName": "Jean Mukendi",
+  "description": "Vente de 5 sacs de ciment"
+}
+```
+
+2. **Achat auprès d'un fournisseur**:
+```json
+{
+  "type": "stockIn",
+  "amount": -100000.00,
+  "supplierId": "supp_456",
+  "supplierName": "Fournisseur ABC",
+  "productId": "prod_789",
+  "productName": "Ciment 50kg",
+  "quantity": 10
 }
 ```
 
@@ -92,11 +156,15 @@ Les types d'opérations supportés dans le journal :
 - `financingRepayment` - Remboursement Financement
 - `other` - Autre
 
-## Endpoints
+## Méthodes de Service (Implémentation Actuelle)
+
+Les méthodes suivantes sont implémentées dans `DashboardApiService` et utilisent les données locales:
 
 ### 1. Récupérer les données du tableau de bord
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/data`
+**Méthode**: `getDashboardData(DateTime date)` → `ApiResponse<DashboardData>`
+
+**Endpoint API Future**: `GET /commerce/api/v1/dashboard/data`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les données au format ISO8601 (YYYY-MM-DD). Par défaut : date actuelle
@@ -115,7 +183,9 @@ Les types d'opérations supportés dans le journal :
 
 ### 2. Récupérer uniquement les ventes du jour
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/sales-today`
+**Méthode**: `getSalesToday(DateTime date)` → `ApiResponse<Map<String, double>>`
+
+**Endpoint API Future**: `GET /commerce/api/v1/dashboard/sales-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les ventes au format ISO8601 (YYYY-MM-DD)
@@ -135,7 +205,9 @@ Les types d'opérations supportés dans le journal :
 
 ### 3. Récupérer le nombre de clients servis aujourd'hui
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/clients-served-today`
+**Méthode**: `getClientsServedToday(DateTime date)` → `ApiResponse<int>`
+
+**Endpoint API Future**: `GET /commerce/api/v1/dashboard/clients-served-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les données
@@ -152,7 +224,9 @@ Les types d'opérations supportés dans le journal :
 
 ### 4. Récupérer le total des montants à recevoir
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/receivables`
+**Méthode**: `getTotalReceivables()` → `ApiResponse<double>`
+
+**Endpoint API Future**: `GET /commerce/api/v1/dashboard/receivables`
 
 **Réponse:**
 ```json
@@ -166,7 +240,9 @@ Les types d'opérations supportés dans le journal :
 
 ### 5. Récupérer les dépenses du jour
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/expenses-today`
+**Méthode**: `getExpensesToday(DateTime date)` → `ApiResponse<double>`
+
+**Endpoint API Future**: `GET /commerce/api/v1/dashboard/expenses-today`
 
 **Paramètres de requête:**
 - `date` (optionnel): Date pour laquelle récupérer les dépenses
@@ -185,9 +261,41 @@ Les types d'opérations supportés dans le journal :
 
 Le dashboard inclut également un journal des opérations détaillé qui trace toutes les activités commerciales et financières.
 
+### ✅ Implémentation Complète
+
+Le journal des opérations est **pleinement fonctionnel** avec une architecture hybride offline-first + API:
+
+**Repository**: `OperationJournalRepository`
+- Stockage local Hive avec cache persistant
+- Synchronisation automatique avec backend (si disponible)
+- Support multi-devises (CDF, USD, autres)
+- Calcul automatique des soldes par devise
+- Gestion intelligente des conflits
+
+**Bloc**: `OperationJournalBloc`
+- States: Initial, Loading, Loaded, Error
+- Events: LoadOperations, RefreshJournal, AddOperation, AddMultiple
+- Écoute connectivité pour auto-sync
+- Filtrage et tri avancés
+
+**Service d'Export**: `JournalService`
+- Export PDF multi-pages avec pagination
+- Formatage localisé (dates, montants)
+- Support multi-devises dans le PDF
+- En-têtes et pieds de page personnalisés
+
 ### 6. Récupérer les entrées du journal des opérations
 
-**Endpoint**: `GET /commerce/api/v1/dashboard/operations-journal`
+**Méthode**: `getOperations(DateTime startDate, DateTime endDate)` → `List<OperationJournalEntry>`
+
+**Stratégie hybride**:
+1. Lecture immédiate depuis Hive (réponse instantanée)
+2. Tentative API avec timeout 5s (si connexion disponible)
+3. Fusion données API + locales non synchronisées
+4. Persistance automatique des données API
+5. Fallback local en cas d'échec réseau
+
+**Endpoint API**: `GET /commerce/api/v1/journal/operations`
 
 **Paramètres de requête:**
 - `startDate` (optionnel): Date de début au format ISO8601

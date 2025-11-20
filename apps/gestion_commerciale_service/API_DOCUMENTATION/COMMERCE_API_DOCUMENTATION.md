@@ -145,15 +145,21 @@ Tous les endpoints sont préfixés par `/commerce/api/v1` via l'API Gateway.
 
 ### 3. Ventes (Sales)
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/sales` | Récupérer toutes les ventes avec filtrage |
-| GET | `/sales/:id` | Récupérer une vente par son ID |
-| POST | `/sales` | Créer une nouvelle vente |
-| PATCH | `/sales/:id` | Mettre à jour une vente |
-| PUT | `/sales/:id/complete` | Marquer une vente comme complétée |
-| PUT | `/sales/:id/cancel` | Annuler une vente |
-| GET | `/sales/:id/invoice` | Générer une facture pour une vente |
+**Status**: ✅ **Implémentation Complète** - Service API + Repository hybride offline-first
+
+**Service**: `SalesApiService` (✅ 9 méthodes) | **Repository**: `SalesRepository` (✅ Intégration hybride)
+
+| Méthode | Endpoint | Description | Status |
+|---------|----------|-------------|--------|
+| GET | `/sales` | Récupérer toutes les ventes avec filtrage | ✅ |
+| GET | `/sales/:id` | Récupérer une vente par son ID | ✅ |
+| POST | `/sales` | Créer une nouvelle vente | ✅ |
+| PATCH | `/sales/:id` | Mettre à jour une vente | ✅ |
+| PUT | `/sales/:id/complete` | Marquer une vente comme complétée | ✅ |
+| PUT | `/sales/:id/cancel` | Annuler une vente | ✅ |
+| POST | `/sales/sync` | Synchroniser les ventes locales vers le backend | ✅ |
+| GET | `/sales/stats` | Récupérer les statistiques de ventes | ✅ |
+| DELETE | `/sales/:id` | Supprimer une vente | ✅ |
 
 **Query Parameters GET /sales**:
 - `page` (number): Numéro de page
@@ -194,15 +200,21 @@ Tous les endpoints sont préfixés par `/commerce/api/v1` via l'API Gateway.
 
 ### 4. Clients (Customers)
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/customers` | Récupérer tous les clients avec pagination et recherche |
-| GET | `/customers/:id` | Récupérer un client par son ID |
-| POST | `/customers` | Créer un nouveau client |
-| PATCH | `/customers/:id` | Mettre à jour un client |
-| DELETE | `/customers/:id` | Supprimer un client (soft delete) |
-| GET | `/customers/:id/sales` | Récupérer historique ventes du client |
-| GET | `/customers/:id/payments` | Récupérer historique paiements |
+**Status**: ✅ **Implémentation Complète** - Service API + Repository hybride offline-first
+
+**Service**: `CustomerApiService` (✅ 8 méthodes) | **Repository**: `CustomerRepository` (✅ Intégration hybride)
+
+| Méthode | Endpoint | Description | Status |
+|---------|----------|-------------|--------|
+| GET | `/customers` | Récupérer tous les clients avec pagination et recherche | ✅ |
+| GET | `/customers/:id` | Récupérer un client par son ID | ✅ |
+| POST | `/customers` | Créer un nouveau client | ✅ |
+| PATCH | `/customers/:id` | Mettre à jour un client | ✅ |
+| DELETE | `/customers/:id` | Supprimer un client (soft delete) | ✅ |
+| GET | `/customers/:id/sales` | Récupérer historique ventes du client | ✅ |
+| GET | `/customers/:id/payments` | Récupérer historique paiements | ✅ |
+| POST | `/customers/sync` | Synchroniser les clients locaux vers le backend | ✅ |
+| GET | `/customers/:id/stats` | Récupérer les statistiques détaillées du client | ✅ |
 
 **Query Parameters GET /customers**:
 - `page` (number): Numéro de page
@@ -304,14 +316,21 @@ Tous les endpoints sont préfixés par `/commerce/api/v1` via l'API Gateway.
 
 ### 7. Opérations Commerciales (Business Operations)
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/operations` | Récupérer journal des opérations avec filtres |
-| GET | `/operations/:id` | Récupérer détails d'une opération |
-| POST | `/operations` | Créer une opération manuelle |
-| PATCH | `/operations/:id` | Modifier une opération |
-| DELETE | `/operations/:id` | Supprimer une opération |
-| GET | `/operations/export` | Exporter opérations (CSV, Excel, PDF) |
+**Status**: ✅ **Implémentation Complète** - Service API + Services d'Export
+
+**Service**: `OperationsApiService` (✅ 5 méthodes) | **Export**: `OperationExportService` (✅ PDF/Excel)
+
+| Méthode | Endpoint | Description | Status |
+|---------|----------|-------------|--------|
+| GET | `/operations` | Récupérer journal des opérations avec filtres avancés (11 paramètres) | ✅ |
+| GET | `/operations/:id` | Récupérer détails d'une opération | ✅ |
+| GET | `/operations/summary` | Résumé des opérations par période (day/week/month/year) | ✅ |
+| POST | `/operations/export` | Exporter opérations (PDF/Excel avec options avancées) | ✅ |
+| GET | `/operations/timeline` | Timeline des opérations récentes | ✅ |
+
+**Services Locaux Complémentaires**:
+- `OperationFilter` - Modèle de filtrage avec 8 critères + factory methods (today, thisWeek, thisMonth)
+- `OperationExportService` - Export PDF multi-pages, CSV, calcul statistiques
 
 **Query Parameters GET /operations**:
 - `page` (number): Numéro de page

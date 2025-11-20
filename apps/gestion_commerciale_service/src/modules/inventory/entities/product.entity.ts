@@ -140,6 +140,14 @@ export class Product {
   imageUrl: string;
 
   @ApiProperty({
+    description: 'Chemin local de l\'image (avant synchronisation)',
+    example: '/storage/emulated/0/images/product123.jpg',
+    nullable: true
+  })
+  @Column({ name: 'image_path', nullable: true })
+  imagePath: string;
+
+  @ApiProperty({
     description: 'Liste des attributs spécifiques du produit',
     example: [{ name: 'Couleur', value: 'Rouge' }, { name: 'Taille', value: 'M' }],
     nullable: true,

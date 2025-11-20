@@ -95,6 +95,50 @@ export class Expense {
   attachmentUrls?: string[];
 
   @ApiProperty({
+    description: 'Chemins locaux des pièces jointes (avant synchronisation)',
+    example: ['/storage/emulated/0/receipts/receipt1.jpg'],
+    nullable: true,
+    type: [String]
+  })
+  @Column('simple-array', { nullable: true })
+  localAttachmentPaths?: string[];
+
+  @ApiProperty({
+    description: 'Identifiant local temporaire (généré côté client)',
+    example: 'local-expense-12345',
+    nullable: true
+  })
+  @Column({ nullable: true })
+  localId?: string;
+
+  @ApiProperty({
+    description: 'Statut de synchronisation',
+    example: 'synced',
+    enum: ['synced', 'pending', 'failed'],
+    nullable: true
+  })
+  @Column({ nullable: true })
+  syncStatus?: string;
+
+  @ApiProperty({
+    description: 'Date de la dernière tentative de synchronisation',
+    example: '2023-08-01T12:30:00.000Z',
+    type: 'string',
+    format: 'date-time',
+    nullable: true
+  })
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  lastSyncAttempt?: Date;
+
+  @ApiProperty({
+    description: 'Message d\'erreur de synchronisation',
+    example: 'Network timeout',
+    nullable: true
+  })
+  @Column({ type: 'text', nullable: true })
+  errorMessage?: string;
+
+  @ApiProperty({
     description: 'Identifiant du fournisseur (optionnel)',
     example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15',
     format: 'uuid',
@@ -130,10 +174,10 @@ export class Expense {
 
   @ApiProperty({
     description: 'Code de la devise',
-    example: 'USD',
+    example: 'CDF',
     nullable: true
   })
-  @Column({ nullable: true, default: 'USD' })
+  @Column({ nullable: true, default: 'CDF' })
   currencyCode?: string;
 
   @ApiProperty({

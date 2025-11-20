@@ -53,7 +53,7 @@ export class DocumentManagementService {
       ...createDocumentDto, // Spread DTO first
       userId: user.id,
       companyId: user.companyId, 
-      storageUrl: uploadResult.secure_url,
+      storageUrl: uploadResult.secure_url,  // Utilise storageUrl comme défini dans l'entity
       fileSize: uploadResult.bytes, 
       fileType: uploadResult.format || file.mimetype, 
       fileName: file.originalname, // Explicitly set from original file

@@ -2,6 +2,41 @@
 
 Cette documentation détaille les endpoints disponibles pour la gestion des ventes dans l'application Wanzo.
 
+## ✅ Implémentation Complète
+
+**Architecture Hybride Offline-First + API Sync**
+
+Le module Sales utilise une architecture **hybride** avec synchronisation optionnelle:
+
+### Composants Implémentés
+
+**Service API**: `SalesApiService` (✅ Complet)
+- ✅ `getSales()` - Récupération avec filtres (page, limit, dates, customerId, status, sort)
+- ✅ `createSale()` - Création de vente
+- ✅ `getSaleById()` - Récupération par ID
+- ✅ `updateSale()` - Mise à jour
+- ✅ `deleteSale()` - Suppression
+- ✅ `completeSale()` - Marquer comme complétée
+- ✅ `cancelSale()` - Annulation
+- ✅ `syncSales()` - Synchronisation offline→online
+- ✅ `getSalesStats()` - Statistiques avec filtres de dates
+
+**Repository**: `SalesRepository` (✅ Intégration hybride)
+- Stockage local Hive pour accès instantané
+- Méthode `getAllSales({syncWithApi: bool})` avec fusion données API + locales
+- `syncLocalSalesToBackend()` pour synchronisation manuelle
+- `getSalesStats()` pour analytics depuis API
+- Timeout 5s avec fallback local automatique
+
+### Workflow Hybride
+```
+UI → SalesBloc → SalesRepository
+                      ├─ Hive (lecture immédiate)
+                      └─ SalesApiService (sync optionnel)
+                            ↓
+                      Backend API
+```
+
 ## Statuts des Ventes
 
 Les statuts de ventes sont représentés par des chaînes de caractères dans les requêtes et réponses API:
@@ -11,14 +46,57 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
 - `cancelled` - Annulée
 - `partiallyPaid` - Partiellement payée
 
+## Types d'Articles de Vente
+
+Chaque article (SaleItem) dans une vente peut être de deux types:
+
+- `product` - Produit physique avec gestion de stock
+- `service` - Service sans impact sur le stock
+
+**Exemple**:
+```json
+{
+  "items": [
+    {
+      "productId": "prod_123",
+      "productName": "Ciment 50kg",
+      "itemType": "product",
+      "quantity": 10
+    },
+    {
+      "productId": "serv_456",
+      "productName": "Livraison",
+      "itemType": "service",
+      "quantity": 1
+    }
+  ]
+}
+```
+
+## Gestion de la Synchronisation Offline
+
+L'application supporte le mode offline avec synchronisation automatique:
+
+### Champs de Synchronisation (Local Uniquement)
+
+- `localId`: Identifiant temporaire généré localement avant synchronisation
+- `syncStatus`: État de synchronisation
+  - `synced`: Synchronisé avec le serveur
+  - `pending`: En attente de synchronisation
+  - `failed`: Échec de synchronisation
+- `lastSyncAttempt`: Date de la dernière tentative de synchronisation
+- `errorMessage`: Message d'erreur détaillé en cas d'échec
+
+**Note**: Ces champs ne sont pas envoyés au serveur et servent uniquement à la gestion locale.
+
 ## Structure du modèle Vente
 
 ```json
 {
   "id": "string",                      // Identifiant unique de la vente
-  "localId": "string",                 // Identifiant local (optionnel)
+  "localId": "string",                 // Identifiant local pour offline (optionnel, local uniquement)
   "date": "2023-08-01T12:30:00.000Z",  // Date de la vente
-  "dueDate": "2023-08-15T12:30:00.000Z", // Date d'échéance (optionnel)
+  "dueDate": "2023-08-15T12:30:00.000Z", // Date d'échéance pour paiement (optionnel)
   "customerId": "string",              // Identifiant du client (optionnel)
   "customerName": "string",            // Nom du client
   "items": [                           // Liste des produits vendus
@@ -26,6 +104,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
       "id": "string",                  // Identifiant unique de l'article
       "productId": "string",           // Identifiant du produit
       "productName": "string",         // Nom du produit
+      "itemType": "product",           // Type: "product" ou "service"
       "quantity": 5,                   // Quantité vendue
       "unitPrice": 10.00,              // Prix unitaire
       "discount": 0.00,                // Remise (optionnel)
@@ -38,6 +117,7 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
   ],
   "totalAmountInCdf": 50000.00,        // Montant total en Francs Congolais
   "amountPaidInCdf": 50000.00,         // Montant payé en Francs Congolais
+  "discountPercentage": 5.0,           // Pourcentage de réduction global (0-100, optionnel)
   "status": "completed",               // Statut de la vente
   "paymentMethod": "string",           // Méthode de paiement
   "paymentReference": "string",        // Référence de paiement (optionnel)
@@ -45,7 +125,9 @@ Les statuts de ventes sont représentés par des chaînes de caractères dans le
   "exchangeRate": 2000.00,             // Taux de change
   "createdAt": "2023-08-01T12:30:00.000Z", // Date de création
   "updatedAt": "2023-08-01T12:30:00.000Z", // Date de mise à jour
-  "syncStatus": "synced"               // Statut de synchronisation (local uniquement)
+  "syncStatus": "synced",              // Statut de synchronisation: "synced", "pending", "failed" (local uniquement)
+  "lastSyncAttempt": "2023-08-01T12:30:00.000Z", // Dernière tentative de sync (local uniquement, optionnel)
+  "errorMessage": "string"             // Message d'erreur de synchronisation (local uniquement, optionnel)
 }
 ```
 

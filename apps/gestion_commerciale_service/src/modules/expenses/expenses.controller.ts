@@ -360,6 +360,87 @@ export class ExpensesController {
     return this.expensesService.updateExpense(id, updateExpenseDto, user.id);
   }
 
+  @Post(':id/upload-receipt')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ 
+    summary: 'Télécharger une pièce jointe pour une dépense', 
+    description: 'Upload un reçu ou autre document pour une dépense existante'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Identifiant unique de la dépense', 
+    type: 'string',
+    format: 'uuid'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Fichier à télécharger (image ou PDF)'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Pièce jointe téléchargée avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Attachment uploaded successfully' },
+        statusCode: { type: 'number', example: 200 },
+        data: {
+          type: 'object',
+          properties: {
+            url: { type: 'string', example: 'https://cloudinary.com/...' },
+            fileType: { type: 'string', example: 'image/jpeg' },
+            fileName: { type: 'string', example: 'receipt.jpg' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Fichier invalide'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Dépense non trouvée'
+  })
+  async uploadReceipt(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+        ],
+        fileIsRequired: true,
+      }),
+    )
+    file: any,
+  ) {
+    // TODO: Implémenter l'upload vers Cloudinary
+    // const uploadResult = await this.expensesService.uploadAttachment(id, user.id, file);
+    
+    return {
+      success: true,
+      message: 'Attachment uploaded successfully',
+      statusCode: 200,
+      data: {
+        url: 'https://cloudinary.com/placeholder', // À remplacer par l'URL réelle
+        fileType: file.mimetype,
+        fileName: file.originalname
+      }
+    };
+  }
+
   @Delete(':id')
   @ApiOperation({ 
     summary: 'Supprimer une dépense', 

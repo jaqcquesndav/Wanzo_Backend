@@ -1,6 +1,52 @@
-# API Opérations
+# Module Operations - Vue Agrégée Locale
 
-Cette documentation détaille les endpoints disponibles pour la gestion des opérations dans l'application Wanzo. Le module Operations est un point d'entrée central qui regroupe différents types d'opérations financières et commerciales (ventes, dépenses, financements).
+Cette documentation détaille le module Operations dans l'application Wanzo.
+
+## ✅ Implémentation Hybride
+
+**Le module Operations combine AGRÉGATION LOCALE + API REST backend**
+
+### Architecture Double Niveau
+
+**Niveau 1 - Interface Utilisateur (Agrégateur Local)**
+```
+OperationsScreen (UI avec onglets)
+        ↓
+OperationsBloc
+        ↓
+┌───────┴────────┬──────────────┬───────────────┐
+│                │              │               │
+SalesRepository  ExpenseRepo    FinancingRepo  (Hive)
+```
+
+**Fonctionnalités UI** (✅ Implémenté):
+- Interface utilisateur avec 4 onglets (Tout, Ventes, Dépenses, Financements)
+- Filtrage local par dates et statut
+- Affichage consolidé des opérations
+- Gestion d'erreurs réseau
+- 100% fonctionnel hors ligne
+
+**Niveau 2 - API Backend (Endpoints Centralisés)**
+```
+UI/Reports → OperationsApiService → Backend
+                                        ↓
+                              Agrégation côté serveur
+```
+
+**Service API**: `OperationsApiService` (✅ Complet)
+- ✅ `getOperations()` - Liste avec 11 filtres (type, dates, relatedPartyId, status, montants, tri, pagination)
+- ✅ `getOperationsSummary()` - Résumé par période (day/week/month/year)
+- ✅ `exportOperations()` - Export PDF/Excel avec options avancées
+- ✅ `getOperationById()` - Détails d'une opération
+- ✅ `getOperationsTimeline()` - Timeline des opérations récentes
+
+**Services Complémentaires** (✅ Complet):
+- `OperationExportService` - Export PDF multi-pages + Excel (CSV)
+- `OperationFilter` - Modèle de filtrage avec 8 critères + factory methods
+
+**Status actuel**: ✅ API complète | ✅ UI locale fonctionnelle | ✅ Export services
+
+Le module Operations est un point d'entrée central qui regroupe différents types d'opérations financières et commerciales (ventes, dépenses, financements).
 
 ## Types d'Opérations
 
@@ -36,13 +82,40 @@ Les types d'opérations disponibles dans l'API:
 }
 ```
 
-## Endpoints
+## Implémentation Actuelle vs Roadmap API
+
+### ✅ Fonctionnalités Implémentées (Local)
+
+**Bloc**: `OperationsBloc`
+- Event `LoadOperations` avec filtrage par dates
+- Filtrage par `paymentStatus` (ventes)
+- Filtrage par `financingType` (financements)
+- States: Initial, Loading, Loaded(sales, expenses, financingRequests), Error
+- Gestion erreurs réseau vs erreurs locales
+
+**Interface Utilisateur**: `OperationsScreen`
+- TabBar avec 4 onglets: Tout, Ventes, Dépenses, Financements
+- Dialog de filtrage (`_showFilterDialog`)
+- Bouton retry en cas d'erreur
+- Support SaleStatus avec noms localisés
+
+**Modèle**: `Operation`
+- 16 champs conformes à la documentation
+- Annotations Hive (@HiveType) pour cache local
+- Annotations JSON (@JsonSerializable) pour future API
+- Extension OperationType avec displayName
+
+### ❌ Endpoints API (À Implémenter)
 
 ### 1. Récupérer la liste des opérations
 
+**Status**: ✅ **Implémenté**
+
 **Endpoint**: `GET /commerce/api/v1/operations`
 
-**Description**: Récupère la liste des opérations avec filtrage et pagination.
+**Service**: `OperationsApiService.getOperations()`
+
+**Description**: Récupère la liste des opérations avec filtrage et pagination avancés.
 
 **Paramètres de requête (Query Params)**:
 - `type` (optionnel): Filtrer par type d'opération (voir liste ci-dessus)
@@ -84,7 +157,11 @@ Les types d'opérations disponibles dans l'API:
 
 ### 2. Récupérer le résumé des opérations
 
-**Endpoint**: `GET /api/v1/operations/summary`
+**Status**: ✅ **Implémenté**
+
+**Endpoint**: `GET /commerce/api/v1/operations/summary`
+
+**Service**: `OperationsApiService.getOperationsSummary()`
 
 **Description**: Récupère un résumé des opérations regroupées par type et période.
 
@@ -135,9 +212,20 @@ Les types d'opérations disponibles dans l'API:
 
 ### 3. Exporter des opérations
 
-**Endpoint**: `POST /api/v1/operations/export`
+**Status**: ✅ **Implémenté**
+
+**Endpoint**: `POST /commerce/api/v1/operations/export`
+
+**Service**: `OperationsApiService.exportOperations()` + `OperationExportService`
 
 **Description**: Génère un fichier d'exportation (PDF ou Excel) des opérations selon les critères spécifiés.
+
+**Services d'Export** (✅ Complets):
+- `OperationExportService.exportToPdf()` - Export PDF avec tables formatées, en-têtes, pieds de page
+- `OperationExportService.exportToExcel()` - Export CSV avec toutes les colonnes
+- `OperationExportService.calculateStats()` - Calcul de statistiques (totaux, groupement par type)
+
+**Note**: Pour l'export PDF du journal des opérations, voir aussi `JournalService.generateJournalPdf()` dans le module Dashboard.
 
 **Corps de la requête**:
 ```json
@@ -169,7 +257,11 @@ Les types d'opérations disponibles dans l'API:
 
 ### 4. Récupérer les détails d'une opération spécifique
 
-**Endpoint**: `GET /api/v1/operations/{id}`
+**Status**: ✅ **Implémenté**
+
+**Endpoint**: `GET /commerce/api/v1/operations/{id}`
+
+**Service**: `OperationsApiService.getOperationById()`
 
 **Description**: Récupère les détails complets d'une opération spécifique.
 
@@ -213,9 +305,15 @@ Les types d'opérations disponibles dans l'API:
 
 ### 5. Obtenir la chronologie des opérations récentes
 
-**Endpoint**: `GET /api/v1/operations/timeline`
+**Status**: ✅ **Implémenté**
+
+**Endpoint**: `GET /commerce/api/v1/operations/timeline`
+
+**Service**: `OperationsApiService.getOperationsTimeline()`
 
 **Description**: Récupère une chronologie des opérations récentes pour affichage dans l'interface utilisateur.
+
+**Alternative locale**: `OperationJournalRepository.getRecentEntries(limit: 5)` pour les opérations récentes du journal (mode offline).
 
 **Paramètres de requête (Query Params)**:
 - `limit` (optionnel): Nombre d'opérations à récupérer, défaut: 10

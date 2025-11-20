@@ -17,10 +17,14 @@ export class CreateDocumentDto {
   @IsNotEmpty()
   fileSize: number;
 
-  @ApiProperty({ description: 'URL where the file is stored', example: 'https://storage.example.com/documents/invoice_march.pdf' })
+  @ApiProperty({ 
+    description: 'URL where the file is stored (Cloudinary) - Généré automatiquement lors de l\'upload', 
+    example: 'https://res.cloudinary.com/wanzo/documents/invoice_march.pdf',
+    required: false
+  })
   @IsString()
-  @IsNotEmpty()
-  storageUrl: string;
+  @IsOptional()  // Optionnel car généré automatiquement
+  storageUrl?: string;
 
   @ApiProperty({ description: 'Category or type of the document', example: 'Invoice' })
   @IsString()

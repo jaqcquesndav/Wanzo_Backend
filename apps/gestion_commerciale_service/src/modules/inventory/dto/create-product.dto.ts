@@ -174,4 +174,48 @@ export class CreateProductDto {
   @Min(0)
   @IsOptional()
   taxRate?: number;
+
+  @ApiProperty({
+    description: 'Devise dans laquelle les prix sont saisis',
+    example: 'USD',
+    required: false,
+    default: 'CDF'
+  })
+  @IsString()
+  @IsOptional()
+  inputCurrencyCode?: string = 'CDF';
+
+  @ApiProperty({
+    description: 'Taux de change vers CDF au moment de la saisie',
+    example: 2500.00,
+    minimum: 0,
+    required: false,
+    default: 1.0
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  inputExchangeRate?: number = 1.0;
+
+  @ApiProperty({
+    description: 'Prix d\'achat dans la devise de saisie',
+    example: 800.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  costPriceInInputCurrency?: number;
+
+  @ApiProperty({
+    description: 'Prix de vente dans la devise de saisie',
+    example: 1000.00,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  sellingPriceInInputCurrency?: number;
 }

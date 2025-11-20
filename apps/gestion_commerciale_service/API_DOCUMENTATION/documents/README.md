@@ -13,26 +13,88 @@ The `Document` model represents a document in the system with the following prop
 ```json
 {
   "id": "string",
-  "fileName": "string",
+  "title": "string",
+  "description": "string (optional)",
+  "type": "string (optional)",
   "fileType": "string (optional)",
-  "url": "string",
-  "uploadedAt": "datetime",
+  "filePath": "string",
+  "creationDate": "datetime",
   "userId": "string (optional)",
-  "entityId": "string (optional)",
-  "entityType": "string (optional)",
+  "relatedEntityId": "string (optional)",
+  "relatedEntityType": "string (optional)",
   "fileSize": "number (optional)"
 }
 ```
 
-- `id`: Unique identifier for the document
-- `fileName`: Original name of the uploaded file
-- `fileType`: MIME type or extension of the file (e.g., pdf, jpg, png)
-- `url`: URL to access/download the document
-- `uploadedAt`: Timestamp when the document was uploaded
-- `userId`: ID of the user who uploaded the document
-- `entityId`: ID of the entity this document is associated with (e.g., invoice ID, expense ID)
-- `entityType`: Type of the entity (e.g., 'invoice', 'expense', 'customer')
-- `fileSize`: Size of the file in bytes
+### Mapping des Champs (API ↔ Application)
+
+Le modèle de l'application utilise des noms de champs différents de l'API pour plus de clarté:
+
+| API (Backend) | Application (Frontend) | Description |
+|---------------|------------------------|-------------|
+| `fileName` | `title` | Nom ou titre du document |
+| `url` | `filePath` | Chemin/URL du document |
+| `uploadedAt` | `creationDate` | Date de création/upload |
+| `entityId` | `relatedEntityId` | ID de l'entité associée |
+| `entityType` | `relatedEntityType` | Type de l'entité associée |
+
+### Description des Champs
+
+- **`id`**: Identifiant unique du document
+- **`title`**: Titre ou nom du document (correspond à `fileName` dans l'API)
+- **`description`**: Description optionnelle du document (champ local uniquement)
+- **`type`**: Type de document (voir types ci-dessous)
+- **`fileType`**: Type MIME ou extension (pdf, jpg, png, etc.)
+- **`filePath`**: Chemin local ou URL Cloudinary du fichier (correspond à `url` dans l'API)
+- **`creationDate`**: Date de création/upload du document (correspond à `uploadedAt` dans l'API)
+- **`userId`**: ID de l'utilisateur qui a créé le document
+- **`relatedEntityId`**: ID de l'entité liée (facture, dépense, client, etc.) (correspond à `entityId` dans l'API)
+- **`relatedEntityType`**: Type de l'entité liée (correspond à `entityType` dans l'API)
+- **`fileSize`**: Taille du fichier en octets
+
+### Types de Documents
+
+L'enum `DocumentType` définit les types de documents supportés:
+
+- `invoice` - Facture
+- `receipt` - Reçu
+- `quote` - Devis
+- `contract` - Contrat
+- `report` - Rapport
+- `other` - Autre
+
+**Exemple**:
+```json
+{
+  "id": "doc_123",
+  "title": "Facture Mars 2024",
+  "description": "Facture mensuelle pour services rendus",
+  "type": "invoice",
+  "fileType": "pdf",
+  "filePath": "https://res.cloudinary.com/wanzo/invoice_march.pdf",
+  "creationDate": "2024-03-15T10:30:00.000Z",
+  "relatedEntityId": "sale_456",
+  "relatedEntityType": "sale",
+  "fileSize": 245760
+}
+```
+
+### Gestion Offline des Documents
+
+Comme pour les autres entités, les documents supportent le mode offline:
+
+1. **Mode Offline**: 
+   - `filePath` contient le chemin local du fichier
+   - Document stocké dans le stockage local de l'appareil
+
+2. **Synchronisation**:
+   - Upload automatique vers Cloudinary lors de la connexion
+   - `filePath` mis à jour avec l'URL Cloudinary
+   - Backend enregistre le document avec l'URL publique
+
+3. **Compatibilité**: 
+   - Les deux formats (chemin local et URL) sont supportés
+   - L'app détecte automatiquement le type et affiche correctement
 
 ## API Endpoints
 

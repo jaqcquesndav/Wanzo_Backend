@@ -82,10 +82,70 @@ export class CreateExpenseDto {
 
   @ApiProperty({
     description: 'Code de la devise (optionnel)',
-    example: 'USD',
+    example: 'CDF',
+    required: false,
+    default: 'CDF'
+  })
+  @IsString()
+  @IsOptional()
+  currencyCode?: string = 'CDF';
+
+  @ApiProperty({
+    description: 'URLs des pièces jointes Cloudinary (après synchronisation)',
+    example: ['https://res.cloudinary.com/wanzo/receipt1.jpg'],
+    type: [String],
+    required: false
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attachmentUrls?: string[];
+
+  @ApiProperty({
+    description: 'Chemins locaux des pièces jointes (avant synchronisation)',
+    example: ['/storage/emulated/0/receipts/receipt1.jpg'],
+    type: [String],
+    required: false
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  localAttachmentPaths?: string[];
+
+  @ApiProperty({
+    description: 'Identifiant local temporaire (généré côté client)',
+    example: 'local-expense-12345',
     required: false
   })
   @IsString()
   @IsOptional()
-  currencyCode?: string;
+  localId?: string;
+
+  @ApiProperty({
+    description: 'Statut de synchronisation',
+    example: 'synced',
+    enum: ['synced', 'pending', 'failed'],
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  syncStatus?: string;
+
+  @ApiProperty({
+    description: 'Date de la dernière tentative de synchronisation',
+    example: '2023-08-01T12:30:00.000Z',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  lastSyncAttempt?: string;
+
+  @ApiProperty({
+    description: 'Message d\'erreur de synchronisation',
+    example: 'Network timeout',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  errorMessage?: string;
 }

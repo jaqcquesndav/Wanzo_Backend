@@ -37,24 +37,86 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
 ```json
 {
   "id": "string",                     // Identifiant unique de la dépense
+  "localId": "string",                // Identifiant local pour offline (optionnel, local uniquement)
   "date": "2023-08-01T12:30:00.000Z", // Date de la dépense (format ISO8601)
   "motif": "string",                  // Motif de la dépense
   "amount": 150.00,                   // Montant de la dépense
   "category": "rent",                 // Catégorie de la dépense (voir liste ci-dessus)
   "paymentMethod": "string",          // Méthode de paiement (optionnel)
-  "attachmentUrls": [                 // URLs des pièces jointes (optionnel)
+  "attachmentUrls": [                 // URLs Cloudinary des pièces jointes après sync (optionnel)
+    "string",
+    "string"
+  ],
+  "localAttachmentPaths": [           // Chemins locaux des pièces jointes avant sync (optionnel, local uniquement)
     "string",
     "string"
   ],
   "supplierId": "string",             // ID du fournisseur (optionnel)
-  "beneficiary": "string",            // Bénéficiaire (optionnel)
+  "beneficiary": "string",            // Bénéficiaire de la dépense (optionnel)
   "notes": "string",                  // Notes additionnelles (optionnel)
-  "currencyCode": "USD",              // Code de la devise (optionnel)
+  "currencyCode": "CDF",              // Code de la devise (CDF, USD, EUR, etc.) (optionnel, défaut: CDF)
   "userId": "string",                 // ID de l'utilisateur (optionnel)
   "createdAt": "2023-08-01T12:30:00.000Z", // Date de création (optionnel)
-  "updatedAt": "2023-08-01T12:30:00.000Z"  // Date de mise à jour (optionnel)
+  "updatedAt": "2023-08-01T12:30:00.000Z", // Date de mise à jour (optionnel)
+  "syncStatus": "synced",             // Statut de synchronisation: "synced", "pending", "failed" (local uniquement)
+  "lastSyncAttempt": "2023-08-01T12:30:00.000Z", // Dernière tentative de sync (local uniquement, optionnel)
+  "errorMessage": "string"            // Message d'erreur de synchronisation (local uniquement, optionnel)
 }
 ```
+
+## Gestion Multi-Devises des Dépenses
+
+L'application supporte l'enregistrement des dépenses dans différentes devises:
+
+### Fonctionnalités
+- Saisir une dépense en CDF, USD, EUR, ou toute autre devise
+- Conversion automatique vers CDF pour les rapports consolidés
+- Conservation de la devise d'origine pour traçabilité
+
+### Exemple d'Utilisation
+
+**Scénario**: Dépense en USD
+
+```json
+{
+  "motif": "Achat de matériel informatique",
+  "amount": 500.0,
+  "currencyCode": "USD",
+  "category": "equipment",
+  "paymentMethod": "Virement bancaire"
+}
+```
+
+Le système:
+1. Enregistre le montant original (500 USD)
+2. Applique le taux de change du jour
+3. Calcule l'équivalent en CDF pour les statistiques
+
+## Gestion des Pièces Jointes
+
+### Workflow Offline-First
+
+1. **Mode Offline**: Les pièces jointes sont stockées localement
+   - Chemin stocké dans `localAttachmentPaths[]`
+   - Fichiers sauvegardés dans le stockage local de l'appareil
+
+2. **Synchronisation**: Lors de la connexion internet
+   - Upload automatique des fichiers vers Cloudinary
+   - URLs retournées stockées dans `attachmentUrls[]`
+   - `localAttachmentPaths[]` conservés comme backup
+
+3. **Différence entre les champs**:
+   - `attachmentUrls`: URLs publiques Cloudinary (après sync)
+   - `localAttachmentPaths`: Chemins locaux (avant sync)
+
+### Champs de Synchronisation Offline
+
+- `localId`: Identifiant temporaire généré localement
+- `syncStatus`: État de synchronisation (`synced`, `pending`, `failed`)
+- `lastSyncAttempt`: Date de la dernière tentative
+- `errorMessage`: Message d'erreur détaillé en cas d'échec
+
+**Note**: Ces champs de synchronisation ne sont pas envoyés au serveur.
 
 ## Endpoints
 

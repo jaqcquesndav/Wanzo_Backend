@@ -42,9 +42,13 @@ export class Document {
   @Column('bigint') // Use bigint for potentially large file sizes
   fileSize: number;
 
-  @ApiProperty({ description: 'URL where the file is stored', example: 'https://storage.example.com/documents/invoice_march.pdf' })
+  @ApiProperty({ description: 'URL where the file is stored (Cloudinary)', example: 'https://storage.example.com/documents/invoice_march.pdf' })
   @Column()
-  storageUrl: string; // URL from cloud storage (e.g., S3, Cloudinary)
+  url: string; // URL from cloud storage (e.g., S3, Cloudinary)
+
+  @ApiProperty({ description: 'Chemin local du fichier (avant synchronisation)', example: '/storage/emulated/0/documents/invoice_march.pdf', required: false })
+  @Column({ nullable: true })
+  filePath?: string; // Local file path before sync
 
   @ApiProperty({ description: "Public ID of the file in Cloudinary", example: "documents/xyzabc", required: false })
   @Column({ nullable: true })

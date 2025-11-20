@@ -37,6 +37,31 @@ The `User` model represents a user in the system with the following properties:
 }
 ```
 
+### Champs Business Supplémentaires
+
+Les champs suivants sont disponibles pour une gestion complète du profil d'entreprise:
+
+- **`business_sector_id`**: Identifiant unique du secteur d'activité (référence vers une table de secteurs)
+- **`business_address`**: Adresse physique de l'entreprise (peut différer de `company_location` qui est une localisation géographique générale)
+- **`business_logo_url`**: URL du logo de l'entreprise (stocké sur Cloudinary après upload)
+
+**Différence entre `company_location` et `business_address`**:
+- `company_location`: Ville ou région générale (ex: "Kinshasa")
+- `business_address`: Adresse complète (ex: "123 Ave. Kasavubu, Gombe, Kinshasa")
+
+**Exemple complet**:
+```json
+{
+  "company_name": "Entreprise ABC SARL",
+  "rccm_number": "CD/KIN/RCCM/23-B-12345",
+  "company_location": "Kinshasa",
+  "business_sector": "Commerce de détail",
+  "business_sector_id": "sector_001",
+  "business_address": "123 Avenue Kasavubu, Commune de Gombe, Kinshasa",
+  "business_logo_url": "https://res.cloudinary.com/wanzo/image/upload/v1234567890/logos/abc_logo.png"
+}
+```
+
 ### IdStatus Enum
 
 Represents the verification status of a user's ID card:

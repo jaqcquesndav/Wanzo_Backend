@@ -66,12 +66,71 @@ Les types de transactions de stock sont représentés par des chaînes de caract
   "createdAt": "2023-08-01T12:30:00.000Z", // Date d'ajout dans l'inventaire
   "updatedAt": "2023-08-01T12:30:00.000Z", // Date de dernière mise à jour
   "imageUrl": "string",            // URL de l'image du produit (optionnel)
+  "imagePath": "string",           // Chemin local de l'image (optionnel, local uniquement)
   "supplierIds": ["string"],       // IDs des fournisseurs (optionnel)
   "tags": ["string"],              // Tags pour le produit (optionnel)
   "taxRate": 16.0,                 // Taux de taxe en pourcentage (optionnel)
-  "sku": "string"                  // Référence de stock (optionnel)
+  "sku": "string",                 // Référence de stock (optionnel)
+  "inputCurrencyCode": "CDF",      // Devise de saisie des prix (pour système multi-devises)
+  "inputExchangeRate": 1.0,        // Taux de change lors de la saisie (1.0 si CDF)
+  "costPriceInInputCurrency": 5000.00,     // Prix d'achat dans la devise de saisie
+  "sellingPriceInInputCurrency": 7500.00   // Prix de vente dans la devise de saisie
 }
 ```
+
+## Système Multi-Devises Avancé pour les Produits
+
+L'application implémente un **système de double prix avancé** qui permet:
+
+### Fonctionnalités
+- Saisir les prix dans n'importe quelle devise (USD, EUR, CDF, etc.)
+- Conversion automatique vers CDF avec le taux de change du moment
+- Conservation des prix originaux et du taux utilisé
+- Possibilité de recalcul si le taux de change évolue
+
+### Champs Multi-Devises
+
+| Champ | Description |
+|-------|-------------|
+| `inputCurrencyCode` | Code de la devise utilisée lors de la saisie (USD, EUR, CDF, etc.) |
+| `inputExchangeRate` | Taux de change vers CDF au moment de la saisie |
+| `costPriceInInputCurrency` | Prix d'achat original dans la devise de saisie |
+| `sellingPriceInInputCurrency` | Prix de vente original dans la devise de saisie |
+| `costPriceInCdf` | Prix d'achat converti en CDF (calculé automatiquement) |
+| `sellingPriceInCdf` | Prix de vente converti en CDF (calculé automatiquement) |
+
+### Exemple d'Utilisation
+
+**Scénario**: Enregistrement d'un produit avec prix en USD
+
+```json
+{
+  "name": "iPhone 15 Pro",
+  "inputCurrencyCode": "USD",
+  "inputExchangeRate": 2500.0,
+  "costPriceInInputCurrency": 800.0,       // 800 USD
+  "sellingPriceInInputCurrency": 1000.0,   // 1000 USD
+  "costPriceInCdf": 2000000.0,             // Calculé: 800 × 2500
+  "sellingPriceInCdf": 2500000.0           // Calculé: 1000 × 2500
+}
+```
+
+**Avantages**:
+1. **Traçabilité**: On conserve toujours le prix original
+2. **Flexibilité**: Possibilité d'afficher les prix dans la devise d'origine
+3. **Recalcul**: Si le taux change, on peut recalculer les prix CDF
+4. **Multi-marché**: Support des fournisseurs internationaux
+
+### Différence entre `imageUrl` et `imagePath`
+
+- **`imageUrl`**: URL publique Cloudinary après synchronisation avec le backend
+- **`imagePath`**: Chemin local du fichier image avant synchronisation (mode offline)
+
+**Workflow**:
+1. L'utilisateur ajoute un produit avec une image locale → `imagePath` défini
+2. L'app synchronise avec le backend → Image uploadée sur Cloudinary
+3. Backend retourne `imageUrl` → L'app met à jour le produit
+4. Les deux champs sont conservés pour compatibilité offline
 
 ## Structure du modèle Transaction de Stock
 
