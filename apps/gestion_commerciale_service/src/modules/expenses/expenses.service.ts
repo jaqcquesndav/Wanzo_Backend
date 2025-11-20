@@ -10,6 +10,7 @@ import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
 import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
 import { ListExpenseCategoriesDto } from './dto/list-expense-categories.dto';
 import { ExpenseResponseDto } from './dto/expense-response.dto';
+import { SuppliersService } from '../suppliers/suppliers.service';
 
 @Injectable()
 export class ExpensesService {
@@ -18,6 +19,7 @@ export class ExpensesService {
     private readonly expenseRepository: Repository<Expense>,
     @InjectRepository(ExpenseCategory)
     private readonly expenseCategoryRepository: Repository<ExpenseCategory>,
+    private readonly suppliersService: SuppliersService,
   ) {}
 
   // Expense Category CRUD
@@ -82,11 +84,64 @@ export class ExpensesService {
       throw new BadRequestException('Amount must be greater than 0');
     }
     
+    // Gestion automatique du fournisseur si un numéro de téléphone est fourni
+    let supplierId = createExpenseDto.supplierId;
+    
+    // Si pas de supplierId mais qu'on a un numéro de téléphone dans les données
+    // (on pourrait ajouter un champ supplierPhoneNumber au DTO si nécessaire)
+    // Pour l'instant, si supplierName est fourni sans supplierId, on peut créer/trouver par nom
+    if (!supplierId && createExpenseDto.supplierName) {
+      // Si on a un numéro de téléphone du fournisseur dans les notes ou ailleurs
+      // On pourrait extraire le numéro depuis les notes ou ajouter un champ dédié
+      // Pour simplifier, on va juste stocker le nom pour l'instant
+    }
+    
     // Créer la dépense directement avec le DTO
     const newExpense = this.expenseRepository.create({
       ...createExpenseDto,
       userId,
+      supplierId,
       // attachmentUrls will be handled separately if file uploads are involved
+    });
+    
+    return this.expenseRepository.save(newExpense);
+  }
+  
+  /**
+   * Crée une dépense en gérant automatiquement la création du fournisseur
+   * si un numéro de téléphone est fourni
+   */
+  async createExpenseWithSupplierAutoCreate(
+    createExpenseDto: CreateExpenseDto,
+    userId: string,
+    supplierPhoneNumber?: string
+  ): Promise<Expense> {
+    // Validate amount
+    if (createExpenseDto.amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+    
+    let supplierId = createExpenseDto.supplierId;
+    let supplierName = createExpenseDto.supplierName;
+    
+    // Si un numéro de téléphone est fourni, trouver ou créer le fournisseur
+    if (supplierPhoneNumber) {
+      const supplier = await this.suppliersService.findOrCreateByPhoneNumber(
+        supplierPhoneNumber,
+        supplierName,
+        userId // userCompanyId
+      );
+      
+      supplierId = supplier.id;
+      supplierName = supplier.name;
+    }
+    
+    // Créer la dépense avec les informations du fournisseur
+    const newExpense = this.expenseRepository.create({
+      ...createExpenseDto,
+      userId,
+      supplierId,
+      supplierName,
     });
     
     return this.expenseRepository.save(newExpense);

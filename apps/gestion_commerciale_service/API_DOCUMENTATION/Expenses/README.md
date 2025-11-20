@@ -55,6 +55,10 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
   "beneficiary": "string",            // Bénéficiaire de la dépense (optionnel)
   "notes": "string",                  // Notes additionnelles (optionnel)
   "currencyCode": "CDF",              // Code de la devise (CDF, USD, EUR, etc.) (optionnel, défaut: CDF)
+  "supplierName": "string",           // Nom du fournisseur (optionnel)
+  "paidAmount": 0.0,                  // Montant déjà payé (optionnel, défaut: 0.0)
+  "exchangeRate": 2500.0,             // Taux de change appliqué (optionnel)
+  "paymentStatus": "unpaid",          // Statut de paiement: "paid", "partial", "unpaid", "credit" (optionnel, défaut: "unpaid")
   "userId": "string",                 // ID de l'utilisateur (optionnel)
   "createdAt": "2023-08-01T12:30:00.000Z", // Date de création (optionnel)
   "updatedAt": "2023-08-01T12:30:00.000Z", // Date de mise à jour (optionnel)
@@ -63,6 +67,39 @@ Les catégories de dépenses sont représentées par des chaînes de caractères
   "errorMessage": "string"            // Message d'erreur de synchronisation (local uniquement, optionnel)
 }
 ```
+
+## Gestion du Suivi des Paiements
+
+L'application permet de suivre l'état des paiements pour chaque dépense:
+
+### Statuts de Paiement
+- `paid` - Payé entièrement
+- `partial` - Partiellement payé
+- `unpaid` - Non payé
+- `credit` - À crédit
+
+### Champs de Suivi
+- `paidAmount`: Montant déjà payé (défaut: 0.0)
+- `paymentStatus`: Statut du paiement (défaut: "unpaid")
+- `supplierName`: Nom du fournisseur pour affichage
+
+### Exemple d'Utilisation
+
+**Scénario**: Paiement partiel d'une dépense
+
+```json
+{
+  "motif": "Achat de stock",
+  "amount": 5000.0,
+  "paidAmount": 2000.0,
+  "paymentStatus": "partial",
+  "supplierId": "supplier_123",
+  "supplierName": "Fournisseur ABC",
+  "category": "inventory"
+}
+```
+
+Le système calcule automatiquement le reste à payer: 5000.0 - 2000.0 = 3000.0
 
 ## Gestion Multi-Devises des Dépenses
 
@@ -171,6 +208,10 @@ Le système:
 
 **Endpoint:** `POST /commerce/api/v1/expenses`
 
+**Création Automatique du Fournisseur** 🆕
+
+Le système crée **automatiquement** un fournisseur s'il n'existe pas encore, en utilisant le `supplierPhoneNumber` comme identifiant unique. Cela évite les doublons et simplifie le workflow.
+
 **Corps de la requête:**
 ```json
 {
@@ -180,11 +221,39 @@ Le système:
   "category": "rent",                 // Obligatoire
   "paymentMethod": "string",          // Optionnel
   "supplierId": "string",             // Optionnel
+  "supplierPhoneNumber": "+243999123456", // Optionnel - CRÉATION AUTO du fournisseur
+  "supplierName": "string",           // Optionnel
   "beneficiary": "string",            // Optionnel
   "notes": "string",                  // Optionnel
-  "currencyCode": "USD"               // Optionnel
+  "currencyCode": "USD",              // Optionnel
+  "paidAmount": 0.0,                  // Optionnel (défaut: 0.0)
+  "paymentStatus": "unpaid",          // Optionnel (défaut: "unpaid")
+  "exchangeRate": 2500.0              // Optionnel
 }
 ```
+
+**Exemple avec création automatique du fournisseur:**
+```json
+{
+  "date": "2023-08-01T12:30:00.000Z",
+  "motif": "Achat de stock",
+  "amount": 500000.0,
+  "category": "inventory",
+  "supplierPhoneNumber": "+243999123456",
+  "supplierName": "Fournisseur ABC",
+  "paidAmount": 200000.0,
+  "paymentStatus": "partial"
+}
+```
+
+Le système:
+1. Normalise le numéro: `+243999123456`
+2. Cherche un fournisseur existant avec ce numéro
+3. **Si trouvé**: Utilise le fournisseur existant
+4. **Si non trouvé**: Crée automatiquement un nouveau fournisseur
+5. Crée la dépense avec le `supplierId` correspondant
+
+➡️ **Aucun doublon** de fournisseur n'est créé!
 
 **Réponse:**
 ```json
@@ -214,9 +283,13 @@ Le système:
   "category": "rent",                 // Optionnel
   "paymentMethod": "string",          // Optionnel
   "supplierId": "string",             // Optionnel
+  "supplierName": "string",           // Optionnel
   "beneficiary": "string",            // Optionnel
   "notes": "string",                  // Optionnel
-  "currencyCode": "USD"               // Optionnel
+  "currencyCode": "USD",              // Optionnel
+  "paidAmount": 150.0,                // Optionnel
+  "paymentStatus": "paid",            // Optionnel
+  "exchangeRate": 2500.0              // Optionnel
 }
 ```
 

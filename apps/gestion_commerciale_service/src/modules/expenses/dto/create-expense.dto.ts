@@ -63,6 +63,15 @@ export class CreateExpenseDto {
   supplierId?: string;
 
   @ApiProperty({
+    description: 'Numéro de téléphone du fournisseur pour création automatique (optionnel)',
+    example: '+243999123456',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  supplierPhoneNumber?: string;
+
+  @ApiProperty({
     description: 'Bénéficiaire de la dépense (optionnel)',
     example: 'Fournisseur ABC',
     required: false
@@ -89,6 +98,51 @@ export class CreateExpenseDto {
   @IsString()
   @IsOptional()
   currencyCode?: string = 'CDF';
+
+  @ApiProperty({
+    description: 'Nom du fournisseur pour affichage (optionnel)',
+    example: 'Fournisseur ABC',
+    required: false
+  })
+  @IsString()
+  @IsOptional()
+  supplierName?: string;
+
+  @ApiProperty({
+    description: 'Montant déjà payé (optionnel)',
+    example: 0.0,
+    minimum: 0,
+    required: false,
+    default: 0.0
+  })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  @IsOptional()
+  paidAmount?: number = 0.0;
+
+  @ApiProperty({
+    description: 'Taux de change appliqué (optionnel)',
+    example: 2500.0,
+    minimum: 0,
+    required: false
+  })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  @IsOptional()
+  exchangeRate?: number;
+
+  @ApiProperty({
+    description: 'Statut de paiement (optionnel)',
+    example: 'unpaid',
+    enum: ['paid', 'partial', 'unpaid', 'credit'],
+    required: false,
+    default: 'unpaid'
+  })
+  @IsString()
+  @IsOptional()
+  paymentStatus?: string = 'unpaid';
 
   @ApiProperty({
     description: 'URLs des pièces jointes Cloudinary (après synchronisation)',

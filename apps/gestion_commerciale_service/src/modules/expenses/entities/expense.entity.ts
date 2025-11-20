@@ -181,6 +181,43 @@ export class Expense {
   currencyCode?: string;
 
   @ApiProperty({
+    description: 'Nom du fournisseur pour affichage',
+    example: 'Fournisseur ABC',
+    nullable: true
+  })
+  @Column({ nullable: true })
+  supplierName?: string;
+
+  @ApiProperty({
+    description: 'Montant déjà payé',
+    example: 0.0,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, default: 0 })
+  paidAmount?: number;
+
+  @ApiProperty({
+    description: 'Taux de change appliqué',
+    example: 2500.0,
+    type: 'number',
+    format: 'decimal',
+    nullable: true
+  })
+  @Column('decimal', { precision: 10, scale: 4, nullable: true })
+  exchangeRate?: number;
+
+  @ApiProperty({
+    description: 'Statut de paiement',
+    example: 'unpaid',
+    enum: ['paid', 'partial', 'unpaid', 'credit'],
+    nullable: true
+  })
+  @Column({ nullable: true, default: 'unpaid' })
+  paymentStatus?: string;
+
+  @ApiProperty({
     description: 'Identifiant de l\'utilisateur',
     example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
     format: 'uuid',

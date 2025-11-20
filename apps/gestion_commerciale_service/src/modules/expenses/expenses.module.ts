@@ -6,6 +6,7 @@ import { Expense } from './entities/expense.entity';
 import { ExpenseCategory } from './entities/expense-category.entity';
 import { AuthModule } from '../auth/auth.module'; // For JwtAuthGuard and CurrentUser decorator
 import { MulterModule } from '@nestjs/platform-express'; // For file uploads
+import { SuppliersModule } from '../suppliers/suppliers.module'; // Pour la gestion automatique des fournisseurs
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { MulterModule } from '@nestjs/platform-express'; // For file uploads
     MulterModule.register({ // Basic Multer registration, can be configured further
       // dest: './uploads', // or configure storage with Cloudinary/S3 etc.
     }),
+    SuppliersModule, // Importer le module fournisseurs pour utiliser SuppliersService
   ],
   controllers: [ExpensesController],
   providers: [ExpensesService],

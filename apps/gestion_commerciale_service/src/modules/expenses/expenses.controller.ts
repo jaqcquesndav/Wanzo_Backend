@@ -210,7 +210,7 @@ export class ExpensesController {
   @ApiResponse({ 
     status: 401, 
     description: 'Non autorisé'
-  })  createExpense(
+  })  async createExpense(
     @Body() createExpenseDto: CreateExpenseDto,
     @CurrentUser() user: User,
     @UploadedFile(
@@ -229,6 +229,16 @@ export class ExpensesController {
     //   const attachmentUrl = await this.expensesService.handleExpenseAttachmentUpload(attachment);
     //   createExpenseDto.attachmentUrl = attachmentUrl; // Assuming DTO has attachmentUrl field
     // }
+    
+    // Si un numéro de téléphone de fournisseur est fourni, utiliser la création automatique
+    if (createExpenseDto.supplierPhoneNumber) {
+      return this.expensesService.createExpenseWithSupplierAutoCreate(
+        createExpenseDto,
+        user.id,
+        createExpenseDto.supplierPhoneNumber
+      );
+    }
+    
     return this.expensesService.createExpense(createExpenseDto, user.id);
   }
   @Get()

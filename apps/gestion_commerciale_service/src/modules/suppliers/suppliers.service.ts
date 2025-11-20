@@ -129,4 +129,68 @@ export class SuppliersService {
     
     return this.suppliersRepository.save(supplier);
   }
+
+  /**
+   * Trouve ou crée automatiquement un fournisseur basé sur son numéro de téléphone
+   * Si le fournisseur existe avec ce numéro, il est retourné
+   * Sinon, un nouveau fournisseur est créé automatiquement
+   */
+  async findOrCreateByPhoneNumber(
+    phoneNumber: string,
+    supplierName?: string,
+    userCompanyId?: string
+  ): Promise<Supplier> {
+    // Normaliser le numéro de téléphone (enlever espaces, tirets, etc.)
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+    
+    // Chercher un fournisseur existant avec ce numéro
+    const existingSupplier = await this.suppliersRepository.findOne({
+      where: { phoneNumber: normalizedPhone }
+    });
+
+    if (existingSupplier) {
+      // Mettre à jour le nom si fourni et différent
+      if (supplierName && supplierName !== existingSupplier.name) {
+        existingSupplier.name = supplierName;
+        return this.suppliersRepository.save(existingSupplier);
+      }
+      return existingSupplier;
+    }
+
+    // Créer un nouveau fournisseur
+    const newSupplier = this.suppliersRepository.create({
+      phoneNumber: normalizedPhone,
+      name: supplierName || `Fournisseur ${normalizedPhone}`,
+      category: SupplierCategory.REGULAR,
+      totalPurchases: 0,
+      paymentTerms: 'Net 30', // Valeur par défaut
+      deliveryTimeInDays: 7, // Valeur par défaut
+    });
+
+    return this.suppliersRepository.save(newSupplier);
+  }
+
+  /**
+   * Trouve un fournisseur par numéro de téléphone
+   */
+  async findByPhoneNumber(phoneNumber: string): Promise<Supplier | null> {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+    return this.suppliersRepository.findOne({
+      where: { phoneNumber: normalizedPhone }
+    });
+  }
+
+  /**
+   * Normalise un numéro de téléphone en enlevant tous les caractères non numériques
+   * sauf le + au début
+   */
+  private normalizePhoneNumber(phoneNumber: string): string {
+    if (!phoneNumber) return '';
+    
+    // Garder le + au début s'il existe, enlever tous les autres caractères non numériques
+    const hasPlus = phoneNumber.startsWith('+');
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    return hasPlus ? `+${digitsOnly}` : digitsOnly;
+  }
 }

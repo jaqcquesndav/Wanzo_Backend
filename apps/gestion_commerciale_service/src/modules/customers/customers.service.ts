@@ -161,4 +161,85 @@ export class CustomersService {
       customer.category = CustomerCategory.REGULAR;
     }
   }
+
+  /**
+   * Trouve ou crée automatiquement un client basé sur son numéro de téléphone
+   * Si le client existe avec ce numéro, il est retourné
+   * Sinon, un nouveau client est créé automatiquement
+   */
+  async findOrCreateByPhoneNumber(
+    phoneNumber: string,
+    customerName?: string,
+    email?: string
+  ): Promise<Customer> {
+    // Normaliser le numéro de téléphone (enlever espaces, tirets, etc.)
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+    
+    // Chercher un client existant avec ce numéro
+    const existingCustomer = await this.customerRepository.findOne({
+      where: { phoneNumber: normalizedPhone }
+    });
+
+    if (existingCustomer) {
+      // Mettre à jour le nom et l'email si fournis et différents
+      let needsUpdate = false;
+      
+      if (customerName && customerName !== existingCustomer.fullName) {
+        existingCustomer.fullName = customerName;
+        needsUpdate = true;
+      }
+      
+      if (email && email !== existingCustomer.email) {
+        // Vérifier que l'email n'est pas déjà utilisé par un autre client
+        const emailCheck = await this.customerRepository.findOne({
+          where: { email }
+        });
+        if (!emailCheck || emailCheck.id === existingCustomer.id) {
+          existingCustomer.email = email;
+          needsUpdate = true;
+        }
+      }
+      
+      if (needsUpdate) {
+        return this.customerRepository.save(existingCustomer);
+      }
+      
+      return existingCustomer;
+    }
+
+    // Créer un nouveau client
+    const newCustomer = this.customerRepository.create({
+      phoneNumber: normalizedPhone,
+      fullName: customerName || `Client ${normalizedPhone}`,
+      email: email || null,
+      category: CustomerCategory.NEW_CUSTOMER,
+      totalPurchases: 0,
+    });
+
+    return this.customerRepository.save(newCustomer);
+  }
+
+  /**
+   * Trouve un client par numéro de téléphone
+   */
+  async findByPhoneNumber(phoneNumber: string): Promise<Customer | null> {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+    return this.customerRepository.findOne({
+      where: { phoneNumber: normalizedPhone }
+    });
+  }
+
+  /**
+   * Normalise un numéro de téléphone en enlevant tous les caractères non numériques
+   * sauf le + au début
+   */
+  private normalizePhoneNumber(phoneNumber: string): string {
+    if (!phoneNumber) return '';
+    
+    // Garder le + au début s'il existe, enlever tous les autres caractères non numériques
+    const hasPlus = phoneNumber.startsWith('+');
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    return hasPlus ? `+${digitsOnly}` : digitsOnly;
+  }
 }
