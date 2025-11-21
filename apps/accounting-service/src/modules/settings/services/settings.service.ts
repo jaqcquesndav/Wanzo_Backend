@@ -6,7 +6,7 @@ import { UserSettings } from '../entities/user-settings.entity';
 import { IntegrationsSettings } from '../entities/integrations-settings.entity';
 import { DataSource, DataSourceType, DataSourceStatus } from '../entities/data-source.entity';
 import { Organization } from '../../organization/entities/organization.entity';
-import { FiscalYear } from '../../fiscal-years/entities/fiscal-year.entity';
+import { FiscalYear, FiscalYearStatus } from '../../fiscal-years/entities/fiscal-year.entity';
 import { Account } from '../../accounts/entities/account.entity';
 import { JournalService } from '../../journals/services/journal.service';
 import { EventsService } from '../../events/events.service';
@@ -412,7 +412,7 @@ export class SettingsService {
 
       // Récupérer le dernier exercice fiscal actif
       const fiscalYear = await this.fiscalYearRepository.findOne({
-        where: { companyId, status: 'open' },
+        where: { companyId, status: FiscalYearStatus.OPEN },
         order: { startDate: 'DESC' }
       });
 
@@ -427,12 +427,19 @@ export class SettingsService {
         order: { code: 'ASC' }
       });
 
-      const treasuryAccountsData = [];
+      const treasuryAccountsData: Array<{
+        accountCode: string;
+        accountName: string;
+        balance: number;
+        currency: string;
+        bankName?: string;
+        accountNumber?: string;
+      }> = [];
       for (const account of treasuryAccounts.filter(a => a.code.startsWith('52'))) {
         try {
           const balance = await this.journalService.getAccountBalance(
             account.id,
-            fiscalYear.year,
+            fiscalYear.id,
             companyId,
             new Date()
           );
@@ -441,12 +448,13 @@ export class SettingsService {
             accountCode: account.code,
             accountName: account.name,
             balance: balance.balance,
-            currency: account.currency || 'CDF',
+            currency: organization.currency || 'CDF',
             bankName: account.metadata?.bankName,
             accountNumber: account.metadata?.accountNumber
           });
         } catch (error) {
-          this.logger.warn(`Failed to get balance for account ${account.code}: ${error.message}`);
+          const err = error as Error;
+          this.logger.warn(`Failed to get balance for account ${account.code}: ${err.message}`);
         }
       }
 
@@ -463,7 +471,7 @@ export class SettingsService {
         try {
           const balance = await this.journalService.getAccountBalance(
             account.id,
-            fiscalYear.year,
+            fiscalYear.id,
             companyId,
             currentDate
           );
@@ -488,7 +496,8 @@ export class SettingsService {
             totalLiabilities += Math.abs(balance.balance);
           }
         } catch (error) {
-          this.logger.debug(`Error calculating balance for ${account.code}: ${error.message}`);
+          const err = error as Error;
+          this.logger.debug(`Error calculating balance for ${account.code}: ${err.message}`);
         }
       }
 
@@ -513,7 +522,7 @@ export class SettingsService {
                              creditScore >= 40 ? 'C' : 'D';
 
       // Déterminer qui peut accéder aux données
-      const consentGrantedTo = [];
+      const consentGrantedTo: string[] = [];
       if (dataSharingSettings.banks) consentGrantedTo.push('banks');
       if (dataSharingSettings.microfinance) consentGrantedTo.push('microfinance');
       if (dataSharingSettings.coopec) consentGrantedTo.push('coopec');
@@ -534,7 +543,7 @@ export class SettingsService {
           companyId,
           companyName: organization.name,
           consentGrantedTo,
-          accountingStandard: organization.accountingFramework || 'SYSCOHADA',
+          accountingStandard: organization.accountingMode || 'SYSCOHADA',
           financialData: {
             totalRevenue,
             netProfit,
@@ -558,8 +567,8 @@ export class SettingsService {
 
     } catch (error) {
       this.logger.error(
-        `Failed to publish financial data with treasury for company ${companyId}: ${error.message}`,
-        error.stack
+        `Failed to publish financial data with treasury for company ${companyId}: ${(error as Error).message}`,
+        (error as Error).stack
       );
       // Ne pas throw - ne pas bloquer la mise à jour des settings
     }
@@ -580,7 +589,12 @@ export class SettingsService {
     annual: any[];
   }> {
     const now = new Date();
-    const results = { weekly: [], monthly: [], quarterly: [], annual: [] };
+    const results: {
+      weekly: any[];
+      monthly: any[];
+      quarterly: any[];
+      annual: any[];
+    } = { weekly: [], monthly: [], quarterly: [], annual: [] };
 
     try {
       // Données hebdomadaires (12 dernières semaines)
@@ -592,7 +606,7 @@ export class SettingsService {
 
         const periodData = await this.calculateTreasuryPeriod(
           treasuryAccounts,
-          fiscalYear.year,
+          fiscalYear.id,
           companyId,
           startDate,
           endDate,
@@ -608,7 +622,7 @@ export class SettingsService {
 
         const periodData = await this.calculateTreasuryPeriod(
           treasuryAccounts,
-          fiscalYear.year,
+          fiscalYear.id,
           companyId,
           startDate,
           endDate,
@@ -629,7 +643,7 @@ export class SettingsService {
 
         const periodData = await this.calculateTreasuryPeriod(
           treasuryAccounts,
-          fiscalYear.year,
+          fiscalYear.id,
           companyId,
           startDate,
           endDate,
@@ -646,7 +660,7 @@ export class SettingsService {
 
         const periodData = await this.calculateTreasuryPeriod(
           treasuryAccounts,
-          fiscalYear.year,
+          fiscalYear.id,
           companyId,
           startDate,
           endDate,
@@ -656,7 +670,8 @@ export class SettingsService {
       }
 
     } catch (error) {
-      this.logger.warn(`Error generating treasury timeseries: ${error.message}`);
+      const err = error as Error;
+      this.logger.warn(`Error generating treasury timeseries: ${err.message}`);
     }
 
     return results;
@@ -673,7 +688,13 @@ export class SettingsService {
     endDate: Date,
     periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual'
   ): Promise<any> {
-    const accountsData = [];
+    const accountsData: Array<{
+      accountCode: string;
+      accountName: string;
+      balance: number;
+      currency: string;
+      accountType: string;
+    }> = [];
     let totalBalance = 0;
 
     for (const account of accounts) {
@@ -698,7 +719,8 @@ export class SettingsService {
 
         totalBalance += balance.balance;
       } catch (error) {
-        this.logger.debug(`Error getting balance for ${account.code}: ${error.message}`);
+        const err = error as Error;
+        this.logger.debug(`Error getting balance for ${account.code}: ${err.message}`);
       }
     }
 

@@ -395,9 +395,9 @@ export class OHADAOrchestrationService {
 
   // Méthodes utilitaires pour les calculs business...
   private determineRiskLevel(nplRatio: number, provisionRate: number): RiskLevel {
-    if (nplRatio < 2 && provisionRate < 3) return RiskLevel.FAIBLE;
-    if (nplRatio < 5 && provisionRate < 5) return RiskLevel.MOYEN;
-    return RiskLevel.ELEVE;
+    if (nplRatio < 2 && provisionRate < 3) return RiskLevel.LOW;
+    if (nplRatio < 5 && provisionRate < 5) return RiskLevel.MEDIUM;
+    return RiskLevel.HIGH;
   }
 
   private assessRegulatoryCompliance(nplRatio: number, provisionRate: number): RegulatoryCompliance {

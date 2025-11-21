@@ -21,13 +21,8 @@ from typing import List
 import os
 from openai import OpenAI
 from langchain.vectorstores import Chroma
-from langchain.embeddings import SentenceTransformerEmbeddings
-
-try:
-    from sentence_transformers import SentenceTransformer  # type: ignore
-except ImportError as e:
-    # Cette erreur bloque l'exécution si sentence-transformers n'est pas là
-    raise ImportError("Le module 'sentence-transformers' n'est pas installé. Veuillez l'installer avec 'pip install sentence-transformers'.")
+from langchain.embeddings import OpenAIEmbeddings
+import chromadb.utils.embedding_functions as embedding_functions
 
 class RetrieverAgent:
     """
@@ -50,41 +45,46 @@ class RetrieverAgent:
         print(f"Vector DB persistence directory: {db_persist_path}")
         # Crée le dossier s'il n'existe pas
         os.makedirs(db_persist_path, exist_ok=True)
-        self.vector_db_connector = ChromaDBConnector(persist_directory=db_persist_path)
-        self.collection = self.vector_db_connector.get_or_create_collection(name="comptable_knowledge")
+        # Initialize OpenAI embedding function for ChromaDB
+        # Read configuration from environment variables
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        openai_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        
+        self.openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=openai_api_key,
+            model_name=openai_model
+        )
+        print(f"OpenAI embeddings initialized with model: {openai_model}")
+        
+        self.vector_db_connector = ChromaDBConnector(
+            persist_directory=db_persist_path,
+            embedding_function=self.openai_ef
+        )
+        self.collection = self.vector_db_connector.get_or_create_collection(
+            name="comptable_knowledge",
+            embedding_function=self.openai_ef
+        )
         if self.collection is None:
              print("AVERTISSEMENT: Échec de l'initialisation de la collection ChromaDB.")
-
-        # --- Initialisation CORRIGÉE du modèle d'embedding ---
-        try:
-            # Déterminer quel identifiant utiliser :
-            # - Si un model_path a été explicitement fourni lors de la création de l'agent, on l'utilise.
-            # - Sinon (cas par défaut), on utilise le nom standard 'all-mpnet-base-v2'.
-            identifier_to_load = model_path if model_path is not None else 'all-mpnet-base-v2'
-
-            print(f"Initializing SentenceTransformer with identifier: {identifier_to_load}") # Log utile
-
-            # Charger le modèle en utilisant l'identifiant (nom ou chemin)
-            # La bibliothèque gérera le cache ou le téléchargement si c'est un nom connu
-            self.embedding_model = SentenceTransformer(identifier_to_load)
-            print("SentenceTransformer model loaded successfully.")
-
-        except ImportError as e:
-             # Cette erreur ne devrait pas se produire si l'import initial a réussi, mais on la garde par sécurité
-            raise ImportError("Erreur lors de l'importation de SentenceTransformer. Assurez-vous que 'sentence-transformers' est correctement installé.")
-        except AttributeError as e:
-             # Utile pour diagnostiquer les conflits de version (comme le NameError précédent)
-             print(f"AttributeError during SentenceTransformer init: {e}")
-             raise RuntimeError(f"Erreur critique : {e}. Cela peut être dû à une incompatibilité entre 'sentence-transformers' et 'transformers'/'accelerate'. Essayez 'pip install --upgrade sentence-transformers transformers accelerate'.")
-        # --- Fin de la section corrigée ---
+        
+        print("OpenAI embeddings initialized successfully (text-embedding-3-small)")
 
         # Ajout du retriever LangChain sur la collection documentaire
         adha_embeddings_path = os.path.join(os.path.dirname(__file__), '../../data/adha_context_embeddings')
         os.makedirs(adha_embeddings_path, exist_ok=True)
         
+        # Use OpenAI embeddings for LangChain (read from environment)
+        openai_embeddings = OpenAIEmbeddings(
+            model=os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+            openai_api_key=openai_api_key
+        )
+        
         self.adha_vectorstore = Chroma(
             collection_name="adha_context",
-            embedding_function=SentenceTransformerEmbeddings(model_name="all-mpnet-base-v2"),
+            embedding_function=openai_embeddings,
             persist_directory=adha_embeddings_path
         )
         self.adha_retriever = self.adha_vectorstore.as_retriever(search_kwargs={"k": 3})
@@ -132,7 +132,7 @@ class RetrieverAgent:
         """Consulte le LLM pour obtenir des règles SYSCOHADA."""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-2024-08-06",
+                model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),
                 messages=[
                     {
                         "role": "system",

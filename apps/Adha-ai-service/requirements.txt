@@ -18,11 +18,10 @@ opencv-python-headless>=4.8.0  # Version sans GUI (30% plus léger qu'opencv-pyt
 pytesseract>=0.3.10  # OCR
 pillow>=10.0.0,<10.2.0  # Image handling avec version contrainte
 
-# AI & Machine Learning - optimisé pour PyTorch existant
-openai>=1.0.0,<1.15.0  # API OpenAI avec version contrainte
+# AI & Machine Learning - optimized without PyTorch
+openai>=1.0.0,<1.15.0  # API OpenAI with embeddings support
 tiktoken>=0.5.0,<0.7.0  # Tokenizer optimisé
-sentence-transformers>=2.2.2,<2.3.0  # Compatible PyTorch 2.2.0
-chromadb>=0.4.22,<0.5.0  # Vector database léger
+chromadb>=0.4.22,<0.5.0  # Vector database with OpenAI embeddings support
 langchain>=0.1.0,<0.2.0  # LLM framework optimisé
 
 # Utilities (légers)
@@ -42,7 +41,5 @@ pytest-asyncio>=0.21.0
 pytest-mock>=3.11.1
 pytest-cov>=4.1.0
 
-# PyTorch CPU version (beaucoup plus léger que CUDA)
-torch>=2.0.0,<2.3.0 --index-url https://download.pytorch.org/whl/cpu
-torchvision>=0.15.0,<0.18.0 --index-url https://download.pytorch.org/whl/cpu
-torchaudio>=2.0.0,<2.3.0 --index-url https://download.pytorch.org/whl/cpu
+# PyTorch REMOVED - Replaced by OpenAI embeddings API
+# Reduces image size by ~6GB (from 10.4GB to 4.4GB)

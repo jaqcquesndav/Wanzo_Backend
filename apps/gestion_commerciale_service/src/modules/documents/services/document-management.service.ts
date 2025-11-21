@@ -53,7 +53,7 @@ export class DocumentManagementService {
       ...createDocumentDto, // Spread DTO first
       userId: user.id,
       companyId: user.companyId, 
-      storageUrl: uploadResult.secure_url,  // Utilise storageUrl comme défini dans l'entity
+      url: uploadResult.secure_url,  // Utilise url comme défini dans l'entity
       fileSize: uploadResult.bytes, 
       fileType: uploadResult.format || file.mimetype, 
       fileName: file.originalname, // Explicitly set from original file
@@ -157,7 +157,7 @@ export class DocumentManagementService {
           }
         );
         this.logger.log(`New file uploaded to Cloudinary: ${uploadResult.secure_url}, public_id: ${uploadResult.public_id}`);
-        document.storageUrl = uploadResult.secure_url;
+        document.url = uploadResult.secure_url;
         document.fileSize = uploadResult.bytes;
         document.fileType = uploadResult.format || file.mimetype;
         document.fileName = file.originalname; 

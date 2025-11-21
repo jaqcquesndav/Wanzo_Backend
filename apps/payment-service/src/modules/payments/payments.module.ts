@@ -9,6 +9,7 @@ import { SerdiPayFinancingController } from './controllers/serdipay-financing.co
 import { SubscriptionPaymentService } from './services/subscription-payment.service';
 import { SubscriptionPaymentEventsService } from './services/subscription-payment-events.service';
 import { PaymentRequestListenerService } from './services/payment-request-listener.service';
+import { CreditPaymentConsumerService } from './services/credit-payment-consumer.service';
 import { SerdiPayService } from './services/serdipay.service';
 import { SerdiPayProvider } from './providers/serdipay.provider';
 import { PaymentTransaction } from './entities/payment-transaction.entity';

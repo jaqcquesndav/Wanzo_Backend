@@ -2,6 +2,9 @@
 
 import { RiskLevel } from '@wanzobe/shared';
 
+// Ré-export RiskLevel pour utilisation locale
+export { RiskLevel };
+
 export enum RiskRating {
   AAA = 'AAA',
   AA = 'AA',

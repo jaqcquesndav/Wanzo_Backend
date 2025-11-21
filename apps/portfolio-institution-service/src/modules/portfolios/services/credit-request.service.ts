@@ -139,13 +139,16 @@ export class CreditRequestService {
 
       // Publish event outside transaction (async, don't await)
       this.eventsService.publishFundingRequestStatusChanged({
-        requestId: saved.id,
+        id: saved.id,
+        requestNumber: saved.id,
         portfolioId: saved.portfolioId || '',
+        clientId: saved.memberId,
         oldStatus: CreditRequestStatus.PENDING,
         newStatus: CreditRequestStatus.APPROVED,
-        timestamp: new Date().toISOString(),
+        changeDate: new Date(),
         changedBy: creditRequest.creditManagerId,
-        notes: approvalData.notes,
+        amount: creditRequest.requestAmount || 0,
+        currency: 'CDF',
       }).catch(error => {
         console.error('Failed to publish credit approval event:', error);
       });
@@ -180,14 +183,16 @@ export class CreditRequestService {
 
       // Publish event outside transaction (async, don't await)
       this.eventsService.publishFundingRequestStatusChanged({
-        requestId: saved.id,
+        id: saved.id,
+        requestNumber: saved.id,
         portfolioId: saved.portfolioId || '',
-        oldStatus: creditRequest.status,
+        clientId: saved.memberId,
+        oldStatus: CreditRequestStatus.REJECTED,
         newStatus: CreditRequestStatus.REJECTED,
-        timestamp: new Date().toISOString(),
+        changeDate: new Date(),
         changedBy: creditRequest.creditManagerId,
-        reason: rejectionData.reason,
-        notes: rejectionData.notes,
+        amount: creditRequest.requestAmount || 0,
+        currency: 'CDF',
       }).catch(error => {
         console.error('Failed to publish credit rejection event:', error);
       });

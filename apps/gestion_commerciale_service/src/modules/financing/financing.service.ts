@@ -33,9 +33,10 @@ export class FinancingService {
       try {
         await this.publishFundingRequestCreatedEvent(savedRecord, user);
       } catch (error) {
+        const err = error as Error;
         this.logger.error(
-          `Failed to publish funding request created event for ${savedRecord.id}: ${error.message}`,
-          error.stack
+          `Failed to publish funding request created event for ${savedRecord.id}: ${err.message}`,
+          err.stack
         );
       }
     });
@@ -67,8 +68,9 @@ export class FinancingService {
           defaultMobileMoneyAccountId: companyPaymentInfo.paymentPreferences?.defaultMobileMoneyAccountId,
         };
       } catch (error) {
+        const err = error as Error;
         this.logger.warn(
-          `Could not retrieve payment info for company ${record.businessId}: ${error.message}`
+          `Could not retrieve payment info for company ${record.businessId}: ${err.message}`
         );
       }
     }

@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, ValidateNested, IsObject, IsUUID, IsArray, IsBoolean, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RiskToleranceLevel, PortfolioStatus, RiskProfile, PortfolioType } from '../entities/portfolio.entity';

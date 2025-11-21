@@ -212,7 +212,8 @@ export class ChatService {
   // Méthode pour récupérer le contexte agrégé du chat (données portfolio et prospection)
   async getAggregatedContext(institutionId: string): Promise<Record<string, any>> {
     const portfolioData = await this.portfolioService.findAll({ institutionId }, 1, 10);
-    const prospectData = await this.prospectionService.getOpportunities({}, institutionId);
+    // TODO: Implémenter getOpportunities dans ProspectionService
+    // const prospectData = await this.prospectionService.getOpportunities({}, institutionId);
 
     return {
       portfolio: {
@@ -225,13 +226,8 @@ export class ChatService {
         total: portfolioData.total,
       },
       prospection: {
-        opportunities: prospectData.data.map(opp => ({
-          id: opp.id,
-          companyName: opp.companyName,
-          status: opp.status,
-          sector: opp.sector,
-        })),
-        total: prospectData.meta.total,
+        opportunities: [], // TODO: Ajouter les données de prospection une fois getOpportunities implémenté
+        total: 0,
       },
     };
   }

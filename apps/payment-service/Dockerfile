@@ -1,20 +1,34 @@
-FROM node:20.18.0-alpine3.20
-RUN apk update && apk upgrade && apk add --no-cache ca-certificates dumb-init curl && update-ca-certificates && adduser -D -u 1001 nodeuser
+# ======== STAGE 1: BUILD avec toutes les dépendances ========
+FROM wanzo-deps-base:latest AS builder
 
-WORKDIR /app
+# Copier les packages shared (déjà buildés dans la base)
+COPY packages/ ./packages/
+
+# Copier le package.json du service pour le workspace
+COPY apps/payment-service/package.json ./apps/payment-service/
+
+# Copier le code source du service
+COPY apps/payment-service/src ./apps/payment-service/src
+COPY apps/payment-service/tsconfig*.json ./apps/payment-service/
+COPY apps/payment-service/nest-cli.json ./apps/payment-service/
+
+# Build du service (maintenant que les packages shared sont disponibles)
+RUN yarn workspace @wanzobe/shared build && \
+    yarn workspace @wanzo/payment-service build
+
+# ======== STAGE 2: PRODUCTION ultra-léger ========
+FROM wanzo-production-base:latest AS production
+
+# Copier le package.json du service
+COPY --chown=nodeuser:nodeuser apps/payment-service/package.json ./apps/payment-service/
+
+# Copier le build et les node_modules depuis le stage builder
+COPY --from=builder --chown=nodeuser:nodeuser /app/apps/payment-service/dist ./apps/payment-service/dist
+
+WORKDIR /app/apps/payment-service
+
 ENV NODE_ENV=production
 ENV PORT=3007
-
-# Copy prebuilt output and deps from local context (requires you to run `npm run build` in apps/payment-service first)
-COPY apps/payment-service/package.json /app/package.json
-COPY apps/payment-service/dist /app/dist
-COPY apps/payment-service/node_modules /app/node_modules
-
-
-RUN npm pkg delete scripts && \
-	npm pkg set scripts.start='node dist/src/main.js' && \
-	npm prune --omit=dev && \
-	npm cache clean --force
 
 EXPOSE 3007
 
@@ -23,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=15s --retries=5 \
 
 USER nodeuser
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["npm", "start"]
+CMD ["node", "dist/src/main.js"]

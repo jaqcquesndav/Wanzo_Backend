@@ -10,7 +10,7 @@ from openai import OpenAI
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.conf import settings
-from sentence_transformers import SentenceTransformer
+import chromadb.utils.embedding_functions as embedding_functions
 
 from api.models import JournalEntry, ChatConversation, ChatMessage
 from agents.vector_databases.chromadb_connector import ChromaDBConnector
@@ -40,19 +40,41 @@ class HistoryAgent:
             os.makedirs(embeddings_path, exist_ok=True)
             print(f"Using embeddings path: {embeddings_path}")
             
-            self.vector_db = ChromaDBConnector(persist_directory=embeddings_path)
-            # Collection spécifique pour les écritures comptables
-            self.entries_collection = self.vector_db.get_or_create_collection(name="journal_entries")
-            # Collection séparée pour l'historique des conversations
-            self.chats_collection = self.vector_db.get_or_create_collection(name="chat_history")
+            # Initialize OpenAI embedding function (read from environment)
+            openai_api_key = os.environ.get("OPENAI_API_KEY")
+            openai_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
             
-            # Modèle d'embedding pour les requêtes
-            self.embedding_model = SentenceTransformer('all-mpnet-base-v2')
+            if not openai_api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required for history agent")
+            
+            self.openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                api_key=openai_api_key,
+                model_name=openai_model
+            )
+            print(f"History agent: OpenAI embeddings initialized with model: {openai_model}")
+            
+            self.vector_db = ChromaDBConnector(
+                persist_directory=embeddings_path,
+                embedding_function=self.openai_ef
+            )
+            # Collection spécifique pour les écritures comptables
+            self.entries_collection = self.vector_db.get_or_create_collection(
+                name="journal_entries",
+                embedding_function=self.openai_ef
+            )
+            # Collection séparée pour l'historique des conversations
+            self.chats_collection = self.vector_db.get_or_create_collection(
+                name="chat_history",
+                embedding_function=self.openai_ef
+            )
+            
+            print("OpenAI embeddings initialized successfully for history agent")
         except Exception as e:
             print(f"Erreur lors de l'initialisation de la base vectorielle: {e}")
             self.vector_db = None
             self.entries_collection = None
             self.chats_collection = None
+            self.openai_ef = None
     
     def add_entry(self, entry, source_data=None, source_type="manual"):
         """
@@ -86,9 +108,11 @@ class HistoryAgent:
             entry_id = f"entry_{uuid.uuid4()}"
             
             # Vérifier si le module d'embedding est disponible
-            if self.embedding_model and self.entries_collection:
-                # Créer l'embedding
-                embedding = self.embedding_model.encode([entry_text])[0].tolist()
+            if self.openai_ef and self.entries_collection:
+                # Créer l'embedding avec OpenAI API
+                # ChromaDB with OpenAI embedding function will handle this automatically
+                # We just need to provide the text, no manual embedding needed
+                embedding = None  # Will be generated automatically by ChromaDB
                 
                 # Préparer les métadonnées incluant les données source avec isolation stricte
                 metadata = {
@@ -115,9 +139,9 @@ class HistoryAgent:
                     metadata["source_type"] = source_type
                 
                 # Stocker dans la base vectorielle
+                # With OpenAI embedding function, ChromaDB generates embeddings automatically
                 self.entries_collection.add(
                     ids=[entry_id],
-                    embeddings=[embedding],
                     documents=[entry_text],
                     metadatas=[metadata]
                 )
@@ -235,9 +259,9 @@ class HistoryAgent:
             # 1. D'abord, essayons de trouver des écritures via la recherche vectorielle
             relevant_entries = []
             
-            if self.entries_collection and self.embedding_model:
-                # Créer l'embedding de la requête
-                query_embedding = self.embedding_model.encode([query])[0].tolist()
+            if self.entries_collection and self.openai_ef:
+                # With OpenAI embedding function, we can query directly with text
+                # ChromaDB will generate embeddings automatically
                 
                 # Filtrage strict par isolation - CRITIQUE pour la sécurité
                 where_clause = {
@@ -253,8 +277,9 @@ class HistoryAgent:
                     where_clause["$and"].append({"company_id": str(self.company_id)})
                 
                 # Rechercher dans la base vectorielle avec isolation stricte
+                # With OpenAI embedding function, use query_texts instead of query_embeddings
                 results = self.entries_collection.query(
-                    query_embeddings=[query_embedding],
+                    query_texts=[query],
                     n_results=max_entries,
                     where=where_clause,
                     include=['metadatas', 'documents', 'distances']

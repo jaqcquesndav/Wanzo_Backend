@@ -78,7 +78,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: d2487a19465f468aa0bdfb7e04c35579
-      POSTGRES_MULTIPLE_DATABASES: admin_service,accounting_service,analytics_service,portfolio_institution_service,gestion_commerciale_service,adha_ai_service,customer_service
+      POSTGRES_MULTIPLE_DATABASES: admin_service,accounting_service,analytics_service,portfolio_institution_service,gestion_commerciale_service,adha_ai_service,customer_service,payment_service
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -584,30 +584,28 @@ services:
       - "8002:8002"
       - "9467:9464" # Port Prometheus (résolution conflit avec admin-service)
     environment:
-      - DJANGO_SETTINGS_MODULE=adha_ai_service.settings
-      - PORT=8002
+      # Database (utilisé dans settings.py)
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=adha_ai_service
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      # Kafka (utilisé dans kafka clients)
       - KAFKA_ENV=docker
       - KAFKA_BROKER_INTERNAL=kafka:29092
       - KAFKA_BROKER_EXTERNAL=localhost:9092
-      - PROMETHEUS_PORT=9464
-      - POSTGRES_DB=adha-ai-service
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - DLQ_ENABLED=true
-      - DLQ_MAX_RETRIES=3
-      - DLQ_RETRY_DELAY_MS=5000
-      # Auth0 Configuration
-      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # Auth0 (utilisé dans settings.py)
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
-      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
-      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
-      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
-      # Auth0 M2M Configuration
-      - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
-      - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Redis (utilisé dans settings.py pour cache)
+      - REDIS_URL=redis://localhost:6379/0
+      # Customer Service (utilisé dans settings.py)
+      - CUSTOMER_SERVICE_URL=http://kiota-customer-service:3011
+      # OpenAI (utilisé dans tous les agents)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      - OPENAI_CHAT_MODEL=${OPENAI_CHAT_MODEL:-gpt-4o-2024-08-06}
+      - OPENAI_VISION_MODEL=${OPENAI_VISION_MODEL:-gpt-4o-2024-08-06}
+      - OPENAI_DEFAULT_MODEL=${OPENAI_DEFAULT_MODEL:-gpt-4o-2024-08-06}
     env_file:
       - ./apps/Adha-ai-service/.env
     volumes:

@@ -112,9 +112,9 @@ export class OHADAMetricsService {
   }
 
   private determineGlobalRiskLevel(avgNplRatio: number): RiskLevel {
-    if (avgNplRatio < 2) return RiskLevel.FAIBLE;
-    if (avgNplRatio < 5) return RiskLevel.MOYEN;
-    return RiskLevel.ELEVE;
+    if (avgNplRatio < 2) return RiskLevel.LOW;
+    if (avgNplRatio < 5) return RiskLevel.MEDIUM;
+    return RiskLevel.HIGH;
   }
 
   private calculateAverageGrowthRate(metrics: OHADAMetrics[]): number {

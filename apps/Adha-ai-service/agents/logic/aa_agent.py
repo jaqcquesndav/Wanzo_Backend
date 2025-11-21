@@ -548,7 +548,7 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
             # Récupérer les règles spécifiques au type d'opération
             specific_rules = self.retriever.retrieve(f"règles comptables pour {operation_type} en SYSCOHADA")
             response = self.client.chat.completions.create(
-                model="gpt-4",  # Using GPT-4 for better comprehension 
+                model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),  # Using chat model for better comprehension 
                 messages=[
                     {
                         "role": "system",
@@ -671,7 +671,7 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
                         elements_validés += f"- Correction suggérée: {json.dumps(validation['correction_suggeree'], indent=2, ensure_ascii=False)}\n"
 
             response = self.client.chat.completions.create(
-                model="gpt-4o-2024-08-06",
+                model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),
                 messages=[
                     {
                         "role": "system",
@@ -788,7 +788,7 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
             }}
             IMPORTANT : RÉPONDRE UNIQUEMENT EN JSON VALIDE"""
             response = self.client.chat.completions.create(
-                model="gpt-4o-2024-08-06",
+                model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {

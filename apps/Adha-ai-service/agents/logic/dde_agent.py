@@ -77,7 +77,8 @@ class DDEAgent:
         }
         
         try:
-            print("Traitement PDF avec OpenAI Vision (gpt-4o-2024-08-06)...")
+            vision_model = os.environ.get("OPENAI_VISION_MODEL", "gpt-4o-2024-08-06")
+            print(f"Traitement PDF avec OpenAI Vision ({vision_model})...")
             pdf_document = fitz.open(file_path)
             extraction_details["page_count"] = len(pdf_document)
             combined_text = ""
@@ -126,7 +127,7 @@ IMPORTANT: Répondez en français. Ne traduisez pas le contenu, préservez-le da
                     while attempts_remaining > 0 and not success:
                         try:
                             response = self.client.chat.completions.create(
-                                model="gpt-4o-2024-08-06",  # Utilisation du modèle le plus récent avec capacités Vision
+                                model=vision_model,  # Utilisation du modèle configuré avec capacités Vision
                                 messages=[
                                     {
                                         "role": "system",

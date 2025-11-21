@@ -5,8 +5,7 @@ export {
   UserEventTopics,
   CustomerEventTopics,
   TokenEventTopics,
-  SubscriptionEventTopics,
-  PortfolioEventTopics
+  SubscriptionEventTopics
 } from './standard-kafka-topics';
 export { MessageVersionManager } from './message-versioning';
 
@@ -59,8 +58,40 @@ export * from './subscription-types';
 
 // Export funding request events
 export * from './funding-request-events';
-export * from './portfolio-events';
-export * from './financing-payment-events';
+
+// Export portfolio events avec alias pour éviter conflits
+export {
+  PortfolioEventTopics
+} from './portfolio-events';
+export type {
+  FundingRequestStatusChangedEvent,
+  ContractCreatedEvent,
+  ContractStatusChangedEvent,
+  ContractRestructuredEvent,
+  DisbursementCompletedEvent as PortfolioDisbursementCompletedEvent,
+  RepaymentReceivedEvent,
+  PaymentScheduleUpdatedEvent,
+  DocumentUploadedEvent,
+  DocumentUpdatedEvent,
+  DocumentStatusChangedEvent
+} from './portfolio-events';
+
+// Export financing payment events avec alias pour éviter conflits
+export {
+  FinancingPaymentEventTopics
+} from './financing-payment-events';
+export type {
+  DisbursementInitiatedEvent,
+  DisbursementCompletedEvent as FinancingDisbursementCompletedEvent,
+  DisbursementFailedEvent,
+  RepaymentInitiatedEvent,
+  RepaymentCompletedEvent,
+  RepaymentFailedEvent,
+  RepaymentPartialEvent,
+  ContractFullyPaidEvent,
+  PaymentOverdueEvent,
+  FinancingRevenueEvent
+} from './financing-payment-events';
 
 // Export constants standardisés
 export * from '../constants/mobile-money-operators';

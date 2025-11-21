@@ -73,7 +73,7 @@ export class StripePaymentService {
     }
 
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-10-28.acacia',
+      apiVersion: '2025-02-24.acacia',
     });
   }
 

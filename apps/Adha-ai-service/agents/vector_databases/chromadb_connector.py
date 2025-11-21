@@ -7,12 +7,14 @@ class ChromaDBConnector:
     """
     Classe pour interagir avec ChromaDB, une base de données vectorielle.
     """
-    def __init__(self, persist_directory=None):
+    def __init__(self, persist_directory=None, embedding_function=None):
         if persist_directory is None:
             # Utiliser le chemin du projet par défaut
             persist_directory = os.path.join(
                 settings.BASE_DIR, 'data', 'embeddings'
             )
+        
+        self.default_embedding_function = embedding_function
         
         # S'assurer que le dossier existe
         os.makedirs(persist_directory, exist_ok=True)
@@ -40,10 +42,13 @@ class ChromaDBConnector:
             if not self.client:
                 print("ChromaDB client not initialized")
                 return None
+            
+            # Use provided embedding function, or fall back to default from __init__
+            ef = embedding_function or self.default_embedding_function
                 
             return self.client.get_or_create_collection(
                 name=name,
-                embedding_function=embedding_function,
+                embedding_function=ef,
                 metadata=metadata or {"description": f"Collection {name} for comptable_ia_api"}
             )
         except Exception as e:

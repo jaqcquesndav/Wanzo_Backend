@@ -5,17 +5,27 @@ from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 # Importez d'autres loaders si nécessaire (pour Excel, images OCR'd, etc.)
-from agents.vector_databases.chromadb_connector import ChromaDBConnector  # Exemple de connecteur
-# from agents.llm_connectors.openai_connector import OpenAIConnector # Si vous utilisez OpenAI embeddings
-from sentence_transformers import SentenceTransformer  # Exemple pour des embeddings locaux
+from agents.vector_databases.chromadb_connector import ChromaDBConnector
+import chromadb.utils.embedding_functions as embedding_functions
+from openai import OpenAI
 
 class KnowledgeEmbedder:
-    def __init__(self, embedding_model_name="all-mpnet-base-v2", chunk_size=1000, chunk_overlap=100):
-        self.embedding_model_name = embedding_model_name
+    def __init__(self, embedding_model_name=None, chunk_size=1000, chunk_overlap=100):
+        # Read configuration from environment variables
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        self.embedding_model_name = embedding_model_name or os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required for knowledge embedder")
+        
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        self.embedding_model = SentenceTransformer(self.embedding_model_name) # Exemple local
-        # Si vous utilisez OpenAI:
-        # self.openai_connector = OpenAIConnector()
+        # Use OpenAI embeddings API instead of local SentenceTransformer
+        self.client = OpenAI(api_key=openai_api_key)
+        self.openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=openai_api_key,
+            model_name=self.embedding_model_name
+        )
+        print(f"Knowledge embedder: OpenAI initialized with model: {self.embedding_model_name}")
 
     def load_and_chunk_documents(self, directory: str) -> List[str]:
         """
@@ -46,31 +56,32 @@ class KnowledgeEmbedder:
 
     def create_embeddings(self, texts: List[str]) -> List[List[float]]:
         """
-        Crée les embeddings pour une liste de textes.
+        Crée les embeddings pour une liste de textes en utilisant OpenAI API.
         """
-        # Avec Sentence Transformers (local):
-        embeddings = self.embedding_model.encode(texts).tolist()
-        return embeddings
-
-        # Avec OpenAI:
-        # if self.openai_connector:
-        #     response = self.openai_connector.client.embeddings.create(
-        #         input=texts,
-        #         model="text-embedding-ada-002" # Choisissez votre modèle d'embedding OpenAI
-        #     )
-        #     return [data.embedding for data in response.data]
-        # else:
-        #     raise ValueError("OpenAI connector not initialized.")
+        try:
+            response = self.client.embeddings.create(
+                input=texts,
+                model=self.embedding_model_name  # text-embedding-3-small by default
+            )
+            return [data.embedding for data in response.data]
+        except Exception as e:
+            print(f"Error creating OpenAI embeddings: {e}")
+            raise
 
     def index_embeddings(self, texts: List[str], embeddings: List[List[float]], ids: List[str], vector_db_connector: ChromaDBConnector, collection_name="comptable_knowledge"):
         """
         Indexe les embeddings dans la base de vecteurs.
+        With OpenAI embedding function, we can skip pre-computed embeddings.
         """
-        collection = vector_db_connector.get_or_create_collection(name=collection_name)
+        collection = vector_db_connector.get_or_create_collection(
+            name=collection_name,
+            embedding_function=self.openai_ef
+        )
+        # With OpenAI embedding function, ChromaDB generates embeddings automatically
         collection.add(
             ids=ids,
-            embeddings=embeddings,
             documents=texts
+            # No need to pass embeddings - they're generated automatically
         )
 
 def process_knowledge_base(knowledge_base_path: str, vector_db_connector: ChromaDBConnector):

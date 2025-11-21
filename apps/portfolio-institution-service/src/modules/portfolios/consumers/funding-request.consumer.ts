@@ -102,7 +102,7 @@ export class FundingRequestConsumerService {
             currency: portfolio.currency,
             is_primary: acc.isDefault,
             is_active: acc.status === 'active',
-            account_status: acc.verificationStatus,
+            account_status: acc.verificationStatus === 'failed' ? 'suspended' : acc.verificationStatus,
             purpose: 'collection',
             balance: 0,
             created_at: new Date().toISOString(),

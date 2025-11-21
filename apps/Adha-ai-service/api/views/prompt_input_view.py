@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import uuid
+import os
 
 from agents.logic.orchestration_agent import OrchestrationAgent
 from api.services.token_tracker import TokenTracker
@@ -106,7 +107,7 @@ class PromptInputView(APIView):
             token_stats = token_tracker.track_operation(
                 user_id=request.user.id,
                 operation_type="prompt",
-                model="gpt-4o-2024-08-06",  # Modèle utilisé pour le traitement
+                model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),  # Modèle utilisé pour le traitement
                 input_tokens=len(prompt) // 4,  # Estimation de 1 token pour ~4 caractères
                 output_tokens=len(str(result)) // 4,  # Estimation grossière
                 operation_id=operation_id

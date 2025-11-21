@@ -27,8 +27,8 @@ class OpenAIConnector:
             print(f"Erreur lors de l'initialisation du client OpenAI: {client_e}")
             raise RuntimeError(f"Échec de l'initialisation du client OpenAI: {client_e}")
 
-        # Utiliser gpt-4 comme modèle par défaut
-        self.model_name = model_name if model_name is not None else "gpt-4"
+        # Utiliser le modèle configuré comme défaut
+        self.model_name = model_name if model_name is not None else os.environ.get("OPENAI_DEFAULT_MODEL", "gpt-4o-2024-08-06")
         print(f"Using OpenAI model: {self.model_name}")
 
     def generate_text(self, prompt, max_tokens=200, temperature=0.7, n=1, stop=None):

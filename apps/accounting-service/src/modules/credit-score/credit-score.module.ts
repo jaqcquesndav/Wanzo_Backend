@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
-import { CreditScoreService } from './services/credit-score.service';
 import { CreditScoringService } from './services/credit-scoring.service';
 import { CreditEventsService } from './services/credit-events.service';
 import { RealTimeCreditMonitoringService } from './services/credit-monitoring.service';
 import { CreditScoreController } from './controllers/credit-score.controller';
+import { CompanyCreditScore } from './entities/company-score.entity';
 import { JournalsModule } from '../journals/journals.module';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([CompanyCreditScore]),
     JournalsModule,
     HttpModule.register({
       timeout: 10000,

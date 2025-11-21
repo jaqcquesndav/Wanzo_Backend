@@ -211,7 +211,7 @@ export class CustomersService {
     const newCustomer = this.customerRepository.create({
       phoneNumber: normalizedPhone,
       fullName: customerName || `Client ${normalizedPhone}`,
-      email: email || null,
+      email: email || undefined,
       category: CustomerCategory.NEW_CUSTOMER,
       totalPurchases: 0,
     });
