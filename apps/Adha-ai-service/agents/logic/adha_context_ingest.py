@@ -2,11 +2,12 @@ import requests
 import tempfile
 import os
 from typing import List
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
-from langchain.embeddings import SentenceTransformerEmbeddings
+from agents.utils.custom_loaders import PyPDFLoader
+from agents.utils.text_splitter import RecursiveCharacterTextSplitter
+from agents.vector_databases.chromadb_connector import ChromaDBConnector
+import chromadb.utils.embedding_functions as embedding_functions
 from django.conf import settings
+import os
 
 ADMIN_SERVICE_URL = os.environ.get('ADMIN_SERVICE_URL', 'http://admin-service:3000/api/adha-context/sources')
 
@@ -17,13 +18,30 @@ class AdhaContextIngestor:
     def __init__(self):
         embeddings_path = os.path.join(settings.BASE_DIR, 'data', 'adha_context_embeddings')
         os.makedirs(embeddings_path, exist_ok=True)
-        self.embeddings = SentenceTransformerEmbeddings(model_name="all-mpnet-base-v2")
+        
+        # Use OpenAI embeddings instead of SentenceTransformer
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        openai_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        
+        self.openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=openai_api_key,
+            model_name=openai_model
+        )
+        
         self.persist_directory = embeddings_path
         self.collection_name = "adha_context"
-        self.vectorstore = Chroma(
-            collection_name=self.collection_name,
-            embedding_function=self.embeddings,
-            persist_directory=self.persist_directory
+        
+        # Use ChromaDB directly instead of LangChain wrapper
+        self.db_connector = ChromaDBConnector(
+            persist_directory=self.persist_directory,
+            embedding_function=self.openai_ef
+        )
+        self.collection = self.db_connector.get_or_create_collection(
+            name=self.collection_name,
+            embedding_function=self.openai_ef
         )
 
     def fetch_active_sources(self) -> List[dict]:
@@ -55,29 +73,48 @@ class AdhaContextIngestor:
                 if not pages:
                     continue
                 docs = splitter.split_documents(pages)
+                
+                # Prepare data for ChromaDB
+                ids = []
+                documents = []
                 metadatas = []
-                for doc in docs:
-                    meta = dict(doc.metadata)
-                    meta.update({
-                        'id': src.get('id'),
-                        'titre': src.get('titre'),
-                        'description': src.get('description'),
-                        'type': src.get('type'),
-                        'tags': src.get('tags'),
-                        'url': url
-                    })
+                
+                for i, doc in enumerate(docs):
+                    ids.append(f"{src.get('id')}_{i}")
+                    documents.append(doc.page_content)
+                    
+                    meta = {
+                        'source_id': str(src.get('id')),
+                        'titre': src.get('titre') or '',
+                        'description': src.get('description') or '',
+                        'type': src.get('type') or '',
+                        'tags': str(src.get('tags') or ''),
+                        'url': url,
+                        'page': doc.metadata.get('page', 0)
+                    }
                     metadatas.append(meta)
-                self.vectorstore.add_documents(docs, metadatas=metadatas)
+                
+                # Add to ChromaDB (embeddings generated automatically)
+                if documents:
+                    self.collection.add(
+                        ids=ids,
+                        documents=documents,
+                        metadatas=metadatas
+                    )
             except Exception as e:
                 print(f"Erreur indexation source {src.get('id')}: {e}")
 
     def refresh(self):
         # Supprime et réindexe tout
-        self.vectorstore.delete_collection()
-        self.vectorstore = Chroma(
-            collection_name=self.collection_name,
-            embedding_function=self.embeddings,
-            persist_directory=self.persist_directory
+        try:
+            self.db_connector.delete_collection(self.collection_name)
+        except Exception as e:
+            print(f"Collection deletion warning: {e}")
+        
+        # Recreate collection
+        self.collection = self.db_connector.get_or_create_collection(
+            name=self.collection_name,
+            embedding_function=self.openai_ef
         )
         self.index_sources()
 

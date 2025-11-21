@@ -20,8 +20,6 @@ except ImportError:
 from typing import List
 import os
 from openai import OpenAI
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
 import chromadb.utils.embedding_functions as embedding_functions
 
 class RetrieverAgent:
@@ -72,30 +70,40 @@ class RetrieverAgent:
         
         print("OpenAI embeddings initialized successfully (text-embedding-3-small)")
 
-        # Ajout du retriever LangChain sur la collection documentaire
+        # Initialize ChromaDB for ADHA context (no LangChain wrapper needed)
         adha_embeddings_path = os.path.join(os.path.dirname(__file__), '../../data/adha_context_embeddings')
         os.makedirs(adha_embeddings_path, exist_ok=True)
         
-        # Use OpenAI embeddings for LangChain (read from environment)
-        openai_embeddings = OpenAIEmbeddings(
-            model=os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
-            openai_api_key=openai_api_key
+        # Create separate ChromaDB connector for ADHA context
+        self.adha_db_connector = ChromaDBConnector(
+            persist_directory=adha_embeddings_path,
+            embedding_function=self.openai_ef
         )
-        
-        self.adha_vectorstore = Chroma(
-            collection_name="adha_context",
-            embedding_function=openai_embeddings,
-            persist_directory=adha_embeddings_path
+        self.adha_collection = self.adha_db_connector.get_or_create_collection(
+            name="adha_context",
+            embedding_function=self.openai_ef
         )
-        self.adha_retriever = self.adha_vectorstore.as_retriever(search_kwargs={"k": 3})
 
         self.client = OpenAI()  # Pour les requêtes au LLM
 
     def retrieve_adha_context(self, query: str, top_k: int = 3) -> List[str]:
-        """Récupère les documents contextuels pertinents via LangChain/Chroma."""
+        """Récupère les documents contextuels pertinents via ChromaDB direct."""
         try:
-            docs = self.adha_retriever.get_relevant_documents(query)
-            return [doc.page_content for doc in docs]
+            if not self.adha_collection:
+                print("ADHA collection not initialized")
+                return []
+            
+            # Query ChromaDB directly - embedding is generated automatically
+            results = self.adha_collection.query(
+                query_texts=[query],
+                n_results=top_k
+            )
+            
+            # Extract documents from results
+            if results and 'documents' in results and results['documents']:
+                return results['documents'][0]  # First query's results
+            return []
+            
         except Exception as e:
             print(f"Erreur retrieval RAG: {e}")
             return []

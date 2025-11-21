@@ -2,9 +2,9 @@
 import os
 from pathlib import Path
 from typing import List
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
-# Importez d'autres loaders si nécessaire (pour Excel, images OCR'd, etc.)
+from agents.utils.text_splitter import RecursiveCharacterTextSplitter
+from agents.utils.custom_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+# Custom loaders replacing LangChain - uses PyMuPDF and python-docx
 from agents.vector_databases.chromadb_connector import ChromaDBConnector
 import chromadb.utils.embedding_functions as embedding_functions
 from openai import OpenAI
