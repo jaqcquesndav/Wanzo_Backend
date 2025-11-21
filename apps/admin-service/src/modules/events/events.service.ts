@@ -36,6 +36,12 @@ import {
   InstitutionCreatedEvent,
   InstitutionProfileUpdatedEvent,
   InstitutionStatusChangedEvent,
+  AdhaContextEventTopics,
+  AdhaContextCreatedEvent,
+  AdhaContextUpdatedEvent,
+  AdhaContextToggledEvent,
+  AdhaContextDeletedEvent,
+  AdhaContextExpiredEvent,
 } from '@wanzobe/shared';
 import { StandardKafkaTopics } from '@wanzobe/shared/events/standard-kafka-topics';
 import { MessageVersionManager } from '@wanzobe/shared/events/message-versioning';
@@ -482,6 +488,48 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
     timestamp: string;
   }): Promise<void> {
     await this.emit('audit.trail', event);
+  }
+  // #endregion
+
+  // #region ADHA Context Events
+  /**
+   * Publier un événement de création de source ADHA Context
+   * Émis UNIQUEMENT si le document est indexable (active=true, url exists, dates valides)
+   */
+  async publishAdhaContextCreated(event: AdhaContextCreatedEvent): Promise<void> {
+    await this.emit(AdhaContextEventTopics.CONTEXT_CREATED, event);
+  }
+
+  /**
+   * Publier un événement de mise à jour de source ADHA Context
+   * Émis UNIQUEMENT si les champs d'indexation changent
+   */
+  async publishAdhaContextUpdated(event: AdhaContextUpdatedEvent): Promise<void> {
+    await this.emit(AdhaContextEventTopics.CONTEXT_UPDATED, event);
+  }
+
+  /**
+   * Publier un événement de toggle du statut active
+   * Émis UNIQUEMENT si l'éligibilité à l'indexation change
+   */
+  async publishAdhaContextToggled(event: AdhaContextToggledEvent): Promise<void> {
+    await this.emit(AdhaContextEventTopics.CONTEXT_TOGGLED, event);
+  }
+
+  /**
+   * Publier un événement de suppression de source ADHA Context
+   * Toujours émis pour permettre le nettoyage de l'index ChromaDB
+   */
+  async publishAdhaContextDeleted(event: AdhaContextDeletedEvent): Promise<void> {
+    await this.emit(AdhaContextEventTopics.CONTEXT_DELETED, event);
+  }
+
+  /**
+   * Publier un événement d'expiration de source ADHA Context
+   * Utilisé par les jobs CRON pour retirer les documents expirés
+   */
+  async publishAdhaContextExpired(event: AdhaContextExpiredEvent): Promise<void> {
+    await this.emit(AdhaContextEventTopics.CONTEXT_EXPIRED, event);
   }
   // #endregion
 }

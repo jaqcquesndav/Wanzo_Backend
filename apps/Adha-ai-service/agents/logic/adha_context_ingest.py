@@ -104,6 +104,92 @@ class AdhaContextIngestor:
             except Exception as e:
                 print(f"Erreur indexation source {src.get('id')}: {e}")
 
+    def index_single_source(self, source_id: str, url: str, metadata: dict):
+        """
+        Index un seul document dans ChromaDB
+        Utilisé par le consumer Kafka pour indexation en temps réel
+        """
+        try:
+            local_pdf = self.download_pdf(url)
+            loader = PyPDFLoader(local_pdf)
+            pages = loader.load()
+            os.unlink(local_pdf)
+            
+            if not pages:
+                print(f"No pages extracted from {source_id}")
+                return
+            
+            splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            docs = splitter.split_documents(pages)
+            
+            ids = []
+            documents = []
+            metadatas = []
+            
+            for i, doc in enumerate(docs):
+                ids.append(f"{source_id}_{i}")
+                documents.append(doc.page_content)
+                
+                meta = {
+                    'source_id': str(source_id),
+                    'titre': metadata.get('titre') or '',
+                    'description': metadata.get('description') or '',
+                    'type': metadata.get('type') or '',
+                    'tags': str(metadata.get('tags') or ''),
+                    'url': url,
+                    'page': doc.metadata.get('page', 0)
+                }
+                metadatas.append(meta)
+            
+            if documents:
+                self.collection.add(
+                    ids=ids,
+                    documents=documents,
+                    metadatas=metadatas
+                )
+                print(f"✅ Indexed {len(documents)} chunks for document {source_id}")
+                
+        except Exception as e:
+            print(f"❌ Error indexing source {source_id}: {e}")
+            raise
+    
+    def reindex_source(self, source_id: str, url: str, metadata: dict):
+        """
+        Réindex un document (remove + index)
+        Utilisé pour les événements UPDATED
+        """
+        try:
+            # D'abord retirer l'ancien
+            self.remove_from_index(source_id)
+            # Puis réindexer
+            self.index_single_source(source_id, url, metadata)
+            print(f"✅ Reindexed document {source_id}")
+        except Exception as e:
+            print(f"❌ Error reindexing source {source_id}: {e}")
+            raise
+    
+    def remove_from_index(self, source_id: str):
+        """
+        Retire tous les chunks d'un document de l'index ChromaDB
+        Utilisé pour DELETED, TOGGLED (active=false), EXPIRED
+        """
+        try:
+            # ChromaDB: récupérer tous les IDs associés à ce source_id
+            results = self.collection.get(
+                where={"source_id": str(source_id)}
+            )
+            
+            if results and 'ids' in results and results['ids']:
+                ids_to_delete = results['ids']
+                self.collection.delete(ids=ids_to_delete)
+                print(f"✅ Removed {len(ids_to_delete)} chunks for document {source_id}")
+            else:
+                print(f"⚠️ No chunks found for document {source_id} (already removed or never indexed)")
+                
+        except Exception as e:
+            print(f"❌ Error removing source {source_id} from index: {e}")
+            raise
+
     def refresh(self):
         # Supprime et réindexe tout
         try:

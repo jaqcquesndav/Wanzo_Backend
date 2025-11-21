@@ -27,6 +27,13 @@ export class StandardKafkaTopics {
   // Adha AI General
   static readonly ADHA_AI_EVENTS = 'adha-ai-events';
   
+  // Adha Context Events (Knowledge Base Synchronization)
+  static readonly ADHA_CONTEXT_CREATED = 'adha.context.created';
+  static readonly ADHA_CONTEXT_UPDATED = 'adha.context.updated';
+  static readonly ADHA_CONTEXT_DELETED = 'adha.context.deleted';
+  static readonly ADHA_CONTEXT_TOGGLED = 'adha.context.toggled';
+  static readonly ADHA_CONTEXT_EXPIRED = 'adha.context.expired';
+  
   // User Events
   static readonly USER_CREATED = 'user.created';
   static readonly USER_UPDATED = 'user.updated';
@@ -160,6 +167,16 @@ export class StandardKafkaTopics {
       StandardKafkaTopics.USER_UPDATED,
       StandardKafkaTopics.USER_STATUS_CHANGED,
       StandardKafkaTopics.USER_ROLE_CHANGED,
+    ];
+  }
+  
+  static getAdhaContextTopics(): string[] {
+    return [
+      StandardKafkaTopics.ADHA_CONTEXT_CREATED,
+      StandardKafkaTopics.ADHA_CONTEXT_UPDATED,
+      StandardKafkaTopics.ADHA_CONTEXT_DELETED,
+      StandardKafkaTopics.ADHA_CONTEXT_TOGGLED,
+      StandardKafkaTopics.ADHA_CONTEXT_EXPIRED,
     ];
   }
 }

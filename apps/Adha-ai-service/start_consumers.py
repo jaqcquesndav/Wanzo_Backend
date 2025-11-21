@@ -21,6 +21,7 @@ django.setup()
 
 from api.kafka.customer_data_consumer import CustomerDataConsumer
 from api.kafka.unified_consumer import UnifiedConsumer
+from api.kafka.adha_context_consumer import AdhaContextConsumer
 
 # Configuration du logging
 logging.basicConfig(
@@ -74,6 +75,18 @@ class ConsumerManager:
             self.threads.append(unified_thread)
             self.consumers['unified'] = unified_consumer
             
+            # 3. Consumer ADHA Context pour synchronisation base de connaissances
+            logger.info("Starting ADHA Context Consumer...")
+            adha_context_consumer = AdhaContextConsumer()
+            adha_context_thread = threading.Thread(
+                target=adha_context_consumer.start,
+                name="AdhaContextConsumer",
+                daemon=True
+            )
+            adha_context_thread.start()
+            self.threads.append(adha_context_thread)
+            self.consumers['adha_context'] = adha_context_consumer
+            
             self.running = True
             logger.info("✅ All Kafka consumers started successfully!")
             
@@ -92,6 +105,7 @@ class ConsumerManager:
         print("="*60)
         print(f"📡 Customer Data Consumer: {'✅ RUNNING' if 'customer_data' in self.consumers else '❌ STOPPED'}")
         print(f"📡 Unified Consumer: {'✅ RUNNING' if 'unified' in self.consumers else '❌ STOPPED'}")
+        print(f"📡 ADHA Context Consumer: {'✅ RUNNING' if 'adha_context' in self.consumers else '❌ STOPPED'}")
         print(f"🧵 Active Threads: {len(self.threads)}")
         print("="*60)
         
@@ -105,10 +119,17 @@ class ConsumerManager:
         print("• commerce.operation.created - Opérations commerciales")
         print("• portfolio.analysis.request - Demandes d'analyse")
         print("• accounting.journal.status - Statuts des écritures")
+        print("• adha.context.created - Sources ADHA Context créées")
+        print("• adha.context.updated - Sources ADHA Context modifiées")
+        print("• adha.context.deleted - Sources ADHA Context supprimées")
+        print("• adha.context.toggled - Sources ADHA Context activées/désactivées")
+        print("• adha.context.expired - Sources ADHA Context expirées")
         
         print(f"\n🔒 ISOLATION: Middleware activé")
         print(f"⚡ PERFORMANCE: Cache Redis activé")
         print(f"🧮 CALCULATIONS: Détection automatique activée")
+        print(f"📚 KNOWLEDGE BASE: Synchronisation temps réel activée")
+        print(f"🛡️ PROTECTIONS: Circuit Breaker + Rate Limiting actifs")
         print("="*60)
     
     def monitor_consumers(self):
@@ -128,7 +149,7 @@ class ConsumerManager:
                         self.threads.remove(dead_thread)
                     
                     # Essayer de redémarrer les consumers morts
-                    if len(self.threads) < 2:  # Nous avons 2 consumers principaux
+                    if len(self.threads) < 3:  # Nous avons 3 consumers principaux
                         logger.info("🔄 Attempting to restart consumers...")
                         self.restart_failed_consumers()
                 
