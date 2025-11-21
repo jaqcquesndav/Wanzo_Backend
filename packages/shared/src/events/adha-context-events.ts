@@ -6,8 +6,13 @@
 export enum AdhaContextType {
   RAPPORT = 'rapport',
   ETUDE = 'etude',
+  ETUDE_MARCHE = 'etude_marche',
   STATISTIQUE = 'statistique',
+  STATISTIQUES = 'statistiques',
   LOI_DECRET = 'loi_decret',
+  REGLEMENTATION = 'reglementation',
+  RAPPORT_ANNUEL = 'rapport_annuel',
+  ARTICLE_PRESSE = 'article_presse',
   GUIDE = 'guide',
   PROCEDURE = 'procedure',
   FORMULAIRE = 'formulaire',
@@ -18,6 +23,7 @@ export enum ZoneCibleType {
   PAYS = 'pays',
   PROVINCE = 'province',
   VILLE = 'ville',
+  REGION = 'region',
   ZONE_ECONOMIQUE = 'zone_economique'
 }
 

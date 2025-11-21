@@ -16,15 +16,17 @@ export {
   ZoneCibleType,
   ADHA_CONTEXT_EVENT_VERSION,
   ADHA_CONTEXT_MAX_RETRY,
-  ADHA_CONTEXT_RETRY_DELAY_MS,
-  type AdhaContextCreatedEvent,
-  type AdhaContextUpdatedEvent,
-  type AdhaContextToggledEvent,
-  type AdhaContextDeletedEvent,
-  type AdhaContextExpiredEvent,
-  type AdhaContextEvent,
-  type BaseAdhaContextEvent,
-  type ZoneCible
+  ADHA_CONTEXT_RETRY_DELAY_MS
+} from './adha-context-events';
+export type {
+  AdhaContextCreatedEvent,
+  AdhaContextUpdatedEvent,
+  AdhaContextToggledEvent,
+  AdhaContextDeletedEvent,
+  AdhaContextExpiredEvent,
+  AdhaContextEvent,
+  BaseAdhaContextEvent,
+  ZoneCible
 } from './adha-context-events';
 
 // Export spécifiques pour éviter les conflits

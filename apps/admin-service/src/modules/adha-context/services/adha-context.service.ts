@@ -217,7 +217,8 @@ export class AdhaContextService {
                 this.logger.log(`✅ Kafka event emitted: adha.context.created for document ${saved.id} (${saved.titre})`);
             } catch (error) {
                 // ⚠️ NE PAS BLOQUER LA CRÉATION si Kafka échoue
-                this.logger.error(`❌ Failed to emit Kafka event for document ${saved.id}: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.error(`❌ Failed to emit Kafka event for document ${saved.id}: ${errorMessage}`);
             }
         } else {
             this.logger.debug(`⏭️ Document ${saved.id} created but not indexable (active=${saved.active}, url=${!!saved.url}). No Kafka event emitted.`);
@@ -259,9 +260,10 @@ export class AdhaContextService {
                 };
 
                 await this.eventsService.publishAdhaContextUpdated(event);
-                this.logger.log(`✅ Kafka event emitted: adha.context.updated for document ${saved.id} (indexable: ${wasIndexable} → ${isNowIndexable})`);
+                this.logger.log(`✅ Kafka event emitted: adha.context.updated for document ${saved.id} (${saved.titre})`);
             } catch (error) {
-                this.logger.error(`❌ Failed to emit Kafka event for document ${saved.id}: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.error(`❌ Failed to emit Kafka event for document ${saved.id}: ${errorMessage}`);
             }
         } else {
             this.logger.debug(`⏭️ Document ${saved.id} updated but no indexation impact. No Kafka event emitted.`);
@@ -289,9 +291,10 @@ export class AdhaContextService {
             };
 
             await this.eventsService.publishAdhaContextDeleted(event);
-            this.logger.log(`✅ Kafka event emitted: adha.context.deleted for document ${source.id} (${source.titre})`);
+            this.logger.log(`✅ Kafka event emitted: adha.context.deleted for document ${source.id}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to emit Kafka event for deleted document ${source.id}: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(`❌ Failed to emit Kafka event for deleted document ${source.id}: ${errorMessage}`);
         }
 
         await this.adhaContextRepository.remove(source);
@@ -333,7 +336,8 @@ export class AdhaContextService {
                 await this.eventsService.publishAdhaContextToggled(event);
                 this.logger.log(`✅ Kafka event emitted: adha.context.toggled for document ${updated.id} (active: ${previousActive} → ${updated.active}, indexable: ${wasIndexable} → ${isNowIndexable})`);
             } catch (error) {
-                this.logger.error(`❌ Failed to emit Kafka event for toggled document ${updated.id}: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.error(`❌ Failed to emit Kafka event for toggled document ${updated.id}: ${errorMessage}`);
             }
         } else {
             this.logger.debug(`⏭️ Document ${updated.id} toggled but indexability unchanged (${wasIndexable}). No Kafka event emitted.`);

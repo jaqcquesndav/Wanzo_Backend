@@ -41,6 +41,26 @@ export * from './events/token-events';
 export * from './events/token.service';
 export * from './events/adha-events';
 
+// ADHA Context Events - Synchronisation base de connaissances admin ↔ adha-ai
+export {
+  AdhaContextEventTopics,
+  AdhaContextType,
+  ZoneCibleType,
+  ADHA_CONTEXT_EVENT_VERSION,
+  ADHA_CONTEXT_MAX_RETRY,
+  ADHA_CONTEXT_RETRY_DELAY_MS
+} from './events/adha-context-events';
+export type {
+  AdhaContextCreatedEvent,
+  AdhaContextUpdatedEvent,
+  AdhaContextToggledEvent,
+  AdhaContextDeletedEvent,
+  AdhaContextExpiredEvent,
+  AdhaContextEvent,
+  BaseAdhaContextEvent,
+  ZoneCible
+} from './events/adha-context-events';
+
 // Security
 export * from './security/encryption.service';
 export * from './security/encrypted-transformers';
