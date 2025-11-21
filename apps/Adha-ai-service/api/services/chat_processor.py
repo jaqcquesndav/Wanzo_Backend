@@ -2,6 +2,8 @@
 Module de traitement des messages de chat pour Adha AI Service.
 Ce service traite les messages de chat des utilisateurs et génère des réponses
 contextuelles en utilisant un modèle de langage.
+
+Intègre la validation éthique ADHA pour protéger contre les manipulations.
 """
 
 import logging
@@ -9,6 +11,9 @@ import os
 import datetime
 from typing import Dict, Any, List, Optional
 import json
+
+from agents.core.adha_identity import ADHAIdentity, ADHAEthicalViolationType
+from api.middleware.ethical_validation import ChatMessageValidator
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +61,47 @@ class ChatProcessor:
         if not user_id or not chat_id:
             return {
                 "error": "Les identifiants d'utilisateur et de chat sont requis"
+            }
+        
+        # VALIDATION ÉTHIQUE: Détecter les violations avant traitement
+        user_context = {
+            'company_id': message_data.get('companyId'),
+            'institution_id': message_data.get('institutionId'),
+            'permissions': message_data.get('permissions', [])
+        }
+        
+        validation_result = ChatMessageValidator.validate_message(content, user_context)
+        
+        if not validation_result['is_valid']:
+            # Violation éthique détectée - bloquer le message
+            logger.warning(
+                f"Ethical violation detected in chat | "
+                f"User: {user_id} | "
+                f"Type: {validation_result['violation_type']}"
+            )
+            
+            # Enregistrer l'événement de sécurité
+            ADHAIdentity.log_security_event(
+                event_type="chat_ethical_violation",
+                user_id=str(user_id),
+                details={
+                    'chat_id': chat_id,
+                    'violation_type': validation_result['violation_type'],
+                    'message_preview': content[:100]
+                }
+            )
+            
+            # Retourner le message de violation au lieu de traiter
+            return {
+                "type": "chat_response",
+                "chatId": chat_id,
+                "userId": user_id,
+                "content": validation_result['response_message'],
+                "metadata": {
+                    "processed_by": "adha_ethical_validator",
+                    "violation_type": validation_result['violation_type'],
+                    "blocked": True
+                }
             }
             
         # Identifier la clé de conversation
@@ -111,27 +157,41 @@ class ChatProcessor:
                           conversation: Dict[str, Any]) -> str:
         """
         Génère une réponse en fonction du message et du contexte de la conversation.
+        Intègre l'identité éthique ADHA pour des réponses cohérentes et sécurisées.
         
         Args:
             message: Le message de l'utilisateur
             conversation: Le contexte et l'historique de la conversation
             
         Returns:
-            str: La réponse générée
+            str: La réponse générée avec identité éthique ADHA
         """
         # TODO: Implémenter l'intégration avec le modèle de langage
+        # Lors de l'implémentation LLM, utiliser ADHAIdentity.get_system_prompt(mode="chat")
         
         # Créer le prompt avec le contexte et l'historique
         context_info = conversation.get("context", {})
         messages = conversation.get("messages", [])
         
-        # Exemple de génération de réponse (à remplacer par l'appel au modèle)
+        # Générer le system prompt avec identité éthique ADHA
+        # system_prompt = ADHAIdentity.get_system_prompt(
+        #     mode="chat",
+        #     company_context=context_info
+        # )
+        # TODO: Utiliser system_prompt lors de l'appel au LLM
+        
+        # Exemple de génération de réponse (à remplacer par l'appel au modèle avec system_prompt)
         if "portfolio" in context_info:
             return "Voici les informations concernant votre portefeuille. Que souhaitez-vous savoir spécifiquement?"
         elif "institution" in context_info:
             return "En tant qu'institution financière, je peux vous aider avec votre analyse de portefeuille. Quels aspects souhaitez-vous explorer?"
         else:
-            return "Je suis Adha AI, votre assistant bancaire. Comment puis-je vous aider aujourd'hui?"
+            # Réponse par défaut avec identité ADHA
+            return (
+                "Bonjour ! Je suis Adha, une Intelligence Artificielle éthique développée par Wanzo "
+                "pour accompagner les PME africaines dans leur gestion d'entreprise et leur accès au financement. "
+                "Comment puis-je vous aider aujourd'hui ?"
+            )
 
 # Instance singleton du processeur de chat
 chat_processor = ChatProcessor()

@@ -16,6 +16,7 @@ from api.models import JournalEntry, ChatConversation, ChatMessage
 from agents.vector_databases.chromadb_connector import ChromaDBConnector
 from agents.logic.retriever_agent import RetrieverAgent
 from agents.utils.llm_tool_system import LLMToolSystem
+from agents.core.adha_identity import ADHAIdentity
 
 class HistoryAgent:
     """
@@ -439,25 +440,29 @@ class HistoryAgent:
             relevant_entries = self._get_relevant_accounting_entries(prompt, max_entries=5)
             debug_info["relevant_entries_count"] = len(relevant_entries)
             
-            # Préparer un prompt enrichi avec le contexte de conversation et les écritures pertinentes
-            system_prompt = f"""Vous êtes un assistant comptable expert SYSCOHADA qui aide l'utilisateur à comprendre et analyser ses écritures comptables.
+            # Préparer un prompt enrichi avec identité éthique ADHA, contexte conversation et écritures pertinentes
+            base_identity = ADHAIdentity.get_system_prompt(mode="chat")
             
-            {company_context}répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
-            
-            IMPORTANT - Outils de calcul disponibles:
-            Vous avez accès à des outils de calcul précis. Utilisez-les OBLIGATOIREMENT pour tous les calculs (TVA, arithmétique, soldes comptables, pourcentages, etc.).
-            Ne faites JAMAIS de calculs manuels - utilisez toujours les outils appropriés pour garantir la précision.
-            
-            Règles importantes:
-            1. Soyez précis et factuel dans vos réponses en vous basant sur les données comptables.
-            2. Restez professionnel tout en étant cordial et naturel dans le dialogue en français.
-            3. Identifiez les écritures pertinentes pour répondre à la question.
-            4. UTILISEZ LES OUTILS DE CALCUL pour toute opération arithmétique ou comptable.
-            5. Expliquez toujours votre raisonnement de manière pédagogique.
-            6. Présentez les résultats de calculs de manière claire et formatée.
-            
-            Pour toute question sur un compte, utilisez le format SYSCOHADA: Numéro + Nom du compte (ex: "512 - Banque").
-            """
+            system_prompt = f"""{base_identity}
+
+## INSTRUCTIONS TECHNIQUES COMPTABLES
+
+{company_context}Répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
+
+IMPORTANT - Outils de calcul disponibles:
+Vous avez accès à des outils de calcul précis. Utilisez-les OBLIGATOIREMENT pour tous les calculs (TVA, arithmétique, soldes comptables, pourcentages, etc.).
+Ne faites JAMAIS de calculs manuels - utilisez toujours les outils appropriés pour garantir la précision.
+
+Règles importantes:
+1. Soyez précis et factuel dans vos réponses en vous basant sur les données comptables.
+2. Restez professionnel tout en étant cordial et naturel dans le dialogue en français.
+3. Identifiez les écritures pertinentes pour répondre à la question.
+4. UTILISEZ LES OUTILS DE CALCUL pour toute opération arithmétique ou comptable.
+5. Expliquez toujours votre raisonnement de manière pédagogique.
+6. Présentez les résultats de calculs de manière claire et formatée.
+
+Pour toute question sur un compte, utilisez le format SYSCOHADA: Numéro + Nom du compte (ex: "512 - Banque").
+"""
             
             # Construire le contexte de conversation pour l'API
             messages = [{"role": "system", "content": system_prompt}]
@@ -670,9 +675,13 @@ class HistoryAgent:
             
             relevant_entries = self._get_relevant_accounting_entries(prompt, max_entries=5)
             
-            system_prompt = f"""Vous êtes un assistant comptable expert SYSCOHADA qui aide l'utilisateur à comprendre et analyser ses écritures comptables.
+            base_identity = ADHAIdentity.get_system_prompt(mode="chat")
+            
+            system_prompt = f"""{base_identity}
 
-{company_context}répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
+## INSTRUCTIONS TECHNIQUES COMPTABLES
+
+{company_context}Répondez précisément aux questions en utilisant les données des écritures comptables fournies si pertinent.
 
 IMPORTANT - Outils de calcul disponibles:
 Vous avez accès à des outils de calcul précis. Utilisez-les OBLIGATOIREMENT pour tous les calculs (TVA, arithmétique, soldes comptables, pourcentages, etc.).

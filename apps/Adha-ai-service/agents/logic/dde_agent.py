@@ -18,6 +18,7 @@ from decimal import Decimal, InvalidOperation
 import csv
 from agents.utils.token_manager import get_token_counter
 from agents.utils.document_extraction import DocumentExtractor
+from agents.core.adha_identity import ADHAIdentity
 
 class DDEAgent:
     def __init__(self, token_limit=None):
@@ -103,8 +104,14 @@ class DDEAgent:
                         image_data = image_file.read()
                         base64_image = base64.b64encode(image_data).decode('utf-8')
 
-                    # Prompt amélioré pour l'OCR de documents comptables en français
-                    system_prompt = """Vous êtes un système d'OCR spécialisé dans les documents comptables africains. Extrayez TOUT le texte du document en préservant la mise en page et la structure exactes.
+                    # Prompt amélioré pour l'OCR de documents comptables avec identité éthique ADHA
+                    base_identity = ADHAIdentity.get_system_prompt(mode="general")
+                    
+                    system_prompt = f"""{base_identity}
+
+## INSTRUCTIONS TECHNIQUES: EXTRACTION OCR DOCUMENTS COMPTABLES
+
+Vous êtes spécialisé dans l'extraction de texte depuis des documents comptables africains. Extrayez TOUT le texte du document en préservant la mise en page et la structure exactes.
 
 Instructions:
 1. Extrayez TOUT le texte visible dans le document, y compris les chiffres, dates, références et tableaux
@@ -300,8 +307,14 @@ IMPORTANT: Répondez en français. Ne traduisez pas le contenu, préservez-le da
                 image_data = image_file.read()
                 base64_image = base64.b64encode(image_data).decode('utf-8')
 
-            # Enhanced OCR prompt specialized for accounting documents
-            system_prompt = """Vous êtes un système d'OCR spécialisé dans les documents comptables africains utilisant le système SYSCOHADA.
+            # Enhanced OCR prompt specialized for accounting documents with ADHA ethical identity
+            base_identity = ADHAIdentity.get_system_prompt(mode="general")
+            
+            system_prompt = f"""{base_identity}
+
+## INSTRUCTIONS TECHNIQUES: EXTRACTION OCR DOCUMENTS SYSCOHADA
+
+Vous êtes spécialisé dans l'extraction de texte depuis des documents comptables africains utilisant le système SYSCOHADA.
 
 Extrayez TOUT le texte de l'image avec une précision extrême, en préservant la structure et la mise en page exactes:
 1. En-têtes de facture (numéros, dates, références)

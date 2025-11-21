@@ -12,6 +12,7 @@ from agents.utils.token_manager import get_token_counter
 from agents.utils.calculation_helper import CalculationHelper
 from agents.utils.calculation_validator import CalculationValidator
 from decimal import Decimal
+from agents.core.adha_identity import ADHAIdentity
 
 class AAgent:
     def __init__(self, token_limit=None):
@@ -589,61 +590,69 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
 
     def _process_with_llm_knowledge(self, extracted_data, doc_type, validation_results=None):
         try:
+            # Génération du system prompt avec identité éthique ADHA unifiée
+            base_prompt = ADHAIdentity.get_system_prompt(mode="accounting")
+            
             # Prompt système en français pour assurer des réponses en français
-            syscohada_prompt = """En tant qu'expert-comptable SYSCOHADA, générez les écritures comptables détaillées en français.
-            RÈGLES POUR LES LIBELLÉS:
-            1. Chaque libellé doit contenir obligatoirement:
-               - Nature précise de l'opération (achat, vente, paiement, etc.)
-               - Objet exact de l'opération (bien/service avec caractéristiques si disponibles)
-               - Référence complète du document (n° facture/reçu/bordereau)
-               - Date de l'opération si elle diffère de la date comptable
-               - Nom du tiers concerné (fournisseur, client, banque, etc.)
-            2. Pour les comptes de charges/produits:
-               Libellé = "Nature opération + objet détaillé + référence document + tiers"
-               Ex: "Achat fournitures informatiques - 3 écrans Dell P2419H - Facture F-2023/0456 du 12/03/23 - Fournisseur InfoTech"
-            3. Pour les comptes de tiers:
-               Libellé = "Statut tiers + nom tiers + référence document + objet synthétique"
-               Ex: "Dette Fournisseur InfoTech - Facture F-2023/0456 du 12/03/23 - Achat matériel informatique"
-            4. Pour les comptes de TVA:
-               Libellé = "TVA déductible/collectée sur [nature opération] - Référence document - Tiers"
-               Ex: "TVA déductible sur achat matériel - Facture F-2023/0456 - Fournisseur InfoTech"
-            5. EXEMPLES DE BONS LIBELLÉS:
-               - "Achat fournitures bureau n°inventaire 2023-45 - Facture F5689 du 15/03/2023 - Fournisseur Papeco SARL"
-               - "Dette Fournisseur Papeco SARL - Facture F5689 du 15/03/2023 - Achat fournitures bureau"
-               - "Règlement loyer local commercial 125m² Plateau - Mars 2023 - Virement BIC n°78542 - Bailleur SCI Aurora"
-               - "Vente 150 articles réf. A78541 - Facture FV2023/784 du 18/03/2023 - Client Boutiques Express"
-            6. LIBELLÉS À ÉVITER (TROP GÉNÉRIQUES):
-               - "Achat de marchandises" (incomplet)
-               - "Facture client" (incomplet)
-               - "Paiement" (incomplet)
-               - "TVA" (incomplet)
-            FORMAT DE RÉPONSE REQUIS:
-            Vous devez impérativement générer uniquement un objet JSON valide, sans autre texte avant ou après, avec la structure exacte suivante :
-            {
-                "proposals": [
-                    {
-                        "debit": [
-                            {"compte": "218200", "montant": 2880.00, "libelle": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 - Facture FAC-083 du 14/10/2023 - Fournisseur RIME RTA"},
-                            {"compte": "445600", "montant": 120.00, "libelle": "TVA déductible sur achat Moto Tricycle - Facture FAC-083 - Fournisseur RIME RTA"}
-                        ],
-                        "credit": [
-                            {"compte": "401100", "montant": 3000.00, "libelle": "Dette Fournisseur RIME RTA - Facture FAC-083 du 14/10/2023 - Moto Tricycle"}
-                        ],
-                        "date": "14/10/2023",
-                        "journal": "AC",
-                        "piece_reference": "FAC-083",
-                        "description": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 auprès de RIME RTA"
-                    }
-                ],
-                "confidence": 0.95,
-                "informations_manquantes": [],
-                "regles_appliquees": []
-            }
-            IMPORTANT:
-            - Répondez UNIQUEMENT avec le JSON, sans aucun autre texte d'introduction ou de conclusion
-            - Assurez-vous que la somme des montants au débit soit égale à la somme des montants au crédit
-            - Vérifiez que le JSON est correctement formaté et ne contient pas d'erreurs de syntaxe
-            - Détaillez les caractéristiques importantes (quantités, références, etc.)"""
+            syscohada_prompt = f"""{base_prompt}
+
+## INSTRUCTIONS TECHNIQUES COMPTABLES
+
+RÈGLES POUR LES LIBELLÉS:
+1. Chaque libellé doit contenir obligatoirement:
+   - Nature précise de l'opération (achat, vente, paiement, etc.)
+   - Objet exact de l'opération (bien/service avec caractéristiques si disponibles)
+   - Référence complète du document (n° facture/reçu/bordereau)
+   - Date de l'opération si elle diffère de la date comptable
+   - Nom du tiers concerné (fournisseur, client, banque, etc.)
+2. Pour les comptes de charges/produits:
+   Libellé = "Nature opération + objet détaillé + référence document + tiers"
+   Ex: "Achat fournitures informatiques - 3 écrans Dell P2419H - Facture F-2023/0456 du 12/03/23 - Fournisseur InfoTech"
+3. Pour les comptes de tiers:
+   Libellé = "Statut tiers + nom tiers + référence document + objet synthétique"
+   Ex: "Dette Fournisseur InfoTech - Facture F-2023/0456 du 12/03/23 - Achat matériel informatique"
+4. Pour les comptes de TVA:
+   Libellé = "TVA déductible/collectée sur [nature opération] - Référence document - Tiers"
+   Ex: "TVA déductible sur achat matériel - Facture F-2023/0456 - Fournisseur InfoTech"
+5. EXEMPLES DE BONS LIBELLÉS:
+   - "Achat fournitures bureau n°inventaire 2023-45 - Facture F5689 du 15/03/2023 - Fournisseur Papeco SARL"
+   - "Dette Fournisseur Papeco SARL - Facture F5689 du 15/03/2023 - Achat fournitures bureau"
+   - "Règlement loyer local commercial 125m² Plateau - Mars 2023 - Virement BIC n°78542 - Bailleur SCI Aurora"
+   - "Vente 150 articles réf. A78541 - Facture FV2023/784 du 18/03/2023 - Client Boutiques Express"
+6. LIBELLÉS À ÉVITER (TROP GÉNÉRIQUES):
+   - "Achat de marchandises" (incomplet)
+   - "Facture client" (incomplet)
+   - "Paiement" (incomplet)
+   - "TVA" (incomplet)
+
+FORMAT DE RÉPONSE REQUIS:
+Vous devez impérativement générer uniquement un objet JSON valide, sans autre texte avant ou après, avec la structure exacte suivante :
+{{
+    "proposals": [
+        {{
+            "debit": [
+                {{"compte": "218200", "montant": 2880.00, "libelle": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 - Facture FAC-083 du 14/10/2023 - Fournisseur RIME RTA"}},
+                {{"compte": "445600", "montant": 120.00, "libelle": "TVA déductible sur achat Moto Tricycle - Facture FAC-083 - Fournisseur RIME RTA"}}
+            ],
+            "credit": [
+                {{"compte": "401100", "montant": 3000.00, "libelle": "Dette Fournisseur RIME RTA - Facture FAC-083 du 14/10/2023 - Moto Tricycle"}}
+            ],
+            "date": "14/10/2023",
+            "journal": "AC",
+            "piece_reference": "FAC-083",
+            "description": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 auprès de RIME RTA"
+        }}
+    ],
+    "confidence": 0.95,
+    "informations_manquantes": [],
+    "regles_appliquees": []
+}}
+
+IMPORTANT:
+- Répondez UNIQUEMENT avec le JSON, sans aucun autre texte d'introduction ou de conclusion
+- Assurez-vous que la somme des montants au débit soit égale à la somme des montants au crédit
+- Vérifiez que le JSON est correctement formaté et ne contient pas d'erreurs de syntaxe
+- Détaillez les caractéristiques importantes (quantités, références, etc.)"""
             
             # Ajout du contexte spécifique au type de document
             type_context = {
@@ -744,49 +753,57 @@ Si les informations sont insuffisantes pour générer une écriture, retournez u
                 # Log the corrections
                 print(f"Corrected document values based on validation: {corrected_values}")
             
-            # Prepare the system prompt with calculation information
-            system_prompt = f"""En tant qu'expert-comptable SYSCOHADA spécialisé en {doc_type}, vous devez générer les écritures comptables.
-            RÈGLES SPÉCIFIQUES À APPLIQUER :
-            {rules}
+            # Prepare the system prompt with calculation information and ADHA ethical identity
+            base_identity = ADHAIdentity.get_system_prompt(mode="accounting")
             
-            CALCULS VÉRIFIÉS ET VALIDÉS:
-            {json.dumps(validation_results, default=str) if validation_results else "Aucune validation de calcul effectuée"}
-            
-            RÈGLES POUR LES LIBELLÉS:
-            1. Chaque libellé doit contenir obligatoirement:
-               - Nature précise de l'opération (achat, vente, paiement, etc.)
-               - Objet exact de l'opération (bien/service avec caractéristiques si disponibles)
-               - Référence complète du document (n° facture/reçu/bordereau)
-               - Date de l'opération si elle diffère de la date comptable
-               - Nom du tiers concerné (fournisseur, client, banque, etc.)
-            2. Pour les comptes de charges/produits:
-               Libellé = "Nature opération + objet détaillé + référence document + tiers"
-               Ex: "Achat fournitures informatiques - 3 écrans Dell P2419H - Facture F-2023/0456 du 12/03/23 - Fournisseur InfoTech"
-            3. Pour les comptes de tiers:
-               Libellé = "Statut tiers + nom tiers + référence document + objet synthétique"
-               Ex: "Dette Fournisseur InfoTech - Facture F-2023/0456 du 12/03/23 - Achat matériel informatique"
-               
-            FORMAT DE RÉPONSE REQUIS (Exemple) :
-            {{
-                "proposals": [
-                    {{
-                        "debit": [
-                            {{"compte": "218200", "montant": 2880.00, "libelle": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 - Facture FAC-083 du 14/10/2023 - Fournisseur RIME RTA"}},
-                            {{"compte": "445600", "montant": 120.00, "libelle": "TVA déductible sur achat Moto Tricycle - Facture FAC-083 - Fournisseur RIME RTA"}}
-                        ],
-                        "credit": [
-                            {{"compte": "401100", "montant": 3000.00, "libelle": "Dette Fournisseur RIME RTA - Facture FAC-083 du 14/10/2023 - Moto Tricycle"}}
-                        ],
-                        "date": "14/10/2023",
-                        "journal": "AC",
-                        "piece_reference": "FAC-083",
-                        "description": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 auprès de RIME RTA"
-                    }}
-                ],
-                "confidence": 0.95,
-                "informations_manquantes": ["Liste des règles appliquées"]
-            }}
-            IMPORTANT : RÉPONDRE UNIQUEMENT EN JSON VALIDE"""
+            system_prompt = f"""{base_identity}
+
+## INSTRUCTIONS TECHNIQUES COMPTABLES SPÉCIFIQUES
+
+Type de document: {doc_type}
+
+RÈGLES SPÉCIFIQUES À APPLIQUER :
+{rules}
+
+CALCULS VÉRIFIÉS ET VALIDÉS:
+{json.dumps(validation_results, default=str) if validation_results else "Aucune validation de calcul effectuée"}
+
+RÈGLES POUR LES LIBELLÉS:
+1. Chaque libellé doit contenir obligatoirement:
+   - Nature précise de l'opération (achat, vente, paiement, etc.)
+   - Objet exact de l'opération (bien/service avec caractéristiques si disponibles)
+   - Référence complète du document (n° facture/reçu/bordereau)
+   - Date de l'opération si elle diffère de la date comptable
+   - Nom du tiers concerné (fournisseur, client, banque, etc.)
+2. Pour les comptes de charges/produits:
+   Libellé = "Nature opération + objet détaillé + référence document + tiers"
+   Ex: "Achat fournitures informatiques - 3 écrans Dell P2419H - Facture F-2023/0456 du 12/03/23 - Fournisseur InfoTech"
+3. Pour les comptes de tiers:
+   Libellé = "Statut tiers + nom tiers + référence document + objet synthétique"
+   Ex: "Dette Fournisseur InfoTech - Facture F-2023/0456 du 12/03/23 - Achat matériel informatique"
+   
+FORMAT DE RÉPONSE REQUIS (Exemple) :
+{{
+    "proposals": [
+        {{
+            "debit": [
+                {{"compte": "218200", "montant": 2880.00, "libelle": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 - Facture FAC-083 du 14/10/2023 - Fournisseur RIME RTA"}},
+                {{"compte": "445600", "montant": 120.00, "libelle": "TVA déductible sur achat Moto Tricycle - Facture FAC-083 - Fournisseur RIME RTA"}}
+            ],
+            "credit": [
+                {{"compte": "401100", "montant": 3000.00, "libelle": "Dette Fournisseur RIME RTA - Facture FAC-083 du 14/10/2023 - Moto Tricycle"}}
+            ],
+            "date": "14/10/2023",
+            "journal": "AC",
+            "piece_reference": "FAC-083",
+            "description": "Acquisition Moto Tricycle HUANGHE 200CC n°chassis 12345 auprès de RIME RTA"
+        }}
+    ],
+    "confidence": 0.95,
+    "informations_manquantes": ["Liste des règles appliquées"]
+}}
+
+IMPORTANT : RÉPONDRE UNIQUEMENT EN JSON VALIDE"""
             response = self.client.chat.completions.create(
                 model=os.environ.get("OPENAI_CHAT_MODEL", "gpt-4o-2024-08-06"),
                 messages=[
