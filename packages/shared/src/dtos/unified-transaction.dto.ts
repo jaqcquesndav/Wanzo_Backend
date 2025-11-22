@@ -61,152 +61,42 @@ import {
 import { 
   ServiceContext, 
   ExtendedMetadata 
-} from '../entities/unified-financial-transaction.entity';
+} from '../types/financial-types';
 
 import { ISO4217CurrencyCode } from '../standards/iso-standards';
 
 /**
  * ================================
- * DTOs DE CRÉATION DE TRANSACTION
+ * DTOs DE SUPPORT (définis d'abord)
  * ================================
  */
 
 /**
- * DTO de base pour créer une transaction financière
- * Applique toutes les validations ISO et compliance
+ * DTO pour la géolocalisation
  */
-export class CreateUnifiedTransactionDto {
-  @ApiProperty({ 
-    enum: UnifiedTransactionType,
-    description: 'Type de transaction (conforme ISO 20022)',
-    example: UnifiedTransactionType.PAYMENT
-  })
-  @IsEnum(UnifiedTransactionType, {
-    message: 'Type de transaction invalide. Doit être conforme ISO 20022.'
-  })
-  @IsNotEmpty()
-  type!: UnifiedTransactionType;
-
-  @ApiProperty({ 
-    type: 'number',
-    description: 'Montant de la transaction (précision bancaire)',
-    example: 1000.50,
-    minimum: 0.01,
-    maximum: 999999999.99
-  })
-  @IsNumber({ 
-    maxDecimalPlaces: 2,
-    allowNaN: false,
-    allowInfinity: false
-  }, {
-    message: 'Le montant doit être un nombre avec maximum 2 décimales'
-  })
-  @Min(0.01, { message: 'Le montant minimum est 0.01' })
-  @Max(999999999.99, { message: 'Le montant maximum est 999,999,999.99' })
-  @Transform(({ value }) => parseFloat(value))
-  amount!: number;
-
-  @ApiProperty({ 
-    enum: SupportedCurrency,
-    description: 'Devise (conforme ISO 4217)',
-    example: SupportedCurrency.USD
-  })
-  @IsEnum(SupportedCurrency, {
-    message: 'Devise non supportée. Doit être conforme ISO 4217.'
-  })
-  @IsNotEmpty()
-  currency!: SupportedCurrency;
-
-  @ApiProperty({ 
-    enum: UnifiedPaymentMethod,
-    description: 'Méthode de paiement (conforme ISO 20022)',
-    example: UnifiedPaymentMethod.CARD_PAYMENT
-  })
-  @IsEnum(UnifiedPaymentMethod, {
-    message: 'Méthode de paiement invalide. Doit être conforme ISO 20022.'
-  })
-  @IsNotEmpty()
-  paymentMethod!: UnifiedPaymentMethod;
-
-  @ApiProperty({ 
-    enum: TransactionChannel,
-    description: 'Canal d\'initiation de la transaction',
-    example: TransactionChannel.WEB
-  })
-  @IsEnum(TransactionChannel, {
-    message: 'Canal de transaction invalide'
-  })
-  @IsNotEmpty()
-  channel!: TransactionChannel;
-
-  @ApiPropertyOptional({ 
-    enum: TransactionPriority,
-    description: 'Priorité de traitement',
-    example: TransactionPriority.NORMAL
-  })
-  @IsOptional()
-  @IsEnum(TransactionPriority, {
-    message: 'Priorité de transaction invalide'
-  })
-  priority?: TransactionPriority = TransactionPriority.NORMAL;
-
-  @ApiPropertyOptional({ 
-    type: 'string',
-    description: 'Description de la transaction',
-    example: 'Paiement facture #INV-2024-001',
-    maxLength: 500
-  })
-  @IsOptional()
-  @IsString()
-  @Length(0, 500, { message: 'La description ne peut dépasser 500 caractères' })
-  description?: string;
-
-  @ApiPropertyOptional({ 
-    type: 'number',
-    description: 'Frais de transaction',
-    example: 5.00,
-    minimum: 0,
-    maximum: 999999.99
-  })
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0, { message: 'Les frais ne peuvent être négatifs' })
-  @Max(999999.99, { message: 'Frais maximum: 999,999.99' })
-  transactionFee?: number;
-
-  @ApiPropertyOptional({ 
-    type: 'number',
-    description: 'Taux de change appliqué',
-    example: 1.0850,
-    minimum: 0.000001,
-    maximum: 999999.999999
-  })
-  @IsOptional()
+export class GeolocationDto {
+  @ApiProperty({ description: 'Latitude', example: -4.4419 })
   @IsNumber({ maxDecimalPlaces: 6 })
-  @Min(0.000001, { message: 'Taux de change invalide' })
-  @Max(999999.999999, { message: 'Taux de change trop élevé' })
-  exchangeRate?: number;
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
 
-  @ApiPropertyOptional({ 
-    type: 'object',
-    description: 'Métadonnées étendues spécifiques au contexte'
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => ExtendedMetadataDto)
-  extendedMetadata?: ExtendedMetadataDto;
+  @ApiProperty({ description: 'Longitude', example: 15.2663 })
+  @IsNumber({ maxDecimalPlaces: 6 })
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
 
-  @ApiProperty({ 
-    enum: ServiceContext,
-    description: 'Contexte de service initiateur',
-    example: ServiceContext.CUSTOMER
-  })
-  @IsEnum(ServiceContext, {
-    message: 'Contexte de service invalide'
-  })
-  @IsNotEmpty()
-  serviceContext!: ServiceContext;
+  @ApiProperty({ description: 'Code pays ISO', example: 'CD' })
+  @IsString()
+  @Length(2, 2)
+  @Matches(/^[A-Z]{2}$/)
+  country!: string;
+
+  @ApiProperty({ description: 'Ville', example: 'Kinshasa' })
+  @IsString()
+  @Length(1, 100)
+  city!: string;
 }
 
 /**
@@ -422,31 +312,147 @@ export class ExtendedMetadataDto implements ExtendedMetadata {
 }
 
 /**
- * DTO pour la géolocalisation
+ * ================================
+ * DTOs DE CRÉATION DE TRANSACTION
+ * ================================
  */
-export class GeolocationDto {
-  @ApiProperty({ description: 'Latitude', example: -4.4419 })
-  @IsNumber({ maxDecimalPlaces: 6 })
-  @Min(-90)
-  @Max(90)
-  latitude!: number;
 
-  @ApiProperty({ description: 'Longitude', example: 15.2663 })
-  @IsNumber({ maxDecimalPlaces: 6 })
-  @Min(-180)
-  @Max(180)
-  longitude!: number;
+/**
+ * DTO de base pour créer une transaction financière
+ * Applique toutes les validations ISO et compliance
+ */
+export class CreateUnifiedTransactionDto {
+  @ApiProperty({ 
+    enum: UnifiedTransactionType,
+    description: 'Type de transaction (conforme ISO 20022)',
+    example: UnifiedTransactionType.PAYMENT
+  })
+  @IsEnum(UnifiedTransactionType, {
+    message: 'Type de transaction invalide. Doit être conforme ISO 20022.'
+  })
+  @IsNotEmpty()
+  type!: UnifiedTransactionType;
 
-  @ApiProperty({ description: 'Code pays ISO', example: 'CD' })
+  @ApiProperty({ 
+    type: 'number',
+    description: 'Montant de la transaction (précision bancaire)',
+    example: 1000.50,
+    minimum: 0.01,
+    maximum: 999999999.99
+  })
+  @IsNumber({ 
+    maxDecimalPlaces: 2,
+    allowNaN: false,
+    allowInfinity: false
+  }, {
+    message: 'Le montant doit être un nombre avec maximum 2 décimales'
+  })
+  @Min(0.01, { message: 'Le montant minimum est 0.01' })
+  @Max(999999999.99, { message: 'Le montant maximum est 999,999,999.99' })
+  @Transform(({ value }) => parseFloat(value))
+  amount!: number;
+
+  @ApiProperty({ 
+    enum: SupportedCurrency,
+    description: 'Devise (conforme ISO 4217)',
+    example: SupportedCurrency.USD
+  })
+  @IsEnum(SupportedCurrency, {
+    message: 'Devise non supportée. Doit être conforme ISO 4217.'
+  })
+  @IsNotEmpty()
+  currency!: SupportedCurrency;
+
+  @ApiProperty({ 
+    enum: UnifiedPaymentMethod,
+    description: 'Méthode de paiement (conforme ISO 20022)',
+    example: UnifiedPaymentMethod.CARD_PAYMENT
+  })
+  @IsEnum(UnifiedPaymentMethod, {
+    message: 'Méthode de paiement invalide. Doit être conforme ISO 20022.'
+  })
+  @IsNotEmpty()
+  paymentMethod!: UnifiedPaymentMethod;
+
+  @ApiProperty({ 
+    enum: TransactionChannel,
+    description: 'Canal d\'initiation de la transaction',
+    example: TransactionChannel.WEB
+  })
+  @IsEnum(TransactionChannel, {
+    message: 'Canal de transaction invalide'
+  })
+  @IsNotEmpty()
+  channel!: TransactionChannel;
+
+  @ApiPropertyOptional({ 
+    enum: TransactionPriority,
+    description: 'Priorité de traitement',
+    example: TransactionPriority.NORMAL
+  })
+  @IsOptional()
+  @IsEnum(TransactionPriority, {
+    message: 'Priorité de transaction invalide'
+  })
+  priority?: TransactionPriority = TransactionPriority.NORMAL;
+
+  @ApiPropertyOptional({ 
+    type: 'string',
+    description: 'Description de la transaction',
+    example: 'Paiement facture #INV-2024-001',
+    maxLength: 500
+  })
+  @IsOptional()
   @IsString()
-  @Length(2, 2)
-  @Matches(/^[A-Z]{2}$/)
-  country!: string;
+  @Length(0, 500, { message: 'La description ne peut dépasser 500 caractères' })
+  description?: string;
 
-  @ApiProperty({ description: 'Ville', example: 'Kinshasa' })
-  @IsString()
-  @Length(1, 100)
-  city!: string;
+  @ApiPropertyOptional({ 
+    type: 'number',
+    description: 'Frais de transaction',
+    example: 5.00,
+    minimum: 0,
+    maximum: 999999.99
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0, { message: 'Les frais ne peuvent être négatifs' })
+  @Max(999999.99, { message: 'Frais maximum: 999,999.99' })
+  transactionFee?: number;
+
+  @ApiPropertyOptional({ 
+    type: 'number',
+    description: 'Taux de change appliqué',
+    example: 1.0850,
+    minimum: 0.000001,
+    maximum: 999999.999999
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 6 })
+  @Min(0.000001, { message: 'Taux de change invalide' })
+  @Max(999999.999999, { message: 'Taux de change trop élevé' })
+  exchangeRate?: number;
+
+  @ApiPropertyOptional({ 
+    type: 'object',
+    description: 'Métadonnées étendues spécifiques au contexte'
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ExtendedMetadataDto)
+  extendedMetadata?: ExtendedMetadataDto;
+
+  @ApiProperty({ 
+    enum: ServiceContext,
+    description: 'Contexte de service initiateur',
+    example: ServiceContext.CUSTOMER
+  })
+  @IsEnum(ServiceContext, {
+    message: 'Contexte de service invalide'
+  })
+  @IsNotEmpty()
+  serviceContext!: ServiceContext;
 }
 
 /**

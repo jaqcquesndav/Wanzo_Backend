@@ -124,6 +124,8 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/api-gateway/.env
     volumes:
@@ -160,6 +162,8 @@ services:
       - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service-dev:3006
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
       - CUSTOMER_SERVICE_URL=http://kiota-customer-service-dev:3011
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/api-gateway/src:/app/apps/api-gateway/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -208,6 +212,8 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/admin-service/.env
     volumes:
@@ -244,6 +250,8 @@ services:
       - AUTH0_AUDIENCE=https://api.wanzo.com
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/admin-service/src:/app/apps/admin-service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -295,6 +303,8 @@ services:
       # ML Service Configuration for XGBoost Credit Scoring
       - ML_SERVICE_URL=http://xgboost-service:5000
       - ML_SERVICE_API_KEY=${ML_SERVICE_API_KEY}
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/accounting-service/.env
     volumes:
@@ -329,6 +339,8 @@ services:
       # ML Service Configuration for XGBoost Credit Scoring
       - ML_SERVICE_URL=http://xgboost-service:5000
       - ML_SERVICE_API_KEY=${ML_SERVICE_API_KEY}
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/accounting-service/src:/app/apps/accounting-service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -373,6 +385,8 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/analytics-service/.env
     volumes:
@@ -404,6 +418,8 @@ services:
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=analytics_service
       - KAFKA_BROKERS=kafka:29092
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/analytics-service/src:/app/apps/analytics-service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -450,6 +466,8 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/portfolio-institution-service/.env
     volumes:
@@ -486,6 +504,8 @@ services:
       - AUTH0_AUDIENCE=https://api.wanzo.com
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/portfolio-institution-service/src:/app/apps/portfolio-institution-service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -530,6 +550,8 @@ services:
       # Auth0 M2M Configuration
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/gestion_commerciale_service/.env
     volumes:
@@ -561,6 +583,8 @@ services:
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=gestion_commerciale_service
       - KAFKA_BROKERS=kafka:29092
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/gestion_commerciale_service/src:/app/apps/gestion_commerciale_service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -654,6 +678,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=gpt-4
       - OPENAI_MAX_TOKENS=1000
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/customer-service/.env
     volumes:
@@ -694,6 +720,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=gpt-4
       - OPENAI_MAX_TOKENS=1000
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/customer-service/src:/app/apps/customer-service/src
       - ./packages/shared/src:/app/packages/shared/src
@@ -728,6 +756,8 @@ services:
       - SERDIPAY_MERCHANT_ID=${SERDIPAY_MERCHANT_ID}
       - SERDIPAY_SECRET_KEY=${SERDIPAY_SECRET_KEY}
       - SERDIPAY_CALLBACK_URL=${SERDIPAY_CALLBACK_URL}
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
       - ./apps/payment-service/.env
     volumes:
@@ -762,6 +792,8 @@ services:
       - SERDIPAY_MERCHANT_ID=${SERDIPAY_MERCHANT_ID}
       - SERDIPAY_SECRET_KEY=${SERDIPAY_SECRET_KEY}
       - SERDIPAY_CALLBACK_URL=${SERDIPAY_CALLBACK_URL}
+      # Encryption Configuration
+      - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:
       - ./apps/payment-service/src:/app/apps/payment-service/src
       - ./packages/shared/src:/app/packages/shared/src

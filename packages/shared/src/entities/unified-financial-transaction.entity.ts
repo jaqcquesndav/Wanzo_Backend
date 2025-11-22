@@ -66,136 +66,21 @@ import {
   FinancialEnumsHelper
 } from '../enums/financial-enums';
 
-/**
- * CONTEXTE DE SERVICE
- * Définit quel service a initié la transaction pour la logique métier spécifique
- */
-export enum ServiceContext {
-  CUSTOMER = 'CUSTOMER',                    // customer-service (billing, payments)
-  PAYMENT = 'PAYMENT',                      // payment-service (provider transactions)
-  COMMERCIAL = 'COMMERCIAL',                // gestion_commerciale_service (SME transactions)
-  ADMIN = 'ADMIN',                          // admin-service (finance management)
-  PORTFOLIO = 'PORTFOLIO',                  // portfolio-institution-service (disbursements)
-  ANALYTICS = 'ANALYTICS',                  // analytics-service (analysis)
-  ACCOUNTING = 'ACCOUNTING',                // accounting-service (journal entries)
-  SYSTEM = 'SYSTEM'                         // System-generated transactions
-}
+// Import des types partagés pour éviter les dépendances circulaires
+import {
+  ServiceContext,
+  BusinessContext,
+  ExtendedMetadata
+} from '../types/financial-types';
+
+// Ré-export pour compatibilité
+export { ServiceContext, BusinessContext, ExtendedMetadata };
 
 /**
- * CONTEXTE BUSINESS - B2C vs B2B
- * Définit le type d'opération financière pour appliquer les règles métier appropriées
+ * MÉTADONNÉES ÉTENDUES - SUITE
+ * Les 30 premières lignes sont définies dans financial-types.ts
+ * Voici la suite de l'interface (continuation)
  */
-export enum BusinessContext {
-  B2C = 'B2C',                             // Business-to-Consumer (paiements abonnements)
-  B2B = 'B2B',                             // Business-to-Business (opérations institutionnelles)
-  INTERNAL = 'INTERNAL'                     // Opérations internes système
-}
-
-/**
- * MÉTADONNÉES ÉTENDUES
- * Structure flexible pour les données spécifiques à chaque contexte
- * Enrichie pour supporter la différenciation B2C/B2B avec types simples
- */
-export interface ExtendedMetadata {
-  // === B2C SPECIFIC METADATA ===
-  b2cSubscriptionPlan?: string;             // BASIC, STANDARD, PREMIUM, ENTERPRISE
-  b2cPaymentMethod?: string;                // AIRTEL_MONEY, ORANGE_MONEY, MPESA, AFRIMONEY
-  b2cClientName?: string;
-  b2cClientEmail?: string;
-  b2cPromoCode?: string;
-  b2cSubscriptionMonths?: number;
-  b2cAutoRenewal?: boolean;
-  b2cOperatorTransactionId?: string;
-  b2cOperatorFee?: number;
-  
-  // === B2B SPECIFIC METADATA ===
-  b2bInstitutionType?: string;              // BANK, MICROFINANCE, COOPERATIVE, INSURANCE
-  b2bTransactionReference?: string;
-  b2bEndToEndReference?: string;
-  b2bSwiftMessageType?: string;
-  b2bCorrespondentBankBic?: string;
-  b2bChargeBearer?: string;
-  b2bDebtorInfo?: {
-    name: string;
-    address?: string;
-    accountNumber: string;
-    bicCode?: string;
-    countryCode?: string;
-  };
-  b2bCreditorInfo?: {
-    name: string;
-    address?: string;
-    accountNumber: string;
-    bicCode?: string;
-    countryCode?: string;
-  };
-  b2bComplianceInfo?: {
-    amlCategory?: string;
-    fundsOriginCountry?: string;
-    fundsDestinationCountry?: string;
-    economicNature?: string;
-    requiredDocuments?: string[];
-    declarationExempt?: boolean;
-  };
-  
-  // === CUSTOMER SERVICE CONTEXT ===
-  customerId?: string;
-  invoiceId?: string;
-  subscriptionId?: string;
-  planId?: string;
-  billingCycle?: string;
-  
-  // === PAYMENT SERVICE CONTEXT ===
-  providerId?: string;
-  providerName?: string;
-  providerTransactionId?: string;
-  sessionId?: string;
-  clientPhone?: string;
-  telecom?: string;
-  clientReference?: string;
-  
-  // === COMMERCIAL SERVICE CONTEXT ===
-  supplierId?: string;
-  contractId?: string;
-  invoiceNumber?: string;
-  
-  // === ADMIN SERVICE CONTEXT ===
-  adminUserId?: string;
-  departmentId?: string;
-  budgetId?: string;
-  approvalLevel?: number;
-  
-  // === PORTFOLIO SERVICE CONTEXT ===
-  portfolioId?: string;
-  institutionId?: string;
-  disbursementType?: string;
-  loanId?: string;
-  repaymentScheduleId?: string;
-  
-  // === TECHNICAL METADATA ===
-  userAgent?: string;
-  ipAddress?: string;
-  deviceFingerprint?: string;
-  geolocation?: {
-    latitude: number;
-    longitude: number;
-    country: string;
-    city: string;
-  };
-  
-  // === BUSINESS METADATA ===
-  businessCategory?: string;
-  vatNumber?: string;
-  taxExempt?: boolean;
-  fiscalYear?: string;
-  
-  // === LEGACY MIGRATION ===
-  legacySystemId?: string;
-  legacyTableName?: string;
-  migrationBatch?: string;
-  migrationDate?: Date;
-}
-
 @Entity('unified_financial_transactions')
 @Index(['serviceContext', 'status'])
 @Index(['createdAt', 'serviceContext'])

@@ -217,15 +217,21 @@ export {
   LEGACY_TRANSACTION_TYPE_MAPPING
 } from './enums/financial-enums';
 
+// === TYPES PARTAGÉS (pour éviter dépendances circulaires) ===
+export * from './types/financial-types';
+export {
+  ServiceContext,
+  BusinessContext,
+  ExtendedMetadata
+} from './types/financial-types';
+
 // === ENTITÉ UNIFIÉE ===
 export * from './entities/unified-financial-transaction.entity';
 
 // Exports spécifiques de l'entité
 export {
   UnifiedFinancialTransaction,
-  ServiceContext,
   UnifiedTransactionFactory,
-  type ExtendedMetadata,
   type TransactionCreationData
 } from './entities/unified-financial-transaction.entity';
 
