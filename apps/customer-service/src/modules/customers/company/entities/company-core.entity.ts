@@ -134,7 +134,7 @@ export class CompanyCoreEntity {
   owners?: Array<{
     id: string;
     name: string;
-    type: 'individual' | 'company';
+    type: string;
     shares: number;
     percentage: number;
     joinDate: string;
@@ -156,7 +156,7 @@ export class CompanyCoreEntity {
   associates?: Array<{
     id: string;
     name: string;
-    type: 'individual' | 'company';
+    type: string;
     role: string;
     joinDate: string;
     endDate?: string;
@@ -220,7 +220,7 @@ export class CompanyCoreEntity {
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
-    status: 'active' | 'expired' | 'suspended' | 'revoked';
+    status: string | 'suspended' | 'revoked';
     isActive: boolean;
   }>;
 

@@ -73,12 +73,12 @@ export class ValidationStep {
   @Column('jsonb', { nullable: true })
   requiredDocuments: DocumentType[];
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   completedAt: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   completedBy: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   notes: string | null;
 }

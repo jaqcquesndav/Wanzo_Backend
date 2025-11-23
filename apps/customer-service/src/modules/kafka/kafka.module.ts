@@ -48,6 +48,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     AdminPlanEventsConsumer
   ],
   exports: [
+    ClientsModule,  // Export le ClientsModule pour rendre KAFKA_SERVICE disponible
     CustomerEventsProducer,
     TokenUsageConsumer,
     UserActivityConsumer,

@@ -214,7 +214,7 @@ export class InstitutionLeadershipEntity {
     issuedDate: string;
     expiryDate?: string;
     number?: string;
-    status: 'active' | 'expired' | 'suspended';
+    status: string | 'suspended';
     isActive: boolean;
   }>;
 
@@ -227,7 +227,7 @@ export class InstitutionLeadershipEntity {
   skills?: Array<{
     category: string;
     skills: string[];
-    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    level: string | 'advanced' | 'expert';
   }>;
 
   @Column({
@@ -237,7 +237,7 @@ export class InstitutionLeadershipEntity {
   })
   languages?: Array<{
     language: string;
-    level: 'basic' | 'intermediate' | 'fluent' | 'native';
+    level: string | 'fluent' | 'native';
     isWritten: boolean;
     isSpoken: boolean;
   }>;
@@ -303,7 +303,7 @@ export class InstitutionLeadershipEntity {
   committeeParticipation?: Array<{
     id: string;
     committeeName: string;
-    role: 'chairman' | 'member' | 'secretary';
+    role: string | 'secretary';
     joinDate: string;
     endDate?: string;
     isActive: boolean;
@@ -328,7 +328,7 @@ export class InstitutionLeadershipEntity {
     nature: string;
     description: string;
     mitigationMeasures?: string[];
-    status: 'disclosed' | 'managed' | 'resolved';
+    status: string | 'resolved';
     reviewDate?: string;
   }>;
 

@@ -45,10 +45,10 @@ export class BusinessCustomer {
   taxId: string;
 
   @Column({ type: 'enum', enum: ['individual', 'company', 'government', 'non_profit'], default: 'individual' })
-  customerType: 'individual' | 'company' | 'government' | 'non_profit';
+  customerType: string | 'government' | 'non_profit';
 
   @Column({ type: 'enum', enum: ['active', 'inactive', 'prospect', 'former'], default: 'active' })
-  status: 'active' | 'inactive' | 'prospect' | 'former';
+  status: string | 'prospect' | 'former';
 
   @Column({ nullable: true })
   website: string;

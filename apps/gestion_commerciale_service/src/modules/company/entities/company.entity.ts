@@ -13,7 +13,7 @@ interface BankAccountInfo {
   rib?: string;
   iban?: string; // ✅ Ajouté pour SEPA
   isDefault: boolean;
-  status: 'active' | 'inactive' | 'suspended';
+  status: string | 'suspended';
   currency?: string; // ✅ Ajouté pour multi-devise
   balance?: number; // ✅ Ajouté pour suivi
   createdAt?: Date;
@@ -24,16 +24,16 @@ interface MobileMoneyAccount {
   id?: string; // ✅ Ajouté pour compatibilité
   phoneNumber: string;
   accountName: string;
-  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF'; // Code standardisé
+  operator: string | 'WAVE' | 'MP' | 'AF'; // Code standardisé
   operatorName: string; // Nom complet
   isDefault: boolean;
-  status: 'active' | 'inactive' | 'suspended';
-  verificationStatus: 'pending' | 'verified' | 'failed';
+  status: string | 'suspended';
+  verificationStatus: string | 'failed';
   currency?: string; // ✅ Ajouté pour multi-devise
   dailyLimit?: number; // ✅ Ajouté pour limites
   monthlyLimit?: number;
   balance?: number; // ✅ Ajouté pour suivi
-  purpose?: 'disbursement' | 'collection' | 'general'; // ✅ Ajouté
+  purpose?: string | 'general'; // ✅ Ajouté
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -132,7 +132,7 @@ export class Company {
   })
   @Column('jsonb', { nullable: true })
   paymentPreferences?: {
-    preferredMethod: 'bank' | 'mobile_money';
+    preferredMethod: string;
     defaultBankAccountId?: string;
     defaultMobileMoneyAccountId?: string;
     allowPartialPayments: boolean;

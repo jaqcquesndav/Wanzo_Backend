@@ -6,11 +6,12 @@ import { CreditEventsService } from './services/credit-events.service';
 import { RealTimeCreditMonitoringService } from './services/credit-monitoring.service';
 import { CreditScoreController } from './controllers/credit-score.controller';
 import { CompanyCreditScore } from './entities/company-score.entity';
+import { RealTimeCreditMonitoring } from './entities/credit-monitoring.entity';
 import { JournalsModule } from '../journals/journals.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CompanyCreditScore]),
+    TypeOrmModule.forFeature([CompanyCreditScore, RealTimeCreditMonitoring]),
     JournalsModule,
     HttpModule.register({
       timeout: 10000,

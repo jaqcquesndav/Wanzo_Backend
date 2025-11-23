@@ -221,9 +221,9 @@ export {
 export * from './types/financial-types';
 export {
   ServiceContext,
-  BusinessContext,
-  ExtendedMetadata
+  BusinessContext
 } from './types/financial-types';
+export type { ExtendedMetadata } from './types/financial-types';
 
 // === ENTITÉ UNIFIÉE ===
 export * from './entities/unified-financial-transaction.entity';

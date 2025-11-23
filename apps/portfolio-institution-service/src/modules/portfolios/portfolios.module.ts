@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 import { Portfolio } from './entities/portfolio.entity';
 import { FinancialProduct } from './entities/financial-product.entity';
 import { FundingRequest } from './entities/funding-request.entity';
@@ -56,6 +57,10 @@ import { MulterModule } from '@nestjs/platform-express';
       Document
     ]),
     EventsModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'default-secret',
+      signOptions: { expiresIn: '1d' },
+    }),
     MulterModule.register({
       dest: './uploads',
     })

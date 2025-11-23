@@ -86,6 +86,9 @@ import { CloudinaryModule } from '../cloudinary';
     CompanyModule,
     FinancialInstitutionModule,
     
+    // Modules externes (pour accès aux providers Kafka)
+    KafkaModule,
+    
     // Services legacy - tous migrés vers architecture modulaire
     
     // TypeORM pour autres modules

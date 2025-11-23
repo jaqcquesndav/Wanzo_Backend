@@ -120,7 +120,7 @@ export class LoginHistory {
   location: string;
 
   @Column({ type: 'enum', enum: ['successful', 'failed'] })
-  status: 'successful' | 'failed';
+  status: string;
 
   @Column({ nullable: true })
   userAgent: string;
@@ -147,7 +147,7 @@ export class NotificationPreference {
   description: string;
 
   @Column({ type: 'enum', enum: ['email', 'push', 'sms'] })
-  channel: 'email' | 'push' | 'sms';
+  channel: string | 'sms';
 
   @Column()
   type: string;

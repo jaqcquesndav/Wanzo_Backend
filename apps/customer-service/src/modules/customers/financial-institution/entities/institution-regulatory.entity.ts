@@ -69,14 +69,14 @@ export class InstitutionRegulatoryEntity {
   })
   licenses?: Array<{
     licenseId: string;
-    licenseType: 'banking' | 'microfinance' | 'insurance' | 'investment' | 'payment' | 'forex' | 'other';
+    licenseType: string | 'insurance' | 'investment' | 'payment' | 'forex' | 'other';
     licenseName: string;
     licenseNumber: string;
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
     renewalDate?: string;
-    status: 'active' | 'expired' | 'suspended' | 'revoked' | 'pending_renewal';
+    status: string | 'suspended' | 'revoked' | 'pending_renewal';
     scope: string[];
     restrictions?: string[];
     conditions?: string[];
@@ -106,7 +106,7 @@ export class InstitutionRegulatoryEntity {
     certificationNumber: string;
     certificationDate: string;
     expiryDate?: string;
-    status: 'active' | 'expired' | 'suspended' | 'under_review';
+    status: string | 'suspended' | 'under_review';
     scope: string;
     maintenanceRequirements?: string[];
     renewalProcess?: string;
@@ -146,7 +146,7 @@ export class InstitutionRegulatoryEntity {
         currency: string;
         lastUpdated: string;
       };
-      complianceStatus: 'compliant' | 'deficit' | 'excess';
+      complianceStatus: string | 'excess';
     };
     liquidityRequirements?: {
       liquidityCoverageRatio: number;
@@ -159,7 +159,7 @@ export class InstitutionRegulatoryEntity {
       stressTestResults?: Array<{
         testDate: string;
         scenario: string;
-        result: 'pass' | 'fail' | 'conditional';
+        result: string | 'conditional';
         recommendations?: string[];
       }>;
     };
@@ -194,14 +194,14 @@ export class InstitutionRegulatoryEntity {
   reportingRequirements?: Array<{
     reportId: string;
     reportName: string;
-    reportType: 'financial' | 'operational' | 'risk' | 'compliance' | 'governance' | 'customer' | 'other';
-    frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'ad_hoc';
+    reportType: string | 'risk' | 'compliance' | 'governance' | 'customer' | 'other';
+    frequency: string | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'ad_hoc';
     recipient: string;
     format: string;
     dueDate: string;
     lastSubmissionDate?: string;
-    submissionStatus: 'on_time' | 'late' | 'not_submitted' | 'rejected' | 'under_review';
-    submissionMethod: 'online' | 'email' | 'postal' | 'in_person';
+    submissionStatus: string | 'not_submitted' | 'rejected' | 'under_review';
+    submissionMethod: string | 'postal' | 'in_person';
     penalties?: {
       lateSubmissionFee: number;
       currency: string;
@@ -219,23 +219,23 @@ export class InstitutionRegulatoryEntity {
   })
   auditsHistory?: Array<{
     auditId: string;
-    auditType: 'regulatory' | 'internal' | 'external' | 'forensic' | 'compliance' | 'it' | 'operational';
+    auditType: string | 'external' | 'forensic' | 'compliance' | 'it' | 'operational';
     auditor: string;
     startDate: string;
     endDate?: string;
-    status: 'scheduled' | 'in_progress' | 'completed' | 'follow_up_required';
+    status: string | 'completed' | 'follow_up_required';
     scope: string[];
     findings: Array<{
       findingId: string;
-      category: 'critical' | 'major' | 'minor' | 'observation';
+      category: string | 'minor' | 'observation';
       description: string;
       recommendation: string;
       remedialAction?: string;
       targetDate?: string;
-      status: 'open' | 'in_progress' | 'closed' | 'verified';
+      status: string | 'closed' | 'verified';
       responsible: string;
     }>;
-    overallRating?: 'excellent' | 'satisfactory' | 'needs_improvement' | 'unsatisfactory';
+    overallRating?: string | 'needs_improvement' | 'unsatisfactory';
     managementResponse?: string;
     followUpAuditRequired: boolean;
     followUpDate?: string;
@@ -254,34 +254,34 @@ export class InstitutionRegulatoryEntity {
   })
   sanctionsHistory?: Array<{
     sanctionId: string;
-    sanctionType: 'warning' | 'fine' | 'suspension' | 'license_revocation' | 'business_restriction' | 'other';
+    sanctionType: string | 'suspension' | 'license_revocation' | 'business_restriction' | 'other';
     issuingAuthority: string;
     sanctionDate: string;
     reason: string;
     description: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    severity: string | 'high' | 'critical';
     financialPenalty?: {
       amount: number;
       currency: string;
       paidDate?: string;
-      paymentStatus: 'pending' | 'paid' | 'partial' | 'disputed' | 'waived';
+      paymentStatus: string | 'partial' | 'disputed' | 'waived';
     };
     operationalRestrictions?: string[];
     complianceActions: Array<{
       action: string;
       dueDate: string;
       completionDate?: string;
-      status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+      status: string | 'completed' | 'overdue';
       verificationRequired: boolean;
     }>;
     appealProcess?: {
       appealFiled: boolean;
       appealDate?: string;
       appellateBody?: string;
-      appealOutcome?: 'pending' | 'upheld' | 'overturned' | 'modified';
+      appealOutcome?: string | 'overturned' | 'modified';
       finalResolutionDate?: string;
     };
-    status: 'active' | 'resolved' | 'under_appeal' | 'suspended';
+    status: string | 'under_appeal' | 'suspended';
     publicDisclosure: boolean;
   }>;
 
@@ -324,7 +324,7 @@ export class InstitutionRegulatoryEntity {
       suspiciousTransactionReports: number;
       currencyTransactionReports: number;
       lastReportDate?: string;
-      reportingTimeliness: 'compliant' | 'delayed' | 'non_compliant';
+      reportingTimeliness: string | 'non_compliant';
     };
   };
 
@@ -379,7 +379,7 @@ export class InstitutionRegulatoryEntity {
     securityIncidents: Array<{
       incidentDate: string;
       incidentType: string;
-      severity: 'low' | 'medium' | 'high' | 'critical';
+      severity: string | 'high' | 'critical';
       reportedToRegulator: boolean;
       resolved: boolean;
       resolutionDate?: string;
@@ -412,11 +412,11 @@ export class InstitutionRegulatoryEntity {
     initiativeName: string;
     description: string;
     regulatoryDriver: string;
-    priority: 'low' | 'medium' | 'high' | 'critical';
+    priority: string | 'high' | 'critical';
     startDate: string;
     targetCompletionDate: string;
     actualCompletionDate?: string;
-    status: 'planning' | 'in_progress' | 'testing' | 'completed' | 'delayed' | 'cancelled';
+    status: string | 'testing' | 'completed' | 'delayed' | 'cancelled';
     budget: {
       allocated: number;
       spent: number;
@@ -427,12 +427,12 @@ export class InstitutionRegulatoryEntity {
       description: string;
       dueDate: string;
       completionDate?: string;
-      status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+      status: string | 'completed' | 'overdue';
     }>;
     risks: Array<{
       riskId: string;
       description: string;
-      impact: 'low' | 'medium' | 'high';
+      impact: string | 'high';
       mitigation: string;
     }>;
     teamMembers: Array<{
@@ -496,7 +496,7 @@ export class InstitutionRegulatoryEntity {
     relationshipManager: string;
     lastContact?: string;
     nextScheduledContact?: string;
-    communicationPreference: 'email' | 'phone' | 'meeting' | 'formal_letter';
+    communicationPreference: string | 'meeting' | 'formal_letter';
   }>;
 
   // === MÉTADONNÉES ===

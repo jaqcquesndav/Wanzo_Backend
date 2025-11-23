@@ -68,7 +68,7 @@ export class IdentityDocument {
   @Column('jsonb', { nullable: true })
   metadata?: {
     confidence?: number;
-    documentQuality?: 'high' | 'medium' | 'low';
+    documentQuality?: string;
     faceMatch?: boolean;
     dataConsistency?: boolean;
     extractedData?: Record<string, any>;

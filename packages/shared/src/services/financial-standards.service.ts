@@ -17,7 +17,7 @@ import {
 
 export interface FinancialIdentifierGenerationOptions {
   entityCode: string;
-  transactionType: 'PAY' | 'FUND' | 'CONT' | 'DISB' | 'REPAY' | 'COLL' | 'TRAN';
+  transactionType: string;
   includeChecksum: boolean;
 }
 

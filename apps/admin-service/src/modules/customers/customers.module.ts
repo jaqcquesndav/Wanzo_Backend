@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -49,7 +49,7 @@ import { EventsModule } from '../events/events.module';
       timeout: 5000,
       maxRedirects: 5,
     }),
-    EventsModule,
+    forwardRef(() => EventsModule),
   ],
   controllers: [
     AdminCustomerProfilesController, 

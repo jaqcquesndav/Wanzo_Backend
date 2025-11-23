@@ -85,9 +85,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private microserviceIntegrationService: MicroserviceIntegrationService
   ) {
     // Configuration Kafka
+    const kafkaBrokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092');
     this.kafka = new Kafka({
       clientId: 'analytics-service',
-      brokers: this.configService.get<string[]>('KAFKA_BROKERS', ['localhost:9092']),
+      brokers: kafkaBrokers.split(',').map(broker => broker.trim()),
       retry: {
         initialRetryTime: 100,
         retries: 8

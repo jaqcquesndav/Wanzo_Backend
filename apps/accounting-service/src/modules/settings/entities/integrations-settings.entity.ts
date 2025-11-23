@@ -26,7 +26,7 @@ export interface EInvoicingSettings {
   dgi_congo: {
     enabled: boolean;
     apiKey: string | null;
-    environment: 'test' | 'production';
+    environment: string;
   };
 }
 

@@ -71,7 +71,7 @@ export class ChatMessage {
   }
 
   // Getter pour le sender (compatibilité API frontend)
-  get sender(): 'user' | 'bot' {
+  get sender(): string {
     return this.role === MessageRole.USER ? 'user' : 'bot';
   }
 }

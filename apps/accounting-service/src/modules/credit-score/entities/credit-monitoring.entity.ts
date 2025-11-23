@@ -83,7 +83,7 @@ export class RealTimeCreditMonitoring {
     previousScore: number;
     change: number;
     changePercentage: number;
-    trend: 'improving' | 'declining' | 'stable';
+    trend: string;
   };
 
   @ApiProperty({ 
@@ -148,8 +148,8 @@ export class RealTimeCreditMonitoring {
   })
   @Column('jsonb', { nullable: true })
   alerts?: {
-    type: 'score_drop' | 'score_improvement' | 'cash_flow_alert' | 'stability_warning';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    type: string;
+    severity: string;
     message: string;
     threshold: number;
     actualValue: number;
@@ -191,7 +191,7 @@ export class RealTimeCreditMonitoring {
     const change = this.score - previousScore;
     const changePercentage = previousScore > 0 ? (change / previousScore) * 100 : 0;
     
-    let trend: 'improving' | 'declining' | 'stable' = 'stable';
+    let trend: string | 'stable' = 'stable';
     if (Math.abs(change) >= 3) {
       trend = change > 0 ? 'improving' : 'declining';
     }

@@ -476,7 +476,7 @@ export class AccessControlService {
     this.eventEmitter.emit('feature.consumption', event);
   }
 
-  private getCurrentPeriod(periodType: 'daily' | 'monthly' | 'yearly'): string {
+  private getCurrentPeriod(periodType: string): string {
     const now = new Date();
     switch (periodType) {
       case 'daily':
@@ -485,10 +485,12 @@ export class AccessControlService {
         return now.toISOString().substring(0, 7); // YYYY-MM
       case 'yearly':
         return now.getFullYear().toString(); // YYYY
+      default:
+        return now.toISOString().substring(0, 7); // Par défaut mensuel
     }
   }
 
-  private calculateResetDate(periodType: 'daily' | 'monthly' | 'yearly'): Date {
+  private calculateResetDate(periodType: string): Date {
     const now = new Date();
     switch (periodType) {
       case 'daily':
@@ -497,6 +499,8 @@ export class AccessControlService {
         return new Date(now.getFullYear(), now.getMonth() + 1, 1);
       case 'yearly':
         return new Date(now.getFullYear() + 1, 0, 1);
+      default:
+        return new Date(now.getFullYear(), now.getMonth() + 1, 1); // Par défaut mensuel
     }
   }
 

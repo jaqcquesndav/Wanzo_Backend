@@ -392,7 +392,7 @@ export class ISO20022FinancialTransaction {
     amlCheckPassed: boolean;
     sanctionsCheckPassed: boolean;
     pepCheckPassed?: boolean;
-    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+    riskLevel: string;
     checkDate: string;
     checkReference?: string;
     reviewRequired?: boolean;
@@ -428,7 +428,7 @@ export class ISO20022FinancialTransaction {
   })
   @Column('jsonb', { nullable: true })
   processingInformation?: {
-    processingNetwork?: 'SWIFT' | 'SEPA' | 'LOCAL' | 'MOBILE';
+    processingNetwork?: string;
     networkReference?: string;
     routingPath?: string[];
     processingTime?: number; // en millisecondes
@@ -548,7 +548,7 @@ export class ISO20022FinancialTransaction {
 
   // === MÉTHODES UTILITAIRES ===
 
-  private getTransactionTypeCode(): 'PAY' | 'FUND' | 'CONT' | 'DISB' | 'REPAY' | 'COLL' | 'TRAN' {
+  private getTransactionTypeCode(): string {
     switch (this.transactionType) {
       case ISO20022TransactionType.PAYMENT:
       case ISO20022TransactionType.CREDIT_TRANSFER:

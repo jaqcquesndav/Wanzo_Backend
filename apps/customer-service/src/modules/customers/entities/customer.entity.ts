@@ -146,7 +146,7 @@ export class Customer {
   capital?: {
     isApplicable?: boolean;
     amount?: number;
-    currency?: 'USD' | 'CDF' | 'EUR';
+    currency?: string;
   };
 
   // Données financières
@@ -245,7 +245,7 @@ export class Customer {
   @Column('jsonb', { nullable: true })
   validationHistory!: Array<{
     date: Date;
-    action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
+    action: string;
     by: string;
     notes?: string;
   }>;

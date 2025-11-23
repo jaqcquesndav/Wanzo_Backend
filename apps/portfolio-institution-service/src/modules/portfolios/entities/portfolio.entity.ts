@@ -50,7 +50,7 @@ interface BankAccount {
   currency: string;
   balance: number;
   is_default: boolean;
-  status: 'active' | 'inactive' | 'suspended';
+  status: string | 'suspended';
   // ✅ Champs ajoutés pour transactions internationales
   bank_code?: string;
   branch_code?: string;
@@ -66,7 +66,7 @@ interface MobileMoneyAccount {
   account_name: string;
   phone_number: string;
   // ✅ Utiliser code standardisé au lieu de nom complet
-  provider: 'AM' | 'OM' | 'MP' | 'AF' | 'WAVE'; // Code opérateur standardisé
+  provider: string | 'MP' | 'AF' | 'WAVE'; // Code opérateur standardisé
   provider_name: string; // Nom complet (Airtel Money, Orange Money, etc.)
   pin_code?: string;
   account_holder_id?: string;
@@ -74,10 +74,10 @@ interface MobileMoneyAccount {
   is_primary: boolean;
   is_active: boolean;
   portfolio_id?: string;
-  purpose?: 'disbursement' | 'collection' | 'general' | 'investment' | 'escrow' | 'reserve';
+  purpose?: string | 'general' | 'investment' | 'escrow' | 'reserve';
   balance?: number;
   service_number?: string;
-  account_status?: 'verified' | 'pending' | 'suspended';
+  account_status?: string | 'suspended';
   daily_limit?: number;
   monthly_limit?: number;
   created_at: string;
@@ -87,7 +87,7 @@ interface MobileMoneyAccount {
 interface FinancialProduct {
   id: string;
   name: string;
-  type: 'credit_personnel' | 'credit_immobilier' | 'credit_auto' | 'credit_professionnel' | 'microcredit' | 'credit_consommation';
+  type: string | 'credit_auto' | 'credit_professionnel' | 'microcredit' | 'credit_consommation';
   description: string;
   minAmount: number;
   maxAmount: number;
@@ -96,7 +96,7 @@ interface FinancialProduct {
     max: number;
   };
   interestRate: {
-    type: 'fixed' | 'variable';
+    type: string;
     value?: number;
     min?: number;
     max?: number;
@@ -104,7 +104,7 @@ interface FinancialProduct {
   requirements: string[];
   acceptedGuarantees?: string[];
   isPublic: boolean;
-  status: 'active' | 'inactive';
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -165,17 +165,17 @@ interface ManagerBankAccount {
 
 interface ManagerMobileMoneyAccount {
   id: string;
-  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
+  operator: string | 'WAVE' | 'MP' | 'AF';
   phoneNumber: string;
   accountHolderName: string;
   isDefault: boolean;
-  verificationStatus: 'pending' | 'verified' | 'failed';
+  verificationStatus: string | 'failed';
   createdAt: Date;
   updatedAt: Date;
 }
 
 interface ManagerPaymentPreferences {
-  preferredMethod: 'bank' | 'mobile_money';
+  preferredMethod: string;
   defaultBankAccount?: string;
   defaultMobileMoneyAccount?: string;
   allowAutomaticPayments: boolean;

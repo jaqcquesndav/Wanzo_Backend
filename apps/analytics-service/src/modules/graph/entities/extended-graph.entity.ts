@@ -30,24 +30,24 @@ export enum ExtendedNodeType {
 export interface FinancialProductProperties {
   id: string;
   name: string;
-  type: 'CREDIT' | 'DEPOSIT' | 'INVESTMENT' | 'INSURANCE' | 'GUARANTEE' | 'SERVICE';
+  type: string | 'INVESTMENT' | 'INSURANCE' | 'GUARANTEE' | 'SERVICE';
   subType: string; // Ex: 'MICROCREDIT', 'SME_LOAN', 'WORKING_CAPITAL', 'TERM_DEPOSIT'
-  category: 'INDIVIDUAL' | 'SME' | 'CORPORATE' | 'INTERBANK' | 'GOVERNMENT';
-  riskCategory: 'RETAIL' | 'WHOLESALE' | 'TREASURY' | 'INVESTMENT';
-  maturityBucket: 'DEMAND' | 'SHORT' | 'MEDIUM' | 'LONG'; // < 1 an, 1-5 ans, > 5 ans
-  currencyCode: 'CDF' | 'USD' | 'EUR';
+  category: string | 'CORPORATE' | 'INTERBANK' | 'GOVERNMENT';
+  riskCategory: string | 'TREASURY' | 'INVESTMENT';
+  maturityBucket: string | 'MEDIUM' | 'LONG'; // < 1 an, 1-5 ans, > 5 ans
+  currencyCode: string | 'EUR';
   amount: number;
   interestRate?: number;
   commission?: number;
   fees?: number;
-  guaranteeType?: 'COLLATERAL' | 'PERSONAL' | 'INSTITUTIONAL' | 'NONE';
+  guaranteeType?: string | 'INSTITUTIONAL' | 'NONE';
   riskWeight?: number; // Pondération réglementaire
-  performanceStatus: 'PERFORMING' | 'WATCH' | 'SUBSTANDARD' | 'DOUBTFUL' | 'LOSS';
+  performanceStatus: string | 'SUBSTANDARD' | 'DOUBTFUL' | 'LOSS';
   creationDate: string;
   maturityDate?: string;
   lastReviewDate?: string;
   renewalCount?: number;
-  originChannel: 'BRANCH' | 'DIGITAL' | 'AGENT' | 'PARTNER';
+  originChannel: string | 'AGENT' | 'PARTNER';
 }
 
 // Interface pour les groupes économiques
@@ -55,17 +55,17 @@ export interface EconomicGroupProperties {
   id: string;
   name: string;
   registrationNumber?: string;
-  type: 'HOLDING' | 'COOPERATIVE' | 'FRANCHISE' | 'SUPPLY_CHAIN' | 'JOINT_VENTURE';
-  legalStructure: 'SA' | 'SARL' | 'COOPERATIVE' | 'ASSOCIATION' | 'INFORMAL';
-  controlStructure: 'CENTRALIZED' | 'FEDERATED' | 'NETWORK' | 'HYBRID';
+  type: string | 'FRANCHISE' | 'SUPPLY_CHAIN' | 'JOINT_VENTURE';
+  legalStructure: string | 'COOPERATIVE' | 'ASSOCIATION' | 'INFORMAL';
+  controlStructure: string | 'NETWORK' | 'HYBRID';
   totalAssets?: number;
   totalRevenue?: number;
   memberCount: number;
   foundedYear?: number;
   mainSector: string;
   secondarySectors?: string[];
-  geographicScope: 'LOCAL' | 'PROVINCIAL' | 'NATIONAL' | 'REGIONAL' | 'INTERNATIONAL';
-  riskProfile: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  geographicScope: string | 'NATIONAL' | 'REGIONAL' | 'INTERNATIONAL';
+  riskProfile: string | 'HIGH' | 'CRITICAL';
   consolidatedRiskScore?: number;
   lastAuditDate?: string;
 }
@@ -75,14 +75,14 @@ export interface MarketSegmentProperties {
   id: string;
   name: string;
   description?: string;
-  size: 'LARGE' | 'MEDIUM' | 'SMALL' | 'MICRO';
-  maturity: 'EMERGING' | 'GROWING' | 'MATURE' | 'DECLINING';
+  size: string | 'SMALL' | 'MICRO';
+  maturity: string | 'MATURE' | 'DECLINING';
   competitiveness: number; // 1-10 scale
   marketShare?: number; // Pourcentage du marché total
   growthRate?: number;
-  profitability: 'HIGH' | 'MEDIUM' | 'LOW';
-  barriers: 'HIGH' | 'MEDIUM' | 'LOW';
-  regulation: 'STRICT' | 'MODERATE' | 'FLEXIBLE';
+  profitability: string | 'LOW';
+  barriers: string | 'LOW';
+  regulation: string | 'FLEXIBLE';
   seasonality?: boolean;
   volatility: number; // 1-10 scale
   targetCustomers: string[];
@@ -95,7 +95,7 @@ export interface ProductCategoryProperties {
   name: string;
   parentCategoryId?: string;
   level: number; // Niveau dans la hiérarchie
-  riskProfile: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' | 'SPECULATIVE';
+  riskProfile: string | 'AGGRESSIVE' | 'SPECULATIVE';
   regulatoryCategory: string;
   minimumAmount?: number;
   maximumAmount?: number;
@@ -113,8 +113,8 @@ export interface ProductCategoryProperties {
 export interface RiskClusterProperties {
   id: string;
   name: string;
-  type: 'SECTOR' | 'GEOGRAPHIC' | 'PRODUCT' | 'CLIENT' | 'COUNTERPARTY';
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  type: string | 'PRODUCT' | 'CLIENT' | 'COUNTERPARTY';
+  riskLevel: string | 'HIGH' | 'CRITICAL';
   concentrationThreshold: number;
   currentConcentration: number;
   memberCount: number;
@@ -122,7 +122,7 @@ export interface RiskClusterProperties {
   averageRiskScore: number;
   correlationCoefficient?: number;
   lastAnalysisDate: string;
-  monitoringFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY';
+  monitoringFrequency: string | 'MONTHLY' | 'QUARTERLY';
   actionTriggers: {
     yellow: number;
     orange: number;
@@ -134,16 +134,16 @@ export interface RiskClusterProperties {
 // Interface pour les points de concentration
 export interface ConcentrationPointProperties {
   id: string;
-  type: 'SINGLE_BORROWER' | 'SECTOR' | 'GEOGRAPHIC' | 'PRODUCT' | 'MATURITY' | 'CURRENCY';
+  type: string | 'GEOGRAPHIC' | 'PRODUCT' | 'MATURITY' | 'CURRENCY';
   entity: string; // ID de l'entité concernée
   threshold: number; // Seuil réglementaire ou interne
   currentLevel: number;
   maxHistorical: number;
-  trend: 'INCREASING' | 'STABLE' | 'DECREASING';
-  riskRating: 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
+  trend: string | 'DECREASING';
+  riskRating: string | 'ORANGE' | 'RED';
   lastBreachDate?: string;
   mitigationPlan?: string;
-  reviewFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  reviewFrequency: string | 'MONTHLY';
   responsibleTeam: string;
 }
 
@@ -188,20 +188,20 @@ export enum ExtendedEdgeType {
 export interface ConcentrationRelationshipProperties {
   concentrationRatio: number; // Pourcentage de concentration
   riskWeight: number;
-  trend: 'INCREASING' | 'STABLE' | 'DECREASING';
+  trend: string | 'DECREASING';
   duration: number; // Durée en mois
   volatility?: number;
   seasonalPattern?: boolean;
   correlationStrength?: number; // -1 à 1
   lastMeasurement: string;
-  thresholdStatus: 'WITHIN' | 'APPROACHING' | 'EXCEEDING';
+  thresholdStatus: string | 'EXCEEDING';
 }
 
 // Propriétés pour les relations de risque
 export interface RiskRelationshipProperties {
   riskTransferCoefficient: number; // 0 à 1
-  propagationSpeed: 'IMMEDIATE' | 'FAST' | 'MODERATE' | 'SLOW';
-  impactSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  propagationSpeed: string | 'MODERATE' | 'SLOW';
+  impactSeverity: string | 'HIGH' | 'CRITICAL';
   mitigationEffectiveness?: number; // 0 à 1
   historicalCorrelation?: number;
   stressTestSensitivity?: number;
@@ -280,7 +280,7 @@ export class ExtendedEdge {
   analytics?: {
     strength?: number; // Force de la relation
     frequency?: number; // Fréquence d'interaction
-    direction?: 'BIDIRECTIONAL' | 'UNIDIRECTIONAL';
+    direction?: string;
     stability?: number; // Stabilité dans le temps
     seasonality?: boolean;
     criticalityScore?: number; // Importance systémique

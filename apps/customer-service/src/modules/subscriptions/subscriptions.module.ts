@@ -38,6 +38,10 @@ import {
   CustomerTokenBalance, 
   TokenTransaction 
 } from './entities/usage-tracking.entity';
+import { BusinessFeatureUsage, FeatureConsumptionLog, FeatureLimitAlert, SubscriptionPlanCache } from './entities/business-feature-tracking.entity';
+import { PromoCode, PromoCodeUsage } from './entities/promo-code.entity';
+import { User } from '../system-users/entities/user.entity';
+import { Payment } from '../billing/entities/payment.entity';
 
 @Module({
   imports: [
@@ -51,7 +55,15 @@ import {
       FeatureUsageTracking,
       CustomerFeatureLimit,
       CustomerTokenBalance,
-      TokenTransaction
+      TokenTransaction,
+      BusinessFeatureUsage,
+      FeatureConsumptionLog,
+      FeatureLimitAlert,
+      SubscriptionPlanCache,
+      PromoCode,
+      PromoCodeUsage,
+      User,
+      Payment
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-secret',

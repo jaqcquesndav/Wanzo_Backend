@@ -22,9 +22,9 @@ export interface HealthDashboard {
   currentHealth: HealthStatus;
   currentScore: number;
   trends: {
-    daily: 'improving' | 'declining' | 'stable';
-    weekly: 'improving' | 'declining' | 'stable';
-    monthly: 'improving' | 'declining' | 'stable';
+    daily: string;
+    weekly: string;
+    monthly: string;
   };
   alerts: any[];
   lastUpdate: Date;

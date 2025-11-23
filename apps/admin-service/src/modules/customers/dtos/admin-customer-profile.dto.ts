@@ -269,9 +269,9 @@ export class AdminCustomerProfileDto {
     currentPlan?: string;
     planStartDate?: string;
     planEndDate?: string;
-    planStatus?: 'active' | 'suspended' | 'expired' | 'cancelled';
+    planStatus?: string;
     planFeatures?: string[];
-    billingCycle?: 'monthly' | 'yearly';
+    billingCycle?: string;
     autoRenewal?: boolean;
     subscriptionHistory?: Array<{
       planName: string;
@@ -385,7 +385,7 @@ export class AdminCustomerProfileDto {
   @IsOptional()
   riskProfile?: {
     overallRiskScore?: number;
-    riskLevel?: 'low' | 'medium' | 'high';
+    riskLevel?: string;
     riskFactors?: string[];
     lastAssessment?: string;
   };

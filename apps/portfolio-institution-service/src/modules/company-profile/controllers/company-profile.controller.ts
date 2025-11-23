@@ -296,16 +296,16 @@ export class CompanyProfileController {
   ): Promise<{
     companyId: string;
     syncHistory: Array<{
-      source: 'accounting' | 'customer';
+      source: string;
       timestamp: string;
-      status: 'success' | 'partial' | 'failed';
+      status: string;
       error?: string;
     }>;
     conflicts: Array<{
       field: string;
       accountingValue: any;
       customerValue: any;
-      resolvedWith: 'accounting' | 'customer';
+      resolvedWith: string;
       timestamp: string;
     }>;
   }> {

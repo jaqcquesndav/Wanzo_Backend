@@ -33,34 +33,29 @@ export class Customer {
   @Column({ unique: true })
   customerId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   validatedAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   validatedBy: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   suspendedAt: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   suspendedBy: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   suspensionReason: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   reactivatedAt: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   reactivatedBy: string | null;
 
   @Column('jsonb', { nullable: true })
-  validationHistory: Array<{
-    date: Date;
-    action: 'validated' | 'revoked' | 'info_requested' | 'info_submitted';
-    by: string;
-    notes?: string;
-  }>;
+  validationHistory: any[];
 
   @OneToMany(() => CustomerDocument, document => document.customer)
   documents: CustomerDocument[];

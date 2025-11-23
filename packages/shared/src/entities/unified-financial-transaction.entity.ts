@@ -74,7 +74,8 @@ import {
 } from '../types/financial-types';
 
 // Ré-export pour compatibilité
-export { ServiceContext, BusinessContext, ExtendedMetadata };
+export { ServiceContext, BusinessContext };
+export type { ExtendedMetadata };
 
 /**
  * MÉTADONNÉES ÉTENDUES - SUITE

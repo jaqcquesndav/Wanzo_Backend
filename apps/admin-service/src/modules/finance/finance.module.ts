@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import * as entities from './entities';
@@ -17,8 +17,8 @@ import { User } from '../users/entities/user.entity';
       timeout: 5000,
       maxRedirects: 5,
     }),
-    EventsModule,
-    UsersModule,
+    forwardRef(() => EventsModule),
+    forwardRef(() => UsersModule),
   ],
   controllers: [FinanceController],
   providers: [FinanceService],

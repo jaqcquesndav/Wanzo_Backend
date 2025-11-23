@@ -83,7 +83,7 @@ export class MobileMoneyAccountDto {
 export class PaymentPreferencesDto {
   @ApiProperty({ description: 'Méthode de paiement préférée', enum: ['bank', 'mobile_money'], example: 'mobile_money' })
   @IsEnum(['bank', 'mobile_money'])
-  preferredMethod: 'bank' | 'mobile_money';
+  preferredMethod: string;
 
   @ApiPropertyOptional({ description: 'ID du compte bancaire par défaut' })
   @IsOptional()

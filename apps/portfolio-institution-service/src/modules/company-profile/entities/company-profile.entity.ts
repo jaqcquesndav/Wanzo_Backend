@@ -31,7 +31,6 @@ export class CompanyProfile {
    * Nom de la company (source de vérité: accounting-service)
    */
   @Column({ length: 500 })
-  @Index()
   companyName!: string;
 
   /**
@@ -315,7 +314,6 @@ export class CompanyProfile {
    * Date de dernière synchronisation depuis accounting-service
    */
   @Column({ type: 'timestamp', nullable: true })
-  @Index()
   lastSyncFromAccounting?: Date;
 
   /**
@@ -362,16 +360,16 @@ export class CompanyProfile {
   @Column('jsonb', { nullable: true })
   metadata?: {
     syncHistory?: Array<{
-      source: 'accounting' | 'customer';
+      source: string;
       timestamp: string;
-      status: 'success' | 'partial' | 'failed';
+      status: string;
       error?: string;
     }>;
     conflicts?: Array<{
       field: string;
       accountingValue: any;
       customerValue: any;
-      resolvedWith: 'accounting' | 'customer';
+      resolvedWith: string;
       timestamp: string;
     }>;
     [key: string]: any;
@@ -441,7 +439,7 @@ export class CompanyProfile {
   /**
    * Enregistre un conflit de données entre sources
    */
-  recordConflict(field: string, accountingValue: any, customerValue: any, resolvedWith: 'accounting' | 'customer'): void {
+  recordConflict(field: string, accountingValue: any, customerValue: any, resolvedWith: string): void {
     if (!this.metadata) {
       this.metadata = {};
     }
@@ -461,7 +459,7 @@ export class CompanyProfile {
   /**
    * Enregistre une synchronisation dans l'historique
    */
-  recordSync(source: 'accounting' | 'customer', status: 'success' | 'partial' | 'failed', error?: string): void {
+  recordSync(source: string, status: string | 'failed', error?: string): void {
     if (!this.metadata) {
       this.metadata = {};
     }

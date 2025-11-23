@@ -34,8 +34,8 @@ export class BusinessFeatureUsage {
   @Column({ name: 'usage_period' })
   usagePeriod!: string; // Format: YYYY-MM pour mensuel, YYYY-MM-DD pour quotidien
 
-  @Column({ name: 'period_type', default: 'monthly' })
-  periodType!: 'daily' | 'monthly' | 'yearly';
+  @Column({ name: 'period_type', type: 'varchar', default: 'monthly' })
+  periodType!: string;
 
   @Column({ name: 'limit_value', nullable: true })
   limitValue?: number; // Limite applicable pour cette période (-1 = illimité)
@@ -101,8 +101,8 @@ export class CustomerFeatureLimit {
   @Column({ name: 'usage_period' })
   usagePeriod!: string; // Période actuelle (YYYY-MM ou YYYY-MM-DD)
 
-  @Column({ name: 'period_type', default: 'monthly' })
-  periodType!: 'daily' | 'monthly' | 'yearly';
+  @Column({ name: 'period_type', type: 'varchar', default: 'monthly' })
+  periodType!: string;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
@@ -233,8 +233,8 @@ export class FeatureLimitAlert {
   })
   feature!: BusinessFeature;
 
-  @Column({ name: 'alert_type' })
-  alertType!: 'warning' | 'limit_reached' | 'limit_exceeded' | 'upgrade_suggested';
+  @Column({ name: 'alert_type', type: 'varchar' })
+  alertType!: string | 'limit_exceeded' | 'upgrade_suggested';
 
   @Column({ name: 'current_usage' })
   currentUsage!: number;
@@ -279,8 +279,8 @@ export class SubscriptionPlanCache {
   @Column({ name: 'plan_name' })
   planName!: string;
 
-  @Column({ name: 'customer_type' })
-  customerType!: 'sme' | 'financial_institution';
+  @Column({ name: 'customer_type', type: 'varchar' })
+  customerType!: string;
 
   // Configuration des limites par fonctionnalité
   @Column('jsonb')
@@ -288,7 +288,7 @@ export class SubscriptionPlanCache {
     [key in BusinessFeature]?: {
       enabled: boolean;
       limit: number; // -1 pour illimité
-      periodType: 'daily' | 'monthly' | 'yearly';
+      periodType: string;
       description?: string;
     };
   };

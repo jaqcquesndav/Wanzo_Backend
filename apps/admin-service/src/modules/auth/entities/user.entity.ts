@@ -55,7 +55,7 @@ export class User {
 
   @Column({ type: 'simple-json', nullable: true })
   kyc: {
-    status: 'pending' | 'verified' | 'rejected';
+    status: string | 'rejected';
     verifiedAt?: string;
     documents?: Array<{
       type: string;

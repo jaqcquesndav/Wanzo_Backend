@@ -105,7 +105,7 @@ export class InstitutionServicesEntity {
     incomeRequirements?: {
       minimum?: number;
       currency?: string;
-      frequency?: 'monthly' | 'yearly';
+      frequency?: string;
       verificationRequired?: boolean;
     };
     documentRequirements?: string[];
@@ -140,7 +140,7 @@ export class InstitutionServicesEntity {
   targetSegments?: Array<{
     segmentName: string;
     description: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: string | 'low';
     isActive: boolean;
   }>;
 
@@ -165,7 +165,7 @@ export class InstitutionServicesEntity {
     };
     transactionFees?: Array<{
       transactionType: string;
-      feeType: 'fixed' | 'percentage' | 'tiered';
+      feeType: string | 'tiered';
       amount?: number;
       percentage?: number;
       currency: string;
@@ -201,19 +201,19 @@ export class InstitutionServicesEntity {
   interestRates?: {
     savingsRate?: {
       rate: number;
-      type: 'fixed' | 'variable';
+      type: string;
       tiers?: Array<{
         from: number;
         to?: number;
         rate: number;
       }>;
-      compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
+      compoundingFrequency?: string | 'quarterly' | 'annually';
     };
     loanRate?: {
       baseRate: number;
       margin: number;
       effectiveRate: number;
-      type: 'fixed' | 'variable';
+      type: string;
       benchmark?: string;
       reviewFrequency?: string;
     };
@@ -264,9 +264,9 @@ export class InstitutionServicesEntity {
     comment: 'Conditions générales du service'
   })
   terms?: {
-    minimumTerm?: { value: number; unit: 'days' | 'months' | 'years'; };
-    maximumTerm?: { value: number; unit: 'days' | 'months' | 'years'; };
-    noticePeriod?: { value: number; unit: 'days' | 'months'; };
+    minimumTerm?: { value: number; unit: string | 'years'; };
+    maximumTerm?: { value: number; unit: string | 'years'; };
+    noticePeriod?: { value: number; unit: string; };
     renewalTerms?: string[];
     cancellationTerms?: string[];
     penaltyConditions?: string[];
@@ -280,7 +280,7 @@ export class InstitutionServicesEntity {
     comment: 'Canaux par lesquels le service est disponible'
   })
   channels?: Array<{
-    channelType: 'branch' | 'online' | 'mobile' | 'phone' | 'atm' | 'agent' | 'mail';
+    channelType: string | 'mobile' | 'phone' | 'atm' | 'agent' | 'mail';
     isAvailable: boolean;
     limitations?: string[];
     additionalFees?: {
@@ -332,7 +332,7 @@ export class InstitutionServicesEntity {
   })
   customerSupport?: {
     supportChannels: Array<{
-      channel: 'phone' | 'email' | 'chat' | 'branch' | 'whatsapp';
+      channel: string | 'chat' | 'branch' | 'whatsapp';
       availability: string;
       contactInfo: string;
       language: string[];
@@ -436,7 +436,7 @@ export class InstitutionServicesEntity {
       issuer: string;
       issuedDate: string;
       expiryDate?: string;
-      status: 'active' | 'expired' | 'suspended';
+      status: string | 'suspended';
     }>;
     reportingRequirements: Array<{
       reportType: string;
@@ -448,7 +448,7 @@ export class InstitutionServicesEntity {
       checkType: string;
       lastCheckDate: string;
       nextCheckDate: string;
-      status: 'compliant' | 'non_compliant' | 'pending';
+      status: string | 'pending';
     }>;
   };
 
