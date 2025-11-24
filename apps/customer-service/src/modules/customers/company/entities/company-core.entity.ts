@@ -17,12 +17,6 @@ import { Customer } from '../../entities/customer.entity';
  * Gère les profils, contacts, propriétaires, associés, activités et capital
  */
 @Entity('companies_core')
-@Index(['companyName'], { unique: true })
-@Index(['registrationNumber'], { unique: true })
-@Index(['taxNumber'], { unique: true })
-@Index(['status'])
-@Index(['sector'])
-@Index(['createdAt'])
 export class CompanyCoreEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

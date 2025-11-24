@@ -116,7 +116,6 @@
 **/*.rar
 **/*.7z
 **/datasets/
-**/models/
 **/checkpoints/
 **/embeddings/
 

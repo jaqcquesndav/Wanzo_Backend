@@ -107,8 +107,6 @@ clean_*.py
 *.7z
 datasets/
 **/datasets/
-models/
-**/models/
 checkpoints/
 **/checkpoints/
 embeddings/

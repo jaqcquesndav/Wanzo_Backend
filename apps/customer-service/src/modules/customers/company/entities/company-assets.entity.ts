@@ -26,7 +26,6 @@ export class CompanyAssetsEntity {
   id: string;
 
   @Column({ type: 'uuid', nullable: false })
-  @Index()
   companyId: string;
 
   // === INFORMATIONS DE BASE ===
@@ -41,11 +40,9 @@ export class CompanyAssetsEntity {
     enum: ['real_estate', 'vehicles', 'equipment', 'furniture', 'technology', 'intangible', 'financial', 'other'],
     nullable: false
   })
-  @Index()
   category: string;
 
   @Column({ type: 'varchar', length: 100, nullable: false })
-  @Index()
   type: string;
 
   @Column({
@@ -53,7 +50,6 @@ export class CompanyAssetsEntity {
     enum: ['excellent', 'very_good', 'good', 'fair', 'poor', 'damaged', 'obsolete'],
     default: 'good'
   })
-  @Index()
   state: string;
 
   // === IDENTIFICATION ===
@@ -77,7 +73,6 @@ export class CompanyAssetsEntity {
   acquisitionCost: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: false })
-  @Index()
   currentValue: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
@@ -93,7 +88,6 @@ export class CompanyAssetsEntity {
   currency: string;
 
   @Column({ type: 'date', nullable: false })
-  @Index()
   acquisitionDate: Date;
 
   @Column({ type: 'date', nullable: true })

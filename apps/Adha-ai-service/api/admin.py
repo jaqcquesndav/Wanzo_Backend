@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JournalEntry, ChatConversation, ChatMessage, UserProfile
+from api.models import JournalEntry, ChatConversation, ChatMessage, UserProfile
 
 @admin.register(ChatConversation)
 class ChatConversationAdmin(admin.ModelAdmin):

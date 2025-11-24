@@ -1,6 +1,10 @@
 from django.db import migrations, models
 import django.db.models.deletion
-from api.models.admin_key import generate_random_key
+import uuid
+
+def generate_default_key():
+    """Generate a default UUID-based key for migration"""
+    return str(uuid.uuid4())
 
 class Migration(migrations.Migration):
 
@@ -14,7 +18,7 @@ class Migration(migrations.Migration):
             name='AdminAccessKey',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('key', models.CharField(default=generate_random_key, max_length=100, unique=True)),
+                ('key', models.CharField(default=generate_default_key, max_length=100, unique=True)),
                 ('description', models.CharField(max_length=255)),
                 ('is_active', models.BooleanField(default=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

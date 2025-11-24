@@ -27,12 +27,10 @@ export class CompanyStocksEntity {
   id: string;
 
   @Column({ type: 'uuid', nullable: false })
-  @Index()
   companyId: string;
 
   // === INFORMATIONS DE BASE ===
   @Column({ type: 'varchar', length: 100, nullable: false, unique: true })
-  @Index()
   sku: string;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
@@ -46,7 +44,6 @@ export class CompanyStocksEntity {
     enum: ['raw_materials', 'work_in_progress', 'finished_goods', 'supplies', 'spare_parts', 'consumables'],
     nullable: false
   })
-  @Index()
   category: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
@@ -60,14 +57,12 @@ export class CompanyStocksEntity {
 
   // === QUANTITÉS ===
   @Column({ type: 'decimal', precision: 15, scale: 3, default: 0 })
-  @Index()
   quantity: number;
 
   @Column({ type: 'varchar', length: 20, nullable: false })
   unit: string; // kg, pcs, liters, m², etc.
 
   @Column({ type: 'decimal', precision: 15, scale: 3, default: 0 })
-  @Index()
   reorderLevel: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 3, default: 0 })
@@ -81,7 +76,6 @@ export class CompanyStocksEntity {
 
   // === COÛTS ET VALEURS ===
   @Column({ type: 'decimal', precision: 15, scale: 4, nullable: false })
-  @Index()
   unitCost: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
@@ -128,7 +122,6 @@ export class CompanyStocksEntity {
     enum: ['good', 'damaged', 'expired', 'quarantine', 'returned'],
     default: 'good'
   })
-  @Index()
   state: string;
 
   @Column({ type: 'boolean', default: true })

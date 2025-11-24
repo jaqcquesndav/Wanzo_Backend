@@ -6,19 +6,20 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from django.urls import re_path
 
 # Import admin views
-from .views.admin.token_management_views import TokenPriceManagementView, TokenPurchaseApprovalView, CompanySubscriptionManagementView
+from .views.admin import TokenPriceManagementView, TokenPurchaseApprovalView, CompanySubscriptionManagementView
 
 # Import company views
-from .views.company.management_views import (
+from .views.company import (
     CompanyListCreateView, 
     CompanyDetailView,
     CompanyUsersView,
     RemoveCompanyUserView,
     TransferCompanyOwnershipView,
     CompanyTokenUsageView,
-    CompanySettingsView
+    CompanySettingsView,
+    SubscriptionStatusView,
+    TokenPurchaseRequestView
 )
-from .views.company.subscription_views import SubscriptionStatusView, TokenPurchaseRequestView
 
 # Import other existing views as needed
 from .views import (

@@ -1,10 +1,17 @@
 """
 Admin views module
+Note: Auth views have been removed - authentication is handled by external service
 """
-from .auth_views import AdminSignupView, AdminLoginView, AdminAccessKeyRetrieveView
+
+# Import token management views for URLs
+from .token_management_views import (
+    TokenPriceManagementView,
+    TokenPurchaseApprovalView,
+    CompanySubscriptionManagementView
+)
 
 __all__ = [
-    'AdminSignupView',
-    'AdminLoginView',
-    'AdminAccessKeyRetrieveView'
+    'TokenPriceManagementView',
+    'TokenPurchaseApprovalView',
+    'CompanySubscriptionManagementView',
 ]

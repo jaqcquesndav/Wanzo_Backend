@@ -1,10 +1,28 @@
 """
 Company views module
+Note: Auth views have been removed - authentication is handled by external service
 """
-from .auth_views import CompanyUserSignupView, CompanyUserLoginView, CompanyUserProfileView
+
+# Import management and subscription views for URLs
+from .management_views import (
+    CompanyListCreateView,
+    CompanyDetailView,
+    CompanyUsersView,
+    RemoveCompanyUserView,
+    TransferCompanyOwnershipView,
+    CompanyTokenUsageView,
+    CompanySettingsView
+)
+from .subscription_views import SubscriptionStatusView, TokenPurchaseRequestView
 
 __all__ = [
-    'CompanyUserSignupView',
-    'CompanyUserLoginView',
-    'CompanyUserProfileView'
+    'CompanyListCreateView',
+    'CompanyDetailView',
+    'CompanyUsersView',
+    'RemoveCompanyUserView',
+    'TransferCompanyOwnershipView',
+    'CompanyTokenUsageView',
+    'CompanySettingsView',
+    'SubscriptionStatusView',
+    'TokenPurchaseRequestView',
 ]

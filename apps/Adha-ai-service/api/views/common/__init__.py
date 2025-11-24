@@ -1,8 +1,6 @@
 """
 Common utilities module
+Note: Auth utilities have been removed - authentication is handled by external service
 """
-from .auth_utils import TokenRefreshView
 
-__all__ = [
-    'TokenRefreshView'
-]
+__all__ = []

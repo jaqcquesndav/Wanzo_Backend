@@ -5,6 +5,7 @@ drf-yasg>=1.21.7
 djangorestframework-simplejwt>=5.3.0
 python-dotenv>=1.0.0
 psycopg2-binary>=2.9.9  # PostgreSQL adapter for Python
+gunicorn>=21.2.0  # WSGI HTTP Server for production
 
 # Data processing - versions optimisées (évite les conflits avec PyTorch)
 numpy>=1.24.0,<1.26.0  # Compatible avec PyTorch 2.2.0
