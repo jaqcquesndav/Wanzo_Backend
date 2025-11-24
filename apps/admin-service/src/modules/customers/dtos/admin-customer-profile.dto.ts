@@ -52,7 +52,7 @@ export class AdminCustomerProfileDto {
 
   @ApiProperty({ description: 'Customer type (PME or FINANCIAL_INSTITUTION)' })
   @IsString()
-  customerType: 'PME' | 'FINANCIAL_INSTITUTION';
+  customerType: string;
 
   @ApiProperty({ description: 'Profile type', enum: ProfileType })
   @IsEnum(ProfileType)
@@ -215,7 +215,7 @@ export class AdminCustomerProfileDto {
 
   @ApiProperty({ description: 'Review priority level' })
   @IsString()
-  reviewPriority: 'low' | 'medium' | 'high' | 'urgent';
+  reviewPriority: string;
 
   @ApiProperty({ description: 'Requires admin attention flag' })
   @IsBoolean()
@@ -298,7 +298,7 @@ export class AdminCustomerProfileDto {
       userName: string;
       lastLogin: string;
       role: string;
-      status: 'active' | 'inactive' | 'suspended';
+      status: string;
     }>;
     accessPermissions?: string[];
     securitySettings?: {

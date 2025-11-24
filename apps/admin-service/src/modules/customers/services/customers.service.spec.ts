@@ -122,7 +122,7 @@ describe('CustomersService', () => {
       const createCustomerDto = {
         email: 'test@example.com',
         name: 'Test Customer',
-        type: CustomerType.PME,
+        type: CustomerType.SME,
         phone: '1234567890',
         address: '123 Main St',
         city: 'Anytown',
@@ -175,7 +175,7 @@ describe('CustomersService', () => {
       const createCustomerDto = {
         email: 'test@example.com',
         name: 'Test Customer',
-        type: CustomerType.PME,
+        type: CustomerType.SME,
         phone: '1234567890',
         address: '123 Main St',
         city: 'Anytown',

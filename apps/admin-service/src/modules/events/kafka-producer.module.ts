@@ -23,6 +23,8 @@ export const ADMIN_KAFKA_PRODUCER_SERVICE = 'ADMIN_KAFKA_PRODUCER_SERVICE';
           if (useKafka) {
             // Utiliser la fonction partagée getKafkaConfig
             const baseKafkaConfig = getKafkaConfig(configService) as KafkaOptions;
+            const brokers = configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
+
             return {
               ...baseKafkaConfig,
               options: {
@@ -30,7 +32,7 @@ export const ADMIN_KAFKA_PRODUCER_SERVICE = 'ADMIN_KAFKA_PRODUCER_SERVICE';
                 client: {
                   ...(baseKafkaConfig.options?.client || {}),
                   clientId: 'admin-service-producer',
-                  brokers: baseKafkaConfig.options?.client?.brokers || [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
+                  brokers: baseKafkaConfig.options?.client?.brokers || brokers,
                 },
                 // S'assurer que la configuration du consommateur est toujours présente
                 consumer: {

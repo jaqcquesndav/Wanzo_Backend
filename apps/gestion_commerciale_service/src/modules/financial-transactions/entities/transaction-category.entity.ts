@@ -62,12 +62,8 @@ export class TransactionCategory {
     example: 'expense',
     enum: ['income', 'expense', 'both']
   })
-  @Column({
-    type: 'enum',
-    enum: ['income', 'expense', 'both'],
-    default: 'both'
-  })
-  type: string | 'both';
+  @Column({ default: 'both' })
+  type: string;
 
   @ApiProperty({
     description: 'Couleur associée à la catégorie (pour l\'UI)',

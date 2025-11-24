@@ -10,7 +10,7 @@ import { AuthController } from './auth.controller';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport, KafkaOptions } from '@nestjs/microservices';
-import { User } from './entities';
+import { User } from '../users/entities/user.entity';
 import { getKafkaConfig } from '@wanzobe/shared';
 
 @Module({

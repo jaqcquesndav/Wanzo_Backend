@@ -136,7 +136,7 @@ export interface CompanyProfileStructured {
   locations?: Array<{
     id: string;
     name: string;
-    type: string | 'warehouse' | 'factory' | 'store';
+    type: string;
     address: string;
     coordinates: {
       lat: number;
@@ -164,7 +164,7 @@ export interface CompanyProfileStructured {
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
-    status: string | 'suspended' | 'revoked';
+    status: string;
     isActive: boolean;
   }>;
   
@@ -190,14 +190,14 @@ export interface InstitutionProfileStructured {
   // === IDENTIFICATION INSTITUTIONNELLE (Conforme v2.0) ===
   denominationSociale: string;
   sigle: string;
-  typeInstitution: string | 'COOPEC' | 'FOND_GARANTIE' | 'ENTREPRISE_FINANCIERE' | 'FOND_CAPITAL_INVESTISSEMENT' | 'FOND_IMPACT' | 'AUTRE';
+  typeInstitution: string;
   sousCategorie: string;
   dateCreation: string;
   paysOrigine: string;
   statutJuridique: string;
   
   // === INFORMATIONS RÉGLEMENTAIRES ===
-  autoritéSupervision: string | 'asmf' | 'other';
+  autoritéSupervision: string;
   numeroAgrement: string;
   dateAgrement: string;
   validiteAgrement: string;
@@ -219,7 +219,7 @@ export interface InstitutionProfileStructured {
   fondsPropresMontant: number;
   totalBilan: number;
   chiffreAffairesAnnuel: number;
-  devise: string | 'EUR';
+  devise: string;
   
   // === CLIENTÈLE ET MARCHÉ ===
   segmentClientelePrincipal: string;
@@ -264,8 +264,8 @@ export interface InstitutionProfileStructured {
   brandName?: string;
   type?: string;
   category?: string;
-  sector?: string | 'PUBLIC_PRIVE';
-  ownership?: string | 'GOVERNMENT' | 'COOPERATIVE' | 'MIXED';
+  sector?: string;
+  ownership?: string;
   licenseNumber?: string;
   autorisationExploitation?: string;
   dateOctroi?: string;
@@ -461,9 +461,9 @@ export interface PatrimoineStructured {
     // Identification
     id: string;
     name: string;
-    category: string | 'equipment' | 'furniture' | 'technology' | 'intangible' | 'financial' | 'other';
+    category: string;
     type: string;
-    state: string | 'good' | 'fair' | 'poor' | 'damaged' | 'obsolete';
+    state: string;
     
     // Identification unique
     serialNumber?: string;
@@ -484,7 +484,7 @@ export interface PatrimoineStructured {
     
     // Amortissement
     depreciationRate?: number;
-    depreciationMethod?: string | 'units_of_production';
+    depreciationMethod?: string;
     usefulLifeYears?: number;
     accumulatedDepreciation: number;
     
@@ -508,7 +508,7 @@ export interface PatrimoineStructured {
     lastMaintenanceDate?: string;
     nextMaintenanceDate?: string;
     maintenanceCost: number;
-    maintenanceSchedule?: string | 'monthly' | 'quarterly' | 'annually' | 'as_needed';
+    maintenanceSchedule?: string;
     maintenanceProvider?: string;
     
     // Assurance
@@ -518,7 +518,7 @@ export interface PatrimoineStructured {
     insurancePremium?: number;
     
     // Statut
-    status: string | 'maintenance' | 'repair' | 'disposed' | 'sold' | 'lost' | 'stolen';
+    status: string;
     isActive: boolean;
     disposalDate?: string;
     disposalReason?: string;
@@ -550,7 +550,7 @@ export interface PatrimoineStructured {
     id: string;
     sku: string;
     name: string;
-    category: string | 'finished_goods' | 'supplies' | 'spare_parts' | 'consumables';
+    category: string;
     subcategory?: string;
     brand?: string;
     manufacturer?: string;
@@ -579,8 +579,8 @@ export interface PatrimoineStructured {
     bin?: string;
     
     // Statut
-    status: string | 'discontinued' | 'obsolete';
-    state: string | 'expired' | 'quarantine' | 'returned';
+    status: string;
+    state: string;
     isActive: boolean;
     trackInventory: boolean;
     
@@ -619,8 +619,8 @@ export interface PatrimoineStructured {
     requiresInspection: boolean;
     
     // Analyse ABC
-    abcClassification?: string | 'C';
-    turnoverRate?: string | 'slow';
+    abcClassification?: string;
+    turnoverRate?: string;
     
     // Métadonnées
     createdAt: string;
@@ -677,10 +677,7 @@ export class CustomerDetailedProfile {
   @Column({ unique: true })
   customerId!: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['PME', 'FINANCIAL_INSTITUTION']
-  })
+  @Column()
   customerType!: string;
 
   @Column({
@@ -948,7 +945,7 @@ export class CustomerDetailedProfile {
       event: string;
       fieldsUpdated: string[];
       newFieldsV2?: string[];
-      status: string | 'partial';
+      status: string;
       errorMessage?: string;
     }>;
     
@@ -963,7 +960,7 @@ export class CustomerDetailedProfile {
       adminServiceValue: any;
       detectedAt: string;
       resolved: boolean;
-      resolution?: string | 'manual';
+      resolution?: string;
     }>;
   };
 
@@ -974,12 +971,8 @@ export class CustomerDetailedProfile {
   /**
    * État de synchronisation
    */
-  @Column({
-    type: 'enum',
-    enum: ['synced', 'pending_sync', 'sync_scheduled', 'sync_failed'],
-    default: 'synced'
-  })
-  syncStatus!: string | 'sync_scheduled' | 'sync_failed';
+  @Column({ default: 'synced' })
+  syncStatus!: string;
 
   /**
    * Prochaine synchronisation programmée
@@ -1105,12 +1098,8 @@ export class CustomerDetailedProfile {
   /**
    * Priorité de révision
    */
-  @Column({
-    type: 'enum',
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
-  })
-  reviewPriority!: string | 'high' | 'urgent';
+  @Column({ default: 'medium' })
+  reviewPriority!: string;
 
   /**
    * Nécessite attention administrative
@@ -1175,7 +1164,7 @@ export class CustomerDetailedProfile {
       userName: string;
       lastLogin: string;
       role: string;
-      status: string | 'suspended';
+      status: string;
     }>;
     accessPermissions?: string[];
     securitySettings?: {
@@ -1294,7 +1283,7 @@ export class CustomerDetailedProfile {
   addSyncEvent(event: {
     event: string;
     fieldsUpdated: string[];
-    status: string | 'partial';
+    status: string;
     errorMessage?: string;
   }): void {
     if (!this.syncMetadata.syncHistory) {

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Company, LocationType } from '../entities/company.entity';
+import { Company } from '../entities/company.entity';
 import { Location } from '../entities/location.entity'; // Import Location entity
 import { 
   CompanyProfileDto, 

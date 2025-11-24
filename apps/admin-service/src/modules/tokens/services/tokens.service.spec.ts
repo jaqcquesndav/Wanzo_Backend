@@ -83,7 +83,7 @@ describe('TokensService', () => {
 
   describe('getAvailableTokenPackages', () => {
     it('should return available token packages', async () => {
-      const packages: TokenPackage[] = [{ id: 'pkg-1', name: 'Basic', tokenAmount: 1000, priceUSD: 10, validityDays: 30, targetCustomerTypes: [CustomerType.PME] }];
+      const packages: TokenPackage[] = [{ id: 'pkg-1', name: 'Basic', tokenAmount: 1000, priceUSD: 10, validityDays: 30, targetCustomerTypes: [CustomerType.SME] }];
       tokenPackageRepository.find.mockResolvedValue(packages);
 
       const result = await service.getAvailableTokenPackages();
@@ -95,7 +95,7 @@ describe('TokensService', () => {
     it('should successfully purchase tokens and emit an event', async () => {
       const customerId = 'cust-1';
       const purchaseDto: PurchaseTokensDto = { packageId: 'pkg-1', paymentMethod: 'stripe' };
-      const tokenPackage: TokenPackage = { id: 'pkg-1', name: 'Basic', tokenAmount: 5000, priceUSD: 50, validityDays: 30, localCurrency: 'USD', targetCustomerTypes: [CustomerType.PME] };
+      const tokenPackage: TokenPackage = { id: 'pkg-1', name: 'Basic', tokenAmount: 5000, priceUSD: 50, validityDays: 30, localCurrency: 'USD', targetCustomerTypes: [CustomerType.SME] };
       
       tokenPackageRepository.findOne.mockResolvedValue(tokenPackage);
       jest.spyOn(service, 'getTokenBalance').mockResolvedValue({ available: 1000, allocated: 1000, used: 0, lastUpdated: '' });

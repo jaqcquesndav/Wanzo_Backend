@@ -191,7 +191,7 @@ export class RealTimeCreditMonitoring {
     const change = this.score - previousScore;
     const changePercentage = previousScore > 0 ? (change / previousScore) * 100 : 0;
     
-    let trend: string | 'stable' = 'stable';
+    let trend: string= 'stable';
     if (Math.abs(change) >= 3) {
       trend = change > 0 ? 'improving' : 'declining';
     }

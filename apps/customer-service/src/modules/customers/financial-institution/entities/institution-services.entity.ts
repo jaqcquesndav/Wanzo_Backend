@@ -140,7 +140,7 @@ export class InstitutionServicesEntity {
   targetSegments?: Array<{
     segmentName: string;
     description: string;
-    priority: string | 'low';
+    priority: string;
     isActive: boolean;
   }>;
 
@@ -165,7 +165,7 @@ export class InstitutionServicesEntity {
     };
     transactionFees?: Array<{
       transactionType: string;
-      feeType: string | 'tiered';
+      feeType: string;
       amount?: number;
       percentage?: number;
       currency: string;
@@ -207,7 +207,7 @@ export class InstitutionServicesEntity {
         to?: number;
         rate: number;
       }>;
-      compoundingFrequency?: string | 'quarterly' | 'annually';
+      compoundingFrequency?: string;
     };
     loanRate?: {
       baseRate: number;
@@ -264,8 +264,8 @@ export class InstitutionServicesEntity {
     comment: 'Conditions générales du service'
   })
   terms?: {
-    minimumTerm?: { value: number; unit: string | 'years'; };
-    maximumTerm?: { value: number; unit: string | 'years'; };
+    minimumTerm?: { value: number; unit: string; };
+    maximumTerm?: { value: number; unit: string; };
     noticePeriod?: { value: number; unit: string; };
     renewalTerms?: string[];
     cancellationTerms?: string[];
@@ -280,7 +280,7 @@ export class InstitutionServicesEntity {
     comment: 'Canaux par lesquels le service est disponible'
   })
   channels?: Array<{
-    channelType: string | 'mobile' | 'phone' | 'atm' | 'agent' | 'mail';
+    channelType: string;
     isAvailable: boolean;
     limitations?: string[];
     additionalFees?: {
@@ -332,7 +332,7 @@ export class InstitutionServicesEntity {
   })
   customerSupport?: {
     supportChannels: Array<{
-      channel: string | 'chat' | 'branch' | 'whatsapp';
+      channel: string;
       availability: string;
       contactInfo: string;
       language: string[];
@@ -436,7 +436,7 @@ export class InstitutionServicesEntity {
       issuer: string;
       issuedDate: string;
       expiryDate?: string;
-      status: string | 'suspended';
+      status: string;
     }>;
     reportingRequirements: Array<{
       reportType: string;
@@ -448,7 +448,7 @@ export class InstitutionServicesEntity {
       checkType: string;
       lastCheckDate: string;
       nextCheckDate: string;
-      status: string | 'pending';
+      status: string;
     }>;
   };
 

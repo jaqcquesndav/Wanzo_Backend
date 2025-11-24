@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { 
   ValidateTokenResponseDto, 
   UpdateProfileDto, 
@@ -79,7 +79,7 @@ export class AuthService {
           email: user.email,
           role: user.role,
           userType: user.userType,
-          picture: user.picture,
+          picture: user.avatar,
           phoneNumber: user.phoneNumber,
           createdAt: user.createdAt.toISOString(),
           customerAccountId: user.customerAccountId || null,
@@ -107,10 +107,10 @@ export class AuthService {
     profile.email = user.email;
     profile.role = user.role;
     profile.userType = user.userType;
-    profile.picture = user.picture;
+    profile.picture = user.avatar;
     profile.phoneNumber = user.phoneNumber;
     profile.customerAccountId = user.customerAccountId;
-    profile.organizationId = user.organizationId;
+    // profile.organizationId = user.organizationId;
     profile.createdAt = user.createdAt.toISOString();
     
     return profile;

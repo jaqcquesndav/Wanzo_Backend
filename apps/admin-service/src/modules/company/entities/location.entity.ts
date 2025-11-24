@@ -1,6 +1,12 @@
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
-import { Company, LocationType } from './company.entity';
+import { Company } from './company.entity';
+
+export enum LocationType {
+  HEADQUARTERS = 'headquarters',
+  SITE = 'site',
+  STORE = 'store'
+}
 
 @Entity('locations')
 export class Location {

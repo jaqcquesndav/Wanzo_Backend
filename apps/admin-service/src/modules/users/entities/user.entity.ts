@@ -1,5 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { UserRole, UserStatus, UserType } from './enums';
+import { UserRole } from './enums/user-role.enum';
+import { UserStatus } from './enums/user-status.enum';
+import { UserType } from './enums/user-type.enum';
+
+console.log('UserRole:', UserRole);
+console.log('UserStatus:', UserStatus);
+console.log('UserType:', UserType);
+
+export { UserRole, UserStatus, UserType };
 
 @Entity('users')
 export class User {
@@ -80,7 +88,7 @@ export class User {
   
   @Column({ type: 'simple-json', nullable: true })
   kyc?: {
-    status: string | 'rejected';
+    status: string;
     verifiedAt?: string;
     documents?: Array<{
       type: string;

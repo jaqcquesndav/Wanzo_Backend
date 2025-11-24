@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm';
+// import { CustomerType } from '../../customers/entities/customer.enums';
 
 // 8. Data Models from finance.md
 
@@ -22,8 +23,8 @@ export enum PlanStatus {
 }
 
 export enum CustomerType {
-  SME = 'SME',
-  FINANCIAL_INSTITUTION = 'FINANCIAL_INSTITUTION',
+  SME = 'sme',
+  FINANCIAL = 'financial',
 }
 
 export enum FeatureCode {

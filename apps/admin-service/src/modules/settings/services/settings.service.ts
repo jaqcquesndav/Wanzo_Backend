@@ -345,7 +345,7 @@ export class SettingsService {
         ipAddress: entry.ipAddress,
         device: entry.device,
         location: entry.location || '',
-        status: entry.status,
+        status: entry.status as any,
         userAgent: entry.userAgent
       })),
       totalCount: total,
@@ -384,7 +384,7 @@ export class SettingsService {
         id: pref.preferenceId,
         label: pref.label,
         description: pref.description,
-        channel: pref.channel,
+        channel: pref.channel as any,
         type: pref.type,
         isEnabled: pref.isEnabled
       }))

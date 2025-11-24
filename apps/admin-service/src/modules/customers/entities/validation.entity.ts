@@ -1,6 +1,16 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Customer, CustomerStatus } from '@/modules/customers/entities/customer.entity';
-import { DocumentType } from '@/modules/customers/entities/document.entity';
+import { Customer } from './customer.entity';
+import { DocumentType } from './document.entity';
+
+// Define locally to avoid circular dependency
+export enum ValidationCustomerStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  SUSPENDED = 'suspended',
+  INACTIVE = 'inactive',
+  NEEDS_VALIDATION = 'needs_validation',
+  VALIDATION_IN_PROGRESS = 'validation_in_progress'
+}
 
 export enum ValidationStepStatus {
   PENDING = 'pending',
@@ -22,10 +32,10 @@ export class ValidationProcess {
   customer: Customer;
   @Column({
     type: 'enum',
-    enum: CustomerStatus,
+    enum: ValidationCustomerStatus,
     enumName: 'customer_status_enum'
   })
-  status: CustomerStatus;
+  status: ValidationCustomerStatus;
 
   @Column('jsonb')
   steps: ValidationStep[];

@@ -234,7 +234,7 @@ export class FeatureLimitAlert {
   feature!: BusinessFeature;
 
   @Column({ name: 'alert_type', type: 'varchar' })
-  alertType!: string | 'limit_exceeded' | 'upgrade_suggested';
+  alertType!: string;
 
   @Column({ name: 'current_usage' })
   currentUsage!: number;

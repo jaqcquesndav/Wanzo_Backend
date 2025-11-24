@@ -171,7 +171,7 @@ export class CompanyProfileController {
             accountingSynced: true,
             customerSynced: false,
             fieldsUpdated: ['accounting-financial-data'],
-            conflicts: profile.metadata?.conflicts?.slice(-5) || [],
+            conflicts: (profile.metadata?.conflicts?.slice(-5) || []) as any,
           },
           profile: this.companySyncService.toDto(profile),
         };
@@ -305,7 +305,7 @@ export class CompanyProfileController {
       field: string;
       accountingValue: any;
       customerValue: any;
-      resolvedWith: string;
+      resolvedWith: 'accounting' | 'customer';
       timestamp: string;
     }>;
   }> {
@@ -317,7 +317,7 @@ export class CompanyProfileController {
       return {
         companyId: profile.id,
         syncHistory: profile.metadata?.syncHistory || [],
-        conflicts: profile.metadata?.conflicts || [],
+        conflicts: (profile.metadata?.conflicts || []) as any,
       };
 
     } catch (error: any) {

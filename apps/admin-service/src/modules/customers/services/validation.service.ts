@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Customer, CustomerStatus } from '../entities/customer.entity';
+import { Customer } from '../entities/customer.entity';
+import { CustomerStatus } from '../entities/customer.entity';
 import { CustomerDetailedProfile, AdminStatus } from '../entities/customer-detailed-profile.entity';
-import { ValidationProcess, ValidationStep, ValidationStepStatus } from '../entities/validation.entity';
+import { ValidationProcess, ValidationStep, ValidationStepStatus, ValidationCustomerStatus } from '../entities/validation.entity';
 import { DocumentType } from '../entities/document.entity';
 import { User } from '@/modules/users/entities/user.entity';
 
@@ -33,7 +34,7 @@ export class ValidationService {
 
     return validationProcess || { 
       customerId,
-      status: CustomerStatus.INACTIVE,
+      status: ValidationCustomerStatus.INACTIVE,
       steps: [] as ValidationStep[]
     };
   }
@@ -49,7 +50,7 @@ export class ValidationService {
     const existingProcess = await this.validationProcessRepository.findOne({
       where: { 
         customerId,
-        status: CustomerStatus.VALIDATION_IN_PROGRESS
+        status: ValidationCustomerStatus.VALIDATION_IN_PROGRESS
       }
     });
 
@@ -63,7 +64,7 @@ export class ValidationService {
     // Create new validation process
     const validationProcess = this.validationProcessRepository.create({
       customerId,
-      status: CustomerStatus.VALIDATION_IN_PROGRESS,
+      status: ValidationCustomerStatus.VALIDATION_IN_PROGRESS,
       steps,
       currentStepIndex: 0,
       startedAt: new Date(),
@@ -124,7 +125,7 @@ export class ValidationService {
     );
 
     if (allStepsCompleted) {
-      validationProcess.status = CustomerStatus.ACTIVE;
+      validationProcess.status = ValidationCustomerStatus.ACTIVE;
       validationProcess.completedAt = new Date();
 
       // Mettre à jour le profil détaillé

@@ -177,7 +177,7 @@ export class CompanyStocksEntity {
   })
   movements?: Array<{
     id: string;
-    type: string | 'adjustment' | 'transfer';
+    type: string;
     quantity: number;
     unitCost: number;
     totalCost: number;
@@ -444,7 +444,7 @@ export class CompanyStocksEntity {
   /**
    * Met à jour les quantités après un mouvement
    */
-  updateQuantityAfterMovement(type: string | 'adjustment', quantity: number): void {
+  updateQuantityAfterMovement(type: string, quantity: number): void {
     switch (type) {
       case 'in':
         this.quantity += quantity;

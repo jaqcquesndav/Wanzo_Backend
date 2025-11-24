@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Customer } from '@/modules/customers/entities/customer.entity';
+import type { Customer } from '@/modules/customers/entities/customer.entity';
 
 @Entity('customer_activities')
 export class CustomerActivity {
@@ -9,7 +9,7 @@ export class CustomerActivity {
   @Column()
   customerId: string;
 
-  @ManyToOne(() => Customer, customer => customer.activities)
+  @ManyToOne('Customer', 'activities')
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 

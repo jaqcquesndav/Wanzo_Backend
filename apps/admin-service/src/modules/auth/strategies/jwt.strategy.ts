@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { passportJwtSecret } from 'jwks-rsa';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities';
+import { User } from '../../users/entities/user.entity';
 import { CustomerSyncService } from '../services/customer-sync.service';
 import * as fs from 'fs';
 
@@ -121,10 +121,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           auth0Id,
           email: payload.email || 'no-email@wanzo.com',
           name: `${payload.given_name || ''} ${payload.family_name || ''}`.trim() || payload.name || 'User',
-          picture: payload.picture,
+          avatar: payload.picture,
           role: payload['https://wanzo.com/role'] || 'company_user',
           userType: userType || 'external',
-          organizationId: companyId,
+          // organizationId: companyId, // Removed as it doesn't exist in User entity
           customerAccountId: payload['https://wanzo.com/customer_account_id'],
         });
         
@@ -140,7 +140,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           name: user.name,
           firstName: payload.given_name,
           lastName: payload.family_name,
-          picture: payload.picture,
+          picture: user.avatar,
           companyId: payload['https://wanzo.com/company_id'],
           userType: payload['https://wanzo.com/user_type'],
           metadata: {
@@ -168,7 +168,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       userType: user.userType,
       permissions: permissions,
-      organizationId: user.organizationId,
+      // organizationId: user.organizationId,
       customerAccountId: user.customerAccountId,
     };
   }

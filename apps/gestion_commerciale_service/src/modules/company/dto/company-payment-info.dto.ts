@@ -44,7 +44,7 @@ export class BankAccountInfoDto {
 
   @ApiProperty({ description: 'Statut du compte', enum: ['active', 'inactive', 'suspended'], example: 'active' })
   @IsEnum(['active', 'inactive', 'suspended'])
-  status: 'active' | 'inactive' | 'suspended';
+  status: string;
 }
 
 export class MobileMoneyAccountDto {
@@ -60,7 +60,7 @@ export class MobileMoneyAccountDto {
 
   @ApiProperty({ description: 'Code de l\'opérateur', enum: ['AM', 'OM', 'WAVE', 'MP', 'AF'], example: 'OM' })
   @IsEnum(['AM', 'OM', 'WAVE', 'MP', 'AF'])
-  operator: 'AM' | 'OM' | 'WAVE' | 'MP' | 'AF';
+  operator: string;
 
   @ApiProperty({ description: 'Nom de l\'opérateur', example: 'Orange Money' })
   @IsString()
@@ -73,11 +73,11 @@ export class MobileMoneyAccountDto {
 
   @ApiProperty({ description: 'Statut du compte', enum: ['active', 'inactive', 'suspended'], example: 'active' })
   @IsEnum(['active', 'inactive', 'suspended'])
-  status: 'active' | 'inactive' | 'suspended';
+  status: string;
 
   @ApiProperty({ description: 'Statut de vérification', enum: ['pending', 'verified', 'failed'], example: 'verified' })
   @IsEnum(['pending', 'verified', 'failed'])
-  verificationStatus: 'pending' | 'verified' | 'failed';
+  verificationStatus: string;
 }
 
 export class PaymentPreferencesDto {

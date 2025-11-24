@@ -34,8 +34,8 @@ export class CompanyPaymentInfoService {
     return {
       id: company.id,
       name: company.name,
-      bankAccounts: company.bankAccounts || [],
-      mobileMoneyAccounts: company.mobileMoneyAccounts || [],
+      bankAccounts: (company.bankAccounts || []) as any,
+      mobileMoneyAccounts: (company.mobileMoneyAccounts || []) as any,
       paymentPreferences: company.paymentPreferences || {
         preferredMethod: 'bank',
         allowPartialPayments: true,

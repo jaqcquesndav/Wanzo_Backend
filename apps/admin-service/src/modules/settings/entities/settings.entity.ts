@@ -119,7 +119,7 @@ export class LoginHistory {
   @Column({ nullable: true })
   location: string;
 
-  @Column({ type: 'enum', enum: ['successful', 'failed'] })
+  @Column()
   status: string;
 
   @Column({ nullable: true })
@@ -146,8 +146,8 @@ export class NotificationPreference {
   @Column()
   description: string;
 
-  @Column({ type: 'enum', enum: ['email', 'push', 'sms'] })
-  channel: string | 'sms';
+  @Column()
+  channel: string;
 
   @Column()
   type: string;

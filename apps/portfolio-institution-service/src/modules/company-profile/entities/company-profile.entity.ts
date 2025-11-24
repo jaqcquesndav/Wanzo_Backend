@@ -439,7 +439,7 @@ export class CompanyProfile {
   /**
    * Enregistre un conflit de données entre sources
    */
-  recordConflict(field: string, accountingValue: any, customerValue: any, resolvedWith: string): void {
+  recordConflict(field: string, accountingValue: any, customerValue: any, resolvedWith: 'accounting' | 'customer'): void {
     if (!this.metadata) {
       this.metadata = {};
     }
@@ -459,7 +459,7 @@ export class CompanyProfile {
   /**
    * Enregistre une synchronisation dans l'historique
    */
-  recordSync(source: string, status: string | 'failed', error?: string): void {
+  recordSync(source: string, status: string, error?: string): void {
     if (!this.metadata) {
       this.metadata = {};
     }

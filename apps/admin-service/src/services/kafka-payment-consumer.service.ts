@@ -19,11 +19,11 @@ export class KafkaPaymentConsumerService implements OnModuleInit, OnModuleDestro
     private readonly configService: ConfigService,
   ) {
     // Configuration Kafka
+    const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
+    
     this.kafka = new Kafka({
       clientId: 'admin-service-payment-consumer',
-      brokers: [
-        this.configService.get('KAFKA_BROKER', 'localhost:9092')
-      ],
+      brokers: brokers,
       retry: {
         initialRetryTime: 100,
         retries: 8,

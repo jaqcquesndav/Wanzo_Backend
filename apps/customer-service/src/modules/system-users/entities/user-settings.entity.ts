@@ -21,16 +21,16 @@ export interface NotificationSettings {
 }
 
 export interface PrivacySettings {
-  profileVisibility: string | 'company_only';
+  profileVisibility: string;
   dataSharing: boolean;
   analyticsOptOut: boolean;
 }
 
 export interface DisplaySettings {
-  theme: string | 'auto';
-  language: string | 'ln';
-  dateFormat: string | 'yyyy-mm-dd';
-  currency: string | 'EUR';
+  theme: string;
+  language: string;
+  dateFormat: string;
+  currency: string;
   timezone: string;
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 
 export interface CustomerSubscriptionCreatedEvent {
@@ -19,7 +19,7 @@ export interface CustomerSubscriptionCreatedEvent {
  * Consumer pour traiter les événements de souscription en provenance du Customer Service
  * Permet la communication bidirectionnelle Customer Service → Admin Service
  */
-@Injectable()
+@Controller()
 export class CustomerSubscriptionEventsConsumer {
   private readonly logger = new Logger(CustomerSubscriptionEventsConsumer.name);
 

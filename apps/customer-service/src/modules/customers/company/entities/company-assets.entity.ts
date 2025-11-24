@@ -209,7 +209,7 @@ export class CompanyAssetsEntity {
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
-    status: string | 'suspended';
+    status: string;
     isActive: boolean;
   }>;
 

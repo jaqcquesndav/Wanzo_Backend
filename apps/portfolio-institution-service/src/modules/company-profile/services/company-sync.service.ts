@@ -383,7 +383,7 @@ export class CompanySyncService {
 
       // 3. Collecter les conflits enregistrés
       if (profileAfterAccounting.metadata?.conflicts) {
-        syncDetails.conflicts = profileAfterAccounting.metadata.conflicts.slice(-5); // 5 derniers
+        syncDetails.conflicts = profileAfterAccounting.metadata.conflicts.slice(-5) as any; // 5 derniers
       }
 
       return {

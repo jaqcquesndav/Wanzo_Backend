@@ -44,11 +44,11 @@ export class BusinessCustomer {
   @Column({ nullable: true })
   taxId: string;
 
-  @Column({ type: 'enum', enum: ['individual', 'company', 'government', 'non_profit'], default: 'individual' })
-  customerType: string | 'government' | 'non_profit';
+  @Column({ default: 'individual' })
+  customerType: string;
 
-  @Column({ type: 'enum', enum: ['active', 'inactive', 'prospect', 'former'], default: 'active' })
-  status: string | 'prospect' | 'former';
+  @Column({ default: 'active' })
+  status: string;
 
   @Column({ nullable: true })
   website: string;

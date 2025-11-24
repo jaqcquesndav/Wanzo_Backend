@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   Index,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 export enum PromoCodeType {
@@ -244,6 +246,7 @@ export class PromoCodeUsage {
   createdAt!: Date;
 
   // Relations
-  @Column()
+  @ManyToOne(() => PromoCode, promoCode => promoCode.usages)
+  @JoinColumn({ name: 'promoCodeId' })
   promoCode!: PromoCode;
 }

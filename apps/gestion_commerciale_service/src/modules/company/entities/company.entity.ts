@@ -13,7 +13,7 @@ interface BankAccountInfo {
   rib?: string;
   iban?: string; // ✅ Ajouté pour SEPA
   isDefault: boolean;
-  status: string | 'suspended';
+  status: string;
   currency?: string; // ✅ Ajouté pour multi-devise
   balance?: number; // ✅ Ajouté pour suivi
   createdAt?: Date;
@@ -24,16 +24,16 @@ interface MobileMoneyAccount {
   id?: string; // ✅ Ajouté pour compatibilité
   phoneNumber: string;
   accountName: string;
-  operator: string | 'WAVE' | 'MP' | 'AF'; // Code standardisé
+  operator: string; // Code standardisé
   operatorName: string; // Nom complet
   isDefault: boolean;
-  status: string | 'suspended';
-  verificationStatus: string | 'failed';
+  status: string;
+  verificationStatus: string;
   currency?: string; // ✅ Ajouté pour multi-devise
   dailyLimit?: number; // ✅ Ajouté pour limites
   monthlyLimit?: number;
   balance?: number; // ✅ Ajouté pour suivi
-  purpose?: string | 'general'; // ✅ Ajouté
+  purpose?: string; // ✅ Ajouté
   createdAt?: Date;
   updatedAt?: Date;
 }

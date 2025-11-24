@@ -1,12 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { CustomerDocument } from '@/modules/customers/entities/document.entity';
-import { CustomerActivity } from '@/modules/customers/entities/activity.entity';
-import { ValidationProcess } from '@/modules/customers/entities/validation.entity';
+import type { CustomerDocument } from '@/modules/customers/entities/document.entity';
+import type { CustomerActivity } from '@/modules/customers/entities/activity.entity';
+import type { ValidationProcess } from '@/modules/customers/entities/validation.entity';
 
 export enum CustomerType {
-  PME = 'pme',
+  SME = 'sme',
   FINANCIAL = 'financial'
 }
+
+console.log('CustomerType:', CustomerType);
 
 export enum CustomerStatus {
   ACTIVE = 'active',
@@ -57,13 +59,13 @@ export class Customer {
   @Column('jsonb', { nullable: true })
   validationHistory: any[];
 
-  @OneToMany(() => CustomerDocument, document => document.customer)
+  @OneToMany('CustomerDocument', 'customer')
   documents: CustomerDocument[];
 
-  @OneToMany(() => CustomerActivity, activity => activity.customer)
+  @OneToMany('CustomerActivity', 'customer')
   activities: CustomerActivity[];
 
-  @OneToMany(() => ValidationProcess, process => process.customer)
+  @OneToMany('ValidationProcess', 'customer')
   validationProcesses: ValidationProcess[];
 
   @CreateDateColumn()

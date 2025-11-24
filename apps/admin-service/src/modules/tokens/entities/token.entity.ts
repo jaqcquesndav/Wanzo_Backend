@@ -1,10 +1,43 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
 import { User } from '../../users/entities/user.entity';
-import { CustomerType, TokenType, TokenTransactionType, AppType } from '../../../shared/enums';
+// import { CustomerType, TokenType, TokenTransactionType, AppType } from '../../../shared/enums';
+
+// Define enums locally to avoid circular dependency issues
+export enum TokenType {
+  PURCHASED = 'purchased',
+  BONUS = 'bonus',
+  REWARD = 'reward',
+}
+
+export enum TokenTransactionType {
+  PURCHASE = 'purchase',
+  USAGE = 'usage',
+  REFUND = 'refund',
+  ADJUSTMENT = 'adjustment',
+  EXPIRY = 'expiry',
+  BONUS = 'bonus',
+  ALLOCATION = 'allocation',
+}
+
+export enum AppType {
+  TEXT_GENERATION = 'text-generation',
+  IMAGE_GENERATION = 'image-generation',
+  CHAT_COMPLETION = 'chat-completion',
+  EMBEDDINGS = 'embeddings',
+  TEXT_TO_SPEECH = 'text-to-speech',
+  WEB_DASHBOARD = 'web-dashboard',
+  MOBILE_APP = 'mobile-app',
+  API_DIRECT = 'api-direct',
+}
+
+export enum CustomerType {
+  SME = 'sme',
+  FINANCIAL = 'financial',
+}
 
 // Re-export enums for backward compatibility
-export { CustomerType, TokenType, TokenTransactionType, AppType };
+// export { CustomerType, TokenType, TokenTransactionType, AppType };
 
 @Entity('token_packages')
 export class TokenPackage {

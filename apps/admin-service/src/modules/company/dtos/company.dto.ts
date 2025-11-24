@@ -11,7 +11,8 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { LegalForm, LocationType } from '../entities/company.entity';
+import { LegalForm } from '../entities/company.entity';
+import { LocationType } from '../entities/location.entity';
 
 // Shared DTO types
 export class CoordinatesDto {

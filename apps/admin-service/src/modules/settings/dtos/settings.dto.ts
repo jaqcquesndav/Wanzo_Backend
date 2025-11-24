@@ -260,7 +260,7 @@ export class LoginAttemptDto {
   ipAddress: string;
   device: string;
   location: string;
-  status: 'successful' | 'failed';
+  status: string;
   userAgent?: string;
 }
 
@@ -283,7 +283,7 @@ export class NotificationPreferenceDto {
   id: string;
   label: string;
   description: string;
-  channel: 'email' | 'push' | 'sms';
+  channel: string;
   type: string;
   isEnabled: boolean;
 }

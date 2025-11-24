@@ -11,12 +11,6 @@ export enum LegalForm {
   EI = 'EI'
 }
 
-export enum LocationType {
-  HEADQUARTERS = 'headquarters',
-  SITE = 'site',
-  STORE = 'store'
-}
-
 @Entity('company')
 export class Company {
   @PrimaryColumn()

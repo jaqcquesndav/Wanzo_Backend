@@ -220,7 +220,7 @@ export class CompanyCoreEntity {
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
-    status: string | 'suspended' | 'revoked';
+    status: string;
     isActive: boolean;
   }>;
 

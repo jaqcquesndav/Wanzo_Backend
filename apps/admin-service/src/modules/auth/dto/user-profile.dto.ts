@@ -1,22 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { UserRole, UserType } from '../../users/entities/enums';
 
-// Définition des types d'utilisateurs et rôles
-export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
-  COMPANY_ADMIN = 'company_admin',
-  CUSTOMER_SUPPORT = 'customer_support',
-  CONTENT_MANAGER = 'content_manager',
-  GROWTH_FINANCE = 'growth_finance',
-  CTO = 'cto',
-  COMPANY_USER = 'company_user'
-}
-
-export enum UserType {
-  INTERNAL = 'internal',
-  EXTERNAL = 'external',
-}
+export { UserRole, UserType };
 
 // DTO pour les documents KYC
 export class KycDocumentDto {

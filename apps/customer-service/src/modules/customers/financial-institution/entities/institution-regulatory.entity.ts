@@ -69,14 +69,14 @@ export class InstitutionRegulatoryEntity {
   })
   licenses?: Array<{
     licenseId: string;
-    licenseType: string | 'insurance' | 'investment' | 'payment' | 'forex' | 'other';
+    licenseType: string;
     licenseName: string;
     licenseNumber: string;
     issuer: string;
     issuedDate: string;
     expiryDate?: string;
     renewalDate?: string;
-    status: string | 'suspended' | 'revoked' | 'pending_renewal';
+    status: string;
     scope: string[];
     restrictions?: string[];
     conditions?: string[];
@@ -106,7 +106,7 @@ export class InstitutionRegulatoryEntity {
     certificationNumber: string;
     certificationDate: string;
     expiryDate?: string;
-    status: string | 'suspended' | 'under_review';
+    status: string;
     scope: string;
     maintenanceRequirements?: string[];
     renewalProcess?: string;
@@ -146,7 +146,7 @@ export class InstitutionRegulatoryEntity {
         currency: string;
         lastUpdated: string;
       };
-      complianceStatus: string | 'excess';
+      complianceStatus: string;
     };
     liquidityRequirements?: {
       liquidityCoverageRatio: number;
@@ -159,7 +159,7 @@ export class InstitutionRegulatoryEntity {
       stressTestResults?: Array<{
         testDate: string;
         scenario: string;
-        result: string | 'conditional';
+        result: string;
         recommendations?: string[];
       }>;
     };
@@ -194,14 +194,14 @@ export class InstitutionRegulatoryEntity {
   reportingRequirements?: Array<{
     reportId: string;
     reportName: string;
-    reportType: string | 'risk' | 'compliance' | 'governance' | 'customer' | 'other';
-    frequency: string | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'ad_hoc';
+    reportType: string;
+    frequency: string;
     recipient: string;
     format: string;
     dueDate: string;
     lastSubmissionDate?: string;
-    submissionStatus: string | 'not_submitted' | 'rejected' | 'under_review';
-    submissionMethod: string | 'postal' | 'in_person';
+    submissionStatus: string;
+    submissionMethod: string;
     penalties?: {
       lateSubmissionFee: number;
       currency: string;
@@ -219,23 +219,23 @@ export class InstitutionRegulatoryEntity {
   })
   auditsHistory?: Array<{
     auditId: string;
-    auditType: string | 'external' | 'forensic' | 'compliance' | 'it' | 'operational';
+    auditType: string;
     auditor: string;
     startDate: string;
     endDate?: string;
-    status: string | 'completed' | 'follow_up_required';
+    status: string;
     scope: string[];
     findings: Array<{
       findingId: string;
-      category: string | 'minor' | 'observation';
+      category: string;
       description: string;
       recommendation: string;
       remedialAction?: string;
       targetDate?: string;
-      status: string | 'closed' | 'verified';
+      status: string;
       responsible: string;
     }>;
-    overallRating?: string | 'needs_improvement' | 'unsatisfactory';
+    overallRating?: string;
     managementResponse?: string;
     followUpAuditRequired: boolean;
     followUpDate?: string;
@@ -254,34 +254,34 @@ export class InstitutionRegulatoryEntity {
   })
   sanctionsHistory?: Array<{
     sanctionId: string;
-    sanctionType: string | 'suspension' | 'license_revocation' | 'business_restriction' | 'other';
+    sanctionType: string;
     issuingAuthority: string;
     sanctionDate: string;
     reason: string;
     description: string;
-    severity: string | 'high' | 'critical';
+    severity: string;
     financialPenalty?: {
       amount: number;
       currency: string;
       paidDate?: string;
-      paymentStatus: string | 'partial' | 'disputed' | 'waived';
+      paymentStatus: string;
     };
     operationalRestrictions?: string[];
     complianceActions: Array<{
       action: string;
       dueDate: string;
       completionDate?: string;
-      status: string | 'completed' | 'overdue';
+      status: string;
       verificationRequired: boolean;
     }>;
     appealProcess?: {
       appealFiled: boolean;
       appealDate?: string;
       appellateBody?: string;
-      appealOutcome?: string | 'overturned' | 'modified';
+      appealOutcome?: string;
       finalResolutionDate?: string;
     };
-    status: string | 'under_appeal' | 'suspended';
+    status: string;
     publicDisclosure: boolean;
   }>;
 
@@ -324,7 +324,7 @@ export class InstitutionRegulatoryEntity {
       suspiciousTransactionReports: number;
       currencyTransactionReports: number;
       lastReportDate?: string;
-      reportingTimeliness: string | 'non_compliant';
+      reportingTimeliness: string;
     };
   };
 
@@ -379,7 +379,7 @@ export class InstitutionRegulatoryEntity {
     securityIncidents: Array<{
       incidentDate: string;
       incidentType: string;
-      severity: string | 'high' | 'critical';
+      severity: string;
       reportedToRegulator: boolean;
       resolved: boolean;
       resolutionDate?: string;
@@ -412,11 +412,11 @@ export class InstitutionRegulatoryEntity {
     initiativeName: string;
     description: string;
     regulatoryDriver: string;
-    priority: string | 'high' | 'critical';
+    priority: string;
     startDate: string;
     targetCompletionDate: string;
     actualCompletionDate?: string;
-    status: string | 'testing' | 'completed' | 'delayed' | 'cancelled';
+    status: string;
     budget: {
       allocated: number;
       spent: number;
@@ -427,12 +427,12 @@ export class InstitutionRegulatoryEntity {
       description: string;
       dueDate: string;
       completionDate?: string;
-      status: string | 'completed' | 'overdue';
+      status: string;
     }>;
     risks: Array<{
       riskId: string;
       description: string;
-      impact: string | 'high';
+      impact: string;
       mitigation: string;
     }>;
     teamMembers: Array<{
@@ -496,7 +496,7 @@ export class InstitutionRegulatoryEntity {
     relationshipManager: string;
     lastContact?: string;
     nextScheduledContact?: string;
-    communicationPreference: string | 'meeting' | 'formal_letter';
+    communicationPreference: string;
   }>;
 
   // === MÉTADONNÉES ===

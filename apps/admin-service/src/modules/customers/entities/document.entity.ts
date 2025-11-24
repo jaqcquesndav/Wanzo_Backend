@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Customer } from '@/modules/customers/entities/customer.entity';
+import type { Customer } from '@/modules/customers/entities/customer.entity';
 
 export enum DocumentType {
   RCCM = 'rccm',
@@ -26,7 +26,7 @@ export class CustomerDocument {
   @Column()
   customerId: string;
 
-  @ManyToOne(() => Customer, customer => customer.documents)
+  @ManyToOne('Customer', 'documents')
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 

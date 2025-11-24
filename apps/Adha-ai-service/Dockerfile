@@ -40,7 +40,8 @@ COPY apps/Adha-ai-service/manage.py ./
 
 # Script d'entrée
 COPY apps/Adha-ai-service/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Créer un utilisateur non-root pour exécuter l'application
 RUN groupadd -r appgroup && \

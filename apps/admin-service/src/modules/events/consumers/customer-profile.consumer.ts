@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
 import { CustomersService } from '../../customers/services/customers.service';
 import { CustomersSyncService } from '../../customers/services/customers-sync.service';
@@ -21,7 +21,7 @@ import {
  * 
  * VERSION 2.1 - Résout tous les problèmes d'incompatibilité
  */
-@Injectable()
+@Controller()
 export class CustomerProfileConsumer {
   private readonly logger = new Logger(CustomerProfileConsumer.name);
 

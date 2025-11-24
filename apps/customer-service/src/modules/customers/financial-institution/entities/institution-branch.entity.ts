@@ -273,7 +273,7 @@ export class InstitutionBranchEntity {
     auditor: string;
     findings: string[];
     recommendations: string[];
-    status: string | 'conditional';
+    status: string;
     followUpDate?: string;
   }>;
 

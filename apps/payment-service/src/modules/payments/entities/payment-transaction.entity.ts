@@ -9,7 +9,7 @@ export interface PaymentMetadata {
   clientId?: string;
   contractId?: string;
   scheduleId?: string;
-  paymentType?: string | 'subscription' | 'token';
+  paymentType?: string;
   isFinancingPayment?: boolean;
   timestamp?: string;
   description?: string;

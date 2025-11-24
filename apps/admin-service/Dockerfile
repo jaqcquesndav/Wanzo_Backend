@@ -38,7 +38,7 @@ ENV PORT=3001 \
 
 # Health check ultra-léger
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD curl -f http://localhost:3001/v1/health || exit 1
 
 EXPOSE 3001
 
