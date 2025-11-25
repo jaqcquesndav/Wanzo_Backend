@@ -32,6 +32,7 @@ import { StripeSubscriptionPaymentController } from './controllers/stripe-subscr
 import { FeatureAccessGuard } from './guards/feature-access.guard';
 import { CustomerExtractorMiddleware } from './middleware/customer-extractor.middleware';
 import { KafkaModule } from '../kafka/kafka.module';
+import { SystemUsersModule } from '../system-users/system-users.module';
 import {
   FeatureUsageTracking, 
   CustomerFeatureLimit, 
@@ -74,6 +75,7 @@ import { Payment } from '../billing/entities/payment.entity';
       maxRedirects: 5,
     }),
     forwardRef(() => KafkaModule),
+    forwardRef(() => SystemUsersModule),
   ],
   controllers: [
     SubscriptionController,

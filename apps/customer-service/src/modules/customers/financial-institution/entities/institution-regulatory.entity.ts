@@ -15,12 +15,6 @@ import { InstitutionCoreEntity } from './institution-core.entity';
  * Gère les licences, certifications, audits et obligations légales
  */
 @Entity('institutions_regulatory')
-@Index(['institutionId'])
-@Index(['regulatorCode'])
-@Index(['complianceStatus'])
-@Index(['riskRating'])
-@Index(['lastAuditDate'])
-@Index(['nextReviewDate'])
 export class InstitutionRegulatoryEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

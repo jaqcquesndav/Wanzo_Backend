@@ -15,12 +15,6 @@ import { InstitutionCoreEntity } from './institution-core.entity';
  * Gère les points de service, géolocalisation et services par succursale
  */
 @Entity('institutions_branches')
-@Index(['institutionId'])
-@Index(['branchCode'], { unique: true })
-@Index(['type'])
-@Index(['status'])
-@Index(['city'])
-@Index(['openingDate'])
 export class InstitutionBranchEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -678,6 +678,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=gpt-4
       - OPENAI_MAX_TOKENS=1000
+      # Stripe Configuration (clé de test - obtenir une vraie clé sur https://dashboard.stripe.com/test/apikeys)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_changeme}
       # Encryption Configuration
       - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
@@ -720,6 +722,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=gpt-4
       - OPENAI_MAX_TOKENS=1000
+      # Stripe Configuration (clé de test - obtenir une vraie clé sur https://dashboard.stripe.com/test/apikeys)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_changeme}
       # Encryption Configuration
       - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     volumes:

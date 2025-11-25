@@ -46,12 +46,6 @@ export enum SectorType {
  * Nomenclature: Française (Source de vérité)
  */
 @Entity('institutions_core')
-@Index(['denominationSociale'], { unique: true })
-@Index(['numeroAgrement'], { unique: true })
-@Index(['numeroNIF'], { unique: true })
-@Index(['numeroRCCM'], { unique: true })
-@Index(['typeInstitution'])
-@Index(['paysOrigine'])
 export class InstitutionCoreEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

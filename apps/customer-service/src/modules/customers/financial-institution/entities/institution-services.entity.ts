@@ -15,13 +15,6 @@ import { InstitutionCoreEntity } from './institution-core.entity';
  * Gère les produits bancaires, tarifications et conditions d'accès
  */
 @Entity('institutions_services')
-@Index(['institutionId'])
-@Index(['serviceCode'], { unique: true })
-@Index(['category'])
-@Index(['type'])
-@Index(['status'])
-@Index(['launchDate'])
-@Index(['isActive'])
 export class InstitutionServicesEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

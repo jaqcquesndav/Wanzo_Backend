@@ -15,12 +15,6 @@ import { InstitutionCoreEntity } from './institution-core.entity';
  * Gère les dirigeants, conseil d'administration et structure organisationnelle
  */
 @Entity('institutions_leadership')
-@Index(['institutionId'])
-@Index(['role'])
-@Index(['level'])
-@Index(['status'])
-@Index(['appointmentDate'])
-@Index(['isCurrentPosition'])
 export class InstitutionLeadershipEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
