@@ -42,16 +42,18 @@ export class DashboardController {
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'dateRange', required: false, type: String })
   @ApiQuery({ name: 'timeZone', required: false, type: String })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getMainDashboardData(
     @Request() req: ExpressRequest,
     @Query() queryParams: DashboardQueryParamsDto
   ): Promise<DashboardCompleteDataDto> {
     this.validateUser(req);
-    if (!req.user!.companyId) {
+    // SuperAdmin can access dashboard without companyId
+    const companyId = req.user!.companyId || null;
+    if (!companyId && req.user!.role !== 'super_admin') {
       throw new UnauthorizedException('User missing company ID');
     }
-    return this.dashboardService.getMainDashboardData(req.user!.companyId, queryParams);
+    return this.dashboardService.getMainDashboardData(companyId, queryParams);
   }
 
   @Get('widgets/:widgetId')
@@ -59,7 +61,7 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'Widget data retrieved successfully.', type: WidgetResponseDto })
   @ApiParam({ name: 'widgetId', description: 'The ID of the widget to fetch data for' })
   @ApiQuery({ name: 'userId', required: false, description: 'Optional user ID if widget data is user-specific' })
-  @Roles(Role.Admin, Role.User)
+  @Roles(Role.SuperAdmin, Role.Admin, Role.User)
   async getWidgetData(
     @Param('widgetId') widgetId: string,
     @Request() req: ExpressRequest
@@ -71,7 +73,7 @@ export class DashboardController {
   @Get('configuration')
   @ApiOperation({ summary: 'Get user dashboard configuration' })
   @ApiResponse({ status: 200, description: 'Dashboard configuration retrieved successfully.', type: DashboardConfigurationDto })
-  @Roles(Role.Admin, Role.User)
+  @Roles(Role.SuperAdmin, Role.Admin, Role.User)
   async getDashboardConfiguration(
     @Request() req: ExpressRequest
   ): Promise<DashboardConfigurationDto> {
@@ -82,7 +84,7 @@ export class DashboardController {
   @Put('configuration')
   @ApiOperation({ summary: 'Update user dashboard configuration' })
   @ApiResponse({ status: 200, description: 'Dashboard configuration updated successfully.' })
-  @Roles(Role.Admin, Role.User)
+  @Roles(Role.SuperAdmin, Role.Admin, Role.User)
   async updateDashboardConfiguration(
     @Request() req: ExpressRequest,
     @Body() updateData: UpdateDashboardConfigurationDto
@@ -102,7 +104,7 @@ export class DashboardController {
   @ApiQuery({ name: 'period', required: false, type: String })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getSalesStatistics(
     @Request() req: ExpressRequest,
     @Query() query: any
@@ -119,7 +121,7 @@ export class DashboardController {
   @ApiResponse({ status: 200, description: 'User engagement statistics retrieved successfully.' })
   @ApiQuery({ name: 'metricType', required: false, type: String })
   @ApiQuery({ name: 'dateRange', required: false, type: String })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getUserEngagementStatistics(
     @Request() req: ExpressRequest,
     @Query() query: any
@@ -135,7 +137,7 @@ export class DashboardController {
   @Get('kpis')
   @ApiOperation({ summary: 'Get Key Performance Indicators' })
   @ApiResponse({ status: 200, description: 'KPIs retrieved successfully.', type: KpisDto })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getKpis(@Request() req: ExpressRequest): Promise<KpisDto> {
     this.validateUser(req);
     if (!req.user!.companyId) {
@@ -147,7 +149,7 @@ export class DashboardController {
   @Get('financial-summary')
   @ApiOperation({ summary: 'Get financial summary' })
   @ApiResponse({ status: 200, description: 'Financial summary retrieved successfully.', type: FinancialSummaryDto })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getFinancialSummary(@Request() req: ExpressRequest): Promise<FinancialSummaryDto> {
     this.validateUser(req);
     if (!req.user!.companyId) {
@@ -159,7 +161,7 @@ export class DashboardController {
   @Get('recent-activities')
   @ApiOperation({ summary: 'Get recent activities' })
   @ApiResponse({ status: 200, description: 'Recent activities retrieved successfully.', type: [RecentActivityDto] })
-  @Roles(Role.Admin, Role.User)
+  @Roles(Role.SuperAdmin, Role.Admin, Role.User)
   async getRecentActivities(@Request() req: ExpressRequest): Promise<RecentActivityDto[]> {
     this.validateUser(req);
     if (!req.user!.companyId) {
@@ -171,7 +173,7 @@ export class DashboardController {
   @Get('user-statistics')
   @ApiOperation({ summary: 'Get user statistics' })
   @ApiResponse({ status: 200, description: 'User statistics retrieved successfully.', type: UserStatisticDto })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getUserStatistics(@Request() req: ExpressRequest): Promise<UserStatisticDto> {
     this.validateUser(req);
     if (!req.user!.companyId) {
@@ -183,7 +185,7 @@ export class DashboardController {
   @Get('system-health')
   @ApiOperation({ summary: 'Get system health status' })
   @ApiResponse({ status: 200, description: 'System health status retrieved successfully.', type: SystemHealthDto })
-  @Roles(Role.Admin)
+  @Roles(Role.SuperAdmin, Role.Admin)
   async getSystemHealth(): Promise<SystemHealthDto> {
     return this.dashboardService.getSystemHealth();
   }
@@ -191,7 +193,7 @@ export class DashboardController {
   @Get('notifications')
   @ApiOperation({ summary: 'Get notifications' })
   @ApiResponse({ status: 200, description: 'Notifications retrieved successfully.', type: [NotificationDto] })
-  @Roles(Role.Admin, Role.User)
+  @Roles(Role.SuperAdmin, Role.Admin, Role.User)
   async getNotifications(@Request() req: ExpressRequest): Promise<NotificationDto[]> {
     this.validateUser(req);
     return this.dashboardService.getNotifications(req.user!.id);

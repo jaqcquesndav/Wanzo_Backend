@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CompanyCoreEntity as Company } from '../entities/company-core.entity';
+import { CustomerEventsProducer } from '../../../kafka/producers/customer-events.producer';
 import { 
   CreateCompanyDto, 
   UpdateCompanyDto, 
@@ -27,6 +28,7 @@ export class CompanyCoreService {
   constructor(
     @InjectRepository(Company)
     private readonly companyRepository: Repository<Company>,
+    private readonly customerEventsProducer: CustomerEventsProducer,
   ) {}
 
   /**
@@ -106,6 +108,9 @@ export class CompanyCoreService {
 
       const savedCompany = await this.companyRepository.save(company);
       
+      // Partager le profil avec admin-service via Kafka
+      await this.shareCompanyProfileWithAdminService(savedCompany);
+      
       return this.mapToCompanyResponseDto(savedCompany);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -136,6 +141,9 @@ export class CompanyCoreService {
       }
 
       const updatedCompany = await this.companyRepository.save(company);
+      
+      // Partager le profil mis à jour avec admin-service via Kafka
+      await this.shareCompanyProfileWithAdminService(updatedCompany);
       
       return this.mapToCompanyResponseDto(updatedCompany);
     } catch (error) {
@@ -527,5 +535,105 @@ export class CompanyCoreService {
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
     };
+  }
+
+  /**
+   * Partager le profil company avec admin-service via Kafka
+   */
+  private async shareCompanyProfileWithAdminService(company: Company): Promise<void> {
+    try {
+      // Récupérer le customer associé si disponible
+      const customer = company.customer;
+      
+      if (!customer) {
+        console.warn(`Company ${company.id} n'a pas de customer associé, skip Kafka share`);
+        return;
+      }
+
+      // Construire les données du profil company structuré
+      const companyProfile = {
+        registrationNumber: company.registrationNumber,
+        tradeName: company.tradeName,
+        incorporationDate: company.incorporationDate?.toISOString(),
+        legalForm: company.legalForm,
+        industry: company.sector,
+        size: this.calculateCompanySize(company.employeeCount),
+        sector: company.sector,
+        rccm: company.registrationNumber,
+        taxId: company.taxNumber,
+        address: {
+          street: company.address,
+          city: company.city,
+          province: company.province,
+          country: company.country,
+          postalCode: company.postalCode,
+        },
+        activities: {
+          primary: company.sector,
+          secondary: [],
+          details: company.activities || [],
+        },
+        capital: {
+          isApplicable: true,
+          authorized: company.authorizedCapital || 0,
+          paidUp: company.paidUpCapital || 0,
+          currency: company.capitalCurrency || 'CDF',
+          shares: {
+            total: 0,
+            value: 0,
+          },
+        },
+        financials: {
+          annualRevenue: 0,
+          revenueCurrency: company.capitalCurrency || 'CDF',
+          lastFinancialYear: new Date().getFullYear().toString(),
+          employeeCount: company.employeeCount || 0,
+        },
+        owner: company.owners?.[0] ? {
+          id: company.owners[0].id,
+          name: company.owners[0].name,
+          email: company.owners[0].contact?.email,
+          phone: company.owners[0].contact?.phone,
+        } : undefined,
+        associates: company.associates || [],
+        locations: company.locations || [],
+        contactPersons: company.contacts || [],
+        socialMedia: {
+          facebook: company.facebookPage,
+        },
+        yearFounded: company.incorporationDate?.getFullYear(),
+        employeeCount: company.employeeCount || 0,
+        lastVerifiedAt: new Date().toISOString(),
+      };
+
+      // Émettre l'événement Kafka
+      await this.customerEventsProducer.emitCompanyProfileShare({
+        customer: customer,
+        smeData: company,
+        extendedIdentification: undefined, // À compléter si disponible
+        assets: [], // À compléter avec assets si disponible
+        stocks: [], // À compléter avec stocks si disponible
+        financialData: {
+          totalAssetsValue: 0,
+          lastValuationDate: new Date().toISOString(),
+        },
+      });
+
+      console.log(`✓ Profil company ${company.id} partagé avec admin-service via Kafka`);
+    } catch (error) {
+      console.error(`Erreur lors du partage du profil company ${company.id}:`, error);
+      // Ne pas bloquer l'opération principale si Kafka échoue
+    }
+  }
+
+  /**
+   * Calculer la taille de l'entreprise basée sur le nombre d'employés
+   */
+  private calculateCompanySize(employeeCount?: number): string {
+    if (!employeeCount) return 'SMALL';
+    if (employeeCount < 10) return 'MICRO';
+    if (employeeCount < 50) return 'SMALL';
+    if (employeeCount < 250) return 'MEDIUM';
+    return 'LARGE';
   }
 }

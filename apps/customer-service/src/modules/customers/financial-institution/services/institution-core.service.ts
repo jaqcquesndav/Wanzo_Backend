@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 // Import des entités depuis le nouveau fichier
 import { InstitutionCoreEntity, InstitutionType as EntityInstitutionType } from '../entities/institution-core.entity';
+import { CustomerEventsProducer } from '../../../kafka/producers/customer-events.producer';
 import {
   CreateFinancialInstitutionDto,
   UpdateFinancialInstitutionDto,
@@ -20,6 +21,7 @@ export class InstitutionCoreService {
   constructor(
     @InjectRepository(InstitutionCoreEntity)
     private readonly institutionRepository: Repository<InstitutionCoreEntity>,
+    private readonly customerEventsProducer: CustomerEventsProducer,
   ) {}
 
   /**
@@ -123,6 +125,9 @@ export class InstitutionCoreService {
       // Sauvegarde en base
       const savedInstitution = await this.institutionRepository.save(institution);
       
+      // Partager le profil avec admin-service via Kafka
+      await this.shareInstitutionProfileWithAdminService(savedInstitution);
+      
       return this.mapToResponseDto(savedInstitution);
     } catch (error) {
       if ((error as Error).message.includes('déjà existant')) {
@@ -191,6 +196,10 @@ export class InstitutionCoreService {
       institution.updatedAt = new Date();
 
       const updatedInstitution = await this.institutionRepository.save(institution);
+      
+      // Partager le profil mis à jour avec admin-service via Kafka
+      await this.shareInstitutionProfileWithAdminService(updatedInstitution);
+      
       return this.mapToResponseDto(updatedInstitution);
     } catch (error) {
       if ((error as Error).message.includes('non trouvée')) {
@@ -461,5 +470,107 @@ export class InstitutionCoreService {
     byType: Record<string, number>;
   }> {
     return this.getInstitutionStatistics();
+  }
+
+  /**
+   * Partager le profil institution avec admin-service via Kafka
+   */
+  private async shareInstitutionProfileWithAdminService(institution: InstitutionCoreEntity): Promise<void> {
+    try {
+      // Récupérer le customer associé si disponible
+      const customer = institution.customer;
+      
+      if (!customer) {
+        console.warn(`Institution ${institution.id} n'a pas de customer associé, skip Kafka share`);
+        return;
+      }
+
+      // Construire les données du profil institution structuré v2.0
+      const institutionProfile = {
+        // Identification institutionnelle
+        denominationSociale: institution.denominationSociale,
+        sigle: institution.sigle,
+        typeInstitution: institution.typeInstitution,
+        sousCategorie: institution.sousCategorie,
+        dateCreation: institution.dateCreation?.toISOString(),
+        paysOrigine: institution.paysOrigine,
+        statutJuridique: institution.statutJuridique,
+        
+        // Informations réglementaires
+        autoritéSupervision: institution.autoritéSupervision,
+        numeroAgrement: institution.numeroAgrement,
+        dateAgrement: institution.dateAgrement?.toISOString(),
+        validiteAgrement: institution.validiteAgrement?.toISOString(),
+        numeroRCCM: institution.numeroRCCM,
+        numeroNIF: institution.numeroNIF,
+        
+        // Activités autorisées
+        activitesAutorisees: institution.activitesAutorisees || [],
+        
+        // Informations opérationnelles
+        siegeSocial: institution.siegeSocial,
+        nombreAgences: institution.nombreAgences,
+        villesProvincesCouvertes: institution.villesProvincesCouvertes || [],
+        presenceInternationale: institution.presenceInternationale,
+        
+        // Capacités financières
+        capitalSocialMinimum: institution.capitalSocialMinimum,
+        capitalSocialActuel: institution.capitalSocialActuel,
+        fondsPropresMontant: institution.fondsPropresMontant,
+        totalBilan: institution.totalBilan,
+        chiffreAffairesAnnuel: institution.chiffreAffairesAnnuel,
+        devise: institution.devise,
+        
+        // Clientèle et marché
+        segmentClientelePrincipal: institution.segmentClientelePrincipal,
+        nombreClientsActifs: institution.nombreClientsActifs,
+        portefeuilleCredit: institution.portefeuilleCredit,
+        depotsCollectes: institution.depotsCollectes,
+        
+        // Services offerts à Wanzo (v2.0)
+        servicesCredit: institution.servicesCredit || [],
+        servicesInvestissement: institution.servicesInvestissement || [],
+        servicesGarantie: institution.servicesGarantie || [],
+        servicesTransactionnels: institution.servicesTransactionnels || [],
+        servicesConseil: institution.servicesConseil || [],
+        
+        // Partenariat Wanzo (v2.0)
+        motivationPrincipale: institution.motivationPrincipale,
+        servicesPrioritaires: institution.servicesPrioritaires || [],
+        segmentsClienteleCibles: institution.segmentsClienteleCibles || [],
+        volumeAffairesEnvisage: institution.volumeAffairesEnvisage,
+        
+        // Conditions commerciales (v2.0)
+        grillesTarifaires: institution.grillesTarifaires,
+        conditionsPreferentielles: institution.conditionsPreferentielles,
+        delaisTraitement: institution.delaisTraitement,
+        criteresEligibilite: institution.criteresEligibilite,
+        
+        // Capacité d'engagement (v2.0)
+        montantMaximumDossier: institution.montantMaximumDossier,
+        enveloppeGlobale: institution.enveloppeGlobale,
+        secteursActivitePrivilegies: institution.secteursActivitePrivilegies || [],
+        zonesGeographiquesPrioritaires: institution.zonesGeographiquesPrioritaires || [],
+        
+        // Documents (v2.0)
+        documentsLegaux: institution.documentsLegaux || [],
+        documentsFinanciers: institution.documentsFinanciers || [],
+        documentsOperationnels: institution.documentsOperationnels || [],
+        documentsCompliance: institution.documentsCompliance || [],
+      };
+
+      // Émettre l'événement Kafka
+      await this.customerEventsProducer.emitInstitutionProfileShare({
+        customer: customer,
+        financialData: institution,
+        regulatoryData: undefined, // À compléter si disponible
+        performanceMetrics: undefined, // À compléter si disponible
+      });
+
+      console.log(`✓ Profil institution ${institution.id} partagé avec admin-service via Kafka`);
+    } catch (error) {
+      console.error(`Erreur lors du partage du profil institution ${institution.id}:`, error);
+      // Ne pas bloquer l'opération principale si Kafka échoue
+    }
   }
 }

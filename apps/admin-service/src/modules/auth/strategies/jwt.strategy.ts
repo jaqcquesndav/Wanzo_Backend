@@ -48,9 +48,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           rateLimit: true,
           jwksRequestsPerMinute: 5,
           jwksUri: `https://${domain}/.well-known/jwks.json`,
+          handleSigningKeyError: (err, cb) => {
+            console.error('JWKS signing key error:', err);
+            cb(err);
+          },
         }),
         issuer: `https://${domain}/`,
         audience: audience,
+        algorithms: ['RS256'],
         passReqToCallback: true,
       };
       // Pas d'appel this.logger avant super()
@@ -70,7 +75,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(req: any, payload: any): Promise<Record<string, any>> {
     this.logger.log(`🔍 Starting JWT validation for admin user: ${payload?.sub || 'UNKNOWN'}`);
-    this.logger.debug(`📋 JWT PAYLOAD: ${JSON.stringify(payload)}`);
+    this.logger.log(`📋 JWT PAYLOAD FULL: ${JSON.stringify(payload, null, 2)}`);
+    this.logger.log(`📋 JWT ROLE from https://wanzo.com/role: ${payload['https://wanzo.com/role']}`);
+    this.logger.log(`📋 JWT ROLE from payload.role: ${payload.role}`);
     
     // Note: Pas de blacklist pour les admins Wanzo - la révocation se fait au niveau Auth0
     
@@ -159,13 +166,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     await this.userRepository.save(user);
 
     const permissions = payload.permissions || [];
+    
+    // Extraire le rôle depuis le JWT payload (Auth0 custom claims)
+    // Auth0 peut mettre le rôle dans plusieurs endroits selon la configuration
+    let jwtRole = payload['https://wanzo.com/role'] || 
+                  payload.role || 
+                  payload[`${process.env.AUTH0_NAMESPACE}/roles`]?.[0];
+    
+    // Si pas de rôle dans le JWT, déduire depuis les permissions
+    if (!jwtRole && permissions.includes('admin:full')) {
+      jwtRole = 'super_admin';
+      this.logger.log(`🎯 Inferred role 'super_admin' from 'admin:full' permission for ${user.email}`);
+    }
+    
+    // Fallback sur le rôle de la DB si toujours pas de rôle
+    const finalRole = jwtRole || user.role;
+    
+    this.logger.log(`👤 User ${user.email} - DB role: ${user.role}, JWT role: ${jwtRole}, Final role: ${finalRole}`);
 
     return {
       id: user.id,
       auth0Id: payload.sub,
       email: user.email,
       name: user.name,
-      role: user.role,
+      role: finalRole,
       userType: user.userType,
       permissions: permissions,
       // organizationId: user.organizationId,

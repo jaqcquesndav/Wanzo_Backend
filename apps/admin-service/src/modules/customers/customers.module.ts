@@ -6,6 +6,7 @@ import { extname } from 'path';
 import { AdminCustomerProfilesController } from './controllers/admin-customer-profiles.controller';
 import { ValidationController } from './controllers/validation.controller';
 import { DocumentsController } from './controllers/documents.controller';
+import { CustomerDataConsumer } from './consumers/customer-data.consumer';
 import { CustomersService } from './services';
 import { ValidationService } from './services/validation.service';
 import { CustomerProfileWorkflowService } from './services/customer-profile-workflow.service';
@@ -54,7 +55,8 @@ import { EventsModule } from '../events/events.module';
   controllers: [
     AdminCustomerProfilesController, 
     ValidationController, 
-    DocumentsController
+    DocumentsController,
+    CustomerDataConsumer  // Consumer Kafka pour sync inter-services
   ],
   providers: [
     CustomersService, 

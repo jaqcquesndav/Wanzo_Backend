@@ -508,8 +508,8 @@ export class ProxyController {
     }
     
     try {
-      // Extract path after 'admin/api/v1' (same pattern as accounting service)
-      const targetPath = path.replace('/admin/api/v1', '');
+      // Extract path after 'admin/api' and keep '/v1' for admin service versioning
+      const targetPath = path.replace('/admin/api', '');
       
       const adminServiceUrl = this.configService.get('ADMIN_SERVICE_URL', 'http://kiota-admin-service-dev:3001');
       const targetUrl = `${adminServiceUrl}${targetPath}`;

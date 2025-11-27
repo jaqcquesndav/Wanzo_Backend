@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Import du module shared
 import { SharedCustomerModule } from '../shared/shared-customer.module';
+import { KafkaModule } from '../../kafka/kafka.module';
 
 // Entities spécifiques aux institutions financières
 import { InstitutionCoreEntity } from './entities/institution-core.entity';
@@ -16,8 +17,10 @@ import { Customer } from '../entities/customer.entity';
 
 // Services Institution
 import { InstitutionService } from './services/institution.service';
+import { InstitutionCoreService } from './services/institution-core.service';
 
 // Controllers
+import { InstitutionCoreController } from './controllers/institution-core.controller';
 // import { InstitutionController } from './controllers/institution.controller'; // TODO: Create InstitutionController
 
 /**
@@ -28,6 +31,7 @@ import { InstitutionService } from './services/institution.service';
   imports: [
     // Import du module shared pour accéder aux services partagés
     SharedCustomerModule,
+    forwardRef(() => KafkaModule),
     
     // Entities spécifiques aux institutions financières
     TypeOrmModule.forFeature([
@@ -41,12 +45,15 @@ import { InstitutionService } from './services/institution.service';
   ],
   providers: [
     InstitutionService,
+    InstitutionCoreService,
   ],
   controllers: [
+    InstitutionCoreController,
     // InstitutionController, // TODO: Create InstitutionController
   ],
   exports: [
     InstitutionService,
+    InstitutionCoreService,
     TypeOrmModule,
   ],
 })
