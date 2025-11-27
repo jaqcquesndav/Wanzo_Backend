@@ -59,14 +59,14 @@ export class PortfolioService {
     }
 
     if (filters.dateFrom && filters.dateTo) {
-      queryBuilder.andWhere('p.createdAt BETWEEN :dateFrom AND :dateTo', { 
+      queryBuilder.andWhere('p.created_at BETWEEN :dateFrom AND :dateTo', { 
         dateFrom: new Date(filters.dateFrom), 
         dateTo: new Date(filters.dateTo) 
       });
     } else if (filters.dateFrom) {
-      queryBuilder.andWhere('p.createdAt >= :dateFrom', { dateFrom: new Date(filters.dateFrom) });
+      queryBuilder.andWhere('p.created_at >= :dateFrom', { dateFrom: new Date(filters.dateFrom) });
     } else if (filters.dateTo) {
-      queryBuilder.andWhere('p.createdAt <= :dateTo', { dateTo: new Date(filters.dateTo) });
+      queryBuilder.andWhere('p.created_at <= :dateTo', { dateTo: new Date(filters.dateTo) });
     }
 
     if (filters.search) {
@@ -78,7 +78,7 @@ export class PortfolioService {
     if (filters.sortBy && filters.sortOrder) {
       queryBuilder.orderBy(`p.${filters.sortBy}`, filters.sortOrder.toUpperCase() as 'ASC' | 'DESC');
     } else {
-      queryBuilder.orderBy('p.createdAt', 'DESC');
+      queryBuilder.orderBy('p.created_at', 'DESC');
     }
 
     const [portfolios, total] = await queryBuilder

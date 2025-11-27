@@ -153,13 +153,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
           console.log(`📧 Creating user (first location) with email: "${payload.email}"`);
           
+          // Déterminer le rôle depuis le JWT ou par défaut
+          const jwtRole = payload['https://wanzo.com/role'];
+          let userRole = UserRole.VIEWER;
+          
+          if (jwtRole === 'super_admin') {
+            userRole = UserRole.SUPERADMIN;
+            this.logger.log(`👑 Super admin detected from JWT role`);
+          } else if (existingUsers === 0) {
+            userRole = UserRole.ADMIN;
+          }
+          
           user = this.userRepository.create({
             auth0Id,
             email: payload.email || 'no-email@wanzo.com', // Fallback email
             firstName: payload.given_name || 'User',
             lastName: payload.family_name || '',
             profilePicture: payload.picture,
-            role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
+            role: userRole,
             organizationId: companyId,
           });
           await this.userRepository.save(user);
@@ -176,13 +187,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         console.log(`👤 Creating user with firstName: "${payload.given_name}"`);
         console.log(`🏷️ Creating user with lastName: "${payload.family_name}"`);
 
+        // Déterminer le rôle depuis le JWT ou par défaut
+        const jwtRole = payload['https://wanzo.com/role'];
+        let userRole = UserRole.VIEWER;
+        
+        if (jwtRole === 'super_admin') {
+          userRole = UserRole.SUPERADMIN;
+          this.logger.log(`👑 Super admin detected from JWT role`);
+        } else if (existingUsers === 0) {
+          userRole = UserRole.ADMIN;
+        }
+
         user = this.userRepository.create({
           auth0Id,
           email: payload.email || 'no-email@wanzo.com', // Fallback email
           firstName: payload.given_name || 'User',
           lastName: payload.family_name || '',
           profilePicture: payload.picture,
-          role: existingUsers === 0 ? UserRole.ADMIN : UserRole.VIEWER,
+          role: userRole,
           organizationId: companyId,
         });
         await this.userRepository.save(user);

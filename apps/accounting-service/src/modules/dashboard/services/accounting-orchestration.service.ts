@@ -257,13 +257,13 @@ export class AccountingOrchestrationService {
 
   private async getCurrentFiscalYear(companyId?: string): Promise<FiscalYear | null> {
     const now = new Date();
-    return await this.fiscalYearRepository.findOne({
-      where: {
-        companyId,
-        startDate: { $lte: now } as any,
-        endDate: { $gte: now } as any,
-      },
-    });
+    const fiscalYear = await this.fiscalYearRepository
+      .createQueryBuilder('fiscalYear')
+      .where('fiscalYear.companyId = :companyId', { companyId })
+      .andWhere('fiscalYear.startDate <= :now', { now })
+      .andWhere('fiscalYear.endDate >= :now', { now })
+      .getOne();
+    return fiscalYear;
   }
 
   private getDateRange(filters: DashboardFilterDto, fiscalYear?: FiscalYear | null): { startDate: Date; endDate: Date } {

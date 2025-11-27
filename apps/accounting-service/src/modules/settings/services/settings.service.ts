@@ -43,6 +43,106 @@ export class SettingsService {
     @Optional() private readonly eventsService: EventsService,
   ) {}
 
+  /**
+   * Get default settings for super admin or users without valid organization
+   * @returns Default settings structure
+   */
+  async getDefaultSettings(): Promise<SettingsDto> {
+    return {
+      general: {
+        language: 'fr',
+        dateFormat: 'DD/MM/YYYY',
+        timezone: 'Africa/Kinshasa',
+        theme: 'light',
+        baseCurrency: 'CDF',
+        displayCurrency: 'CDF',
+        exchangeRates: {},
+      },
+      accounting: {
+        defaultJournal: '',
+        autoNumbering: true,
+        voucherPrefix: 'V',
+        fiscalYearPattern: 'YYYY',
+        accountingFramework: 'OHADA',
+        defaultDepreciationMethod: DepreciationMethod.LINEAR,
+        defaultVatRate: 18,
+        journalEntryValidation: JournalEntryValidation.MANUAL,
+        accountingLevels: [],
+      },
+      security: {
+        twoFactorEnabled: false,
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireNumbers: true,
+          requireSymbols: true,
+        },
+        sessionTimeout: 3600,
+        auditLogRetention: 90,
+      },
+      notifications: {
+        journal_validation: {
+          email: false,
+          browser: false,
+        },
+        report_generation: {
+          email: false,
+          browser: false,
+        },
+        user_mention: {
+          email: false,
+          browser: false,
+        },
+      },
+      integrations: {
+        googleDrive: {
+          enabled: false,
+        },
+        ksPay: {
+          enabled: false,
+          apiKey: '',
+        },
+        slack: {
+          enabled: false,
+        },
+        portfolioIntegration: {
+          enabled: false,
+          portfolioTypes: [],
+          automaticValuation: false,
+          valuationFrequency: 'monthly',
+          currencyConversion: false,
+        },
+        dataSharing: {
+          banks: false,
+          microfinance: false,
+          coopec: false,
+          analysts: false,
+          partners: false,
+          consentGiven: false,
+        },
+        dataSources: {
+          sources: []
+        },
+        bankIntegrations: [],
+        eInvoicing: {
+          provider: 'dgi_congo',
+          enabled: false,
+          taxpayerNumber: '',
+          autoSubmit: false,
+          validateBeforeSubmit: true,
+          syncInvoices: false
+        },
+        taxIntegration: {
+          dgiEnabled: false,
+          taxpayerNumber: '',
+          autoCalculateTax: false,
+          declarationFrequency: 'monthly',
+          taxRates: []
+        },
+      },
+    };
+  }
+
   async getAllSettings(companyId: string, userId: string): Promise<SettingsDto> {
     const accountingSettings = await this.getOrCreateAccountingSettings(companyId);
     const userSettings = await this.getOrCreateUserSettings(userId);

@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export enum UserRole {
+  SUPERADMIN = 'super_admin', // Super administrateur Wanzo (accès total à tous les services)
   ADMIN = 'admin',           // Administrateur complet
   ACCOUNTANT = 'accountant', // Comptable avec accès complet
   MANAGER = 'manager',       // Gérant avec accès complet sans suppression

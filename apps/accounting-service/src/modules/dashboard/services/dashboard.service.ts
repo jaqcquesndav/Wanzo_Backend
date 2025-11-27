@@ -21,6 +21,55 @@ export class DashboardService {
     // private treasuryService: TreasuryService,
   ) {}
 
+  /**
+   * Retourne des données de dashboard par défaut pour super admin ou organisation invalide
+   */
+  async getDefaultDashboardData(): Promise<any> {
+    return {
+      financialPosition: {
+        balanceSheet: {
+          totalAssets: 0,
+          totalLiabilities: 0,
+          totalEquity: 0,
+          netAssets: 0,
+        },
+        ratios: {
+          currentRatio: 0,
+          debtEquityRatio: 0,
+          workingCapital: 0,
+        },
+      },
+      profitAndLoss: {
+        current: {
+          revenue: 0,
+          expenses: 0,
+          grossProfit: 0,
+          netProfit: 0,
+          profitMargin: 0,
+        },
+        comparison: null,
+      },
+      cashPosition: {
+        totalCash: 0,
+        cashOnHand: 0,
+        bankBalance: 0,
+      },
+      taxSummary: {
+        totalTaxDue: 0,
+        totalTaxPaid: 0,
+        upcomingDeadlines: [],
+      },
+      topAccounts: [],
+      recentTransactions: [],
+      metrics: {
+        syscohadaCompliance: 0,
+        balanceSheetAccuracy: 0,
+        totalTransactions: 0,
+        activeAccounts: 0,
+      },
+    };
+  }
+
   async getDashboardData(filters: DashboardFilterDto): Promise<any> {
     this.logger.debug(`Getting dashboard data for fiscal year ${filters.fiscalYearId}`);
 

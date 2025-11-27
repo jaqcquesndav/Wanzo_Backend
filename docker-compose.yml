@@ -336,6 +336,13 @@ services:
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=accounting_service
       - KAFKA_BROKERS=kafka:29092
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CLIENT_ID=23zGhr9Kr1TP4mTU7AvlPqgeV0cA09j2
+      - AUTH0_CLIENT_SECRET=U8j2Nb2ZFOLZZuPTji9HwAZQWgtdmy5dbfY4XMKLvN6YDJ3YThBrHMM1wcHNw1lN
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       # ML Service Configuration for XGBoost Credit Scoring
       - ML_SERVICE_URL=http://xgboost-service:5000
       - ML_SERVICE_API_KEY=${ML_SERVICE_API_KEY}
@@ -501,7 +508,7 @@ services:
       - KAFKA_BROKERS=kafka:29092
       # Auth0 Configuration
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
-      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_AUDIENCE=https://dev-tezmln0tk0g1gouf.eu.auth0.com/api/v2/
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
       - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
       # Encryption Configuration
@@ -510,7 +517,7 @@ services:
       - ./apps/portfolio-institution-service/src:/app/apps/portfolio-institution-service/src
       - ./packages/shared/src:/app/packages/shared/src
       - /app/apps/portfolio-institution-service/node_modules # Anonymous volume
-    command: yarn start:dev
+    command: yarn workspace @kiota-suit/portfolio-institution-service dev
     depends_on:
       - postgres
       - kafka

@@ -26,14 +26,22 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year (default: current fiscal year)' })
   async getDashboard(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string, role: string } }
   ): Promise<{ success: boolean, data: DashboardResponseDto }> {
+    // Handle super admin or invalid organizationId
+    if (req.user.role === 'super_admin' || !req.user.organizationId || req.user.organizationId === 'default-company') {
+      return {
+        success: true,
+        data: await this.dashboardService.getDefaultDashboardData()
+      };
+    }
+    
     const dashboardData = await this.dashboardService.getDashboardData({
       period: filterDto.period,
       fiscalYearId: filterDto.fiscalYearId,
       // Nous utilisons companyId ici pour le service, mais ce n'est pas dans le DTO public
       // Ce paramètre sera géré en interne
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {
@@ -54,11 +62,11 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
   async getQuickStats(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string } }
   ) {
     const quickStats = await this.dashboardService.getQuickStats({
       fiscalYearId: filterDto.fiscalYearId,
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {
@@ -79,11 +87,11 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
   async getFinancialRatios(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string } }
   ) {
     const ratios = await this.dashboardService.getFinancialRatios({
       fiscalYearId: filterDto.fiscalYearId,
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {
@@ -104,11 +112,11 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
   async getKeyPerformanceIndicators(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string } }
   ) {
     const kpis = await this.dashboardService.getKeyPerformanceIndicators({
       fiscalYearId: filterDto.fiscalYearId,
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {
@@ -132,14 +140,14 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
   async getRevenueData(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string } }
   ) {
     const revenueData = await this.dashboardService.getRevenueData({
       startDate: filterDto.startDate,
       endDate: filterDto.endDate,
       period: filterDto.period,
       fiscalYearId: filterDto.fiscalYearId,
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {
@@ -162,13 +170,13 @@ export class DashboardController {
   @ApiQuery({ name: 'fiscalYearId', required: false, description: 'ID of the fiscal year' })
   async getExpensesData(
     @Query() filterDto: DashboardFilterDto,
-    @Request() req: ExpressRequest & { user: { companyId: string } }
+    @Request() req: ExpressRequest & { user: { organizationId: string } }
   ) {
     const expensesData = await this.dashboardService.getExpensesData({
       startDate: filterDto.startDate,
       endDate: filterDto.endDate,
       fiscalYearId: filterDto.fiscalYearId,
-      companyId: req.user.companyId
+      companyId: req.user.organizationId
     } as any);
     
     return {

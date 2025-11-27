@@ -21,6 +21,10 @@ import { KafkaClientModule, PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from 
   ],
   exports: [
     EventsService,
+    KafkaClientModule, // Export the module instead of the token
   ],
 })
 export class EventsModule {}
+
+// Re-export the constant for external use
+export { PORTFOLIO_INSTITUTION_KAFKA_PRODUCER_SERVICE } from './kafka-client.module';

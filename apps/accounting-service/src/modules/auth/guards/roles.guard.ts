@@ -18,6 +18,12 @@ export class RolesGuard implements CanActivate {
     console.log('🔐 ROLES GUARD - User:', user);
     console.log('🔐 ROLES GUARD - User role:', user?.role);
     
+    // SUPERADMIN a toujours accès (comme dans admin-service)
+    if (user?.role === 'super_admin') {
+      console.log('🔐 ROLES GUARD - SUPERADMIN access granted');
+      return true;
+    }
+    
     const hasRole = requiredRoles.includes(user.role);
     console.log('🔐 ROLES GUARD - Has required role:', hasRole);
     

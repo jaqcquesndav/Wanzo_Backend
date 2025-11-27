@@ -21,7 +21,19 @@ export class OrganizationController {
   @Get()
   @ApiOperation({ summary: "Obtenir les Informations de l'Organisation" })
   @ApiResponse({ status: 200, description: "Retourne les informations de l'organisation connectée", type: Organization })
-  async getOrganization(@Request() req: ExpressRequest & { user: { organizationId: string } }): Promise<any> {
+  async getOrganization(@Request() req: ExpressRequest & { user: { organizationId: string; role: string } }): Promise<any> {
+    // Pour les super admins qui n'ont pas d'organisation réelle
+    if (!req.user.organizationId || req.user.organizationId === 'default-company') {
+      return {
+        success: true,
+        data: {
+          id: null,
+          name: 'Wanzo Administration',
+          message: 'Super admin account - No organization required'
+        }
+      };
+    }
+    
     const organization = await this.organizationService.findById(req.user.organizationId);
     return {
       success: true,

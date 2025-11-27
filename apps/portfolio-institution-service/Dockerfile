@@ -14,6 +14,7 @@ COPY packages/ ./packages/
 
 # Code source du service SEULEMENT
 COPY *.d.ts ./
+COPY apps/portfolio-institution-service/package.json ./apps/portfolio-institution-service/
 COPY apps/portfolio-institution-service/src ./apps/portfolio-institution-service/src/
 COPY apps/portfolio-institution-service/tsconfig*.json ./apps/portfolio-institution-service/
 COPY apps/portfolio-institution-service/nest-cli.json ./apps/portfolio-institution-service/
