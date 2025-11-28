@@ -102,7 +102,7 @@ export class SaleItem {
     example: 'USD',
     nullable: true
   })
-  @Column({ name: 'currency_code', nullable: true, default: 'CDF' })
+  @Column({ type: 'varchar', length: 3, name: 'currency_code', nullable: true, default: 'CDF' })
   currencyCode: string | null;
 
   @ApiProperty({

@@ -26,7 +26,7 @@ export class Sale {
     example: 'SALE-2025-0001',
     nullable: true
   })
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   localId: string | null;
 
   @ApiProperty({

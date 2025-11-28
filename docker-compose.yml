@@ -111,6 +111,7 @@ services:
       - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service:3001
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service:3006
+      - COMMERCE_SERVICE_URL=http://kiota-gestion-commerciale-service:3006
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
       - CUSTOMER_SERVICE_URL=http://kiota-customer-service:3011
       - PROMETHEUS_PORT=9464
@@ -160,6 +161,7 @@ services:
       - ACCOUNTING_SERVICE_URL=http://kiota-accounting-service-dev:3001
       - PORTFOLIO_INSTITUTION_SERVICE_URL=http://kiota-portfolio-institution-service-dev:3005
       - GESTION_COMMERCIALE_SERVICE_URL=http://kiota-gestion-commerciale-service-dev:3006
+      - COMMERCE_SERVICE_URL=http://kiota-gestion-commerciale-service-dev:3006
       - ADHA_AI_SERVICE_URL=http://kiota-adha-ai-service:8002
       - CUSTOMER_SERVICE_URL=http://kiota-customer-service-dev:3011
       # Encryption Configuration
@@ -543,20 +545,25 @@ services:
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=gestion_commerciale_service
+      - KAFKA_BROKER=kafka:29092
       - KAFKA_BROKERS=kafka:29092
       - KAFKA_CLIENT_ID=gestion-commerciale-service
       - KAFKA_GROUP_ID=gestion-commerciale-service-group
       - PROMETHEUS_PORT=9464
-      # Auth0 Configuration
+      # Auth0 Configuration (Mobile App)
       - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
       - AUTH0_AUDIENCE=https://api.wanzo.com
-      - AUTH0_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
-      - AUTH0_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
-      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_MOBILE_CLIENT_ID=PIukJBLfFwQI7slecXaVED61b7ya8IPC
       - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
-      # Auth0 M2M Configuration
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # Auth0 M2M Configuration (for service-to-service)
       - AUTH0_M2M_CLIENT_ID=dsgwiRH7Y2diqygL2GKO893Ptc7KpG5N
       - AUTH0_M2M_CLIENT_SECRET=oYj1rF1Nr78WaRXQK5Pt9tO0uWQuZyCWdXvGMbnlnw9lVj8RBHq0PofxJqlJevKr
+      # Cloudinary Configuration (for mobile uploads)
+      - CLOUDINARY_CLOUD_NAME=daxvxdecv
+      - CLOUDINARY_API_KEY=971324775265349
+      - CLOUDINARY_API_SECRET=OU6JCRH32wxDxQh5KsrnXX6Zsxo
+      - CLOUDINARY_UPLOAD_PRESET=ml_default
       # Encryption Configuration
       - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
     env_file:
@@ -584,19 +591,40 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3006
+      # Database Configuration (using both naming conventions)
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
       - DB_DATABASE=gestion_commerciale_service
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=d2487a19465f468aa0bdfb7e04c35579
+      - DATABASE_NAME=gestion_commerciale_service
+      # Kafka Configuration
+      - KAFKA_BROKER=kafka:29092
       - KAFKA_BROKERS=kafka:29092
+      # Auth0 Configuration (Mobile App)
+      - AUTH0_DOMAIN=dev-tezmln0tk0g1gouf.eu.auth0.com
+      - AUTH0_MOBILE_CLIENT_ID=PIukJBLfFwQI7slecXaVED61b7ya8IPC
+      - AUTH0_AUDIENCE=https://api.wanzo.com
+      - AUTH0_CERTIFICATE_PATH=./auth0-certificate.pem
+      - AUTH0_NAMESPACE=dev-tezmln0tk0g1gouf.eu.auth0.com
+      # Cloudinary Configuration (for mobile uploads)
+      - CLOUDINARY_CLOUD_NAME=daxvxdecv
+      - CLOUDINARY_API_KEY=971324775265349
+      - CLOUDINARY_API_SECRET=OU6JCRH32wxDxQh5KsrnXX6Zsxo
+      - CLOUDINARY_UPLOAD_PRESET=ml_default
       # Encryption Configuration
       - ENCRYPTION_SECRET_KEY=6FketZDIaxXjbissbTwN9mTpeXRjDLLvflbUBnHDqPU=
+    env_file:
+      - ./apps/gestion_commerciale_service/.env
     volumes:
       - ./apps/gestion_commerciale_service/src:/app/apps/gestion_commerciale_service/src
       - ./packages/shared/src:/app/packages/shared/src
       - /app/apps/gestion_commerciale_service/node_modules # Anonymous volume
-    command: yarn start:dev
+    command: yarn workspace @wanzobe/gestion-commerciale-service dev
     depends_on:
       - postgres
       - kafka

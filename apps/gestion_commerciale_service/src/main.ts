@@ -17,22 +17,23 @@ async function bootstrap() {
   // If it also needs to consume events, the same connection can be used,
   // and specific consumer setup will be in the relevant modules/controllers.
   const configService = app.get(ConfigService); // Get ConfigService instance
-  const baseKafkaConfig = getKafkaConfig(configService);
-  const kafkaConfig: MicroserviceOptions = {
-    ...baseKafkaConfig,
+  
+  // Configure and connect Kafka consumer for gestion-commerciale-service
+  const kafkaConsumerOptions = getKafkaConfig(configService); // Get base config
+  app.connectMicroservice<MicroserviceOptions>({
+    ...kafkaConsumerOptions, // Spread base config (transport and options)
     options: {
-      ...baseKafkaConfig.options,
+      ...kafkaConsumerOptions.options!,
       client: {
-        ...(baseKafkaConfig.options?.client || {}),
-        clientId: 'app-mobile-service-client', // Set specific client ID
-        // Ensure brokers are also correctly sourced
-        brokers: (baseKafkaConfig.options?.client?.brokers && baseKafkaConfig.options.client.brokers.length > 0) 
-                 ? baseKafkaConfig.options.client.brokers 
-                 : [configService.get<string>('KAFKA_BROKER', 'localhost:9092')],
+        ...kafkaConsumerOptions.options!.client!,
+        clientId: 'gestion-commerciale-service-consumer', // Specific client ID
+      },
+      consumer: {
+        ...kafkaConsumerOptions.options!.consumer!,
+        groupId: 'gestion-commerciale-consumer-group', // Specific consumer group ID
       },
     },
-  };
-  app.connectMicroservice<MicroserviceOptions>(kafkaConfig);
+  });
 
   // Enable Helmet for security headers
   app.use(helmet());

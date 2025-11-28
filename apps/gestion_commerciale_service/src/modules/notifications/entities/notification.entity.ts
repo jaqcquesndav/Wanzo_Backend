@@ -74,7 +74,7 @@ export class Notification {
     required: false,
     nullable: true
   })
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   actionRoute: string | null;
 
   @ApiProperty({ 

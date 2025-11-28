@@ -4,7 +4,7 @@ Cette documentation décrit la structure des URLs et les endpoints disponibles p
 
 ## Informations générales
 
-- **Base URL (via API Gateway)**: `http://localhost:8000/commerce/api/v1`
+- **Base URL (via API Gateway)**: `http://192.168.1.66:8000/commerce/api/v1`
 - **Port API Gateway**: 8000
 - **Port Microservice Gestion Commerciale**: 3006 (accès direct interne uniquement)
 - **Service Kafka Client ID**: `app-mobile-service-client`

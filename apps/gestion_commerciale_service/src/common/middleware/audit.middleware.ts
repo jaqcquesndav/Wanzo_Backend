@@ -51,7 +51,7 @@ export class AuditMiddleware implements NestMiddleware {
     
     const logLevel = status >= 400 ? 'warn' : 'log';
     
-    this[logLevel](
+    this.logger[logLevel](
       `RÉPONSE | User: ${user} | ${method} ${url} | Status: ${status} | Durée: ${duration}ms`
     );
   }
